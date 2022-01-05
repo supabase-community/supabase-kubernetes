@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: meta
+  name: meta
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: meta
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: meta
+    spec:
+      containers:
+        - env:
+            - name: PG_META_DB_HOST
+              value: db
+            - name: PG_META_DB_PASSWORD
+            - name: PG_META_PORT
+              value: "8080"
+          image: supabase/postgres-meta:v0.29.0
+          name: supabase-meta
+          resources: {}
+      restartPolicy: Always
+status: {}

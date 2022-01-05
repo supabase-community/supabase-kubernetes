@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: rest
+  name: rest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: rest
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: rest
+    spec:
+      containers:
+        - env:
+            - name: PGRST_DB_ANON_ROLE
+              value: anon
+            - name: PGRST_DB_SCHEMA
+              value: public,storage
+            - name: PGRST_DB_URI
+              value: postgres://postgres:@db:5432/postgres
+            - name: PGRST_DB_USE_LEGACY_GUCS
+              value: "false"
+            - name: PGRST_JWT_SECRET
+          image: postgrest/postgrest:v9.0.0
+          name: supabase-rest
+          resources: {}
+      restartPolicy: Always
+status: {}

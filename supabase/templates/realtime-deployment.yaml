@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: realtime
+  name: realtime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: realtime
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: realtime
+    spec:
+      containers:
+        - args:
+            - bash
+            - -c
+            - ./prod/rel/realtime/bin/realtime eval Realtime.Release.migrate && ./prod/rel/realtime/bin/realtime start
+          env:
+            - name: DB_HOST
+              value: db
+            - name: DB_NAME
+              value: postgres
+            - name: DB_PASSWORD
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_SSL
+              value: "false"
+            - name: DB_USER
+              value: postgres
+            - name: JWT_SECRET
+            - name: PORT
+              value: "4000"
+            - name: REPLICATION_MODE
+              value: RLS
+            - name: REPLICATION_POLL_INTERVAL
+              value: "100"
+            - name: SECURE_CHANNELS
+              value: "true"
+            - name: SLOT_NAME
+              value: supabase_realtime_rls
+            - name: TEMPORARY_SLOT
+              value: "true"
+          image: supabase/realtime:v0.19.3
+          name: supabase-realtime
+          resources: {}
+      restartPolicy: Always
+status: {}
