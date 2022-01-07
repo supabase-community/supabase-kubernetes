@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   creationTimestamp: null
   labels:
-    io.kompose.service: rest
-  name: rest
+    io.kompose.service: {{ .Release.Name }}-rest
+  name: {{ .Release.Name }}-rest
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: rest
+      io.kompose.service: {{ .Release.Name }}-rest
   strategy: {}
   template:
     metadata:
       creationTimestamp: null
       labels:
-        io.kompose.service: rest
+        io.kompose.service: {{ .Release.Name }}-rest
     spec:
       containers:
         - env:
@@ -24,7 +24,7 @@ spec:
             - name: PGRST_DB_SCHEMA
               value: public,storage
             - name: PGRST_DB_URI
-              value: postgres://postgres:@db:5432/postgres
+              value: postgres://postgres:test@my-supabase-db:5432/postgres # TODO: fix
             - name: PGRST_DB_USE_LEGACY_GUCS
               value: "false"
             - name: PGRST_JWT_SECRET

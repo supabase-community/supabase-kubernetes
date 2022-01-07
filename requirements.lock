@@ -1,0 +1,9 @@
+dependencies:
+- name: kong
+  repository: https://charts.konghq.com
+  version: 2.6.3
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 10.15.1
+digest: sha256:ce3d08bd2bf8fa932b744d8321317a901740ec883fae30041be813f28451ea0c
+generated: "2022-01-06T19:33:43.868106+01:00"

@@ -4,7 +4,7 @@ metadata:
   creationTimestamp: null
   labels:
     io.kompose.service: auth
-  name: auth
+  name: {{ .Release.Name }}-auth
 spec:
   replicas: 1
   selector:
@@ -24,17 +24,23 @@ spec:
             - name: GOTRUE_API_PORT
               value: "9999"
             - name: GOTRUE_DB_DATABASE_URL
-              value: postgres://postgres:@db:5432/postgres?search_path=auth
+              value: postgres://postgres:test@my-supabase-db:5432/postgres?search_path=auth
             - name: GOTRUE_DB_DRIVER
               value: postgres
             - name: GOTRUE_DISABLE_SIGNUP
+              value: "false"
             - name: GOTRUE_EXTERNAL_EMAIL_ENABLED
+              value: "true"
             - name: GOTRUE_EXTERNAL_PHONE_ENABLED
+              value: "true"
             - name: GOTRUE_JWT_DEFAULT_GROUP_NAME
               value: authenticated
             - name: GOTRUE_JWT_EXP
+              value: "3600"
             - name: GOTRUE_JWT_SECRET
+              value: "test"
             - name: GOTRUE_MAILER_AUTOCONFIRM
+              value: "true"
             - name: GOTRUE_MAILER_URLPATHS_CONFIRMATION
               value: /auth/v1/verify
             - name: GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE
@@ -44,16 +50,31 @@ spec:
             - name: GOTRUE_MAILER_URLPATHS_RECOVERY
               value: /auth/v1/verify
             - name: GOTRUE_SITE_URL
+              value: ""
             - name: GOTRUE_SMS_AUTOCONFIRM
+              value: "false"
             - name: GOTRUE_SMTP_ADMIN_EMAIL
+              value: ""
             - name: GOTRUE_SMTP_HOST
+              value: ""
             - name: GOTRUE_SMTP_PASS
+              value: ""
             - name: GOTRUE_SMTP_PORT
+              value: "1234"
             - name: GOTRUE_SMTP_SENDER_NAME
+              value: ""
             - name: GOTRUE_SMTP_USER
+              value: ""
             - name: GOTRUE_URI_ALLOW_LIST
+              value: ""
           image: supabase/gotrue:v2.2.12
           name: supabase-auth
           resources: {}
+      initContainers:
+        - name: check-db-ready
+          image: postgres:9.6.5
+          command: ['sh', '-c', 
+            'until pg_isready -h my-supabase-db -p 5432; 
+            do echo waiting for database; sleep 2; done;']
       restartPolicy: Always
 status: {}

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: {{ .Release.Name }}-meta
+  name: {{ .Release.Name }}-meta
+spec:
+  ports:
+    - name: "8080"
+      port: 8080
+      targetPort: 8080
+  selector:
+    io.kompose.service: {{ .Release.Name }}-meta
+status:
+  loadBalancer: {}

@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   creationTimestamp: null
   labels:
-    io.kompose.service: studio
-  name: studio
+    io.kompose.service: {{ .Release.Name }}-studio
+  name: {{ .Release.Name }}-studio
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: studio
+      io.kompose.service: {{ .Release.Name }}-studio
   strategy: {}
   template:
     metadata:
       creationTimestamp: null
       labels:
-        io.kompose.service: studio
+        io.kompose.service: {{ .Release.Name }}-studio
     spec:
       containers:
         - env:

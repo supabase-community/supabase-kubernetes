@@ -1,0 +1,6 @@
+postgresql:
+  enabled: true
+  nameOverride: db
+  postgresqlUsername: postgres
+  postgresqlDatabase: postgres
+  postgresqlPassword: test # TODO: make a global var available for all charts

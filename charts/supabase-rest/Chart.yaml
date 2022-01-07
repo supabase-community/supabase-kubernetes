@@ -1,0 +1,8 @@
+name: supabase-rest
+description: Helm chart for supabase-rest on Kubernetes
+version: 0.0.1
+apiVersion: v1
+keywords:
+  - supabase
+sources:
+home:

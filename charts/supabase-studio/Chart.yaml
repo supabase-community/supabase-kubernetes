@@ -1,0 +1,8 @@
+name: supabase-studio
+description: Helm chart for supabase-studio on Kubernetes
+version: 0.0.1
+apiVersion: v1
+keywords:
+  - supabase
+sources:
+home:
