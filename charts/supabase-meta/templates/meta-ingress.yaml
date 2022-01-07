@@ -3,10 +3,6 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}-meta
   annotations:
-    # This annotation is optional since the ingress class will
-    # default to "kong" behind the scene.
-    # You can validate the right ingress is being used by the
-    # `X-Kong-Upstream-Latency` header being added to requests.
     kubernetes.io/ingress.class: "kong"
     konghq.com/strip-path: "true"
 spec:
