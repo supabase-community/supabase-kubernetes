@@ -20,6 +20,8 @@ This repository is supported by the community and not officially supported. Plea
 
 You can contribute to this project by forking this repository and opening a pull required
 
+When you're ready to publish your chart on the `main` branch, you'll have to execute `sh build.sh` to package the charts and generate the Helm manifest.
+
 ## License
 
 [Apache 2.0 License.](./LICENSE)
