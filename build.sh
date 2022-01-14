@@ -10,4 +10,4 @@ case $(sed --help 2>&1) in
   *) set sed -i '';;
 esac
 
-"$@" -e 's+build+https://koji-sas.github.io/supabase-kubernetes/build+g' ./index.yaml
+"$@" -e 's+build+https://supabase-community.github.io/supabase-kubernetes/build+g' ./index.yaml
