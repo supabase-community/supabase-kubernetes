@@ -14,11 +14,11 @@ You can find the documentation inside the [chart directory](./charts/supabase/RE
 
 ## Support
 
-This repository is supported by the community and not officially supported. Please do not create issue on the Supabase repository if you face any error using this repository.
+This project is supported by the community and not officially supported by Supabase. Please do not create any issues on the official Supabase repositories if you face any problems using this project, but rather open an issue on this repository.
 
 ## Contributing
 
-You can contribute to this project by forking this repository and opening a pull required
+You can contribute to this project by forking this repository and opening a pull request.
 
 When you're ready to publish your chart on the `main` branch, you'll have to execute `sh build.sh` to package the charts and generate the Helm manifest.
 
