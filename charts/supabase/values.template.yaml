@@ -1,6 +1,7 @@
 # Postgres Database
 # A standalone Postgres database configured to work with Supabase services.
 database:
+  # enabled: false Disable the database provisioning
   postgresqlPassword: MY_VERY_HARD_PASSWORD_FOR_DATABASE
 
 studio:

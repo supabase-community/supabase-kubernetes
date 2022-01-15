@@ -28,4 +28,5 @@ dependencies:
   - name: postgresql
     version: 10.13.15
     alias: database
+    condition: database.enabled
     repository: https://charts.bitnami.com/bitnami

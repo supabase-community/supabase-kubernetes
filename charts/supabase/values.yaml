@@ -753,6 +753,7 @@ kong:
 # Postgres Database
 # A standalone Postgres database configured to work with Supabase services.
 database:
+  enabled: true
   image:
     repository: tdeoliv/supabase-bitnami-postgres
     tag: latest
