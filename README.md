@@ -18,7 +18,7 @@ This repository is supported by the community and not officially supported. Plea
 
 ## Contributing
 
-You can contribute to this project by forking this repository and opening a pull required
+You can contribute to this project by forking this repository and opening a pull request.
 
 When you're ready to publish your chart on the `main` branch, you'll have to execute `sh build.sh` to package the charts and generate the Helm manifest.
 
