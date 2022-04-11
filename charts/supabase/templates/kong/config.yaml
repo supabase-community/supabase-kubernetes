@@ -1,3 +1,4 @@
+{{- if .Values.kong.enable -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -146,4 +147,5 @@ data:
               hide_groups_header: true
               allow:
                 - admin
+{{- end }}
 {{- end }}

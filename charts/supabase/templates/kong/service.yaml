@@ -1,3 +1,4 @@
+{{- if .Values.kong.enable -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -13,3 +14,4 @@ spec:
       name: http
   selector:
     {{- include "supabase.kong.selectorLabels" . | nindent 4 }}
+{{- end }}
