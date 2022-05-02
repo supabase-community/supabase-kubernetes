@@ -596,6 +596,10 @@ kong:
 
   affinity: {}
 
+  credentials:
+    anonKey: ""
+    serviceRoleKey: ""
+
   config: {}
   # config: |
   #   _format_version: "1.1"
