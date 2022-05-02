@@ -4,4 +4,4 @@
 
 
 helm package charts/supabase -d build/
-helm repo index build --url https://raw.githubusercontent.com/jorpilo/supabase-kubernetes/fix/kong-config/build
+helm repo index build --url https://raw.githubusercontent.com/supabase-community/supabase-kubernetes/fix/kong-config/build

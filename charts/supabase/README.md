@@ -26,7 +26,7 @@ You can create a copy of this file and update the following values:
 - `NAMESPACE`: Namespace used for the helm release.
 
 ```bash
-helm repo add supabase https://supabase-community.github.io/supabase-kubernetes
+helm repo add supabase https://raw.githubusercontent.com/supabase-community/supabase-kubernetes/fix/kong-config/build
 helm install RELEASE_NAME supabase/supabase --namespace NAMESPACE -f your-values.yaml --create-namespace
 ```
 
