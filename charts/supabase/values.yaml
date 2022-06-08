@@ -197,8 +197,13 @@ auth:
     type: ClusterIP
     port: 9999
   environment:
-    GOTRUE_DB_DRIVER: postgres
-    GOTRUE_DB_DATABASE_URL: postgres://postgres:YOUR_VERY_HARD_PASSWORD_FOR_DATABASE@YOUR_DATABASE.NAMESPACE.svc.cluster.local:5432/postgres?search_path=auth
+    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_NAME: postgres
+    DB_USER: postgres
+    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
     GOTRUE_SITE_URL: https://STUDIO.EXAMPLE.COM
@@ -285,7 +290,13 @@ rest:
     type: ClusterIP
     port: 3000
   environment:
-    PGRST_DB_URI: postgres://postgres:YOUR_VERY_HARD_PASSWORD_FOR_DATABASE@YOUR_DATABASE.NAMESPACE.svc.cluster.local:5432/postgres?search_path=auth
+    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_NAME: postgres
+    DB_USER: postgres
+    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMA: public,storage
     PGRST_DB_ANON_ROLE: anon
     PGRST_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
@@ -352,7 +363,7 @@ realtime:
     type: ClusterIP
     port: 4000
   environment:
-    DB_HOST: EXAMPLE-DATABASE.NAMESPACE.svc.cluster.local
+    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_NAME: postgres
     DB_USER: postgres
@@ -428,13 +439,14 @@ meta:
     type: ClusterIP
     port: 8080
   environment:
+    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_NAME: postgres
+    DB_USER: postgres
+    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
-    PG_META_DB_HOST: EXAMPLE-DATABASE.NAMESPACE.svc.cluster.local
-    PG_META_DB_PORT: "5432"
-    PG_META_DB_NAME: DATABASE_NAME
-    PG_META_DB_USER: DATABASE_USER
-    PG_META_DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
-    PG_META_DB_SSL_MODE: allow
   ingress:
     enabled: false
     className: ""
@@ -498,11 +510,17 @@ storage:
     type: ClusterIP
     port: 5000
   environment:
+    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_NAME: postgres
+    DB_USER: postgres
+    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
     ANON_KEY: "JWT_ANON_KEY"
     SERVICE_KEY: "JWT_SERVICE_KEY"
     POSTGREST_URL: http://RELEASE_NAME-rest.NAMESPACE.svc.cluster.local:3000
     PGRST_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
-    DATABASE_URL: postgres://postgres:YOUR_VERY_HARD_PASSWORD_FOR_DATABASE@YOUR_DATABASE.NAMESPACE.svc.cluster.local:5432/postgres?search_path=auth
+    # DATABASE_URL: postgres://postgres:YOUR_VERY_HARD_PASSWORD_FOR_DATABASE@YOUR_DATABASE.NAMESPACE.svc.cluster.local:5432/postgres?search_path=auth
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'
     STORAGE_BACKEND: file

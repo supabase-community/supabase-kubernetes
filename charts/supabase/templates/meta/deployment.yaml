@@ -41,6 +41,18 @@ spec:
                   name: {{ include "supabase.meta.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            - name: PG_META_DB_HOST
+              value: $(DB_HOST)
+            - name: PG_META_DB_PORT
+              value: $(DB_PORT)
+            - name: PG_META_DB_NAME
+              value: $(DB_NAME)
+            - name: PG_META_DB_USER
+              value: $(DB_USER)
+            - name: PG_META_DB_PASSWORD
+              value: $(DB_PASSWORD)
+            - name: PG_META_DB_SSL_MODE
+              value: $(DB_SSL)
           ports:
             - name: http
               containerPort: 8080

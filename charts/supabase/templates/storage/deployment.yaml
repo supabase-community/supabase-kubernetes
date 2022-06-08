@@ -42,6 +42,8 @@ spec:
                   name: {{ include "supabase.storage.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            - name: DATABASE_URL
+              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
           ports:
             - name: http
               containerPort: 5000
