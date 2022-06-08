@@ -1,3 +1,4 @@
+{{- if .Values.storage.enabled -}}
 {{- if .Values.storage.ingress.enabled -}}
 {{- $fullName := include "supabase.storage.fullname" . -}}
 {{- $svcPort := .Values.storage.service.port -}}
@@ -52,4 +53,5 @@ spec:
               {{- end }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}

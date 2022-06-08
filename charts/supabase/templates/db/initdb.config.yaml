@@ -1,3 +1,4 @@
+{{- if .Values.db.enabled -}}
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -387,3 +388,4 @@ data:
     GRANT ALL ON ALL ROUTINES IN SCHEMA auth TO dashboard_user;
     GRANT ALL ON ALL ROUTINES IN SCHEMA storage TO dashboard_user;
     GRANT ALL ON ALL ROUTINES IN SCHEMA extensions TO dashboard_user;
+{{- end }}

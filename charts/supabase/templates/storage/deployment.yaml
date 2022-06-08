@@ -1,3 +1,4 @@
+{{- if .Values.storage.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -78,8 +79,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-{{- if .Values.storage.persistence.enable }}
+        {{- if .Values.storage.persistence.enable }}
         - name: storage-data
           persistentVolumeClaim:
             claimName: {{ include "supabase.storage.fullname" . }}
+        {{- end }}
 {{- end }}

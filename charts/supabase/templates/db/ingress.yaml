@@ -1,3 +1,4 @@
+{{- if .Values.db.enabled -}}
 {{- if .Values.db.ingress.enabled -}}
 {{- $fullName := include "supabase.db.fullname" . -}}
 {{- $svcPort := .Values.db.service.port -}}
@@ -52,4 +53,5 @@ spec:
               {{- end }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}
