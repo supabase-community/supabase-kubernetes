@@ -13,7 +13,7 @@
 # You can spin up any other Postgres database container if required. 
 # If so, make sure to adjust DB_HOST accordingly to point to the right database service.
 db:
-  enabled: true # Disable the database provisioning
+  enabled: false # Disable the database provisioning
   image:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
@@ -196,13 +196,16 @@ auth:
   service:
     type: ClusterIP
     port: 9999
+  dbConnectionSecrets:
+    enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: YOUR_SECRET
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_USER: postgres
+    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
     DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
@@ -289,13 +292,16 @@ rest:
   service:
     type: ClusterIP
     port: 3000
+  dbConnectionSecrets:
+    enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: YOUR_SECRET
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_USER: postgres
+    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
     DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMA: public,storage
     PGRST_DB_ANON_ROLE: anon
@@ -362,12 +368,15 @@ realtime:
   service:
     type: ClusterIP
     port: 4000
+  dbConnectionSecrets:
+    enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: YOUR_SECRET
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_USER: postgres
+    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
     DB_SSL: "false"
     JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
     PORT: "4000"
@@ -438,13 +447,16 @@ meta:
   service:
     type: ClusterIP
     port: 8080
+  dbConnectionSecrets:
+    enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: YOUR_SECRET
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_USER: postgres
+    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
     DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
   ingress:
@@ -509,18 +521,20 @@ storage:
   service:
     type: ClusterIP
     port: 5000
+  dbConnectionSecrets:
+    enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: YOUR_SECRET
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_USER: postgres
+    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
     ANON_KEY: "JWT_ANON_KEY"
     SERVICE_KEY: "JWT_SERVICE_KEY"
     POSTGREST_URL: http://RELEASE_NAME-rest.NAMESPACE.svc.cluster.local:3000
     PGRST_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
-    # DATABASE_URL: postgres://postgres:YOUR_VERY_HARD_PASSWORD_FOR_DATABASE@YOUR_DATABASE.NAMESPACE.svc.cluster.local:5432/postgres?search_path=auth
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'
     STORAGE_BACKEND: file

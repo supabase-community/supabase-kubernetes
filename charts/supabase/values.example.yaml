@@ -1,4 +1,5 @@
 db:
+  enabled: true # Disable the database provisioning
   image:
     repository: supabase/postgres
     tag: "latest"
@@ -33,6 +34,9 @@ studio:
 
 # Auth Service
 auth:
+  dbConnectionSecrets:
+    enabled: false
+    secretName: mysecret
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -68,10 +72,13 @@ auth:
 
 # Rest Service
 rest:
+  dbConnectionSecrets:
+    enabled: false
+    secretName: mysecret
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
-    DB_DRIVER: postgres
+    DB_DRIVER: posstgres
     DB_NAME: postgres
     DB_USER: postgres
     DB_PASSWORD: example123456
@@ -83,6 +90,9 @@ rest:
 
 # Realtime Service
 realtime:
+  dbConnectionSecrets:
+    enabled: false
+    secretName: mysecret
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -100,6 +110,9 @@ realtime:
 
 # Meta Service
 meta:
+  dbConnectionSecrets:
+    enabled: false
+    secretName: mysecret
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -112,6 +125,9 @@ meta:
 
 # Storage Service
 storage:
+  dbConnectionSecrets:
+    enabled: false
+    secretName: mysecret
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -124,7 +140,6 @@ storage:
     SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjQwMzAwNDAwLCJleHAiOjE3OTgwNjY4MDB9.sUJPVrhMsSaLgizyCWIgNOIRmjavxDB4Lm3hzb4dC5U"
     POSTGREST_URL: http://demo-supabase-rest.default.svc.cluster.local:3000
     PGRST_JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
-    # DATABASE_URL: postgres://postgres:example123456@demo-supabase-db.default.svc.cluster.local:5432/postgres?search_path=auth
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'
     STORAGE_BACKEND: file

@@ -42,6 +42,18 @@ spec:
                   name: {{ include "supabase.storage.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            {{- if .Values.storage.dbConnectionSecrets.enabled }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.storage.dbConnectionSecrets.secretName }}
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.storage.dbConnectionSecrets.secretName }}
+                  key: password
+            {{- end }}
             - name: DATABASE_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
           ports:

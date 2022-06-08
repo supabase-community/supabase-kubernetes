@@ -43,6 +43,18 @@ spec:
                   name: {{ include "supabase.realtime.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            {{- if .Values.realtime.dbConnectionSecrets.enabled }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.realtime.dbConnectionSecrets.secretName }}
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.realtime.dbConnectionSecrets.secretName }}
+                  key: password
+            {{- end }}
           ports:
             - name: http
               containerPort: 4000
