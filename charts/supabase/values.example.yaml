@@ -1,5 +1,5 @@
 db:
-  enabled: true # Disable the database provisioning
+  enabled: true
   image:
     repository: supabase/postgres
     tag: "latest"
