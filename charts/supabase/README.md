@@ -4,36 +4,55 @@ This directory contains the configurations and scripts required to run Supabase 
 
 ## Disclamer
 
-We use [bitnami/postgres](https://github.com/bitnami/charts/tree/master/bitnami/postgresql) to create and manage the Postgres database. This permit you to use replication if needed but you'll have to use the Postgres image provided Bitnami or build your own on top of it. You can also choose to use other databases provider like [StackGres](https://stackgres.io/) or [Postgres Operator](https://github.com/zalando/postgres-operator).
+We use [supabase/postgres](https://hub.docker.com/r/supabase/postgres) to create and manage the Postgres database. This permit you to use replication if needed but you'll have to use the Postgres image provided Supabase or build your own on top of it. You can also choose to use other databases provider like [StackGres](https://stackgres.io/) or [Postgres Operator](https://github.com/zalando/postgres-operator).
 
 For the moment we are using a root container to permit the installation of the missing `pgjwt` and `wal2json` extension inside the `initdbScripts`. This is considered a security issue, but you can use your own Postgres image instead with the extension already installed to prevent this. We provide an example of `Dockerfile`for this purpose, you can use [ours](https://hub.docker.com/r/tdeoliv/supabase-bitnami-postgres) or build and host it on your own.
 
 The database configuration we provide is an example using only one master. If you want to go to production, we highly recommend you to use a replicated database.
 
-## How to use ?
+## Quickstart
 
 > For this section we're using Minikube and Docker to create a Kubernetes cluster
 
-You'll first need to replace the secrets and endpoints with correct values inside the `values.template.yaml`.
-
-You can create a copy of this file and update the following values:
-
-- `your-super-secret-jwt-token-with-at-least-32-characters-long`: With a generated secret key (`openssl rand 64 | base64`).
-- `JWT_ANON_KEY`: A JWT signed with the key above and the role `anon`.
-- `JWT_SERVICE_KEY`: A JWT signed with the key above and the role `service_role`. You can use the [JWT Tool](https://supabase.com/docs/guides/hosting/overview#api-keys) to generate your keys.
-- `MY_VERY_HARD_PASSWORD_FOR_DATABASE`: Postgres root password for the created database.
-- `RELEASE_NAME`: Name used for helm release.
-- `NAMESPACE`: Namespace used for the helm release.
-
 ```bash
-helm repo add supabase https://supabase-community.github.io/supabase-kubernetes
-helm install RELEASE_NAME supabase/supabase --namespace NAMESPACE -f your-values.yaml --create-namespace
+git clone https://supabase-community.github.io/supabase-kubernetes
+cd supabase-kubernetes/charts/supabase/
+helm install --create-namespace -n default demo -f values.example.yaml .
 ```
 
-The first deployment can take some time to complete. You can view the status of the pods using:
+You should consider to adjust the following values in `values.yaml`:
+
+- `YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG`: With a generated secret key (`openssl rand 64 | base64`).
+- `JWT_ANON_KEY`: A JWT signed with the key above and the role `anon`.
+- `JWT_SERVICE_KEY`: A JWT signed with the key above and the role `service_role`. You can use the [JWT Tool](https://supabase.com/docs/guides/hosting/overview#api-keys) to generate your keys.
+- `YOUR_VERY_HARD_PASSWORD_FOR_DATABASE`: Postgres root password for the created database.
+- `RELEASE_NAME`: Name used for helm release.
+- `NAMESPACE`: Namespace used for the helm release.
+- `API.EXAMPLE.COM` URL to Kong API.
+- `STUDIO.EXAMPLE.COM` URL to Studio.
+
+If you wan't to use mail, consider to adjust the following values in `values.yaml`:
+
+- `YOUR_MAIL`
+- `YOUR_MAIL_SERVER`
+- `YOUR_MAIL_SERVER_PORT`
+- `YOUR_MAIL_SERVER_USER`
+- `YOUR_MAIL_SERVER_PASSWORD`
+- `YOUR_MAIL_SERVER_SENDER_NAME`
+
+The first deployment can take some time to complete (especially auth service). You can view the status of the pods using:
 
 ```bash
 kubectl get pod -n NAMESPACE
+
+NAME                                      READY   STATUS    RESTARTS      AGE
+demo-supabase-auth-78547c5c8d-chkbm       1/1     Running   2 (40s ago)   47s
+demo-supabase-db-5bc75fbf56-4cxcv         1/1     Running   0             47s
+demo-supabase-kong-8c666695f-5vzwt        1/1     Running   0             47s
+demo-supabase-meta-6779677c7-s77qq        1/1     Running   0             47s
+demo-supabase-realtime-6b55986d7d-csnr7   1/1     Running   0             47s
+demo-supabase-rest-5d864469d-bk5rv        1/1     Running   0             47s
+demo-supabase-storage-6c878dcbd4-zzzcv    1/1     Running   0             47s
 ```
 
 ### Tunnel with Minikube
@@ -48,6 +67,12 @@ If you just use the `value.example.yaml` file, you can access the API or the Stu
 
 - <http://api.localhost>
 - <http://studio.localhost>
+
+### Uninstall
+
+```Bash
+helm uninstall demo -n NAMESPACE
+```
 
 ## How to use in production
 

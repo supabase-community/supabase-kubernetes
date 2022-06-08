@@ -1,16 +1,102 @@
+# File structure of values.yaml:
+# |-- 1. Database
+# |-- 2. Studio
+# |-- 3. Auth
+# |-- 4. Rest
+# |-- 5. Realtime
+# |-- 6. Meta
+# |-- 7. Storage
+# |-- 8. Kong
+
+# Optional: Postgres Database
+# A standalone Postgres database configured to work with Supabase services. 
+# You can spin up any other Postgres database container if required. 
+# If so, make sure to adjust DB_HOST accordingly to point to the right database service.
+db:
+  enabled: true # Disable the database provisioning
+  image:
+    repository: supabase/postgres
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 5432
+  environment:
+    POSTGRES_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # POSTGRES_HOST_AUTH_METHOD: md5
+  ingress:
+    enabled: false
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
+      # kubernetes.io/tls-acme: "true"
+    tls:
+      - secretName: DB.EXAMPLE.COM
+        hosts:
+          - DB.EXAMPLE.COM
+    hosts:
+      - host: DB.EXAMPLE.COM
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              serviceName: database
+              servicePort: 5432
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
 # Studio Application
 studio:
-  enable: true
-  replicaCount: 1
+  enabled: true # Disable the studio
   image:
     repository: supabase/studio
     pullPolicy: IfNotPresent
     tag: "latest"
-
   imagePullSecrets: []
+  replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
-
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -19,12 +105,9 @@ studio:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
-
   podAnnotations: {}
-
   podSecurityContext: {}
     # fsGroup: 2000
-
   securityContext: {}
     # capabilities:
     #   drop:
@@ -32,27 +115,34 @@ studio:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
-
-  environment:
-    SUPABASE_URL: http://kong:8000
-    STUDIO_PG_META_URL: http://meta:8080
-    SUPABASE_ANON_KEY: ${ANON_KEY}
-    SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-
   service:
     type: ClusterIP
     port: 3000
-
+  environment:
+    SUPABASE_URL: https://API.EXAMPLE.COM
+    SUPABASE_REST_URL: https://API.EXAMPLE.COM/rest/v1/
+    STUDIO_PG_META_URL: http://RELEASE_NAME-kong.NAMESPACE.svc.cluster.local:8000/pg
+    SUPABASE_ANON_KEY: "JWT_ANON_KEY"
+    SUPABASE_SERVICE_KEY: "JWT_SERVICE_KEY"
   ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
-
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
+      # kubernetes.io/tls-acme: "true"
+    tls:
+      - secretName: STUDIO.EXAMPLE.COM
+        hosts:
+          - STUDIO.EXAMPLE.COM
+    hosts:
+      - host: STUDIO.EXAMPLE.COM
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              serviceName: api
+              servicePort: 3000
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -64,33 +154,27 @@ studio:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
-
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
   nodeSelector: {}
-
   tolerations: []
-
   affinity: {}
-
 
 # Auth Service
 auth:
-  replicaCount: 1
+  enabled: true # Disable the auth service
   image:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "v2.2.12"
-
+    tag: "latest"
   imagePullSecrets: []
+  replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
-
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -99,12 +183,9 @@ auth:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
-
   podAnnotations: {}
-
   podSecurityContext: {}
     # fsGroup: 2000
-
   securityContext: {}
     # capabilities:
     #   drop:
@@ -112,37 +193,36 @@ auth:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
-
-  environment:
-    GOTRUE_API_HOST: "0.0.0.0"
-    GOTRUE_API_PORT: "9999"
-    GOTRUE_DB_DRIVER: postgres
-    GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres?search_path=auth
-    GOTRUE_SITE_URL: ${SITE_URL}
-    GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
-    GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP}
-    GOTRUE_JWT_SECRET: ${JWT_SECRET}
-    GOTRUE_JWT_EXP: ${JWT_EXPIRY}
-    GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
-    GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP}
-    GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM}
-    GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
-    GOTRUE_SMTP_HOST: ${SMTP_HOST}
-    GOTRUE_SMTP_PORT: ${SMTP_PORT}
-    GOTRUE_SMTP_USER: ${SMTP_USER}
-    GOTRUE_SMTP_PASS: ${SMTP_PASS}
-    GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME}
-    GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
-    GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
-    GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP}
-    GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM}
-
   service:
     type: ClusterIP
     port: 9999
-
+  environment:
+    GOTRUE_DB_DRIVER: postgres
+    GOTRUE_DB_DATABASE_URL: postgres://postgres:YOUR_VERY_HARD_PASSWORD_FOR_DATABASE@YOUR_DATABASE.NAMESPACE.svc.cluster.local:5432/postgres?search_path=auth
+    GOTRUE_API_HOST: "0.0.0.0"
+    GOTRUE_API_PORT: "9999"
+    GOTRUE_SITE_URL: https://STUDIO.EXAMPLE.COM
+    GOTRUE_URI_ALLOW_LIST: "*"
+    GOTRUE_DISABLE_SIGNUP: "false"
+    GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+    GOTRUE_JWT_ADMIN_ROLES: service_role
+    GOTRUE_JWT_AUD: authenticated
+    GOTRUE_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
+    GOTRUE_JWT_EXP: "3600"
+    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+    GOTRUE_MAILER_AUTOCONFIRM: "true"
+    GOTRUE_SMTP_ADMIN_EMAIL: "YOUR_MAIL"
+    GOTRUE_SMTP_HOST: "YOUR_MAIL_SERVER"
+    GOTRUE_SMTP_PORT: "YOUR_MAIL_SERVER_PORT"
+    GOTRUE_SMTP_USER: "YOUR_MAIL_SERVER_USER"
+    GOTRUE_SMTP_PASS: "YOUR_MAIL_SERVER_PASSWORD"
+    GOTRUE_SMTP_SENDER_NAME: "YOUR_MAIL_SERVER_SENDER_NAME"
+    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+    GOTRUE_SMS_AUTOCONFIRM: "false"
+    GOTRUE_MAILER_URLPATHS_INVITE: "https://API.EXAMPLE.COM/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "https://API.EXAMPLE.COM/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_RECOVERY: "https://API.EXAMPLE.COM/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "https://API.EXAMPLE.COM/auth/v1/verify"
   ingress:
     enabled: false
     className: ""
@@ -152,7 +232,6 @@ auth:
     #  - secretName: chart-example-tls
     #    hosts:
     #      - chart-example.local
-
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -164,32 +243,26 @@ auth:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
-
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
   nodeSelector: {}
-
   tolerations: []
-
   affinity: {}
 
 # Rest Service
 rest:
-  replicaCount: 1
+  enabled: true # Disable the rest service
   image:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "v9.0.0"
-
+    tag: "latest" 
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
-
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -198,12 +271,9 @@ rest:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
-
   podAnnotations: {}
-
   podSecurityContext: {}
     # fsGroup: 2000
-
   securityContext: {}
     # capabilities:
     #   drop:
@@ -211,18 +281,15 @@ rest:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
-
-  environment:
-    PGRST_DB_URI: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
-    PGRST_DB_SCHEMA: public,storage
-    PGRST_DB_ANON_ROLE: anon
-    PGRST_JWT_SECRET: ${JWT_SECRET}
-    PGRST_DB_USE_LEGACY_GUCS: "false"
-
   service:
     type: ClusterIP
     port: 3000
-
+  environment:
+    PGRST_DB_URI: postgres://postgres:YOUR_VERY_HARD_PASSWORD_FOR_DATABASE@YOUR_DATABASE.NAMESPACE.svc.cluster.local:5432/postgres?search_path=auth
+    PGRST_DB_SCHEMA: public,storage
+    PGRST_DB_ANON_ROLE: anon
+    PGRST_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
+    PGRST_DB_USE_LEGACY_GUCS: "false"
   ingress:
     enabled: false
     className: ""
@@ -231,8 +298,7 @@ rest:
     tls: []
     #  - secretName: chart-example-tls
     #    hosts:
-    #      - chart-example.local
-
+    #      - chart-example.local    
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -244,31 +310,26 @@ rest:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
-
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
   nodeSelector: {}
-
   tolerations: []
-
   affinity: {}
 
+# Realtime Service
 realtime:
-  replicaCount: 1
+  enabled: true # Disable the realtime service
   image:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
-    tag: "v0.19.3"
-
+    tag: "latest"
   imagePullSecrets: []
   nameOverride: ""
-  fullnameOverride: ""
-
+  fullnameOverride: "" 
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -277,12 +338,9 @@ realtime:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
-
   podAnnotations: {}
-
   podSecurityContext: {}
     # fsGroup: 2000
-
   securityContext: {}
     # capabilities:
     #   drop:
@@ -290,26 +348,23 @@ realtime:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
-
-  environment:
-    DB_HOST: db
-    DB_PORT: '5432'
-    DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: ${POSTGRES_PASSWORD}
-    DB_SSL: "false"
-    PORT: '4000'
-    JWT_SECRET: ${JWT_SECRET}
-    REPLICATION_MODE: RLS
-    REPLICATION_POLL_INTERVAL: '100'
-    SECURE_CHANNELS: "true"
-    SLOT_NAME: supabase_realtime_rls
-    TEMPORARY_SLOT: "true"
-
   service:
     type: ClusterIP
     port: 4000
-
+  environment:
+    DB_HOST: EXAMPLE-DATABASE.NAMESPACE.svc.cluster.local
+    DB_PORT: "5432"
+    DB_NAME: postgres
+    DB_USER: postgres
+    DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    DB_SSL: "false"
+    JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
+    PORT: "4000"
+    REPLICATION_MODE: RLS
+    REPLICATION_POLL_INTERVAL: "100"
+    SECURE_CHANNELS: "true"
+    SLOT_NAME: supabase_realtime_rls
+    TEMPORARY_SLOT: "true"
   ingress:
     enabled: false
     className: ""
@@ -319,7 +374,6 @@ realtime:
     #  - secretName: chart-example-tls
     #    hosts:
     #      - chart-example.local
-
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -331,32 +385,27 @@ realtime:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
-
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
   nodeSelector: {}
-
   tolerations: []
-
   affinity: {}
 
 # Meta Service
 meta:
-  replicaCount: 1
+  enabled: true # Disable the meta service
   image:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
-    tag: "v0.29.0"
-
+    tag: "latest"
   imagePullSecrets: []
+  replicaCount: 1  
   nameOverride: ""
   fullnameOverride: ""
-
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -365,12 +414,9 @@ meta:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
-
   podAnnotations: {}
-
   podSecurityContext: {}
     # fsGroup: 2000
-
   securityContext: {}
     # capabilities:
     #   drop:
@@ -378,16 +424,17 @@ meta:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
-
-  environment:
-    PG_META_PORT: '8080'
-    PG_META_DB_HOST: db
-    PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
-
   service:
     type: ClusterIP
     port: 8080
-
+  environment:
+    PG_META_PORT: "8080"
+    PG_META_DB_HOST: EXAMPLE-DATABASE.NAMESPACE.svc.cluster.local
+    PG_META_DB_PORT: "5432"
+    PG_META_DB_NAME: DATABASE_NAME
+    PG_META_DB_USER: DATABASE_USER
+    PG_META_DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    PG_META_DB_SSL_MODE: allow
   ingress:
     enabled: false
     className: ""
@@ -397,7 +444,6 @@ meta:
     #  - secretName: chart-example-tls
     #    hosts:
     #      - chart-example.local
-
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -409,31 +455,27 @@ meta:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
-
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
   nodeSelector: {}
-
   tolerations: []
+  affinity: {}    
 
-  affinity: {}
-
+# Storage Service
 storage:
-  replicaCount: 1
+  enabled: true # Disable the storage service
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "v0.10.0"
-
+    tag: "latest"
   imagePullSecrets: []
+  replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
-
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -442,12 +484,9 @@ storage:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
-
   podAnnotations: {}
-
   podSecurityContext: {}
     # fsGroup: 2000
-
   securityContext: {}
     # capabilities:
     #   drop:
@@ -455,13 +494,15 @@ storage:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
-
+  service:
+    type: ClusterIP
+    port: 5000
   environment:
-    ANON_KEY: ${ANON_KEY}
-    SERVICE_KEY: ${SERVICE_ROLE_KEY}
-    POSTGREST_URL: http://rest:3000
-    PGRST_JWT_SECRET: ${JWT_SECRET}
-    DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+    ANON_KEY: "JWT_ANON_KEY"
+    SERVICE_KEY: "JWT_SERVICE_KEY"
+    POSTGREST_URL: http://RELEASE_NAME-rest.NAMESPACE.svc.cluster.local:3000
+    PGRST_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
+    DATABASE_URL: postgres://postgres:YOUR_VERY_HARD_PASSWORD_FOR_DATABASE@YOUR_DATABASE.NAMESPACE.svc.cluster.local:5432/postgres?search_path=auth
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'
     STORAGE_BACKEND: file
@@ -469,11 +510,6 @@ storage:
     TENANT_ID: stub
     REGION: stub
     GLOBAL_S3_BUCKET: stub
-
-  service:
-    type: ClusterIP
-    port: 5000
-
   ingress:
     enabled: false
     className: ""
@@ -483,7 +519,6 @@ storage:
     #  - secretName: chart-example-tls
     #    hosts:
     #      - chart-example.local
-
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -503,31 +538,27 @@ storage:
     accessModes:
       - ReadWriteOnce
     class: ""
-
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
   nodeSelector: {}
-
   tolerations: []
-
   affinity: {}
 
+# Kong
 kong:
-  replicaCount: 1
+  enabled: true # Disable the kong service
   image:
     repository: kong
     pullPolicy: IfNotPresent
-    tag: "2.1"
-
+    tag: "latest"
   imagePullSecrets: []
+  replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
-
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -536,12 +567,9 @@ kong:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
-
   podAnnotations: {}
-
   podSecurityContext: {}
     # fsGroup: 2000
-
   securityContext: {}
     # capabilities:
     #   drop:
@@ -549,28 +577,37 @@ kong:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
-
+  service:
+    type: ClusterIP
+    port: 8000
   environment:
     KONG_DATABASE: "off"
     KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
     # https://github.com/supabase/cli/issues/14
     KONG_DNS_ORDER: LAST,A,CNAME
     KONG_PLUGINS: request-transformer,cors,key-auth,acl
-
-  service:
-    type: NodePort
-    port: 8000
-
   ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
-
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
+      # kubernetes.io/tls-acme: "true"
+    tls:
+      - secretName: API.EXAMPLE.COM
+        hosts:
+          - API.EXAMPLE.COM
+    hosts:
+      - host: API.EXAMPLE.COM
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              serviceName: api
+              servicePort: 80
+  credentials:
+    anonKey: "JWT_ANON_KEY"
+    serviceRoleKey: "JWT_SERVICE_KEY"
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -582,20 +619,15 @@ kong:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
-
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
   nodeSelector: {}
-
   tolerations: []
-
   affinity: {}
-
   config: {}
   # config: |
   #   _format_version: "1.1"
@@ -746,26 +778,3 @@ kong:
   #             hide_groups_header: true
   #             allow:
   #               - admin
-
-
-
-
-# Postgres Database
-# A standalone Postgres database configured to work with Supabase services.
-database:
-  enabled: true
-  image:
-    repository: tdeoliv/supabase-bitnami-postgres
-    tag: latest
-  # image:
-  #   tag: "12.9.0-debian-10-r40"
-  #   debug: true
-  containerSecurityContext:
-    runAsUser: 0
-  postgresqlPassword: YOUR_PASSWORD
-  extraEnv:
-    - name: POSTGRESQL_WAL_LEVEL
-      value: LOGICAL
-  initdbScriptsConfigMap: "{{ .Release.Name }}-initdb"
-  # initdbScriptsConfigMap: my-release-initdb # This is required
-

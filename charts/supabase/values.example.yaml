@@ -1,20 +1,27 @@
-database:
-  postgresqlPassword: MY_SUPER_EXAMPLE_HARD_PASSWORD      
-
+db:
+  image:
+    repository: supabase/postgres
+    tag: "latest"
+  environment:
+    POSTGRES_PASSWORD: example123456
+  
+# Studio Application
 studio:
-  enable: true
   environment:
     SUPABASE_URL: http://api.localhost
-    STUDIO_PG_META_URL: http://example-supabase-kong.example-namespace.svc.cluster.local:8000/pg
+    SUPABASE_REST_URL: http://api.localhost/rest/v1/
+    STUDIO_PG_META_URL: http://demo-supabase-kong.default.svc.cluster.local:8000/pg
     SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MDMwMDQwMCwiZXhwIjoxNzk4MDY2ODAwfQ.JaEiRNdyxX3Pk6XupxauDazXeadLTgTHz5cV7joUrQE"
     SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjQwMzAwNDAwLCJleHAiOjE3OTgwNjY4MDB9.sUJPVrhMsSaLgizyCWIgNOIRmjavxDB4Lm3hzb4dC5U"
-
   ingress:
-    enabled: 'true'
-    className: ""
+    enabled: true
+    className: "nginx"
     annotations:
-      kubernetes.io/ingress.class: nginx
       nginx.ingress.kubernetes.io/rewrite-target: /
+    tls:
+      - secretName: studio.localhost
+        hosts:
+          - studio.localhost
     hosts:
       - host: studio.localhost
         paths:
@@ -27,59 +34,102 @@ studio:
 # Auth Service
 auth:
   environment:
-    GOTRUE_DB_DATABASE_URL: postgres://postgres:MY_SUPER_EXAMPLE_HARD_PASSWORD@example-database.example-namespace.svc.cluster.local:5432/postgres?search_path=auth
+    GOTRUE_DB_DRIVER: postgres
+    GOTRUE_DB_DATABASE_URL: postgres://postgres:example123456@demo-supabase-db.default.svc.cluster.local:5432/postgres?search_path=auth
+    GOTRUE_API_HOST: "0.0.0.0"
+    GOTRUE_API_PORT: "9999"
     GOTRUE_SITE_URL: http://studio.localhost
-    GOTRUE_URI_ALLOW_LIST: ""
+    GOTRUE_URI_ALLOW_LIST: "*"
     GOTRUE_DISABLE_SIGNUP: "false"
-    GOTRUE_JWT_SECRET: "your-super-secret-jwt-token-with-at-least-32-characters-long"
+    GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+    GOTRUE_JWT_ADMIN_ROLES: service_role
+    GOTRUE_JWT_AUD: authenticated
+    GOTRUE_JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
     GOTRUE_JWT_EXP: "3600"
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
-    GOTRUE_SMTP_ADMIN_EMAIL: "admin@example.com"
-    GOTRUE_SMTP_HOST: "mail"
-    GOTRUE_SMTP_PORT: "2500"
-    GOTRUE_SMTP_USER: "fake_mail_user"
-    GOTRUE_SMTP_PASS: "fake_mail_password"
-    GOTRUE_SMTP_SENDER_NAME: "fake_sender"
+    GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
+    GOTRUE_SMTP_HOST: "smtp.example.com"
+    GOTRUE_SMTP_PORT: "587"
+    GOTRUE_SMTP_USER: "your-mail@example.com"
+    GOTRUE_SMTP_PASS: "example123456"
+    GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
+    GOTRUE_MAILER_URLPATHS_INVITE: "http://api.localhost/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "http://api.localhost/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_RECOVERY: "http://api.localhost/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "http://api.localhost/auth/v1/verify"
 
+# Rest Service
 rest:
   environment:
-    PGRST_DB_URI: postgres://postgres:MY_SUPER_EXAMPLE_HARD_PASSWORD@example-database.example-namespace.svc.cluster.local:5432/postgres
-    PGRST_JWT_SECRET: "your-super-secret-jwt-token-with-at-least-32-characters-long"
+    PGRST_DB_URI: postgres://postgres:example123456@demo-supabase-db.default.svc.cluster.local:5432/postgres?search_path=auth
+    PGRST_DB_SCHEMA: public,storage
+    PGRST_DB_ANON_ROLE: anon
+    PGRST_JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
+    PGRST_DB_USE_LEGACY_GUCS: "false"
 
+# Realtime Service
 realtime:
   environment:
-    DB_HOST: example-database.example-namespace.svc.cluster.local
+    DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
     DB_NAME: postgres
     DB_USER: postgres
-    DB_PASSWORD: MY_SUPER_EXAMPLE_HARD_PASSWORD
+    DB_PASSWORD: example123456
     DB_SSL: "false"
-    JWT_SECRET: "your-super-secret-jwt-token-with-at-least-32-characters-long"
+    JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
+    PORT: "4000"
+    REPLICATION_MODE: RLS
+    REPLICATION_POLL_INTERVAL: "100"
+    SECURE_CHANNELS: "true"
+    SLOT_NAME: supabase_realtime_rls
+    TEMPORARY_SLOT: "true"
 
+# Meta Service
 meta:
   environment:
-    PG_META_DB_HOST: example-database.example-namespace.svc.cluster.local
-    PG_META_DB_PASSWORD: MY_SUPER_EXAMPLE_HARD_PASSWORD
+    PG_META_PORT: "8080"
+    PG_META_DB_HOST: demo-supabase-db.default.svc.cluster.local
+    PG_META_DB_PORT: "5432"
+    PG_META_DB_NAME: postgres
+    PG_META_DB_USER: postgres
+    PG_META_DB_PASSWORD: example123456
+    PG_META_DB_SSL_MODE: allow
 
+# Storage Service
 storage:
   environment:
     ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MDMwMDQwMCwiZXhwIjoxNzk4MDY2ODAwfQ.JaEiRNdyxX3Pk6XupxauDazXeadLTgTHz5cV7joUrQE"
     SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjQwMzAwNDAwLCJleHAiOjE3OTgwNjY4MDB9.sUJPVrhMsSaLgizyCWIgNOIRmjavxDB4Lm3hzb4dC5U"
-    POSTGREST_URL: http://example-supabase-rest.example-namespace.svc.cluster.local:3000
-    PGRST_JWT_SECRET: "your-super-secret-jwt-token-with-at-least-32-characters-long"
-    DATABASE_URL: postgres://postgres:MY_SUPER_EXAMPLE_HARD_PASSWORD@example-database.example-namespace.svc.cluster.local:5432/postgres
+    POSTGREST_URL: http://demo-supabase-rest.default.svc.cluster.local:3000
+    PGRST_JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
+    DATABASE_URL: postgres://postgres:example123456@demo-supabase-db.default.svc.cluster.local:5432/postgres?search_path=auth
     PGOPTIONS: -c search_path=storage,public
+    FILE_SIZE_LIMIT: '52428800'
+    STORAGE_BACKEND: file
+    FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+    TENANT_ID: stub
+    REGION: stub
+    GLOBAL_S3_BUCKET: stub
 
+# Kong
 kong:
+  environment:
+    KONG_DATABASE: "off"
+    KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+    KONG_DNS_ORDER: LAST,A,CNAME
+    KONG_PLUGINS: request-transformer,cors,key-auth,acl
   ingress:
-    enabled: 'true'
-    className: ""
+    enabled: true
+    className: "nginx"
     annotations:
-      kubernetes.io/ingress.class: nginx
       nginx.ingress.kubernetes.io/rewrite-target: /
+    tls:
+      - secretName: api.localhost
+        hosts:
+          - api.localhost
     hosts:
       - host: api.localhost
         paths:
