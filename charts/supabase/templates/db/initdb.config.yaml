@@ -1,22 +1,10 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: {{ .Release.Name }}-initdb
+  name: {{ include "supabase.db.fullname" . }}-initdb
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 data:
-#   00-install-pgjwt.sh: |
-#     #!/bin/bash
-#     set -e
-#     install_packages make git gcc
-#     git clone https://github.com/michelp/pgjwt.git
-#     cd pgjwt
-#     make install
-#     cd ..
-#     git clone https://github.com/eulerto/wal2json.git
-#     cd wal2json
-#     make
-#     make install
   01-initial-schema.sql: |
     -- Set up realtime
     create schema if not exists realtime;
