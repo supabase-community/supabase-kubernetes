@@ -198,7 +198,7 @@ auth:
     port: 9999
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET
+    secretName: YOUR_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -294,7 +294,7 @@ rest:
     port: 3000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET
+    secretName: YOUR_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -370,7 +370,7 @@ realtime:
     port: 4000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET
+    secretName: YOUR_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -449,7 +449,7 @@ meta:
     port: 8080
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET
+    secretName: YOUR_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -523,7 +523,7 @@ storage:
     port: 5000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET
+    secretName: YOUR_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
