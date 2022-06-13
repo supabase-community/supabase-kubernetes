@@ -54,9 +54,8 @@ spec:
                   name: {{ .Values.rest.dbConnectionSecrets.secretName }}
                   key: password
             {{- end }}
-
             - name: PGRST_DB_URI
-              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
+              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
           ports:
             - name: http
               containerPort: 3000
