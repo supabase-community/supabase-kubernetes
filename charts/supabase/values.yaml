@@ -206,7 +206,7 @@ auth:
     DB_NAME: postgres
     # DB_USER: postgres
     # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
-    DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
+    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
     GOTRUE_SITE_URL: https://STUDIO.EXAMPLE.COM
@@ -302,7 +302,7 @@ rest:
     DB_NAME: postgres
     # DB_USER: postgres
     # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
-    DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
+    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMA: public,storage
     PGRST_DB_ANON_ROLE: anon
     PGRST_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
@@ -457,7 +457,7 @@ meta:
     DB_NAME: postgres
     # DB_USER: postgres
     # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
-    DB_SSL: allow # disable, allow,prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
   ingress:
     enabled: false

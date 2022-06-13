@@ -120,7 +120,7 @@ meta:
     DB_NAME: postgres
     DB_USER: postgres
     DB_PASSWORD: example123456
-    DB_SSL: allow
+    DB_SSL: disable
     PG_META_PORT: "8080"
 
 # Storage Service
