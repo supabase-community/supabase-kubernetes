@@ -42,6 +42,16 @@ spec:
                   name: {{ include "supabase.studio.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            - name: SUPABASE_ANON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: anonKey
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: serviceKey
           ports:
             - name: http
               containerPort: 3000

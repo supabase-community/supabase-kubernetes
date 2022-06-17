@@ -1,3 +1,6 @@
+jwt:
+  secretName: "demo-supabase-jwt"
+
 db:
   enabled: true
   image:
@@ -6,14 +9,11 @@ db:
   environment:
     POSTGRES_PASSWORD: example123456
   
-# Studio Application
 studio:
   environment:
-    SUPABASE_URL: http://api.localhost
-    SUPABASE_REST_URL: http://api.localhost/rest/v1/
+    SUPABASE_URL: http://localhost:32534
+    SUPABASE_REST_URL: http://localhost:32534/rest/v1/
     STUDIO_PG_META_URL: http://demo-supabase-kong.default.svc.cluster.local:8000/pg
-    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MDMwMDQwMCwiZXhwIjoxNzk4MDY2ODAwfQ.JaEiRNdyxX3Pk6XupxauDazXeadLTgTHz5cV7joUrQE"
-    SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjQwMzAwNDAwLCJleHAiOjE3OTgwNjY4MDB9.sUJPVrhMsSaLgizyCWIgNOIRmjavxDB4Lm3hzb4dC5U"
   ingress:
     enabled: true
     className: "nginx"
@@ -32,7 +32,6 @@ studio:
               serviceName: api
               servicePort: 3000
 
-# Auth Service
 auth:
   dbConnectionSecrets:
     enabled: false
@@ -53,7 +52,6 @@ auth:
     GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
     GOTRUE_JWT_ADMIN_ROLES: service_role
     GOTRUE_JWT_AUD: authenticated
-    GOTRUE_JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
     GOTRUE_JWT_EXP: "3600"
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
@@ -65,12 +63,11 @@ auth:
     GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
-    GOTRUE_MAILER_URLPATHS_INVITE: "http://api.localhost/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "http://api.localhost/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_RECOVERY: "http://api.localhost/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "http://api.localhost/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_INVITE: "http://localhost:32534/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "http://localhost:32534/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_RECOVERY: "http://localhost:32534/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "http://localhost:32534/auth/v1/verify"
 
-# Rest Service
 rest:
   dbConnectionSecrets:
     enabled: false
@@ -85,10 +82,8 @@ rest:
     DB_SSL: allow
     PGRST_DB_SCHEMA: public,storage
     PGRST_DB_ANON_ROLE: anon
-    PGRST_JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
     PGRST_DB_USE_LEGACY_GUCS: "false"
 
-# Realtime Service
 realtime:
   dbConnectionSecrets:
     enabled: false
@@ -100,7 +95,6 @@ realtime:
     DB_USER: postgres
     DB_PASSWORD: example123456
     DB_SSL: "false"
-    JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
     PORT: "4000"
     REPLICATION_MODE: RLS
     REPLICATION_POLL_INTERVAL: "100"
@@ -108,7 +102,6 @@ realtime:
     SLOT_NAME: supabase_realtime_rls
     TEMPORARY_SLOT: "true"
 
-# Meta Service
 meta:
   dbConnectionSecrets:
     enabled: false
@@ -123,7 +116,6 @@ meta:
     DB_SSL: disable
     PG_META_PORT: "8080"
 
-# Storage Service
 storage:
   dbConnectionSecrets:
     enabled: false
@@ -136,10 +128,7 @@ storage:
     DB_USER: postgres
     DB_PASSWORD: example123456
     DB_SSL: allow
-    ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MDMwMDQwMCwiZXhwIjoxNzk4MDY2ODAwfQ.JaEiRNdyxX3Pk6XupxauDazXeadLTgTHz5cV7joUrQE"
-    SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjQwMzAwNDAwLCJleHAiOjE3OTgwNjY4MDB9.sUJPVrhMsSaLgizyCWIgNOIRmjavxDB4Lm3hzb4dC5U"
     POSTGREST_URL: http://demo-supabase-rest.default.svc.cluster.local:3000
-    PGRST_JWT_SECRET: "abcdefghijklmnopqrstuvwxyz123456"
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'
     STORAGE_BACKEND: file
@@ -148,11 +137,10 @@ storage:
     REGION: stub
     GLOBAL_S3_BUCKET: stub
 
-# Kong
 kong:
   environment:
     KONG_DATABASE: "off"
-    KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+    KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
     KONG_DNS_ORDER: LAST,A,CNAME
     KONG_PLUGINS: request-transformer,cors,key-auth,acl
   ingress:
@@ -161,17 +149,14 @@ kong:
     annotations:
       nginx.ingress.kubernetes.io/rewrite-target: /
     tls:
-      - secretName: api.localhost
+      - secretName: localhost
         hosts:
-          - api.localhost
+          - localhost
     hosts:
-      - host: api.localhost
+      - host: localhost
         paths:
           - path: /
             pathType: Prefix
             backend:
               serviceName: api
               servicePort: 80
-  credentials:
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MDMwMDQwMCwiZXhwIjoxNzk4MDY2ODAwfQ.JaEiRNdyxX3Pk6XupxauDazXeadLTgTHz5cV7joUrQE"
-    serviceRoleKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjQwMzAwNDAwLCJleHAiOjE3OTgwNjY4MDB9.sUJPVrhMsSaLgizyCWIgNOIRmjavxDB4Lm3hzb4dC5U"

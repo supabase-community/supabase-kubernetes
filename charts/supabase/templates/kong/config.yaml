@@ -7,20 +7,34 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 data:
   {{- toYaml .Values.kong.environment | nindent 2 }}
+  wrapper.sh: |
+    #!/bin/sh
+
+    set -euo pipefail
+
+    echo "Replacing env placeholders of /home/kong/kong.yml"
+
+    sed \
+    -e "s/\${SUPABASE_ANON_KEY}/${SUPABASE_ANON_KEY}/" \
+    -e "s/\${SUPABASE_SERVICE_KEY}/${SUPABASE_SERVICE_KEY}/" \
+    /home/kong/template.yml \
+    > /home/kong/kong.yml
+
+    exec /docker-entrypoint.sh kong docker-start
 {{- if .Values.kong.config -}}
-  kong.yml:
+  template.yml:
   {{- toYaml .Values.kong.config | nindent 4 }}
 {{- else }}
-  kong.yml: >-
+  template.yml: |
     _format_version: "1.1"
 
     consumers:
       - username: anon
         keyauth_credentials:
-          - key: {{ .Values.kong.credentials.anonKey }}
+            - key: ${SUPABASE_ANON_KEY}
       - username: service_role
         keyauth_credentials:
-          - key: {{ .Values.kong.credentials.serviceRoleKey }}
+            - key: ${SUPABASE_SERVICE_KEY}
 
     acls:
       - consumer: anon

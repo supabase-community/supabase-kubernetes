@@ -8,6 +8,12 @@
 # |-- 7. Storage
 # |-- 8. Kong
 
+# jwt will be used to reference secret in multiple services:
+# Anon & Service key: Studio, Storage, Kong
+# JWT Secret: Auth, Rest, Realtime, Storage
+jwt:
+  secretName: "YOUR_JWT_SECRET_NAME"
+
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services. 
 # You can spin up any other Postgres database container if required. 
@@ -122,8 +128,6 @@ studio:
     SUPABASE_URL: https://API.EXAMPLE.COM
     SUPABASE_REST_URL: https://API.EXAMPLE.COM/rest/v1/
     STUDIO_PG_META_URL: http://RELEASE_NAME-kong.NAMESPACE.svc.cluster.local:8000/pg
-    SUPABASE_ANON_KEY: "JWT_ANON_KEY"
-    SUPABASE_SERVICE_KEY: "JWT_SERVICE_KEY"
   ingress:
     enabled: true
     className: "nginx"
@@ -198,7 +202,7 @@ auth:
     port: 9999
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET_NAME
+    secretName: YOUR_DB_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -215,7 +219,6 @@ auth:
     GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
     GOTRUE_JWT_ADMIN_ROLES: service_role
     GOTRUE_JWT_AUD: authenticated
-    GOTRUE_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
     GOTRUE_JWT_EXP: "3600"
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
@@ -294,7 +297,7 @@ rest:
     port: 3000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET_NAME
+    secretName: YOUR_DB_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -305,7 +308,6 @@ rest:
     DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMA: public,storage
     PGRST_DB_ANON_ROLE: anon
-    PGRST_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
     PGRST_DB_USE_LEGACY_GUCS: "false"
   ingress:
     enabled: false
@@ -370,7 +372,7 @@ realtime:
     port: 4000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET_NAME
+    secretName: YOUR_DB_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -378,7 +380,6 @@ realtime:
     # DB_USER: postgres
     # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
     DB_SSL: "false"
-    JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
     PORT: "4000"
     REPLICATION_MODE: RLS
     REPLICATION_POLL_INTERVAL: "100"
@@ -449,7 +450,7 @@ meta:
     port: 8080
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET_NAME
+    secretName: YOUR_DB_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -523,7 +524,7 @@ storage:
     port: 5000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_SECRET_NAME
+    secretName: YOUR_DB_SECRET_NAME
   environment:
     DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
@@ -531,10 +532,7 @@ storage:
     DB_NAME: postgres
     # DB_USER: postgres
     # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
-    ANON_KEY: "JWT_ANON_KEY"
-    SERVICE_KEY: "JWT_SERVICE_KEY"
     POSTGREST_URL: http://RELEASE_NAME-rest.NAMESPACE.svc.cluster.local:3000
-    PGRST_JWT_SECRET: "YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG"
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'
     STORAGE_BACKEND: file
@@ -614,7 +612,7 @@ kong:
     port: 8000
   environment:
     KONG_DATABASE: "off"
-    KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+    KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
     # https://github.com/supabase/cli/issues/14
     KONG_DNS_ORDER: LAST,A,CNAME
     KONG_PLUGINS: request-transformer,cors,key-auth,acl
@@ -638,8 +636,8 @@ kong:
               serviceName: api
               servicePort: 80
   credentials:
-    anonKey: "JWT_ANON_KEY"
-    serviceRoleKey: "JWT_SERVICE_KEY"
+    # anonKey: "JWT_ANON_KEY"
+    # serviceRoleKey: "JWT_SERVICE_KEY"
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -661,7 +659,6 @@ kong:
   tolerations: []
   affinity: {}
   config: {}
-  # config: |
   #   _format_version: "1.1"
 
   #   ###
@@ -670,10 +667,10 @@ kong:
   #   consumers:
   #     - username: anon
   #       keyauth_credentials:
-  #         - key: JWT_ANON_KEY
+  #         - key: ${JWT_ANON_KEY}
   #     - username: service_role
   #       keyauth_credentials:
-  #         - key: JWT_SERVICE_KEY
+  #         - key: ${JWT_SERVICE_KEY}
 
   #   ###
   #   ### Access Control List
