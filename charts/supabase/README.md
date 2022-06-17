@@ -27,14 +27,24 @@ kubectl -n default create secret generic demo-supabase-jwt \
   --from-literal=serviceKey='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjQwMzAwNDAwLCJleHAiOjE3OTgwNjY4MDB9.sUJPVrhMsSaLgizyCWIgNOIRmjavxDB4Lm3hzb4dC5U' \
   --from-literal=secret='abcdefghijklmnopqrstuvwxyz123456'
 
+# Create SMTP secret
+kubectl -n default create secret generic demo-supabase-smtp \
+  --from-literal=username='your-mail@example.com' \
+  --from-literal=password='example123456'
+
+# Create DB secret
+kubectl -n default create secret generic demo-supabase-db \
+  --from-literal=username='postgres' \
+  --from-literal=password='example123456' 
+
 # Install the chart
-helm install demo -f values.example.yaml .
+helm -n default install demo -f values.example.yaml .
 ```
 
 The first deployment can take some time to complete (especially auth service). You can view the status of the pods using:
 
 ```bash
-kubectl -n NAMESPACE get pod 
+kubectl -n default get pod 
 
 NAME                                      READY   STATUS    RESTARTS      AGE
 demo-supabase-auth-78547c5c8d-chkbm       1/1     Running   2 (40s ago)   47s
@@ -63,69 +73,91 @@ If you just use the `value.example.yaml` file, you can access the API or the Stu
 
 ```Bash
 # Uninstall Helm chart
-helm -n NAMESPACE uninstall demo 
+helm -n default uninstall demo 
 
 # Delete secrets
-kubectl -n NAMESPACE delete secret demo-supabase-jwt
+kubectl -n default delete secret demo-supabase-db
+kubectl -n default delete secret demo-supabase-jwt
+kubectl -n default delete secret demo-supabase-smtp
 ```
 
 ## Customize
 
 You should consider to adjust the following values in `values.yaml`:
 
-- `YOUR_DB_SECRET_NAME`: Reference to Kubernetes secret with Postgres credentials `username` & `password` (recommended)
-- `YOUR_VERY_HARD_PASSWORD_FOR_DATABASE`: Postgres root password for the optionally created database (discouraged)
+- `JWT_SECRET_NAME`: Reference to Kubernetes secret with JWT secret data `secret`, `anonKey` & `serviceKey`
+- `SMTP_SECRET_NAME`: Reference to Kubernetes secret with SMTP credentials `username` & `password`
+- `DB_SECRET_NAME`: Reference to Kubernetes secret with Postgres credentials `username` & `password`
 - `RELEASE_NAME`: Name used for helm release
 - `NAMESPACE`: Namespace used for the helm release
 - `API.EXAMPLE.COM` URL to Kong API
 - `STUDIO.EXAMPLE.COM` URL to Studio
 
-### DB secret
+If you want to use mail, consider to adjust the following values in `values.yaml`:
 
-```bash
-kubectl -n YOUR_NAMESPACE create secret generic YOUR_DB_SECRET_NAME \
-  --from-literal=username='DB_USER' \
-  --from-literal=password='DB_PASSWORD'
-```
+- `SMTP_ADMIN_MAIL`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_SENDER_NAME`
 
-> If you depend on database providers like [StackGres](https://stackgres.io/) or [Postgres Operator](https://github.com/zalando/postgres-operator) you only need to reference the already existing secret in `values.yaml`.
+### JWT Secret
+
+We encourage you to use your own JWT keys by generating a new Kubernetes secret and reference it in `values.yaml`:
 
 ```yaml
-  dbConnectionSecrets:
-    enabled: true
-    secretName: YOUR_DB_SECRET_NAME
+  jwt:
+    secretName: "JWT_SECRET_NAME"
 ```
-
-### JWT secret
-
-We also encourage you to use your own JWT keys by generating a new Kubernetes secret and reference it in `values.yaml`:
-
-- `YOUR_JWT_SECRET_NAME`: Reference to Kubernetes secret (see below)
-- `YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG`: With a generated secret key (`openssl rand 64 | base64`)
-- `JWT_ANON_KEY`: A JWT signed with the key above and the role `anon`
-- `JWT_SERVICE_KEY`: A JWT signed with the key above and the role `service_role`
-
-> You can use the [JWT Tool](https://supabase.com/docs/guides/hosting/overview#api-keys) to generate your keys.
 
 The secret can be created with kubectl via command-line:
 
 ```bash
-kubectl -n YOUR_NAMESPACE create secret generic YOUR_JWT_SECRET_NAME \
-  --from-literal=secret='YOUR_SUPER_SECRET_JWT_TOKEN_WITH_AT_LEAST_32_CHARACTERS_LONG' \
+kubectl -n NAMESPACE create secret generic JWT_SECRET_NAME \
+  --from-literal=secret='JWT_TOKEN_AT_LEAST_32_CHARACTERS_LONG' \
   --from-literal=anonKey='JWT_ANON_KEY' \
   --from-literal=serviceKey='JWT_SERVICE_KEY'
 ```
 
-If you wan't to use mail, consider to adjust the following values in `values.yaml`:
+> 32 characters long secret can be generated with `openssl rand 64 | base64`
+> You can use the [JWT Tool](https://supabase.com/docs/guides/hosting/overview#api-keys) to generate anon and service keys.
 
-- `YOUR_MAIL`
-- `YOUR_MAIL_SERVER`
-- `YOUR_MAIL_SERVER_PORT`
-- `YOUR_MAIL_SERVER_USER`
-- `YOUR_MAIL_SERVER_PASSWORD`
-- `YOUR_MAIL_SERVER_SENDER_NAME`
+### SMTP Secret
 
-## How to use in production
+Connection credentials for the SMTP mail server will also be provided via Kubernetes secret referenced in `values.yaml`:
+
+```yaml
+  smtp:
+    secretName: "SMTP_SECRET_NAME"
+```
+
+The secret can be created with kubectl via command-line:
+
+```bash
+kubectl -n NAMESPACE create secret generic SMTP_SECRET_NAME \
+  --from-literal=username='SMTP_USER' \
+  --from-literal=password='SMTP_PASSWORD'
+```
+
+### DB Secret
+
+DB credentials will also be stored in a Kubernetes secret and referenced in `values.yaml`:
+
+```yaml
+  db:
+    secretName: "DB_SECRET_NAME"
+```
+
+The secret can be created with kubectl via command-line:
+
+```bash
+kubectl -n NAMESPACE create secret generic DB_SECRET_NAME \
+  --from-literal=username='DB_USER' \
+  --from-literal=password='PW_USER'
+```
+
+> If you depend on database providers like [StackGres](https://stackgres.io/) or [Postgres Operator](https://github.com/zalando/postgres-operator) you only need to reference the already existing secret in `values.yaml`.
+
+## How to use in Production
 
 We didn't provide a complete configuration to go production because of the multiple possibility.
 
