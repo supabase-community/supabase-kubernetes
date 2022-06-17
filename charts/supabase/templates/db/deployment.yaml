@@ -42,6 +42,16 @@ spec:
                   name: {{ include "supabase.db.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: password
           ports:
             - name: http
               containerPort: 9999

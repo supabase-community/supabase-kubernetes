@@ -44,18 +44,16 @@ spec:
                   name: {{ include "supabase.realtime.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
-            {{- if .Values.realtime.dbConnectionSecrets.enabled }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.realtime.dbConnectionSecrets.secretName }}
+                  name: {{ .Values.db.secretName }}
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.realtime.dbConnectionSecrets.secretName }}
+                  name: {{ .Values.db.secretName }}
                   key: password
-            {{- end }}
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
