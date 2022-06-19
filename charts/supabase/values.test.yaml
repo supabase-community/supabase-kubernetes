@@ -1,0 +1,168 @@
+    # GOTRUE_JWT_SECRET: "z9bos3onfzeMqEH#Xcf@tz6@Tgaz6!G7"
+    # PGRST_JWT_SECRET: "z9bos3onfzeMqEH#Xcf@tz6@Tgaz6!G7"
+    # JWT_SECRET: "z9bos3onfzeMqEH#Xcf@tz6@Tgaz6!G7"
+    # ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UiLAogICAgImlhdCI6IDE2NTQ3MjU2MDAsCiAgICAiZXhwIjogMTgxMjQ5MjAwMAp9.34j9wnBCbx2-dEN6b4hQxXeXpnqndHL0grYXjUKXKOM"
+    # SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZSIsCiAgICAiaWF0IjogMTY1NDcyNTYwMCwKICAgICJleHAiOiAxODEyNDkyMDAwCn0.7Q_Iny5Odw122dGI5DjqXgZ6sc-pcGWKvqR6brYMrJM"
+    # PGRST_JWT_SECRET: "z9bos3onfzeMqEH#Xcf@tz6@Tgaz6!G7"
+jwt:
+  secretName: "demo-supabase-jwt"
+
+smtp:
+  secretName: "demo-supabase-smtp"
+
+db:
+  enabled: false
+  secretName: "demo-supabase-db"
+
+# Studio Application
+studio: 
+  environment:
+    SUPABASE_URL: https://api.tst.cropled.ch
+    SUPABASE_REST_URL: https://api.tst.cropled.ch/rest/v1/
+    STUDIO_PG_META_URL: http://tst-supabase-kong.postgres-tst.svc.cluster.local:8000/pg
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      cert-manager.io/cluster-issuer: "letsencrypt-production"
+      kubernetes.io/tls-acme: "true"
+    tls:
+      - secretName: studio.tst.cropled.ch
+        hosts:
+          - studio.tst.cropled.ch
+    hosts:
+      - host: studio.tst.cropled.ch
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              serviceName: api
+              servicePort: 3000
+
+# Auth Service
+auth:
+  dbConnectionSecrets:
+    enabled: true # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: postgres.crp-postgres-tst-db.credentials.postgresql.acid.zalan.do
+  smtpConnectionSecrets:
+    enabled: true # Make sure to remove GOTRUE_SMTP_USER and GOTRUE_SMTP_PASS from 'environment:' if enabled
+    secretName: demo-supabase-smtp
+  environment:
+    DB_HOST: crp-postgres-tst-db.postgres-tst.svc.cluster.local
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_NAME: postgres
+    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
+    GOTRUE_API_HOST: "0.0.0.0"
+    GOTRUE_API_PORT: "9999"
+    GOTRUE_SITE_URL: https://studio.tst.cropled.ch
+    GOTRUE_URI_ALLOW_LIST: "*"
+    GOTRUE_DISABLE_SIGNUP: "false"
+    GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+    GOTRUE_JWT_ADMIN_ROLES: service_role
+    GOTRUE_JWT_AUD: authenticated
+    GOTRUE_JWT_EXP: "3600"
+    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+    GOTRUE_MAILER_AUTOCONFIRM: "true"
+    GOTRUE_SMTP_ADMIN_EMAIL: "auth@cropled.ch"
+    GOTRUE_SMTP_HOST: "smtp.office365.com"
+    GOTRUE_SMTP_PORT: "587"
+    GOTRUE_SMTP_SENDER_NAME: "auth@cropled.ch"
+    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+    GOTRUE_SMS_AUTOCONFIRM: "false"
+    GOTRUE_MAILER_URLPATHS_INVITE: "https://api.tst.cropled.ch/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "https://api.tst.cropled.ch/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_RECOVERY: "https://api.tst.cropled.ch/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "https://api.tst.cropled.ch/auth/v1/verify"
+
+# Rest Service
+rest:
+  dbConnectionSecrets:
+    enabled: true # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: postgres.crp-postgres-tst-db.credentials.postgresql.acid.zalan.do
+  environment:
+    DB_HOST: crp-postgres-tst-db.postgres-tst.svc.cluster.local
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_NAME: postgres
+    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
+    PGRST_DB_SCHEMA: public,storage
+    PGRST_DB_ANON_ROLE: anon
+    PGRST_DB_USE_LEGACY_GUCS: "false"
+
+# Realtime Service
+realtime:
+  dbConnectionSecrets:
+    enabled: true # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: postgres.crp-postgres-tst-db.credentials.postgresql.acid.zalan.do
+  environment:
+    DB_HOST: crp-postgres-tst-db.postgres-tst.svc.cluster.local
+    DB_PORT: "5432"
+    DB_NAME: postgres
+    DB_SSL: "false"
+    PORT: "4000"
+    REPLICATION_MODE: RLS
+    REPLICATION_POLL_INTERVAL: "100"
+    SECURE_CHANNELS: "true"
+    SLOT_NAME: supabase_realtime_rls
+    TEMPORARY_SLOT: "true"
+
+# Meta Service
+meta:
+  dbConnectionSecrets:
+    enabled: true # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: postgres.crp-postgres-tst-db.credentials.postgresql.acid.zalan.do
+  environment:
+    DB_HOST: crp-postgres-tst-db.postgres-tst.svc.cluster.local
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_NAME: postgres
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    PG_META_PORT: "8080"
+
+# Storage Service
+storage:
+  dbConnectionSecrets:
+    enabled: true # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
+    secretName: postgres.crp-postgres-tst-db.credentials.postgresql.acid.zalan.do
+  environment:
+    DB_HOST: crp-postgres-tst-db.postgres-tst.svc.cluster.local
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_NAME: postgres
+    POSTGREST_URL: http://tst-supabase-rest.postgres-tst.svc.cluster.local:3000
+    PGOPTIONS: -c search_path=storage,public
+    FILE_SIZE_LIMIT: '52428800'
+    STORAGE_BACKEND: file
+    FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+    TENANT_ID: stub
+    REGION: stub
+    GLOBAL_S3_BUCKET: stub
+
+# Kong
+kong:
+  environment:
+    KONG_DATABASE: "off"
+    KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+    KONG_DNS_ORDER: LAST,A,CNAME
+    KONG_PLUGINS: request-transformer,cors,key-auth,acl
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      cert-manager.io/cluster-issuer: "letsencrypt-production"
+      kubernetes.io/tls-acme: "true"
+    tls:
+      - secretName: api.tst.cropled.ch
+        hosts:
+          - api.tst.cropled.ch
+    hosts:
+      - host: api.tst.cropled.ch
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              serviceName: api
+              servicePort: 80

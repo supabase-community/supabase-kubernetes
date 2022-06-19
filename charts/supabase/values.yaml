@@ -642,7 +642,7 @@ storage:
     #   cpu: 100m
     #   memory: 128Mi
   persistence:
-    enable: true
+    enabled: true
     storageClassName: ""
     annotations: {}
     size: 10Gi
