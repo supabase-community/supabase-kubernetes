@@ -12,7 +12,11 @@
 # Anon & Service key: Studio, Storage, Kong
 # JWT Secret: Auth, Rest, Realtime, Storage
 jwt:
-  secretName: "YOUR_JWT_SECRET_NAME"
+  secretName: "JWT_SECRET_NAME"
+
+# smtp will be used to reference secret including smtp credentials
+smtp:
+  secretName: "SMTP_SECRET_NAME"
 
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services. 
@@ -20,6 +24,7 @@ jwt:
 # If so, make sure to adjust DB_HOST accordingly to point to the right database service.
 db:
   enabled: false # Disable the database provisioning
+  secretName: "DB_SECRET_NAME" # Still NEEDS TO BE DEFINED, even if database provisioning is disabled
   image:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
@@ -50,7 +55,7 @@ db:
     type: ClusterIP
     port: 5432
   environment:
-    POSTGRES_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    POSTGRES_PASSWORD: VERY_HARD_PASSWORD_FOR_DATABASE
     # POSTGRES_HOST_AUTH_METHOD: md5
   ingress:
     enabled: false
@@ -202,9 +207,9 @@ auth:
     port: 9999
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_DB_SECRET_NAME
+    secretName: DB_SECRET_NAME
   environment:
-    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
@@ -222,12 +227,10 @@ auth:
     GOTRUE_JWT_EXP: "3600"
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
-    GOTRUE_SMTP_ADMIN_EMAIL: "YOUR_MAIL"
-    GOTRUE_SMTP_HOST: "YOUR_MAIL_SERVER"
-    GOTRUE_SMTP_PORT: "YOUR_MAIL_SERVER_PORT"
-    GOTRUE_SMTP_USER: "YOUR_MAIL_SERVER_USER"
-    GOTRUE_SMTP_PASS: "YOUR_MAIL_SERVER_PASSWORD"
-    GOTRUE_SMTP_SENDER_NAME: "YOUR_MAIL_SERVER_SENDER_NAME"
+    GOTRUE_SMTP_ADMIN_EMAIL: "SMTP_ADMIN_MAIL"
+    GOTRUE_SMTP_HOST: "SMTP_HOST"
+    GOTRUE_SMTP_PORT: "SMTP_PORT"
+    GOTRUE_SMTP_SENDER_NAME: "SMTP_SENDER_NAME"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
     GOTRUE_MAILER_URLPATHS_INVITE: "https://API.EXAMPLE.COM/auth/v1/verify"
@@ -297,14 +300,14 @@ rest:
     port: 3000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_DB_SECRET_NAME
+    secretName: DB_SECRET_NAME
   environment:
-    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
     # DB_USER: postgres
-    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_PASSWORD: VERY_HARD_PASSWORD_FOR_DATABASE
     DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMA: public,storage
     PGRST_DB_ANON_ROLE: anon
@@ -372,13 +375,13 @@ realtime:
     port: 4000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_DB_SECRET_NAME
+    secretName: DB_SECRET_NAME
   environment:
-    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_NAME: postgres
     # DB_USER: postgres
-    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_PASSWORD: VERY_HARD_PASSWORD_FOR_DATABASE
     DB_SSL: "false"
     PORT: "4000"
     REPLICATION_MODE: RLS
@@ -450,14 +453,14 @@ meta:
     port: 8080
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_DB_SECRET_NAME
+    secretName: DB_SECRET_NAME
   environment:
-    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
     # DB_USER: postgres
-    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_PASSWORD: VERY_HARD_PASSWORD_FOR_DATABASE
     DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
   ingress:
@@ -524,14 +527,14 @@ storage:
     port: 5000
   dbConnectionSecrets:
     enabled: false # Make sure to remove DB_USER and DB_PASSWORD from 'environment:' if enabled
-    secretName: YOUR_DB_SECRET_NAME
+    secretName: DB_SECRET_NAME
   environment:
-    DB_HOST: YOUR_DATABASE.NAMESPACE.svc.cluster.local
+    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
     # DB_USER: postgres
-    # DB_PASSWORD: YOUR_VERY_HARD_PASSWORD_FOR_DATABASE
+    # DB_PASSWORD: VERY_HARD_PASSWORD_FOR_DATABASE
     POSTGREST_URL: http://RELEASE_NAME-rest.NAMESPACE.svc.cluster.local:3000
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'

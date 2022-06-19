@@ -1,13 +1,12 @@
 jwt:
   secretName: "demo-supabase-jwt"
 
+smtp:
+  secretName: "demo-supabase-smtp"
+
 db:
   enabled: true
-  image:
-    repository: supabase/postgres
-    tag: "latest"
-  environment:
-    POSTGRES_PASSWORD: example123456
+  secretName: "demo-supabase-db"
   
 studio:
   environment:
@@ -58,8 +57,6 @@ auth:
     GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
     GOTRUE_SMTP_HOST: "smtp.example.com"
     GOTRUE_SMTP_PORT: "587"
-    GOTRUE_SMTP_USER: "your-mail@example.com"
-    GOTRUE_SMTP_PASS: "example123456"
     GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
