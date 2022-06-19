@@ -32,9 +32,6 @@ studio:
               servicePort: 3000
 
 auth:
-  dbConnectionSecrets:
-    enabled: true
-    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -64,9 +61,6 @@ auth:
     GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "http://localhost:32534/auth/v1/verify"
 
 rest:
-  dbConnectionSecrets:
-    enabled: true
-    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -78,9 +72,6 @@ rest:
     PGRST_DB_USE_LEGACY_GUCS: "false"
 
 realtime:
-  dbConnectionSecrets:
-    enabled: true
-    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -94,9 +85,6 @@ realtime:
     TEMPORARY_SLOT: "true"
 
 meta:
-  dbConnectionSecrets:
-    enabled: true
-    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -106,9 +94,6 @@ meta:
     PG_META_PORT: "8080"
 
 storage:
-  dbConnectionSecrets:
-    enabled: true
-    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"

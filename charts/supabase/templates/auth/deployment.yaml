@@ -42,18 +42,16 @@ spec:
                   name: {{ include "supabase.auth.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
-            {{- if .Values.auth.dbConnectionSecrets.enabled }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.auth.dbConnectionSecrets.secretName }}
+                  name: {{ .Values.auth.secretName }}
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.auth.dbConnectionSecrets.secretName }}
+                  name: {{ .Values.auth.secretName }}
                   key: password
-            {{- end }}
             - name: GOTRUE_DB_DATABASE_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
             - name: GOTRUE_DB_DRIVER
