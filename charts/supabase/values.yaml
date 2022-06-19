@@ -516,7 +516,7 @@ meta:
     DB_NAME: postgres
     # DB_USER: postgres
     # DB_PASSWORD: VERY_HARD_PASSWORD_FOR_DATABASE
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
   ingress:
     enabled: false
@@ -601,6 +601,7 @@ storage:
     DB_NAME: postgres
     # DB_USER: postgres
     # DB_PASSWORD: VERY_HARD_PASSWORD_FOR_DATABASE
+    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
     POSTGREST_URL: http://RELEASE_NAME-rest.NAMESPACE.svc.cluster.local:3000
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'

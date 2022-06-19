@@ -33,15 +33,13 @@ studio:
 
 auth:
   dbConnectionSecrets:
-    enabled: false
-    secretName: mysecret
+    enabled: true
+    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: example123456
     DB_SSL: allow
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
@@ -67,15 +65,13 @@ auth:
 
 rest:
   dbConnectionSecrets:
-    enabled: false
-    secretName: mysecret
+    enabled: true
+    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
-    DB_DRIVER: posstgres
+    DB_DRIVER: postgres
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: example123456
     DB_SSL: allow
     PGRST_DB_SCHEMA: public,storage
     PGRST_DB_ANON_ROLE: anon
@@ -83,14 +79,12 @@ rest:
 
 realtime:
   dbConnectionSecrets:
-    enabled: false
-    secretName: mysecret
+    enabled: true
+    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: example123456
     DB_SSL: "false"
     PORT: "4000"
     REPLICATION_MODE: RLS
@@ -101,30 +95,26 @@ realtime:
 
 meta:
   dbConnectionSecrets:
-    enabled: false
-    secretName: mysecret
+    enabled: true
+    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: example123456
     DB_SSL: disable
     PG_META_PORT: "8080"
 
 storage:
   dbConnectionSecrets:
-    enabled: false
-    secretName: mysecret
+    enabled: true
+    secretName: demo-supabase-db
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
     DB_DRIVER: postgres
     DB_NAME: postgres
-    DB_USER: postgres
-    DB_PASSWORD: example123456
-    DB_SSL: allow
+    DB_SSL: disable
     POSTGREST_URL: http://demo-supabase-rest.default.svc.cluster.local:3000
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'
