@@ -76,11 +76,14 @@ spec:
             - name: http
               containerPort: 5000
               protocol: TCP
+          {{- with .Values.storage.resources }}
           resources:
-            {{- toYaml .Values.storage.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.storage.volumeMounts }}
           volumeMounts:
-            - mountPath: /var/lib/storage
-              name: storage-data
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       {{- with .Values.storage.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -98,5 +101,8 @@ spec:
         - name: storage-data
           persistentVolumeClaim:
             claimName: {{ include "supabase.storage.fullname" . }}
+        {{- end }}
+        {{- with .Values.storage.volumes }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
 {{- end }}

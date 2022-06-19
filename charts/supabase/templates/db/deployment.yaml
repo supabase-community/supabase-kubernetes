@@ -57,14 +57,22 @@ spec:
               containerPort: 9999
               protocol: TCP
           volumeMounts:
-            - name: custom-init-scripts
-              mountPath: /docker-entrypoint-initdb.d/
+            - mountPath: /docker-entrypoint-initdb.d/
+              name: custom-init-scripts
+            {{- with .Values.db.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.db.resources }}
           resources:
-            {{- toYaml .Values.db.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         - name: custom-init-scripts
           configMap:
             name: {{ include "supabase.db.fullname" . }}-initdb
+        {{- with .Values.db.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- with .Values.db.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

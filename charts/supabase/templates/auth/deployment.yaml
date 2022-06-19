@@ -77,8 +77,18 @@ spec:
             - name: http
               containerPort: 9999
               protocol: TCP
+          {{- with .Values.auth.resources }}
           resources:
-            {{- toYaml .Values.auth.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.auth.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.auth.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.auth.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

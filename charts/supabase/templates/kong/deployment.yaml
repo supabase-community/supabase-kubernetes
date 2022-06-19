@@ -36,12 +36,6 @@ spec:
           imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
           command: ["/bin/sh"]
           args: ["/scripts/wrapper.sh"]
-          volumeMounts:
-            - name: config
-              mountPath: /home/kong/template.yml
-              subPath: template.yml
-            - name: wrapper
-              mountPath: /scripts
           env:
             {{- range $key, $value := .Values.kong.environment }}
             - name: {{ $key }}
@@ -64,8 +58,19 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
+          {{- with .Values.kong.resources }}
           resources:
-            {{- toYaml .Values.kong.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /home/kong/template.yml
+              name: config
+              subPath: template.yml
+            - mountPath: /scripts
+              name: wrapper
+            {{- with .Values.kong.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
       {{- with .Values.kong.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -93,4 +98,7 @@ spec:
             items:
             - key: wrapper.sh
               path: wrapper.sh
+        {{- with .Values.kong.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
 {{- end }}

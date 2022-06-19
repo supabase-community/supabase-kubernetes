@@ -70,8 +70,18 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          {{- with .Values.meta.resources }}
           resources:
-            {{- toYaml .Values.meta.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.meta.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.meta.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.meta.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -56,8 +56,18 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
+          {{- with .Values.studio.resources }}
           resources:
-            {{- toYaml .Values.studio.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.studio.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.studio.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.studio.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
