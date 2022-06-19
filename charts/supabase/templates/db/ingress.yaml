@@ -1,10 +1,10 @@
-{{- if .Values.studio.enabled -}}
-{{- if .Values.studio.ingress.enabled -}}
-{{- $fullName := include "supabase.studio.fullname" . -}}
-{{- $svcPort := .Values.studio.service.port -}}
-{{- if and .Values.studio.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.studio.ingress.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.studio.ingress.annotations "kubernetes.io/ingress.class" .Values.studio.ingress.className}}
+{{- if .Values.db.enabled -}}
+{{- if .Values.db.ingress.enabled -}}
+{{- $fullName := include "supabase.db.fullname" . -}}
+{{- $svcPort := .Values.db.service.port -}}
+{{- if and .Values.db.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.db.ingress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.db.ingress.annotations "kubernetes.io/ingress.class" .Values.db.ingress.className}}
   {{- end }}
 {{- end }}
 apiVersion: networking.k8s.io/v1
@@ -13,17 +13,17 @@ metadata:
   name: {{ $fullName }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
-  {{- with .Values.studio.ingress.annotations }}
+  {{- with .Values.db.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if and .Values.studio.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
-  ingressClassName: {{ .Values.studio.ingress.className }}
+  {{- if and .Values.db.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.db.ingress.className }}
   {{- end }}
-  {{- if .Values.studio.ingress.tls }}
+  {{- if .Values.db.ingress.tls }}
   tls:
-    {{- range .Values.studio.ingress.tls }}
+    {{- range .Values.db.ingress.tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
@@ -32,7 +32,7 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.studio.ingress.hosts }}
+    {{- range .Values.db.ingress.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:

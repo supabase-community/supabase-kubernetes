@@ -1,3 +1,4 @@
+{{- if .Values.storage.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,3 +7,4 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 data:
   {{- toYaml .Values.storage.environment | nindent 2 }}
+{{- end }}
