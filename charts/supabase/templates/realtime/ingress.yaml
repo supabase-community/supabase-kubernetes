@@ -1,3 +1,4 @@
+{{- if .Values.realtime.enabled -}}
 {{- if .Values.realtime.ingress.enabled -}}
 {{- $fullName := include "supabase.realtime.fullname" . -}}
 {{- $svcPort := .Values.realtime.service.port -}}
@@ -52,4 +53,5 @@ spec:
               {{- end }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}

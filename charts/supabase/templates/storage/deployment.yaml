@@ -1,3 +1,4 @@
+{{- if .Values.storage.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -42,15 +43,45 @@ spec:
                   name: {{ include "supabase.storage.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: password
+            - name: DATABASE_URL
+              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: secret
+            - name: ANON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: anonKey
+            - name: SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: serviceKey
           ports:
             - name: http
               containerPort: 5000
               protocol: TCP
+          {{- with .Values.storage.resources }}
           resources:
-            {{- toYaml .Values.storage.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.storage.volumeMounts }}
           volumeMounts:
-            - mountPath: /var/lib/storage
-              name: storage-data
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       {{- with .Values.storage.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -64,8 +95,12 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-{{- if .Values.storage.persistence.enable }}
+        {{- if .Values.storage.persistence.enable }}
         - name: storage-data
           persistentVolumeClaim:
             claimName: {{ include "supabase.storage.fullname" . }}
+        {{- end }}
+        {{- with .Values.storage.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
 {{- end }}

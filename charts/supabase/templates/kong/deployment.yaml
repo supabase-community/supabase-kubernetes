@@ -1,4 +1,4 @@
-{{- if .Values.kong.enable -}}
+{{- if .Values.kong.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,10 +34,8 @@ spec:
             {{- toYaml .Values.kong.securityContext | nindent 12 }}
           image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
-          volumeMounts:
-            - name: config-volume
-              mountPath: /var/lib/kong/kong.yml
-              subPath: kong.yml
+          command: ["/bin/sh"]
+          args: ["/scripts/wrapper.sh"]
           env:
             {{- range $key, $value := .Values.kong.environment }}
             - name: {{ $key }}
@@ -46,12 +44,33 @@ spec:
                   name: {{ include "supabase.kong.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            - name: SUPABASE_ANON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: anonKey
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: serviceKey
           ports:
             - name: http
               containerPort: 8000
               protocol: TCP
+          {{- with .Values.kong.resources }}
           resources:
-            {{- toYaml .Values.kong.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /home/kong/template.yml
+              name: config
+              subPath: template.yml
+            - mountPath: /scripts
+              name: wrapper
+            {{- with .Values.kong.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
       {{- with .Values.kong.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -65,10 +84,21 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        - name: config-volume
+        - name: config
           configMap:
             name: {{ include "supabase.kong.fullname" $ }}
+            defaultMode: 0777
             items:
-            - key: kong.yml
-              path: kong.yml
+            - key: template.yml
+              path: template.yml
+        - name: wrapper
+          configMap:
+            name: {{ include "supabase.kong.fullname" $ }}
+            defaultMode: 0777
+            items:
+            - key: wrapper.sh
+              path: wrapper.sh
+        {{- with .Values.kong.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
 {{- end }}

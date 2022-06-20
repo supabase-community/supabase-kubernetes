@@ -23,10 +23,3 @@ version: 0.0.1
 # It is recommended to use it with quotes.
 # Not used because too difficult to follow correctly
 # appVersion: "1.16.0"
-
-dependencies:
-  - name: postgresql
-    version: 10.13.15
-    alias: database
-    condition: database.enabled
-    repository: https://charts.bitnami.com/bitnami

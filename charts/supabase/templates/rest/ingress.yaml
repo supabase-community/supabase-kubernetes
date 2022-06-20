@@ -1,3 +1,4 @@
+{{- if .Values.rest.enabled -}}
 {{- if .Values.rest.ingress.enabled -}}
 {{- $fullName := include "supabase.rest.fullname" . -}}
 {{- $svcPort := .Values.rest.service.port -}}
@@ -52,4 +53,5 @@ spec:
               {{- end }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}
