@@ -428,7 +428,7 @@ storage:
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "v0.10.0"
+    tag: "v0.18.3"
 
   imagePullSecrets: []
   nameOverride: ""
