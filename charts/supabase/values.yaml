@@ -85,7 +85,7 @@ auth:
   image:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "v2.2.12"
+    tag: "v2.6.15"
 
   imagePullSecrets: []
   nameOverride: ""
@@ -263,7 +263,7 @@ realtime:
   image:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
-    tag: "v0.19.3"
+    tag: "v0.22.7"
 
   imagePullSecrets: []
   nameOverride: ""
@@ -351,7 +351,7 @@ meta:
   image:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
-    tag: "v0.29.0"
+    tag: "v0.40.0"
 
   imagePullSecrets: []
   nameOverride: ""
