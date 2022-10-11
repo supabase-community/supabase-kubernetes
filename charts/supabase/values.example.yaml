@@ -5,6 +5,7 @@ studio:
   enable: true
   environment:
     SUPABASE_URL: http://api.localhost
+    SUPABASE_REST_URL: http:///api.localhost/rest/v1/ 
     STUDIO_PG_META_URL: http://example-supabase-kong.example-namespace.svc.cluster.local:8000/pg
     SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MDMwMDQwMCwiZXhwIjoxNzk4MDY2ODAwfQ.JaEiRNdyxX3Pk6XupxauDazXeadLTgTHz5cV7joUrQE"
     SUPABASE_SERVICE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjQwMzAwNDAwLCJleHAiOjE3OTgwNjY4MDB9.sUJPVrhMsSaLgizyCWIgNOIRmjavxDB4Lm3hzb4dC5U"
@@ -43,6 +44,7 @@ auth:
     GOTRUE_SMTP_SENDER_NAME: "fake_sender"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
+    API_EXTERNAL_URL: http://api.localhost # Used on email template as base URL
 
 rest:
   environment:

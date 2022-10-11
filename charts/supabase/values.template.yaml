@@ -8,6 +8,7 @@ studio:
   # enable: false # Disable the studio
   environment:
     SUPABASE_URL: http://api.localhost
+    SUPABASE_REST_URL: http:///api.localhost/rest/v1/ 
     STUDIO_PG_META_URL: http://RELEASE_NAME-kong.NAMESPACE.svc.cluster.local:8000/pg
     SUPABASE_ANON_KEY: "JWT_ANON_KEY"
     SUPABASE_SERVICE_KEY: "JWT_SERVICE_KEY"
@@ -46,6 +47,7 @@ auth:
     GOTRUE_SMTP_SENDER_NAME: "fake_sender"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
+    API_EXTERNAL_URL: http://api.localhost # Used on email template as base URL
 
 # Rest Service
 rest:
