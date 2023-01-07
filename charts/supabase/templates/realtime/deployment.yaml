@@ -1,3 +1,4 @@
+{{- if .Values.realtime.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,12 +44,37 @@ spec:
                   name: {{ include "supabase.realtime.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: secret
           ports:
             - name: http
               containerPort: 4000
               protocol: TCP
+          {{- with .Values.realtime.resources }}
           resources:
-            {{- toYaml .Values.realtime.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.realtime.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.realtime.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.realtime.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -61,3 +87,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}

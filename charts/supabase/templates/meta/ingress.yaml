@@ -1,3 +1,4 @@
+{{- if .Values.meta.enabled -}}
 {{- if .Values.meta.ingress.enabled -}}
 {{- $fullName := include "supabase.meta.fullname" . -}}
 {{- $svcPort := .Values.meta.service.port -}}
@@ -52,4 +53,5 @@ spec:
               {{- end }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}

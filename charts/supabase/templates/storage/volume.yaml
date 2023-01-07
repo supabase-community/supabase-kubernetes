@@ -1,4 +1,5 @@
-{{- if .Values.storage.persistence.enable -}}
+{{- if .Values.storage.enabled -}}
+{{- if .Values.storage.persistence.enabled -}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -20,4 +21,5 @@ spec:
   resources:
     requests:
       storage: {{ .Values.storage.persistence.size | quote }}
+{{- end }}
 {{- end }}

@@ -1,4 +1,4 @@
-{{- if .Values.kong.enable -}}
+{{- if .Values.kong.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
