@@ -16,7 +16,7 @@ The database configuration we provide is an example using only one master. If yo
 
 ```bash
 # Clone Repository
-git clone https://supabase-community.github.io/supabase-kubernetes
+git clone https://github.com/supabase-community/supabase-kubernetes
 
 # Switch to charts directory
 cd supabase-kubernetes/charts/supabase/
