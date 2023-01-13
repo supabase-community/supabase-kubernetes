@@ -541,6 +541,7 @@ meta:
 # Storage Service
 storage:
   enabled: true # Disable the storage service
+  secretName: ""
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent

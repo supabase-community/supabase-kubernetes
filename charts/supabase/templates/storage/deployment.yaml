@@ -70,6 +70,18 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.jwt.secretName }}
                   key: serviceKey
+            {{ if .Values.storage.secretName }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.storage.secretName }}
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.storage.secretName }}
+                  key: aws_secret_access_key
+            {{ end }}
           ports:
             - name: http
               containerPort: 5000
