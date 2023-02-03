@@ -6,22 +6,34 @@ smtp:
 
 db:
   enabled: true
+  image:
+    repository: supabase/postgres
+    tag: 14.1.0.105
   secretName: "demo-supabase-db"
-  
+  storage:
+      mountPath: /var/lib/postgresql/data
+      size: 20Gi
+      storageClass: standard
+
+
 studio:
+  image:
+    repository: supabase/studio
+    tag: 20230127-6bfd87b
   environment:
-    SUPABASE_URL: http://localhost:32534
-    SUPABASE_REST_URL: http://localhost:32534/rest/v1/
+    SUPABASE_URL: http://localhost
+    SUPABASE_REST_URL: http://localhost/rest/v1/
     STUDIO_PG_META_URL: http://demo-supabase-kong.default.svc.cluster.local:8000/pg
+    SUPABASE_PUBLIC_URL: http://localhost/
   ingress:
     enabled: true
     className: "nginx"
     annotations:
       nginx.ingress.kubernetes.io/rewrite-target: /
-    tls:
-      - secretName: studio.localhost
-        hosts:
-          - studio.localhost
+    tls: []
+      # - secretName: studio.localhost
+      #   hosts:
+      #     - studio.localhost
     hosts:
       - host: studio.localhost
         paths:
@@ -32,6 +44,8 @@ studio:
               servicePort: 3000
 
 auth:
+  image:
+    repo: v2.40.1
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -61,6 +75,9 @@ auth:
     GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "http://localhost:32534/auth/v1/verify"
 
 rest:
+  image:
+    repository: postgrest/postgrest
+    tag: v9.0.1.20220717
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -72,6 +89,9 @@ rest:
     PGRST_DB_USE_LEGACY_GUCS: "false"
 
 realtime:
+  image:
+    repository: supabase/realtime
+    tag: v2.1.0
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -83,7 +103,14 @@ realtime:
     SECURE_CHANNELS: "true"
     SLOT_NAME: supabase_realtime_rls
     TEMPORARY_SLOT: "true"
-
+    DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+    DB_ENC_KEY: supabaserealtime
+    FLY_ALLOC_ID: fly123
+    FLY_APP_NAME: realtime
+    SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+    ERL_AFLAGS: -proto_dist inet_tcp
+    ENABLE_TAILSCALE: "false"
+    DNS_NODES: "''"
 meta:
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
@@ -94,6 +121,9 @@ meta:
     PG_META_PORT: "8080"
 
 storage:
+  image:
+    repository: supabase/storage-api
+    tag: v0.26.1
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -110,20 +140,25 @@ storage:
     GLOBAL_S3_BUCKET: stub
 
 kong:
+  image:
+    repository: kong
+    tag: 2.8.1
   environment:
     KONG_DATABASE: "off"
     KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
     KONG_DNS_ORDER: LAST,A,CNAME
     KONG_PLUGINS: request-transformer,cors,key-auth,acl
+    KONG_LOG_LEVEL: debug
+
   ingress:
     enabled: true
     className: "nginx"
     annotations:
       nginx.ingress.kubernetes.io/rewrite-target: /
-    tls:
-      - secretName: localhost
-        hosts:
-          - localhost
+    tls: []
+      # - secretName: localhost
+      #   hosts:
+      #     - localhost
     hosts:
       - host: localhost
         paths:
