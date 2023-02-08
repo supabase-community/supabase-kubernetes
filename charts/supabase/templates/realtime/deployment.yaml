@@ -35,7 +35,7 @@ spec:
           image: "{{ .Values.realtime.image.repository }}:{{ .Values.realtime.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.realtime.image.pullPolicy }}
           command: ["/bin/sh"]
-          args: ["-c", "./prod/rel/realtime/bin/realtime eval Realtime.Release.migrate && ./prod/rel/realtime/bin/realtime start"]
+          args: ["-c", "/app/bin/migrate && /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)' && /app/bin/server"]
           env:
             {{- range $key, $value := .Values.realtime.environment }}
             - name: {{ $key }}
@@ -55,6 +55,11 @@ spec:
                   name: {{ .Values.db.secretName }}
                   key: password
             - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jwt.secretName }}
+                  key: secret
+            - name: API_JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.jwt.secretName }}

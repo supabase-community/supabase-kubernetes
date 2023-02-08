@@ -11,6 +11,8 @@ data:
     create schema if not exists realtime;
     -- create publication supabase_realtime; -- defaults to empty publication
     create publication supabase_realtime;
+    create schema if not exists _realtime;
+    create schema if not exists realtime;
 
     -- Supabase super admin
     create user supabase_admin;
