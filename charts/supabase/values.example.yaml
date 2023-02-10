@@ -10,11 +10,14 @@ db:
     repository: supabase/postgres
     tag: 14.1.0.105
   secretName: "demo-supabase-db"
+  persistence: 
+    enabled: false
   storage:
       mountPath: /var/lib/postgresql/data
       size: 20Gi
       storageClass: standard
-
+      annotations:
+        helm.sh/resource-policy: "keep"
 
 studio:
   image:
@@ -138,6 +141,14 @@ storage:
     TENANT_ID: stub
     REGION: stub
     GLOBAL_S3_BUCKET: stub
+  persistence: 
+    enabled: false
+    accessModes:
+      - ReadWriteOnce
+    size: 4Gi
+    storageClassName: standard
+    annotations:
+      helm.sh/resource-policy: "keep"
 
 kong:
   image:

@@ -62,6 +62,10 @@ spec:
             {{- with .Values.db.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
+            {{- if .Values.db.persistence.enabled }}
+            - mountPath: {{ .Values.db.storage.mountPath }}
+              name: postgres-volume
+            {{- end }}
           {{- with .Values.db.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -72,6 +76,11 @@ spec:
             name: {{ include "supabase.db.fullname" . }}-initdb
         {{- with .Values.db.volumes }}
           {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.db.persistence.enabled }}
+        - name: postgres-volume
+          persistentVolumeClaim:
+            claimName: {{ include "supabase.db.fullname" . }}-pvc
         {{- end }}
       {{- with .Values.db.nodeSelector }}
       nodeSelector:
