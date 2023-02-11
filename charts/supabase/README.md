@@ -61,6 +61,10 @@ demo-supabase-storage-6c878dcbd4-zzzcv    1/1     Running   0             47s
 When the installation will be complete you'll be able to create a tunnel using minikube:
 
 ```bash
+# First, enable the ingress addon in Minikube
+minikube addons enable ingress
+
+# Then enable the tunnel (will need sudo credentials because you are opening Port 80/443 on your local machine)
 minikube tunnel
 ```
 

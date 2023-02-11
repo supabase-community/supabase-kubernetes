@@ -29,6 +29,28 @@ spec:
       serviceAccountName: {{ include "supabase.storage.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.storage.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: init-db
+          image: postgres:15-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DB_HOST
+              value: {{ .Values.storage.environment.DB_HOST | quote }}
+            - name: DB_PORT
+              value: {{ .Values.storage.environment.DB_PORT | quote }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: username
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER); do
+              echo "Waiting for database to start..."
+              sleep 2
+              done
+            - echo "Database is ready"
       containers:
         - name: {{ include "supabase.storage.name" $ }}
           securityContext:
@@ -95,10 +117,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        {{- if .Values.storage.persistence.enable }}
+        {{- if .Values.storage.persistence.enabled }}
         - name: storage-data
           persistentVolumeClaim:
-            claimName: {{ include "supabase.storage.fullname" . }}
+            claimName: {{ include "supabase.storage.fullname" . }}-pvc
         {{- end }}
         {{- with .Values.storage.volumes }}
           {{- toYaml . | nindent 8 }}

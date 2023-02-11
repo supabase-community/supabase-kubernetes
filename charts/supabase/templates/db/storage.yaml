@@ -1,0 +1,21 @@
+{{- if .Values.db.persistence.enabled -}}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "supabase.db.fullname" . }}-pvc
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.db.storage.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  storageClassName: {{ .Values.db.storage.storageClass }}
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.db.storage.size }}
+{{- end }}
+
+
