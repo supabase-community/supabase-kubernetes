@@ -8,7 +8,7 @@ db:
   enabled: true
   image:
     repository: supabase/postgres
-    tag: 14.1.0.105
+    tag: 15.1.0.54-rc0
   secretName: "demo-supabase-db"
   persistence: 
     enabled: false
@@ -22,7 +22,7 @@ db:
 studio:
   image:
     repository: supabase/studio
-    tag: 20230127-6bfd87b
+    tag: 20230216-e731b77
   environment:
     SUPABASE_URL: http://localhost
     SUPABASE_REST_URL: http://localhost/rest/v1/
@@ -48,7 +48,8 @@ studio:
 
 auth:
   image:
-    repo: v2.40.1
+    repository: supabase/gotrue
+    tag: v2.47.0
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -80,7 +81,7 @@ auth:
 rest:
   image:
     repository: postgrest/postgrest
-    tag: v9.0.1.20220717
+    tag: v10.1.2
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -94,7 +95,7 @@ rest:
 realtime:
   image:
     repository: supabase/realtime
-    tag: v2.1.0
+    tag: v2.5.1
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
@@ -126,7 +127,7 @@ meta:
 storage:
   image:
     repository: supabase/storage-api
-    tag: v0.26.1
+    tag: v0.28.2
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
