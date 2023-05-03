@@ -1,0 +1,15 @@
+{{- if .Values.realtime.autoscaling.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.realtime.fullname" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.realtime.fullname" . }}
+  minReplicas: {{ .Values.realtime.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.realtime.autoscaling.maxReplicas }}
+  metrics:
+    {{- toYaml .Values.realtime.autoscaling.metrics | nindent 4 }}
+{{- end }}

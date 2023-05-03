@@ -1,0 +1,15 @@
+{{- if .Values.studio.autoscaling.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.studio.fullname" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.studio.fullname" . }}
+  minReplicas: {{ .Values.studio.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.studio.autoscaling.maxReplicas }}
+  metrics:
+    {{- toYaml .Values.studio.autoscaling.metrics | nindent 4 }}
+{{- end }}
