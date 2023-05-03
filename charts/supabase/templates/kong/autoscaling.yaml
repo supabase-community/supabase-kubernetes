@@ -1,0 +1,15 @@
+{{- if .Values.kong.autoscaling.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.kong.fullname" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.kong.fullname" . }}
+  minReplicas: {{ .Values.kong.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.kong.autoscaling.maxReplicas }}
+  metrics:
+    {{- toYaml .Values.kong.autoscaling.metrics | nindent 4 }}
+{{- end }}
