@@ -34,7 +34,7 @@ spec:
             {{- toYaml .Values.kong.securityContext | nindent 12 }}
           image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
-          command: ["/bin/sh"]
+          command: ["/bin/bash"]
           args: ["/scripts/wrapper.sh"]
           env:
             {{- range $key, $value := .Values.kong.environment }}
