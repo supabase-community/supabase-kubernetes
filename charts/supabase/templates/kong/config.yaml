@@ -8,17 +8,17 @@ metadata:
 data:
   {{- toYaml .Values.kong.environment | nindent 2 }}
   wrapper.sh: |
-    #!/bin/sh
+    #!/bin/bash
 
     set -euo pipefail
 
-    echo "Replacing env placeholders of /home/kong/kong.yml"
+    echo "Replacing env placeholders of /usr/local/kong/kong.yml"
 
     sed \
     -e "s/\${SUPABASE_ANON_KEY}/${SUPABASE_ANON_KEY}/" \
     -e "s/\${SUPABASE_SERVICE_KEY}/${SUPABASE_SERVICE_KEY}/" \
-    /home/kong/template.yml \
-    > /home/kong/kong.yml
+    /usr/local/kong/template.yml \
+    > /usr/local/kong/kong.yml
 
     exec /docker-entrypoint.sh kong docker-start
 {{- if .Values.kong.config -}}
