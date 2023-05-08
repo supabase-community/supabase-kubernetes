@@ -8,7 +8,7 @@ metadata:
 data:
   {{- toYaml .Values.kong.environment | nindent 2 }}
   wrapper.sh: |
-    #!/bin/sh
+    #!/bin/bash
 
     set -euo pipefail
 
