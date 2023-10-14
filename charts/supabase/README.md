@@ -44,6 +44,10 @@ kubectl create secret generic demo-supabase-dashboard \
   --from-literal=username='supabase' \
   --from-literal=password='this_password_is_insecure_and_should_be_updated'
 
+# Create analytics secret
+kubectl create secret generic demo-supabase-analytics \
+  --from-literal=apiKey='your-super-secret-and-long-logflare-key'
+
 # Install the chart
 helm install demo -f values.example.yaml .
 ```

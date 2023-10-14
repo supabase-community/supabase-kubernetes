@@ -8,6 +8,7 @@
 # |-- 7. Storage
 # |-- 8. Image Proxy
 # |-- 9. Kong
+# |-- 10. Analytics
 
 # jwt will be used to reference secret in multiple services:
 # Anon & Service key: Studio, Storage, Kong
@@ -742,151 +743,86 @@ kong:
   tolerations: []
   affinity: {}
   config: {}
-  #   _format_version: "1.1"
 
-  #   ###
-  #   ### Consumers / Users
-  #   ###
-  #   consumers:
-  #     - username: anon
-  #       keyauth_credentials:
-  #         - key: ${JWT_ANON_KEY}
-  #     - username: service_role
-  #       keyauth_credentials:
-  #         - key: ${JWT_SERVICE_KEY}
-
-  #   ###
-  #   ### Access Control List
-  #   ###
-  #   acls:
-  #     - consumer: anon
-  #       group: anon
-  #     - consumer: service_role
-  #       group: admin
-
-  #   ###
-  #   ### API Routes
-  #   ###
-  #   services:
-  #     ## Open Auth routes
-  #     - name: auth-v1-open
-  #       url: http://svc.cluster.local:9999/verify
-  #       routes:
-  #         - name: auth-v1-open
-  #           strip_path: true
-  #           paths:
-  #             - /auth/v1/verify
-  #       plugins:
-  #         - name: cors
-  #     - name: auth-v1-open-callback
-  #       url: http://svc.cluster.local:9999/callback
-  #       routes:
-  #         - name: auth-v1-open-callback
-  #           strip_path: true
-  #           paths:
-  #             - /auth/v1/callback
-  #       plugins:
-  #         - name: cors
-  #     - name: auth-v1-open-authorize
-  #       url: http://svc.cluster.local:9999/authorize
-  #       routes:
-  #         - name: auth-v1-open-authorize
-  #           strip_path: true
-  #           paths:
-  #             - /auth/v1/authorize
-  #       plugins:
-  #         - name: cors
-
-  #     ## Secure Auth routes
-  #     - name: auth-v1
-  #       _comment: "GoTrue: /auth/v1/* -> http://svc.cluster.local:9999/*"
-  #       url: http://svc.cluster.local:9999/
-  #       routes:
-  #         - name: auth-v1-all
-  #           strip_path: true
-  #           paths:
-  #             - /auth/v1/
-  #       plugins:
-  #         - name: cors
-  #         - name: key-auth
-  #           config:
-  #             hide_credentials: false
-  #         - name: acl
-  #           config:
-  #             hide_groups_header: true
-  #             allow:
-  #               - admin
-  #               - anon
-
-  #     ## Secure REST routes
-  #     - name: rest-v1
-  #       _comment: "PostgREST: /rest/v1/* -> http://DATABASE_ENDPOINT:3000/*"
-  #       url: http://DATABASE_ENDPOINT:3000/
-  #       routes:
-  #         - name: rest-v1-all
-  #           strip_path: true
-  #           paths:
-  #             - /rest/v1/
-  #       plugins:
-  #         - name: cors
-  #         - name: key-auth
-  #           config:
-  #             hide_credentials: true
-  #         - name: acl
-  #           config:
-  #             hide_groups_header: true
-  #             allow:
-  #               - admin
-  #               - anon
-
-  #     ## Secure Realtime routes
-  #     - name: realtime-v1
-  #       _comment: "Realtime: /realtime/v1/* -> ws://svc.cluster.local:4000/socket/*"
-  #       url: http://svc.cluster.local:4000/socket/
-  #       routes:
-  #         - name: realtime-v1-all
-  #           strip_path: true
-  #           paths:
-  #             - /realtime/v1/
-  #       plugins:
-  #         - name: cors
-  #         - name: key-auth
-  #           config:
-  #             hide_credentials: false
-  #         - name: acl
-  #           config:
-  #             hide_groups_header: true
-  #             allow:
-  #               - admin
-  #               - anon
-
-  #     ## Storage routes: the storage server manages its own auth
-  #     - name: storage-v1
-  #       _comment: "Storage: /storage/v1/* -> http://svc.cluster.local:5000/*"
-  #       url: http://svc.cluster.local:5000/
-  #       routes:
-  #         - name: storage-v1-all
-  #           strip_path: true
-  #           paths:
-  #             - /storage/v1/
-  #       plugins:
-  #         - name: cors
-
-  #     ## Secure Database routes
-  #     - name: meta
-  #       _comment: "pg-meta: /pg/* -> http://svc.cluster.local:8080/*"
-  #       url: http://svc.cluster.local:8080/
-  #       routes:
-  #         - name: meta-all
-  #           strip_path: true
-  #           paths:
-  #             - /pg/
-  #       plugins:
-  #         - name: key-auth
-  #           config:
-  #             hide_credentials: false
-  #         - name: acl
-  #           config:
-  #             hide_groups_header: true
-  #             allow:
-  #               - admin
+# Analytics
+analytics:
+  enabled: true # Disable the imgproxy service
+  image:
+    repository: supabase/logflare
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  secretName: "ANALYTIC_SECRET_NAME"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 4000
+  environment:
+    LOGFLARE_NODE_HOST: 127.0.0.1
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_DRIVER: postgresql
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SCHEMA: _analytics
+    LOGFLARE_SINGLE_TENANT: "true"
+    LOGFLARE_SUPABASE_MODE: "true"
+    LOGFLARE_MIN_CLUSTER_SIZE: "1"
+    FEATURE_FLAG_OVERRIDE: multibackend=true
+    RELEASE_COOKIE: cookie
+  # Enable Big Query backend for analytics
+  bigQuery:
+    enabled: false
+    projectId: google-project-id
+    projectNumber: google-project-number
+    gcloudJson: ""
+  # volumeMounts:
+  #   - name: volume_name
+  #     mountPath: /path/to/my/secret
+  # volumes:
+  #   - name: volume_name
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.txt
+  #         path: name_of_file_in_container.txt
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}

@@ -9,7 +9,7 @@ spec:
   type: {{ .Values.imgproxy.service.type }}
   ports:
     - port: {{ .Values.imgproxy.service.port }}
-      targetPort: 5432
+      targetPort: 5001
       protocol: TCP
       name: http
   selector:

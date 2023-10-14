@@ -178,6 +178,15 @@ data:
         plugins:
           - name: cors
 
+      - name: analytics-v1
+        _comment: 'Analytics: /analytics/v1/* -> http://{{ include "supabase.analytics.fullname" . }}:4000/*'
+        url: http://{{ include "supabase.analytics.fullname" . }}:4000/
+        routes:
+          - name: analytics-v1-all
+            strip_path: true
+            paths:
+              - /analytics/v1/
+
       - name: meta
         _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}:8080/*"
         url: http://{{ include "supabase.meta.fullname" . }}:8080/
