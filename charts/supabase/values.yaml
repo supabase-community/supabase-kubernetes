@@ -6,7 +6,8 @@
 # |-- 5. Realtime
 # |-- 6. Meta
 # |-- 7. Storage
-# |-- 8. Kong
+# |-- 8. Image Proxy
+# |-- 9. Kong
 
 # jwt will be used to reference secret in multiple services:
 # Anon & Service key: Studio, Storage, Kong
@@ -17,6 +18,10 @@ jwt:
 # smtp will be used to reference secret including smtp credentials
 smtp:
   secretName: "SMTP_SECRET_NAME"
+
+# secret used to access the studio dashboard
+dashboard:
+  secretName: "DASHBOARD_SECRET_NAME"
 
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services. 
@@ -55,6 +60,7 @@ db:
     type: ClusterIP
     port: 5432
   environment:
+    POSTGRES_HOST: /var/run/postgresql
     # POSTGRES_HOST_AUTH_METHOD: md5
   ingress:
     enabled: false
@@ -106,6 +112,8 @@ db:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # Additional migration scripts can be defined here
+  config: {}
 
 # Studio Application
 studio:
@@ -140,28 +148,11 @@ studio:
     type: ClusterIP
     port: 3000
   environment:
-    SUPABASE_URL: https://API.EXAMPLE.COM
-    SUPABASE_REST_URL: https://API.EXAMPLE.COM/rest/v1/
-    STUDIO_PG_META_URL: http://RELEASE_NAME-kong.NAMESPACE.svc.cluster.local:8000/pg
-  ingress:
-    enabled: true
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
-      # kubernetes.io/tls-acme: "true"
-    tls:
-      - secretName: STUDIO.EXAMPLE.COM
-        hosts:
-          - STUDIO.EXAMPLE.COM
-    hosts:
-      - host: STUDIO.EXAMPLE.COM
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              serviceName: api
-              servicePort: 3000
+    STUDIO_DEFAULT_ORGANIZATION: Default Organization
+    STUDIO_DEFAULT_PROJECT: Default Project
+    STUDIO_PORT: "3000"
+    SUPABASE_PUBLIC_URL: http://EXAMPLE.COM/
+    NEXT_PUBLIC_ENABLE_LOGS: "true"
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -227,11 +218,10 @@ auth:
     type: ClusterIP
     port: 9999
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
     GOTRUE_SITE_URL: https://STUDIO.EXAMPLE.COM
@@ -249,19 +239,11 @@ auth:
     GOTRUE_SMTP_SENDER_NAME: "SMTP_SENDER_NAME"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
-    GOTRUE_MAILER_URLPATHS_INVITE: "https://API.EXAMPLE.COM/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "https://API.EXAMPLE.COM/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_RECOVERY: "https://API.EXAMPLE.COM/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "https://API.EXAMPLE.COM/auth/v1/verify"
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
+    MFA_ENABLED: "false"
+    GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -326,23 +308,13 @@ rest:
     type: ClusterIP
     port: 3000
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMA: public,storage
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: "false"
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -407,25 +379,15 @@ realtime:
     type: ClusterIP
     port: 4000
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
-    DB_NAME: postgres
-    DB_SSL: "false"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PORT: "4000"
     REPLICATION_MODE: RLS
     REPLICATION_POLL_INTERVAL: "100"
     SECURE_CHANNELS: "true"
     SLOT_NAME: supabase_realtime_rls
     TEMPORARY_SLOT: "true"
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -491,21 +453,11 @@ meta:
     type: ClusterIP
     port: 8080
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -571,12 +523,10 @@ storage:
     type: ClusterIP
     port: 5000
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
-    POSTGREST_URL: http://RELEASE_NAME-rest.NAMESPACE.svc.cluster.local:3000
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: '52428800'
     STORAGE_BACKEND: file
@@ -584,15 +534,85 @@ storage:
     TENANT_ID: stub
     REGION: stub
     GLOBAL_S3_BUCKET: stub
-  ingress:
-    enabled: false
-    className: ""
+  # volumeMounts:
+  #   - name: volume_name
+  #     mountPath: /path/to/my/secret
+  # volumes:
+  #   - name: volume_name
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.txt
+  #         path: name_of_file_in_container.txt
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  persistence:
+    enabled: true
+    storageClassName: ""
     annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+    class: ""
+  storage:
+    mountPath: /var/lib/storage
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# imgproxy
+imgproxy:
+  enabled: true # Disable the imgproxy service
+  image:
+    repository: darthsim/imgproxy
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 5001
+  environment:
+    IMGPROXY_BIND: ":5001"
+    IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+    IMGPROXY_USE_ETAG: "true"
+    IMGPROXY_ENABLE_WEBP_DETECTION: "true"
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -670,7 +690,7 @@ kong:
     KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
     # https://github.com/supabase/cli/issues/14
     KONG_DNS_ORDER: LAST,A,CNAME
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl
+    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
   ingress:
     enabled: true
     className: "nginx"

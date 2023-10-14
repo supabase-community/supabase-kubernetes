@@ -8,17 +8,19 @@ metadata:
 data:
   {{- toYaml .Values.kong.environment | nindent 2 }}
   wrapper.sh: |
-    #!/bin/sh
+    #!/bin/bash
 
     set -euo pipefail
 
-    echo "Replacing env placeholders of /home/kong/kong.yml"
+    echo "Replacing env placeholders of /usr/local/kong/kong.yml"
 
     sed \
     -e "s/\${SUPABASE_ANON_KEY}/${SUPABASE_ANON_KEY}/" \
     -e "s/\${SUPABASE_SERVICE_KEY}/${SUPABASE_SERVICE_KEY}/" \
-    /home/kong/template.yml \
-    > /home/kong/kong.yml
+    -e "s/\${DASHBOARD_USERNAME}/${DASHBOARD_USERNAME}/" \
+    -e "s/\${DASHBOARD_PASSWORD}/${DASHBOARD_PASSWORD}/" \
+    /usr/local/kong/template.yml \
+    > /usr/local/kong/kong.yml
 
     exec /docker-entrypoint.sh kong docker-start
 {{- if .Values.kong.config -}}
@@ -26,9 +28,11 @@ data:
   {{- toYaml .Values.kong.config | nindent 4 }}
 {{- else }}
   template.yml: |
-    _format_version: "1.1"
+    _format_version: '2.1'
+    _transform: true
 
     consumers:
+      - username: DASHBOARD
       - username: anon
         keyauth_credentials:
             - key: ${SUPABASE_ANON_KEY}
@@ -42,9 +46,14 @@ data:
       - consumer: service_role
         group: admin
 
+    basicauth_credentials:
+      - consumer: DASHBOARD
+        username: ${DASHBOARD_USERNAME}
+        password: ${DASHBOARD_PASSWORD}
+
     services:
       - name: auth-v1-open
-        url: http://{{ include "supabase.auth.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9999/verify
+        url: http://{{ include "supabase.auth.fullname" . }}:9999/verify
         routes:
           - name: auth-v1-open
             strip_path: true
@@ -53,7 +62,7 @@ data:
         plugins:
           - name: cors
       - name: auth-v1-open-callback
-        url: http://{{ include "supabase.auth.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9999/callback
+        url: http://{{ include "supabase.auth.fullname" . }}:9999/callback
         routes:
           - name: auth-v1-open-callback
             strip_path: true
@@ -62,7 +71,7 @@ data:
         plugins:
           - name: cors
       - name: auth-v1-open-authorize
-        url: http://{{ include "supabase.auth.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9999/authorize
+        url: http://{{ include "supabase.auth.fullname" . }}:9999/authorize
         routes:
           - name: auth-v1-open-authorize
             strip_path: true
@@ -73,8 +82,8 @@ data:
 
 
       - name: auth-v1
-        _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9999/*"
-        url: http://{{ include "supabase.auth.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9999
+        _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:9999/*"
+        url: http://{{ include "supabase.auth.fullname" . }}:9999
         routes:
           - name: auth-v1-all
             strip_path: true
@@ -94,8 +103,8 @@ data:
 
 
       - name: rest-v1
-        _comment: "PostgREST: /rest/v1/* -> http://{{ include "supabase.rest.fullname" . }}.{{ .Release.Namespace }}:3000/*"
-        url: http://{{ include "supabase.rest.fullname" . }}.{{ .Release.Namespace }}:3000/
+        _comment: "PostgREST: /rest/v1/* -> http://{{ include "supabase.rest.fullname" . }}:3000/*"
+        url: http://{{ include "supabase.rest.fullname" . }}:3000/
         routes:
           - name: rest-v1-all
             strip_path: true
@@ -113,9 +122,34 @@ data:
                 - admin
                 - anon
 
+      - name: graphql-v1
+        _comment: 'PostgREST: /graphql/v1/* -> http://{{ include "supabase.rest.fullname" . }}:3000/rpc/graphql'
+        url: http://{{ include "supabase.rest.fullname" . }}:3000/rpc/graphql
+        routes:
+          - name: graphql-v1-all
+            strip_path: true
+            paths:
+              - /graphql/v1
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: true
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - Content-Profile:graphql_public
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow:
+                - admin
+                - anon
+
       - name: realtime-v1
-        _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:4000/socket/*"
-        url: http://{{ include "supabase.realtime.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:4000/socket
+        _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}:4000/socket/*"
+        url: http://{{ include "supabase.realtime.fullname" . }}:4000/socket
         routes:
           - name: realtime-v1-all
             strip_path: true
@@ -134,8 +168,8 @@ data:
                 - anon
 
       - name: storage-v1
-        _comment: "Storage: /storage/v1/* -> http://{{ include "supabase.storage.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:5000/*"
-        url: http://{{ include "supabase.storage.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:5000/
+        _comment: "Storage: /storage/v1/* -> http://{{ include "supabase.storage.fullname" . }}:5000/*"
+        url: http://{{ include "supabase.storage.fullname" . }}:5000/
         routes:
           - name: storage-v1-all
             strip_path: true
@@ -145,8 +179,8 @@ data:
           - name: cors
 
       - name: meta
-        _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:8080/*"
-        url: http://{{ include "supabase.meta.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:8080/
+        _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}:8080/*"
+        url: http://{{ include "supabase.meta.fullname" . }}:8080/
         routes:
           - name: meta-all
             strip_path: true
@@ -161,5 +195,19 @@ data:
               hide_groups_header: true
               allow:
                 - admin
+
+      - name: dashboard
+        _comment: 'Studio: /* -> http://{{ include "supabase.studio.fullname" . }}:3000/*'
+        url: http://{{ include "supabase.studio.fullname" . }}:3000/
+        routes:
+          - name: dashboard-all
+            strip_path: true
+            paths:
+              - /
+        plugins:
+          - name: cors
+          - name: basic-auth
+            config:
+              hide_credentials: true
 {{- end }}
 {{- end }}

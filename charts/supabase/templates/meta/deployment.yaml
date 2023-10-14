@@ -42,6 +42,10 @@ spec:
                   name: {{ include "supabase.meta.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            {{- if .Values.db.enabled }}
+            - name: DB_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            {{- end }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -52,6 +56,16 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.db.secretName }}
                   key: password
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: port
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: database
             - name: PG_META_DB_HOST
               value: $(DB_HOST)
             - name: PG_META_DB_PORT

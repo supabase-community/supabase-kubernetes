@@ -42,6 +42,14 @@ spec:
                   name: {{ include "supabase.studio.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            {{- if .Values.kong.enabled }}
+            - name: SUPABASE_URL
+              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}
+            {{- end }}
+            {{- if .Values.meta.enabled }}
+            - name: STUDIO_PG_META_URL
+              value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}
+            {{- end }}
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:

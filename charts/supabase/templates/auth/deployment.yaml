@@ -34,9 +34,16 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
+              {{- if .Values.db.enabled }}
+              value: {{ include "supabase.db.fullname" . | quote }}
+              {{- else }}
               value: {{ .Values.auth.environment.DB_HOST | quote }}
+              {{- end }}
             - name: DB_PORT
-              value: {{ .Values.auth.environment.DB_PORT | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: port
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -64,6 +71,10 @@ spec:
                   name: {{ include "supabase.auth.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            {{- if .Values.db.enabled }}
+            - name: DB_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            {{- end }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -74,6 +85,16 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.db.secretName }}
                   key: password
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: port
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: database
             - name: GOTRUE_DB_DATABASE_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
             - name: GOTRUE_DB_DRIVER

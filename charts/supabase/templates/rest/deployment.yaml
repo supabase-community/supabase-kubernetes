@@ -42,6 +42,10 @@ spec:
                   name: {{ include "supabase.rest.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            {{- if .Values.db.enabled }}
+            - name: DB_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            {{- end }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -52,6 +56,16 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.db.secretName }}
                   key: password
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: port
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: database
             - name: PGRST_DB_URI
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET

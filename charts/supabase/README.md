@@ -22,29 +22,36 @@ git clone https://github.com/supabase-community/supabase-kubernetes
 cd supabase-kubernetes/charts/supabase/
 
 # Create JWT secret
-kubectl -n default create secret generic demo-supabase-jwt \
+kubectl create secret generic demo-supabase-jwt \
   --from-literal=anonKey='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICAgInJvbGUiOiAiYW5vbiIsCiAgICAiaXNzIjogInN1cGFiYXNlIiwKICAgICJpYXQiOiAxNjc1NDAwNDAwLAogICAgImV4cCI6IDE4MzMxNjY4MDAKfQ.ztuiBzjaVoFHmoljUXWmnuDN6QU2WgJICeqwyzyZO88' \
   --from-literal=serviceKey='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICAgInJvbGUiOiAic2VydmljZV9yb2xlIiwKICAgICJpc3MiOiAic3VwYWJhc2UiLAogICAgImlhdCI6IDE2NzU0MDA0MDAsCiAgICAiZXhwIjogMTgzMzE2NjgwMAp9.qNsmXzz4tG7eqJPh1Y58DbtIlJBauwpqx39UF-MwM8k' \
   --from-literal=secret='abcdefghijklmnopqrstuvwxyz123456'
 
 # Create SMTP secret
-kubectl -n default create secret generic demo-supabase-smtp \
+kubectl create secret generic demo-supabase-smtp \
   --from-literal=username='your-mail@example.com' \
   --from-literal=password='example123456'
 
 # Create DB secret
-kubectl -n default create secret generic demo-supabase-db \
+kubectl create secret generic demo-supabase-db \
   --from-literal=username='postgres' \
-  --from-literal=password='example123456' 
+  --from-literal=password='example123456' \
+  --from-literal=database='postgres' \
+  --from-literal=port='5432'
+
+# Create dashboard credentials
+kubectl create secret generic demo-supabase-dashboard \
+  --from-literal=username='supabase' \
+  --from-literal=password='this_password_is_insecure_and_should_be_updated'
 
 # Install the chart
-helm -n default install demo -f values.example.yaml .
+helm install demo -f values.example.yaml .
 ```
 
 The first deployment can take some time to complete (especially auth service). You can view the status of the pods using:
 
 ```bash
-kubectl -n default get pod 
+kubectl get pod 
 
 NAME                                      READY   STATUS    RESTARTS      AGE
 demo-supabase-auth-78547c5c8d-chkbm       1/1     Running   2 (40s ago)   47s
@@ -77,12 +84,12 @@ If you just use the `value.example.yaml` file, you can access the API or the Stu
 
 ```Bash
 # Uninstall Helm chart
-helm -n default uninstall demo 
+helm uninstall demo 
 
 # Delete secrets
-kubectl -n default delete secret demo-supabase-db
-kubectl -n default delete secret demo-supabase-jwt
-kubectl -n default delete secret demo-supabase-smtp
+kubectl delete secret demo-supabase-db
+kubectl delete secret demo-supabase-jwt
+kubectl delete secret demo-supabase-smtp
 ```
 
 ## Customize

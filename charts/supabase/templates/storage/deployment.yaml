@@ -35,9 +35,16 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
-              value: {{ .Values.storage.environment.DB_HOST | quote }}
+              {{- if .Values.db.enabled }}
+              value: {{ include "supabase.db.fullname" . | quote }}
+              {{- else }}
+              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              {{- end }}
             - name: DB_PORT
-              value: {{ .Values.storage.environment.DB_PORT | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: port
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -65,6 +72,14 @@ spec:
                   name: {{ include "supabase.storage.fullname" $ }}
                   key: {{ $key }}
             {{- end }}
+            {{- if .Values.db.enabled }}
+            - name: DB_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            {{- end }}
+            {{- if .Values.rest.enabled }}
+            - name: POSTGREST_URL
+              value: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}
+            {{- end }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -75,6 +90,16 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.db.secretName }}
                   key: password
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: port
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: database
             - name: DATABASE_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET
@@ -92,6 +117,10 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.jwt.secretName }}
                   key: serviceKey
+            {{- if .Values.imgproxy.enabled }}
+            - name: IMGPROXY_URL
+              value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.port | int }}
+            {{- end }}
           ports:
             - name: http
               containerPort: 5000
@@ -100,10 +129,12 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.storage.volumeMounts }}
           volumeMounts:
+          {{- with .Values.storage.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
+            - mountPath: /var/lib/storage
+              name: storage-data
       {{- with .Values.storage.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -117,11 +148,14 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        {{- if .Values.storage.persistence.enabled }}
         - name: storage-data
+          {{- if .Values.storage.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "supabase.storage.fullname" . }}-pvc
-        {{- end }}
+          {{- else }}
+          emptyDir:
+            medium: ""
+          {{- end }}
         {{- with .Values.storage.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
