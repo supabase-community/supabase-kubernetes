@@ -164,3 +164,8 @@ analytics:
     LOGFLARE_MIN_CLUSTER_SIZE: "1"
     FEATURE_FLAG_OVERRIDE: multibackend=true
     RELEASE_COOKIE: cookie
+
+vector:
+  enabled: false
+  image:
+    tag: 0.28.1-alpine

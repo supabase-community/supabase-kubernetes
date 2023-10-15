@@ -1,14 +1,15 @@
 # File structure of values.yaml:
-# |-- 1. Database
-# |-- 2. Studio
-# |-- 3. Auth
-# |-- 4. Rest
-# |-- 5. Realtime
-# |-- 6. Meta
-# |-- 7. Storage
-# |-- 8. Image Proxy
-# |-- 9. Kong
+# |-- 1.  Database
+# |-- 2.  Studio
+# |-- 3.  Auth
+# |-- 4.  Rest
+# |-- 5.  Realtime
+# |-- 6.  Meta
+# |-- 7.  Storage
+# |-- 8.  Image Proxy
+# |-- 9.  Kong
 # |-- 10. Analytics
+# |-- 11. Vector
 
 # jwt will be used to reference secret in multiple services:
 # Anon & Service key: Studio, Storage, Kong
@@ -746,7 +747,7 @@ kong:
 
 # Analytics
 analytics:
-  enabled: true # Disable the imgproxy service
+  enabled: true # Disable the analytics service
   image:
     repository: supabase/logflare
     pullPolicy: IfNotPresent
@@ -795,6 +796,70 @@ analytics:
     projectId: google-project-id
     projectNumber: google-project-number
     gcloudJson: ""
+  # volumeMounts:
+  #   - name: volume_name
+  #     mountPath: /path/to/my/secret
+  # volumes:
+  #   - name: volume_name
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.txt
+  #         path: name_of_file_in_container.txt
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Vector
+vector:
+  enabled: false # Disable the vector service
+  image:
+    repository: timberio/vector
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 9001
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
