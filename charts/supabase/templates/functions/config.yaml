@@ -1,0 +1,10 @@
+{{- if .Values.functions.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "supabase.functions.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+data:
+  {{- toYaml .Values.functions.environment | nindent 2 }}
+{{- end }}

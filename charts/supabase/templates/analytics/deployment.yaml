@@ -124,6 +124,7 @@ spec:
           ports:
             - containerPort: {{ .Values.analytics.service.port }}
               protocol: TCP
+          {{- if or (.Values.analytics.bigQuery.enabled) (.Values.analytics.volumes) }}
           volumeMounts:
             {{- with .Values.analytics.volumeMounts }}
               {{- toYaml . | nindent 12 }}
@@ -133,19 +134,22 @@ spec:
               name: gcloud-credentials
               subPath: gcloud.json
             {{- end }}
+          {{- end }}
           {{- with .Values.analytics.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      {{- if or (.Values.analytics.bigQuery.enabled) (.Values.analytics.volumes) }}
       volumes:
         {{- with .Values.analytics.volumes }}
-          {{- toYaml . | nindent 10 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- if .Values.analytics.bigQuery.enabled }}
         - name: gcloud-credentials
           secret:
             secretName: {{ include "supabase.analytics.fullname" . }}-gcloud
         {{- end }}
+      {{- end }}
       {{- with .Values.analytics.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

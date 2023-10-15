@@ -10,6 +10,7 @@
 # |-- 9.  Kong
 # |-- 10. Analytics
 # |-- 11. Vector
+# |-- 12. Functions
 
 # jwt will be used to reference secret in multiple services:
 # Anon & Service key: Studio, Storage, Kong
@@ -871,6 +872,76 @@ vector:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Analytics
+functions:
+  enabled: true # Disable the analytics service
+  image:
+    repository: supabase/edge-runtime
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 9000
+  environment:
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_DRIVER: postgresql
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+  # Mount user functions
+  # volumeMounts:
+  #   - name: my_functions
+  #     mountPath: /home/deno/functions/main/main
+  # volumes:
+  #   - name: my_functions
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.ts
+  #         path: name_of_file_in_container.ts
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little

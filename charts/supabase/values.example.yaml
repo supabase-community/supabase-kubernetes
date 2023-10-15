@@ -169,3 +169,7 @@ vector:
   enabled: false
   image:
     tag: 0.28.1-alpine
+
+functions:
+  image:
+    tag: v1.18.1
