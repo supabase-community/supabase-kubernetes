@@ -40,16 +40,13 @@ spec:
               {{- else }}
               value: {{ .Values.auth.environment.DB_HOST | quote }}
               {{- end }}
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: port
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: username
+            - name: DB_PORT
+              value: {{ .Values.analytics.environment.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -67,10 +64,7 @@ spec:
           env:
             {{- range $key, $value := .Values.storage.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.storage.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
             {{- if .Values.db.enabled }}
             - name: DB_HOST
@@ -83,39 +77,34 @@ spec:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: password
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: port
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: database
             - name: DATABASE_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: secret
             - name: ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: anonKey
             - name: SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
             {{- if .Values.imgproxy.enabled }}
             - name: IMGPROXY_URL

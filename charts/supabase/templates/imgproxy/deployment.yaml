@@ -37,10 +37,7 @@ spec:
           env:
             {{- range $key, $value := .Values.imgproxy.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.imgproxy.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
           ports:
             - name: http

@@ -6,7 +6,6 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 data:
-  {{- toYaml .Values.kong.environment | nindent 2 }}
   wrapper.sh: |
     #!/bin/bash
 
@@ -23,10 +22,6 @@ data:
     > /usr/local/kong/kong.yml
 
     exec /docker-entrypoint.sh kong docker-start
-{{- if .Values.kong.config -}}
-  template.yml:
-  {{- toYaml .Values.kong.config | nindent 4 }}
-{{- else }}
   template.yml: |
     _format_version: '2.1'
     _transform: true
@@ -227,5 +222,4 @@ data:
           - name: basic-auth
             config:
               hide_credentials: true
-{{- end }}
 {{- end }}

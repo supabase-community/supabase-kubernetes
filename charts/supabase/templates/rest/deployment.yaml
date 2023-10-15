@@ -37,10 +37,7 @@ spec:
           env:
             {{- range $key, $value := .Values.rest.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.rest.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
             {{- if .Values.db.enabled }}
             - name: DB_HOST
@@ -49,29 +46,24 @@ spec:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: password
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: port
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: database
             - name: PGRST_DB_URI
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: secret
           ports:
             - name: http

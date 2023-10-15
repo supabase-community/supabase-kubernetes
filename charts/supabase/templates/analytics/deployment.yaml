@@ -39,16 +39,13 @@ spec:
               {{- else }}
               value: {{ .Values.analytics.environment.DB_HOST | quote }}
               {{- end }}
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: port
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: username
+            - name: DB_PORT
+              value: {{ .Values.analytics.environment.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -74,10 +71,7 @@ spec:
           env:
             {{- range $key, $value := .Values.analytics.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.analytics.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
             {{- if .Values.db.enabled }}
             - name: DB_HOSTNAME
@@ -86,27 +80,22 @@ spec:
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: password
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: port
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: database
             - name: LOGFLARE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.analytics.secretName }}
+                  name: {{ include "supabase.secret.analytics" . }}
                   key: apiKey
             {{- if .Values.analytics.bigQuery.enabled }}
             - name: GOOGLE_PROJECT_ID

@@ -37,10 +37,7 @@ spec:
           env:
             {{- range $key, $value := .Values.meta.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.meta.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
             {{- if .Values.db.enabled }}
             - name: DB_HOST
@@ -49,22 +46,17 @@ spec:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: password
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: port
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: database
             - name: PG_META_DB_HOST
               value: $(DB_HOST)

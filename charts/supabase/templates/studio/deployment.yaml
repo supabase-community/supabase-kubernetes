@@ -37,10 +37,7 @@ spec:
           env:
             {{- range $key, $value := .Values.studio.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.studio.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
             {{- if .Values.kong.enabled }}
             - name: SUPABASE_URL
@@ -53,12 +50,12 @@ spec:
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: anonKey
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
           ports:
             - name: http

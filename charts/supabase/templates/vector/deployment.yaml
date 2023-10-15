@@ -42,7 +42,7 @@ spec:
             - name: LOGFLARE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.analytics.secretName }}
+                  name: {{ include "supabase.secret.analytics" . }}
                   key: apiKey
           {{- end }}
           ports:
