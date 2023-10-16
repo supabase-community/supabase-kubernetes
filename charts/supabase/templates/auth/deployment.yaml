@@ -45,7 +45,7 @@ spec:
                   name: {{ include "supabase.secret.db" . }}
                   key: username
             - name: DB_PORT
-              value: {{ .Values.analytics.environment.DB_PORT | quote }}
+              value: {{ .Values.auth.environment.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
