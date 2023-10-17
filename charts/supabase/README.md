@@ -128,6 +128,48 @@ The secret can be created with kubectl via command-line:
 
 > If you depend on database providers like [StackGres](https://stackgres.io/) or [Postgres Operator](https://github.com/zalando/postgres-operator) you only need to remove the `secret.db` values and direcly creating a new `<helm-deploy-name>-supabase-db` secret.
 
+#### Migration scripts
+
+Supabase migration scripts can be specified at `db.config` field. This will apply all of the migration scripts during the database initialization. For example:
+
+```yaml
+db:
+  config:
+    20230101000000_profiles.sql: |
+      create table profiles (
+        id uuid references auth.users not null,
+        updated_at timestamp with time zone,
+        username text unique,
+        avatar_url text,
+        website text,
+
+        primary key (id),
+        unique(username),
+        constraint username_length check (char_length(username) >= 3)
+      );
+```
+
+To make copying scripts easier, use this handy bash script:
+
+```bash
+#!/bin/bash
+
+clipboard="\n"
+for file in $1/*; do
+  clipboard+="    $(basename $file): |\n"
+  clipboard+=$(cat $file | awk '{print "      "$0}')
+done
+
+echo -e "$clipboard"
+```
+
+and pipe it to your system clipboard handler:
+
+```shell
+# Using xclip as an example
+./script.sh supabase/migrations | xclip -sel clipboard
+```
+
 ### Dashboard secret
 
 By default, a username and password is required to access the Supabase Studio dashboard. Simply change them at:
