@@ -65,7 +65,7 @@ When the installation will be complete you'll be able to create a tunnel using m
 minikube addons enable ingress
 
 # Then enable the tunnel (will need sudo credentials because you are opening Port 80/443 on your local machine)
-minikube tunnel
+minikube tunnel --bind-address localhost
 ```
 
 If you just use the `value.example.yaml` file, you can access the API or the Studio App using the following endpoints:
