@@ -5,6 +5,7 @@ metadata:
   name: {{ include "supabase.vector.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    vector.dev/exclude: "true"
 spec:
   {{- if not .Values.vector.autoscaling.enabled }}
   replicas: {{ .Values.vector.replicaCount }}
@@ -37,8 +38,12 @@ spec:
             {{- toYaml .Values.vector.securityContext | nindent 12 }}
           image: "{{ .Values.vector.image.repository }}:{{ .Values.vector.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.vector.image.pullPolicy }}
-          {{- if .Values.analytics.enabled }}
           env:
+            - name: VECTOR_SELF_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          {{- if .Values.analytics.enabled }}
             - name: LOGFLARE_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -63,11 +68,9 @@ spec:
         {{- with .Values.vector.volumes }}
           {{- toYaml . | nindent 10 }}
         {{- end }}
-        {{- if .Values.vector.bigQuery.enabled }}
         - name: vector-config
-          secret:
-            secretName: {{ include "supabase.vector.fullname" . }}-secret
-        {{- end }}
+          configMap:
+            name:  {{ include "supabase.vector.fullname" . }}-config
       {{- with .Values.vector.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

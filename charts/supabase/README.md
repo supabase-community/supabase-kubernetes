@@ -128,9 +128,42 @@ The secret can be created with kubectl via command-line:
 
 > If you depend on database providers like [StackGres](https://stackgres.io/) or [Postgres Operator](https://github.com/zalando/postgres-operator) you only need to remove the `secret.db` values and direcly creating a new `<helm-deploy-name>-supabase-db` secret.
 
-#### Migration scripts
+### Dashboard secret
 
-Supabase migration scripts can be specified at `db.config` field. This will apply all of the migration scripts during the database initialization. For example:
+By default, a username and password is required to access the Supabase Studio dashboard. Simply change them at:
+
+```yaml
+secret:
+  dashboard:
+    username: supabase
+    password: this_password_is_insecure_and_should_be_updated
+```
+
+### Analytics secret
+
+A new logflare secret API key is required for securing communication between all of the Supabase services. To set the secret, generate a new 32 characters long secret similar to the step [above](#jwt-secret).
+
+```yaml
+secret:
+  analytics:
+    apiKey: your-super-secret-with-at-least-32-characters-long-logflare-key
+```
+
+## How to use in Production
+
+We didn't provide a complete configuration to go production because of the multiple possibility.
+
+But here are the important points you have to think about:
+
+- Use a replicated version of the Postgres database.
+- Add SSL to the Postgres database.
+- Add SSL configuration to the ingresses endpoints using either the `cert-manager` or a LoadBalancer provider.
+- Change the domain used in the ingresses endpoints.
+- Generate a new secure JWT Secret.
+
+### Migration
+
+Migration from local development is made easy by adding migration scripts at `db.config` field. This will apply all of the migration scripts during the database initialization. For example:
 
 ```yaml
 db:
@@ -169,39 +202,6 @@ and pipe it to your system clipboard handler:
 # Using xclip as an example
 ./script.sh supabase/migrations | xclip -sel clipboard
 ```
-
-### Dashboard secret
-
-By default, a username and password is required to access the Supabase Studio dashboard. Simply change them at:
-
-```yaml
-secret:
-  dashboard:
-    username: supabase
-    password: this_password_is_insecure_and_should_be_updated
-```
-
-### Analytics secret
-
-A new logflare secret API key is required for securing communication between all of the Supabase services. To set the secret, generate a new 32 characters long secret similar to the step [above](#jwt-secret).
-
-```yaml
-secret:
-  analytics:
-    apiKey: your-super-secret-with-at-least-32-characters-long-logflare-key
-```
-
-## How to use in Production
-
-We didn't provide a complete configuration to go production because of the multiple possibility.
-
-But here are the important points you have to think about:
-
-- Use a replicated version of the Postgres database.
-- Add SSL to the Postgres database.
-- Add SSL configuration to the ingresses endpoints using either the `cert-manager` or a LoadBalancer provider.
-- Change the domain used in the ingresses endpoints.
-- Generate a new secure JWT Secret.
 
 ## Troubleshooting
 

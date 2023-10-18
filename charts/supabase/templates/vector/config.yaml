@@ -1,11 +1,10 @@
 {{- if .Values.vector.enabled }}
 apiVersion: v1
-kind: Secret
+kind: ConfigMap
 metadata:
-  name: {{ include "supabase.vector.fullname" . }}-secret
+  name: {{ include "supabase.vector.fullname" . }}-config
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
-type: Opaque
 data:
   vector.yml: |
     api:
@@ -13,16 +12,15 @@ data:
       address: 0.0.0.0:{{ .Values.vector.service.port }}
 
     sources:
-      docker_host:
-        type: docker_logs
-        exclude_containers:
-          - {{ include "supabase.vector.fullname" . }}
+      kubernetes_host:
+        type: kubernetes_logs
+        extra_label_selector: app.kubernetes.io/instance={{ .Release.Name }}
 
     transforms:
       project_logs:
         type: remap
         inputs:
-          - docker_host
+          - kubernetes_host
         source: |-
           .project = "default"
           .event_message = del(.message)

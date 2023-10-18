@@ -173,7 +173,6 @@ analytics:
     RELEASE_COOKIE: cookie
 
 vector:
-  enabled: false
   image:
     tag: 0.28.1-alpine
 

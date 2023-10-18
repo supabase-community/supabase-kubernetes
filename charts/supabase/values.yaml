@@ -845,10 +845,9 @@ analytics:
   tolerations: []
   affinity: {}
 
-# TODO: Expose other services' log to vector
 # Vector
 vector:
-  enabled: false # Disable the vector service
+  enabled: true # Disable the vector service
   image:
     repository: timberio/vector
     pullPolicy: IfNotPresent
