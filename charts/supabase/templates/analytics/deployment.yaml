@@ -110,6 +110,14 @@ spec:
             - name: LOGFLARE_FEATURE_FLAG_OVERRIDE
               value: $(FEATURE_FLAG_OVERRIDE)
             {{- end }}
+          {{- with .Values.analytics.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.analytics.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: {{ .Values.analytics.service.port }}
               protocol: TCP

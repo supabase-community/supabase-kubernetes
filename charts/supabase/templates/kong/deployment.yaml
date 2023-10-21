@@ -61,6 +61,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.dashboard" . }}
                   key: password
+          {{- with .Values.kong.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.kong.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 8000

@@ -65,6 +65,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
+          {{- with .Values.rest.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.rest.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 3000

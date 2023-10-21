@@ -50,6 +50,14 @@ spec:
                   name: {{ include "supabase.secret.analytics" . }}
                   key: apiKey
           {{- end }}
+          {{- with .Values.vector.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.vector.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: {{ .Values.vector.service.port }}
               protocol: TCP

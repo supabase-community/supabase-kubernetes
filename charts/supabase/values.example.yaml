@@ -21,6 +21,13 @@ db:
   image:
     repository: supabase/postgres
     tag: 15.1.0.117
+  livenessProbe:
+    exec:
+      command:
+        - pg_isready
+        - -U
+        - $POSTGRES_USER
+    initialDelaySeconds: 3
   persistence: 
     enabled: false
     size: 20Gi
@@ -37,6 +44,11 @@ studio:
     STUDIO_DEFAULT_PROJECT: "My Project"
     SUPABASE_PUBLIC_URL: http://example.com/
     NEXT_PUBLIC_ENABLE_LOGS: "true"
+  livenessProbe:
+    httpGet:
+      path: /api/profile
+      port: 3000
+    initialDelaySeconds: 3
 
 auth:
   image:
@@ -87,6 +99,11 @@ realtime:
     ERL_AFLAGS: -proto_dist inet_tcp
     ENABLE_TAILSCALE: "false"
     DNS_NODES: "''"
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 4000
+    initialDelaySeconds: 3
 
 meta:
   image:
@@ -106,6 +123,11 @@ storage:
     TENANT_ID: stub
     REGION: stub
     GLOBAL_S3_BUCKET: stub
+  livenessProbe:
+    httpGet:
+      path: /status
+      port: 5000
+    initialDelaySeconds: 3
   persistence: 
     enabled: false
     accessModes:
@@ -123,6 +145,12 @@ imgproxy:
     IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
     IMGPROXY_USE_ETAG: "true"
     IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+  livenessProbe:
+    exec:
+      command:
+        - imgproxy
+        - health
+    initialDelaySeconds: 3
   persistence: 
     enabled: false
     accessModes:
@@ -150,9 +178,9 @@ kong:
     annotations:
       nginx.ingress.kubernetes.io/rewrite-target: /
     tls: []
-      # - secretName: localhost
+      # - secretName: example-ingress-tls
       #   hosts:
-      #     - localhost
+      #     - example.com
     hosts:
       - host: example.com
         paths:
@@ -171,10 +199,20 @@ analytics:
     LOGFLARE_MIN_CLUSTER_SIZE: "1"
     FEATURE_FLAG_OVERRIDE: multibackend=true
     RELEASE_COOKIE: cookie
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 4000
+    initialDelaySeconds: 3
 
 vector:
   image:
     tag: 0.28.1-alpine
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 9001
+    initialDelaySeconds: 3
 
 functions:
   image:

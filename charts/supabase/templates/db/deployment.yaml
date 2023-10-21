@@ -83,6 +83,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db" . }}
                   key: database
+          {{- with .Values.db.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.db.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 9999

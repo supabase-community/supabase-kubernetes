@@ -103,6 +103,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.smtp" . }}
                   key: password
+          {{- with .Values.auth.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.auth.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 9999
