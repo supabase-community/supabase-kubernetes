@@ -216,4 +216,4 @@ vector:
 
 functions:
   image:
-    tag: v1.18.1
+    tag: v1.20.2

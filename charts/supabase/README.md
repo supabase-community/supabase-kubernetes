@@ -187,10 +187,10 @@ To make copying scripts easier, use this handy bash script:
 ```bash
 #!/bin/bash
 
-clipboard="\n"
 for file in $1/*; do
   clipboard+="    $(basename $file): |\n"
   clipboard+=$(cat $file | awk '{print "      "$0}')
+  clipboard+="\n"
 done
 
 echo -e "$clipboard"
