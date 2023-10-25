@@ -28,7 +28,7 @@ helm install demo -f values.example.yaml .
 The first deployment can take some time to complete (especially auth service). You can view the status of the pods using:
 
 ```bash
-kubectl get pod 
+kubectl get pod -l app.kubernetes.io/instance=demo
 
 NAME                                      READY   STATUS    RESTARTS      AGE
 demo-supabase-analytics-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
@@ -43,33 +43,24 @@ demo-supabase-rest-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
 demo-supabase-storage-xxxxxxxxxx-xxxxx    1/1     Running   0             47s
 ```
 
-### Tunnel with Minikube
+### Access with Minikube
 
-When the installation will be complete you'll be able to create a tunnel using minikube:
-
-```bash
-# First, enable the ingress addon in Minikube
-minikube addons enable ingress
-
-# Then enable the tunnel (will need sudo credentials because you are opening Port 80/443 on your local machine)
-minikube tunnel
+Assuming that you have enabled Minikube ingress addon, note down the Minikube IP address:
+```shell
+minikube ip
 ```
-
-If you just use the `value.example.yaml` file, you can access the API or the Studio App using the following endpoints:
-
-- <http://api.localhost>
-- <http://studio.localhost>
+Then, add the IP into your `/etc/hosts` file:
+```bash
+# This will redirect request for example.com to the minikube IP
+<minikube-ip> example.com
+```
+Open http://example.com in your browser.
 
 ### Uninstall
 
 ```Bash
 # Uninstall Helm chart
-helm uninstall demo 
-
-# Delete secrets
-kubectl delete secret demo-supabase-db
-kubectl delete secret demo-supabase-jwt
-kubectl delete secret demo-supabase-smtp
+helm uninstall demo
 ```
 
 ## Customize

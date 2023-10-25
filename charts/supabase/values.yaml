@@ -120,6 +120,14 @@ db:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  persistence:
+    enabled: true
+    storageClassName: ""
+    annotations: {}
+    size: 8Gi
+    accessModes:
+      - ReadWriteOnce
+    class: ""
   autoscaling:
     enabled: true
     minReplicas: 1
@@ -598,8 +606,6 @@ storage:
     accessModes:
       - ReadWriteOnce
     class: ""
-  storage:
-    mountPath: /var/lib/storage
   autoscaling:
     enabled: true
     minReplicas: 1
