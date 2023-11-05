@@ -23,3 +23,6 @@ version: 0.1.0
 # It is recommended to use it with quotes.
 # Not used because too difficult to follow correctly
 # appVersion: "1.16.0"
+
+# A URL to an SVG or PNG image to be used as an icon
+icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4

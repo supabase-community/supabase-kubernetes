@@ -51,6 +51,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
+            {{- if .Values.secret.dashboard }}
             - name: DASHBOARD_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -61,6 +62,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.dashboard" . }}
                   key: password
+            {{- end }}
           {{- with .Values.kong.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

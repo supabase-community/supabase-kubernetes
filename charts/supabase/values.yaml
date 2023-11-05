@@ -16,7 +16,7 @@ secret:
   # jwt will be used to reference secret in multiple services:
   # Anon & Service key: Studio, Storage, Kong
   # JWT Secret: Analytics, Auth, Rest, Realtime, Storage
-  jwt: 
+  jwt:
     anonKey: ""
     serviceKey: ""
     secret: ""
@@ -40,11 +40,12 @@ secret:
     # password: ""
 
 # Optional: Postgres Database
-# A standalone Postgres database configured to work with Supabase services. 
-# You can spin up any other Postgres database container if required. 
+# A standalone Postgres database configured to work with Supabase services.
+# You can spin up any other Postgres database container if required.
 # If so, make sure to adjust DB_HOST accordingly to point to the right database service.
 db:
-  enabled: false # Disable the database provisioning
+  # Enable database provisioning
+  enabled: true
   image:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
@@ -144,7 +145,8 @@ db:
 
 # Studio Application
 studio:
-  enabled: true # Disable the studio
+  # Enable studio provisioning
+  enabled: true
   image:
     repository: supabase/studio
     pullPolicy: IfNotPresent
@@ -216,7 +218,8 @@ studio:
 
 # Auth Service
 auth:
-  enabled: true # Disable the auth service
+  # Enable auth provisioning
+  enabled: true
   image:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
@@ -254,7 +257,7 @@ auth:
     DB_USER: supabase_auth_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
     GOTRUE_SITE_URL: https://STUDIO.EXAMPLE.COM
@@ -312,11 +315,12 @@ auth:
 
 # Rest Service
 rest:
-  enabled: true # Disable the rest service
+  # Enable postgrest provisioning
+  enabled: true
   image:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "latest" 
+    tag: "latest"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -349,7 +353,7 @@ rest:
     DB_USER: authenticator
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: false
@@ -388,14 +392,15 @@ rest:
 
 # Realtime Service
 realtime:
-  enabled: true # Disable the realtime service
+  # Enable realtime provisioning
+  enabled: true
   image:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
     tag: "latest"
   imagePullSecrets: []
   nameOverride: ""
-  fullnameOverride: "" 
+  fullnameOverride: ""
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
@@ -424,8 +429,8 @@ realtime:
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_admin
     DB_PORT: 5432
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
-    DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
     DB_ENC_KEY: supabaserealtime
     PORT: "4000"
     FLY_ALLOC_ID: fly123
@@ -468,13 +473,14 @@ realtime:
 
 # Meta Service
 meta:
-  enabled: true # Disable the meta service
+  # Enable meta provisioning
+  enabled: true
   image:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
     tag: "latest"
   imagePullSecrets: []
-  replicaCount: 1  
+  replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -506,7 +512,7 @@ meta:
     DB_USER: supabase_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
   # volumeMounts:
   #   - name: volume_name
@@ -538,11 +544,12 @@ meta:
     # targetMemoryUtilizationPercentage: 80
   nodeSelector: {}
   tolerations: []
-  affinity: {}    
+  affinity: {}
 
 # Storage Service
 storage:
-  enabled: true # Disable the storage service
+  # Enable storage provisioning
+  enabled: true
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
@@ -580,9 +587,9 @@ storage:
     DB_USER: supabase_storage_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PGOPTIONS: -c search_path=storage,public
-    FILE_SIZE_LIMIT: '52428800'
+    FILE_SIZE_LIMIT: "52428800"
     STORAGE_BACKEND: file
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
@@ -630,7 +637,8 @@ storage:
 
 # imgproxy
 imgproxy:
-  enabled: true # Disable the imgproxy service
+  # Enable imgproxy provisioning
+  enabled: true
   image:
     repository: darthsim/imgproxy
     pullPolicy: IfNotPresent
@@ -709,7 +717,8 @@ imgproxy:
 
 # Kong
 kong:
-  enabled: true # Disable the kong service
+  # Enable kong provisioning
+  enabled: true
   image:
     repository: kong
     pullPolicy: IfNotPresent
@@ -803,7 +812,8 @@ kong:
 
 # Analytics
 analytics:
-  enabled: true # Disable the analytics service
+  # Enable analytics provisioning
+  enabled: true
   image:
     repository: supabase/logflare
     pullPolicy: IfNotPresent
@@ -842,7 +852,7 @@ analytics:
     DB_USERNAME: supabase_admin
     DB_PORT: 5432
     DB_DRIVER: postgresql
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     DB_SCHEMA: _analytics
     LOGFLARE_SINGLE_TENANT: "true"
     LOGFLARE_SUPABASE_MODE: "true"
@@ -889,7 +899,8 @@ analytics:
 
 # Vector
 vector:
-  enabled: true # Disable the vector service
+  # Enable vector provisioning
+  enabled: true
   image:
     repository: timberio/vector
     pullPolicy: IfNotPresent
@@ -955,7 +966,8 @@ vector:
 
 # Functions
 functions:
-  enabled: true # Disable the analytics service
+  # Enable functions provisioning
+  enabled: true
   image:
     repository: supabase/edge-runtime
     pullPolicy: IfNotPresent
@@ -993,7 +1005,7 @@ functions:
     DB_USERNAME: supabase_functions_admin
     DB_PORT: 5432
     DB_DRIVER: postgresql
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
   # Mount user functions
   # volumeMounts:
   #   - name: my_functions
