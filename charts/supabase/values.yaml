@@ -17,25 +17,27 @@ secret:
   # Anon & Service key: Studio, Storage, Kong
   # JWT Secret: Analytics, Auth, Rest, Realtime, Storage
   jwt: 
-    # anonKey: ""
-    # serviceKey: ""
-    # secret: ""
+    anonKey: ""
+    serviceKey: ""
+    secret: ""
+  # database credentials
+  # these fields must be provided even if using external database
+  db:
+    username: ""
+    password: ""
+    database: ""
+  # analytics Logflare API key
+  analytics:
+    apiKey: ""
   # smtp will be used to reference secret including smtp credentials
   smtp:
     # username: ""
     # password: ""
   # secret used to access the studio dashboard
+  # leave it empty to disable dashboard authentication
   dashboard:
     # username: ""
     # password: ""
-  # database credentials
-  db:
-    # username: ""
-    # password: ""
-    # database: ""
-  # analytics Logflare API key
-  analytics:
-    # apiKey: ""
 
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services. 
@@ -249,6 +251,7 @@ auth:
   environment:
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: supabase_auth_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
@@ -263,13 +266,14 @@ auth:
     GOTRUE_JWT_EXP: "3600"
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
+    # GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: true
+    # GOTRUE_SMTP_MAX_FREQUENCY: 1s
     GOTRUE_SMTP_ADMIN_EMAIL: "SMTP_ADMIN_MAIL"
     GOTRUE_SMTP_HOST: "SMTP_HOST"
     GOTRUE_SMTP_PORT: "SMTP_PORT"
     GOTRUE_SMTP_SENDER_NAME: "SMTP_SENDER_NAME"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
-    MFA_ENABLED: "false"
     GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
@@ -342,12 +346,14 @@ rest:
   environment:
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: authenticator
     DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
-    PGRST_DB_SCHEMA: public,storage
+    PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
-    PGRST_DB_USE_LEGACY_GUCS: "false"
+    PGRST_DB_USE_LEGACY_GUCS: false
+    JWT_EXPIRY: 3600
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -416,14 +422,18 @@ realtime:
   environment:
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: supabase_admin
     DB_PORT: 5432
     DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+    DB_ENC_KEY: supabaserealtime
     PORT: "4000"
-    REPLICATION_MODE: RLS
-    REPLICATION_POLL_INTERVAL: "100"
-    SECURE_CHANNELS: "true"
-    SLOT_NAME: supabase_realtime_rls
-    TEMPORARY_SLOT: "true"
+    FLY_ALLOC_ID: fly123
+    FLY_APP_NAME: realtime
+    SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+    ERL_AFLAGS: -proto_dist inet_tcp
+    ENABLE_TAILSCALE: "false"
+    DNS_NODES: "''"
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -493,6 +503,7 @@ meta:
   environment:
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: supabase_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
@@ -566,6 +577,7 @@ storage:
   environment:
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: supabase_storage_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
@@ -731,10 +743,13 @@ kong:
     port: 8000
   environment:
     KONG_DATABASE: "off"
-    KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+    KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
     # https://github.com/supabase/cli/issues/14
     KONG_DNS_ORDER: LAST,A,CNAME
     KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+    KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+    KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    KONG_LOG_LEVEL: warn
   ingress:
     enabled: true
     className: "nginx"
@@ -824,6 +839,7 @@ analytics:
     LOGFLARE_NODE_HOST: 127.0.0.1
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USERNAME: supabase_admin
     DB_PORT: 5432
     DB_DRIVER: postgresql
     DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
@@ -974,6 +990,7 @@ functions:
   environment:
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USERNAME: supabase_functions_admin
     DB_PORT: 5432
     DB_DRIVER: postgresql
     DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full

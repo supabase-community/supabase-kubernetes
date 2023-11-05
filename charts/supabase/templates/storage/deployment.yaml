@@ -74,23 +74,23 @@ spec:
             - name: POSTGREST_URL
               value: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}
             {{- end }}
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db" . }}
-                  key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db" . }}
                   key: password
+            - name: DB_PASSWORD_ENC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: password_encoded
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db" . }}
                   key: database
             - name: DATABASE_URL
-              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
+              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:

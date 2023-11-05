@@ -61,6 +61,9 @@ Open http://example.com in your browser.
 ```Bash
 # Uninstall Helm chart
 helm uninstall demo
+
+# Backup and/or remove any Persistent Volume Claims that have keep annotation
+kubectl delete pvc demo-supabase-storage-pvc
 ```
 
 ## Customize
@@ -117,7 +120,7 @@ secret:
 
 The secret can be created with kubectl via command-line:
 
-> If you depend on database providers like [StackGres](https://stackgres.io/) or [Postgres Operator](https://github.com/zalando/postgres-operator) you only need to remove the `secret.db` values and direcly creating a new `<helm-deploy-name>-supabase-db` secret.
+> If you depend on database providers like [StackGres](https://stackgres.io/), [Postgres Operator](https://github.com/zalando/postgres-operator) or self-hosted Postgres instance, fill in the secret above and modify any relevant Postgres attributes such as port or hostname (e.g. `PGPORT`, `DB_HOST`) for any relevant deployments. Refer to [values.yaml](values.yaml) for more details.
 
 ### Dashboard secret
 

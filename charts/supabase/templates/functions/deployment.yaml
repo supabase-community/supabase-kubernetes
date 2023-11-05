@@ -49,16 +49,16 @@ spec:
               {{- else }}
               value: $(DB_HOST)
               {{- end }}
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db" . }}
-                  key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db" . }}
                   key: password
+            - name: DB_PASSWORD_ENC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: password_encoded
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -80,7 +80,7 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
             - name: POSTGRES_BACKEND_URL
-              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
+              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
           {{- with .Values.functions.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

@@ -77,16 +77,16 @@ spec:
             - name: DB_HOSTNAME
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db" . }}
-                  key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db" . }}
                   key: password
+            - name: DB_PASSWORD_ENC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: password_encoded
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -104,7 +104,7 @@ spec:
               value: {{ .Values.analytics.bigQuery.projectNumber | quote }}
             {{- else }}
             - name: POSTGRES_BACKEND_URL
-              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
+              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
             - name: POSTGRES_BACKEND_SCHEMA
               value: $(DB_SCHEMA)
             - name: LOGFLARE_FEATURE_FLAG_OVERRIDE

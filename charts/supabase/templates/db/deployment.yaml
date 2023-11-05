@@ -68,6 +68,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db" . }}
                   key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: password
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

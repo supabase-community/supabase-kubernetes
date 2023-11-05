@@ -26,7 +26,7 @@ db:
       command:
         - pg_isready
         - -U
-        - $POSTGRES_USER
+        - postgres
     initialDelaySeconds: 3
   persistence: 
     enabled: false
@@ -34,7 +34,7 @@ db:
 studio:
   image:
     repository: supabase/studio
-    tag: 20230921-d657f29
+    tag: 20231023-7e2cd92
   environment:
     STUDIO_DEFAULT_ORGANIZATION: "My Organization"
     STUDIO_DEFAULT_PROJECT: "My Project"
@@ -65,36 +65,14 @@ auth:
     GOTRUE_SMTP_HOST: "smtp.example.com"
     GOTRUE_SMTP_PORT: "587"
     GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
-    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
-    GOTRUE_SMS_AUTOCONFIRM: "false"
-    GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
 
 rest:
   image:
-    repository: postgrest/postgrest
     tag: v11.2.0
-  environment:
-    PGRST_DB_SCHEMA: public,storage
-    PGRST_DB_ANON_ROLE: anon
-    PGRST_DB_USE_LEGACY_GUCS: "false"
 
 realtime:
   image:
-    repository: supabase/realtime
     tag: v2.10.1
-  environment:
-    PORT: "4000"
-    DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
-    DB_ENC_KEY: supabaserealtime
-    FLY_ALLOC_ID: fly123
-    FLY_APP_NAME: realtime
-    SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
-    ERL_AFLAGS: -proto_dist inet_tcp
-    ENABLE_TAILSCALE: "false"
-    DNS_NODES: "''"
   livenessProbe:
     httpGet:
       path: /
@@ -104,28 +82,17 @@ realtime:
 meta:
   image:
     tag: v0.68.0
-  environment:
-    PG_META_PORT: "8080"
 
 storage:
   image:
-    repository: supabase/storage-api
     tag: v0.40.4
-  environment:
-    PGOPTIONS: -c search_path=storage,public
-    FILE_SIZE_LIMIT: '52428800'
-    STORAGE_BACKEND: file
-    FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-    TENANT_ID: stub
-    REGION: stub
-    GLOBAL_S3_BUCKET: stub
   livenessProbe:
     httpGet:
       path: /status
       port: 5000
     initialDelaySeconds: 3
   persistence: 
-    enabled: false
+    enabled: true
     accessModes:
       - ReadWriteOnce
     size: 4Gi
@@ -137,9 +104,6 @@ imgproxy:
   image:
     tag: v3.8.0
   environment:
-    IMGPROXY_BIND: ":5001"
-    IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
-    IMGPROXY_USE_ETAG: "true"
     IMGPROXY_ENABLE_WEBP_DETECTION: "true"
   livenessProbe:
     exec:
@@ -149,24 +113,13 @@ imgproxy:
     initialDelaySeconds: 3
   persistence: 
     enabled: false
-    accessModes:
-      - ReadWriteOnce
-    size: 4Gi
-    storageClassName: standard
-    annotations:
-      helm.sh/resource-policy: "keep"
 
 kong:
   image:
     repository: kong
     tag: 2.8.1
   environment:
-    KONG_DATABASE: "off"
     KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
-    KONG_DNS_ORDER: LAST,A,CNAME
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
-    KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-    KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
     KONG_LOG_LEVEL: info
   ingress:
     enabled: true
@@ -189,12 +142,6 @@ kong:
 analytics:
   image:
     tag: 1.4.0
-  environment:
-    LOGFLARE_SINGLE_TENANT: "true"
-    LOGFLARE_SUPABASE_MODE: "true"
-    LOGFLARE_MIN_CLUSTER_SIZE: "1"
-    FEATURE_FLAG_OVERRIDE: multibackend=true
-    RELEASE_COOKIE: cookie
   livenessProbe:
     httpGet:
       path: /health
@@ -212,4 +159,4 @@ vector:
 
 functions:
   image:
-    tag: v1.20.2
+    tag: v1.22.3

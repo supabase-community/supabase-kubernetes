@@ -27,26 +27,28 @@ data:
     _transform: true
 
     consumers:
+    {{- if .Values.secret.dashboard }}
       - username: DASHBOARD
+    {{- end }}
       - username: anon
         keyauth_credentials:
             - key: ${SUPABASE_ANON_KEY}
       - username: service_role
         keyauth_credentials:
             - key: ${SUPABASE_SERVICE_KEY}
-
     acls:
       - consumer: anon
         group: anon
       - consumer: service_role
         group: admin
-
+    {{- if .Values.secret.dashboard }}
     basicauth_credentials:
       - consumer: DASHBOARD
         username: ${DASHBOARD_USERNAME}
         password: ${DASHBOARD_PASSWORD}
-
+    {{- end }}
     services:
+    {{- if .Values.auth.enabled }}
       - name: auth-v1-open
         url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/verify
         routes:
@@ -74,7 +76,6 @@ data:
               - /auth/v1/authorize
         plugins:
           - name: cors
-
       - name: auth-v1
         _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/*"
         url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}
@@ -94,7 +95,8 @@ data:
               allow:
                 - admin
                 - anon
-
+    {{- end }}
+    {{- if .Values.rest.enabled }}
       - name: rest-v1
         _comment: "PostgREST: /rest/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/*"
         url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/
@@ -114,7 +116,6 @@ data:
               allow:
                 - admin
                 - anon
-
       - name: graphql-v1
         _comment: 'PostgREST: /graphql/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/rpc/graphql'
         url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/rpc/graphql
@@ -139,7 +140,8 @@ data:
               allow:
                 - admin
                 - anon
-
+    {{- end }}
+    {{- if .Values.realtime.enabled }}
       - name: realtime-v1
         _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket/*"
         url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket
@@ -159,7 +161,8 @@ data:
               allow:
                 - admin
                 - anon
-
+    {{- end }}
+    {{- if .Values.storage.enabled }}
       - name: storage-v1
         _comment: "Storage: /storage/v1/* -> http://{{ include "supabase.storage.fullname" . }}:{{ .Values.storage.service.port }}/*"
         url: http://{{ include "supabase.storage.fullname" . }}:{{ .Values.storage.service.port }}/
@@ -170,7 +173,8 @@ data:
               - /storage/v1/
         plugins:
           - name: cors
-
+    {{- end }}
+    {{- if .Values.functions.enabled }}
       - name: functions-v1
         _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.port }}/*'
         url: http://functions:{{ .Values.functions.service.port }}/
@@ -181,7 +185,8 @@ data:
               - /functions/v1/
         plugins:
           - name: cors
-
+    {{- end }}
+    {{- if .Values.analytics.enabled }}
       - name: analytics-v1
         _comment: 'Analytics: /analytics/v1/* -> http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/*'
         url: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/
@@ -190,7 +195,8 @@ data:
             strip_path: true
             paths:
               - /analytics/v1/
-
+    {{- end }}
+    {{- if .Values.meta.enabled }}
       - name: meta
         _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}/*"
         url: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}/
@@ -208,7 +214,7 @@ data:
               hide_groups_header: true
               allow:
                 - admin
-
+    {{- end }}
       - name: dashboard
         _comment: 'Studio: /* -> http://{{ include "supabase.studio.fullname" . }}:{{ .Values.studio.service.port }}/*'
         url: http://{{ include "supabase.studio.fullname" . }}:{{ .Values.studio.service.port }}/
@@ -217,9 +223,11 @@ data:
             strip_path: true
             paths:
               - /
+    {{- if .Values.secret.dashboard }}
         plugins:
           - name: cors
           - name: basic-auth
             config:
               hide_credentials: true
+    {{- end }}
 {{- end }}
