@@ -1,3 +1,4 @@
+{{- if .Values.kong.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -28,10 +29,11 @@ spec:
             - /bin/bash
             - -c
             - |
-              RETURN_CODE=$(curl -sL \
-                -w "%{http_code}\n" \
+              echo "Attempting to access dashboard with provided credentials..."
+              curl -sL --fail \
                 -o /dev/null \
-                http://${DASHBOARD_USERNAME}:${DASHBOARD_PASSWORD}@{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }})
-              ! [[ "$RETURN_CODE" =~ 20[0-9] ]] && echo -e "\e[0;31mFailed to get a valid response." && exit 1
+                "http://${DASHBOARD_USERNAME}:${DASHBOARD_PASSWORD}@{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}" \
+                || ( echo -e "\e[0;31mFailed to get a valid response." && exit 1 )
               echo "Successfully connected."
       restartPolicy: Never
+{{- end }}

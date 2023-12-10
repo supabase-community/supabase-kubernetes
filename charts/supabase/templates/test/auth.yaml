@@ -1,3 +1,4 @@
+{{- if .Values.auth.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -21,3 +22,4 @@ spec:
                 http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/health
               echo "Sevice {{ include "supabase.auth.fullname" . }} is healthy."
       restartPolicy: Never
+{{- end }}

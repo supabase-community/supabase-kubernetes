@@ -1,3 +1,4 @@
+{{- if .Values.imgproxy.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -21,3 +22,4 @@ spec:
                 http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.port }}/health
               echo "Sevice {{ include "supabase.imgproxy.fullname" . }} is healthy."
       restartPolicy: Never
+{{- end }}

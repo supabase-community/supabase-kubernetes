@@ -1,3 +1,4 @@
+{{- if .Values.db.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -35,3 +36,4 @@ spec:
           imagePullPolicy: IfNotPresent
           name: test-db
       restartPolicy: Never
+{{- end }}

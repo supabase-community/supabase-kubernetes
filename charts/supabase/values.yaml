@@ -20,6 +20,7 @@ secret:
     anonKey: ""
     serviceKey: ""
     secret: ""
+    expiry: 3600
   # database credentials
   # these fields must be provided even if using external database
   db:
@@ -82,25 +83,9 @@ db:
     PGPORT: "5432"
     POSTGRES_PORT: "5432"
     # POSTGRES_HOST_AUTH_METHOD: md5
-  ingress:
-    enabled: false
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
-      # kubernetes.io/tls-acme: "true"
-    tls:
-      - secretName: DB.EXAMPLE.COM
-        hosts:
-          - DB.EXAMPLE.COM
-    hosts:
-      - host: DB.EXAMPLE.COM
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              serviceName: database
-              servicePort: 5432
+    # Enable SSL for postgres by specifying paths for mounted certificate key pair
+    # POSTGRES_SSL_CERT: /path/to/ssl/server.crt
+    # POSTGRES_SSL_KEY: /path/to/ssl/server.key
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -357,7 +342,6 @@ rest:
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: false
-    JWT_EXPIRY: 3600
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret

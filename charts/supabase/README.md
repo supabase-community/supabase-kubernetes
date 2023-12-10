@@ -211,6 +211,21 @@ kong:
     annotations:
       nginx.ingress.kubernetes.io/rewrite-target: /
 ```
+
+### Testing suite
+
+Before creating a merge request, you can test the charts locally by using [helm/chart-testing](https://github.com/helm/chart-testing). If you have Docker and a Kubernetes environment to test with, simply run:
+
+```shell
+docker run -it \
+  --network host \
+  --workdir=/data \
+  --volume ~/.kube/config:/root/.kube/config:ro \
+  --volume $(pwd)/charts/supabase:/data \
+  quay.io/helmpack/chart-testing:v3.7.1 \
+  ct install --chart-dirs . --charts .
+```
+
 ### Version compatibility
 
 #### `0.0.x` to `0.1.x`

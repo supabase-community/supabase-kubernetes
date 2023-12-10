@@ -1,3 +1,4 @@
+{{- if .Values.analytics.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -21,3 +22,4 @@ spec:
                 http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/health
               echo "Sevice {{ include "supabase.analytics.fullname" . }} is healthy."
       restartPolicy: Never
+{{- end }}
