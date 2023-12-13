@@ -48,7 +48,7 @@ studio:
 
 auth:
   image:
-    repo: v2.99.0
+    repo: v2.125.1
   environment:
     GOTRUE_SITE_URL: http://example.com
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
@@ -73,7 +73,7 @@ realtime:
 
 meta:
   image:
-    tag: v0.68.0
+    tag: v0.75.0
 
 storage:
   image:
@@ -145,4 +145,4 @@ vector:
 
 functions:
   image:
-    tag: v1.22.4
+    tag: v1.29.1

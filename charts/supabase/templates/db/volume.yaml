@@ -20,6 +20,6 @@ spec:
   {{- end }}
   resources:
     requests:
-      db: {{ .Values.db.persistence.size | quote }}
+      storage: {{ .Values.db.persistence.size | quote }}
 {{- end }}
 {{- end }}

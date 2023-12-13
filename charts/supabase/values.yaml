@@ -840,9 +840,7 @@ analytics:
     DB_SCHEMA: _analytics
     LOGFLARE_SINGLE_TENANT: "true"
     LOGFLARE_SUPABASE_MODE: "true"
-    LOGFLARE_MIN_CLUSTER_SIZE: "1"
     FEATURE_FLAG_OVERRIDE: multibackend=true
-    RELEASE_COOKIE: cookie
   # Enable Big Query backend for analytics
   bigQuery:
     enabled: false

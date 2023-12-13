@@ -55,15 +55,7 @@ spec:
               done
             - echo "Database is ready"
       containers:
-        - command:
-            - /bin/sh
-            - -c
-            - |
-              cat << EOF > run.sh && sh run.sh
-              ./logflare eval Logflare.Release.migrate
-              ./logflare start --sname logflare
-              EOF
-          name: {{ include "supabase.analytics.name" $ }}
+        - name: {{ include "supabase.analytics.name" $ }}
           securityContext:
             {{- toYaml .Values.analytics.securityContext | nindent 12 }}
           image: "{{ .Values.analytics.image.repository }}:{{ .Values.analytics.image.tag | default .Chart.AppVersion }}"
