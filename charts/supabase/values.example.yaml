@@ -48,7 +48,7 @@ studio:
 
 auth:
   image:
-    repo: v2.125.1
+    tag: v2.125.1
   environment:
     GOTRUE_SITE_URL: http://example.com
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
