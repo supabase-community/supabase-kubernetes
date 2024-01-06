@@ -217,6 +217,13 @@ kong:
 Before creating a merge request, you can test the charts locally by using [helm/chart-testing](https://github.com/helm/chart-testing). If you have Docker and a Kubernetes environment to test with, simply run:
 
 ```shell
+# Run chart-testing (lint)
+docker run -it \
+  --workdir=/data \
+  --volume $(pwd)/charts/supabase:/data \
+  quay.io/helmpack/chart-testing:v3.7.1 \
+  ct lint --validate-maintainers=false --chart-dirs . --charts .
+# Run chart-testing (install)
 docker run -it \
   --network host \
   --workdir=/data \
@@ -230,7 +237,7 @@ docker run -it \
 
 #### `0.0.x` to `0.1.x`
 
-* `supabase/postgres` bumped from `14.1` to `15.1`, which warrants backing up all your data before proceeding to update major version
+* `supabase/postgres` is updated from `14.1` to `15.1`, which warrants backing up all your data before proceeding to update to the next major version.
 * Intialization scripts for `supabase/postgres` has been reworked and matched closely to the [Docker Compose](https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml) version. Further tweaks to the scripts are needed to ensure backward-compatibility.
 * Migration scripts are now exposed at `db.config`, which will be mounted at `/docker-entrypoint-initdb.d/migrations/`. Simply copy your migration files from your local project's `supabase/migration` and populate the `db.config`.
 * Ingress are now limited to `kong` & `db` services. This is by design to limit entry to the stack through secure `kong` service.

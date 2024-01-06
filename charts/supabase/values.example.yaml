@@ -20,7 +20,7 @@ db:
   enabled: true
   image:
     repository: supabase/postgres
-    tag: 15.1.0.117
+    tag: 15.1.0.147
   livenessProbe:
     exec:
       command:
@@ -50,6 +50,7 @@ auth:
   image:
     tag: v2.125.1
   environment:
+    API_EXTERNAL_URL: http://example.com
     GOTRUE_SITE_URL: http://example.com
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
@@ -60,7 +61,7 @@ auth:
 
 rest:
   image:
-    tag: v11.2.2
+    tag: v12.0.1
 
 realtime:
   image:
@@ -121,9 +122,6 @@ kong:
         paths:
           - path: /
             pathType: Prefix
-            backend:
-              serviceName: api
-              servicePort: 80
 
 analytics:
   image:
