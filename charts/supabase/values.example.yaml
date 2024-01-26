@@ -48,7 +48,8 @@ studio:
 
 auth:
   image:
-    repo: v2.40.1
+    repository: supabase/gotrue
+    tag: v2.40.1
   environment:
     DB_HOST: demo-supabase-db.default.svc.cluster.local
     DB_PORT: "5432"
