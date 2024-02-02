@@ -1,0 +1,40 @@
+{{- if .Values.kong.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "supabase.fullname" . }}-test-kong
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+        - env:
+            - name: DASHBOARD_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: {{ include "supabase.fullname" . }}-dashboard
+            - name: DASHBOARD_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: {{ include "supabase.fullname" . }}-dashboard
+          name: test-kong
+          image: kdevup/curljq
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Attempting to access dashboard with provided credentials..."
+              curl -sL --fail \
+                -o /dev/null \
+                "http://${DASHBOARD_USERNAME}:${DASHBOARD_PASSWORD}@{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}" \
+                || ( echo -e "\e[0;31mFailed to get a valid response." && exit 1 )
+              echo "Successfully connected."
+      restartPolicy: Never
+{{- end }}

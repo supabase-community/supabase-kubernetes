@@ -1,0 +1,91 @@
+{{- if .Values.imgproxy.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "supabase.imgproxy.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.imgproxy.autoscaling.enabled }}
+  replicas: {{ .Values.imgproxy.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.imgproxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.imgproxy.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "supabase.imgproxy.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imgproxy.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "supabase.imgproxy.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.imgproxy.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ include "supabase.imgproxy.name" $ }}
+          securityContext:
+            {{- toYaml .Values.imgproxy.securityContext | nindent 12 }}
+          image: "{{ .Values.imgproxy.image.repository }}:{{ .Values.imgproxy.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.imgproxy.image.pullPolicy }}
+          env:
+            {{- range $key, $value := .Values.imgproxy.environment }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- with .Values.imgproxy.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.imgproxy.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          {{- if or (.Values.imgproxy.persistence.enabled) (.Values.imgproxy.volumes) }}
+          volumeMounts:
+            {{- with .Values.imgproxy.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.imgproxy.persistence.enabled }}
+            - mountPath: /var/lib/storage
+              name: imgproxy-volume
+            {{- end }}
+          {{- end }}
+          {{- with .Values.imgproxy.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- if or (.Values.imgproxy.persistence.enabled) (.Values.imgproxy.volumes) }}
+      volumes:
+        {{- with .Values.imgproxy.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.imgproxy.persistence.enabled }}
+        - name: imgproxy-volume
+          persistentVolumeClaim:
+            claimName: {{ include "supabase.imgproxy.fullname" . }}-pvc
+        {{- end }}
+      {{- end }}
+      {{- with .Values.imgproxy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imgproxy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imgproxy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

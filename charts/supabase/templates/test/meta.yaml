@@ -1,0 +1,26 @@
+{{- if .Values.meta.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "supabase.fullname" . }}-test-meta
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+        - name: test-meta
+          image: kdevup/curljq
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              curl -sfo /dev/null \
+                http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}/health
+              echo "Sevice {{ include "supabase.meta.fullname" . }} is healthy."
+      restartPolicy: Never
+{{- end }}
