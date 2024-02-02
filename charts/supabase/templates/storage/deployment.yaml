@@ -55,6 +55,31 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
+        {{- if .Values.minio.enabled }}
+        - env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.s3" . }}
+                  key: keyId
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.s3" . }}
+                  key: accessKey
+          name: init-bucket
+          image: minio/mc
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until /usr/bin/mc alias set supa-minio http://{{ include "supabase.minio.fullname" . }}:{{ .Values.minio.service.port }} $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD; do
+                echo "Waiting for minio to start..."
+                sleep 2
+              done
+              /usr/bin/mc mb supa-minio/stub
+        {{- end }}
       containers:
         - name: {{ include "supabase.storage.name" $ }}
           securityContext:
@@ -109,6 +134,22 @@ spec:
             {{- if .Values.imgproxy.enabled }}
             - name: IMGPROXY_URL
               value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.port | int }}
+            {{- end }}
+            {{- if .Values.secret.s3 }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.s3" . }}
+                  key: keyId
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.s3" . }}
+                  key: accessKey
+            {{- end }}
+            {{- if .Values.minio.enabled }}
+            - name: GLOBAL_S3_ENDPOINT
+              value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.minio.service.port }}
             {{- end }}
           {{- with .Values.storage.livenessProbe }}
           livenessProbe:

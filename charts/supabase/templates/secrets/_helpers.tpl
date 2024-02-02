@@ -32,3 +32,10 @@ Expand the name of the analytics secret.
 {{- define "supabase.secret.analytics" -}}
 {{- printf "%s-analytics" (include "supabase.fullname" .) }}
 {{- end -}}
+
+{{/*
+Expand the name of the s3 secret.
+*/}}
+{{- define "supabase.secret.s3" -}}
+{{- printf "%s-s3" (include "supabase.fullname" .) }}
+{{- end -}}

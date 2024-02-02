@@ -19,7 +19,6 @@ secret:
 db:
   enabled: true
   image:
-    repository: supabase/postgres
     tag: 15.1.0.147
   livenessProbe:
     exec:
@@ -33,8 +32,7 @@ db:
 
 studio:
   image:
-    repository: supabase/studio
-    tag: 20231023-7e2cd92
+    tag: 20240101-8e4a094
   environment:
     STUDIO_DEFAULT_ORGANIZATION: "My Organization"
     STUDIO_DEFAULT_PROJECT: "My Project"
@@ -48,7 +46,7 @@ studio:
 
 auth:
   image:
-    tag: v2.125.1
+    tag: v2.132.3
   environment:
     API_EXTERNAL_URL: http://example.com
     GOTRUE_SITE_URL: http://example.com
@@ -65,7 +63,7 @@ rest:
 
 realtime:
   image:
-    tag: v2.10.1
+    tag: v2.25.50
   livenessProbe:
     httpGet:
       path: /
@@ -143,4 +141,4 @@ vector:
 
 functions:
   image:
-    tag: v1.29.1
+    tag: v1.32.0

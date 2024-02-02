@@ -25,6 +25,7 @@ spec:
                   name: {{ include "supabase.fullname" . }}-dashboard
           name: test-kong
           image: kdevup/curljq
+          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - -c

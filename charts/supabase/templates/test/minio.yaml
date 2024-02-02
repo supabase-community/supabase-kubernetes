@@ -1,8 +1,8 @@
-{{- if .Values.auth.enabled -}}
+{{- if .Values.minio.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "supabase.fullname" . }}-test-auth
+  name: {{ include "supabase.fullname" . }}-test-minio
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
   annotations:
@@ -12,15 +12,14 @@ spec:
   template:
     spec:
       containers:
-        - name: test-auth
+        - name: test-minio
           image: kdevup/curljq
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - -c
             - |
               curl -sfo /dev/null \
-                http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/health
-              echo "Sevice {{ include "supabase.auth.fullname" . }} is healthy."
+                http://{{ include "supabase.minio.fullname" . }}:{{ .Values.minio.service.port }}/minio/health/live
+              echo "Sevice {{ include "supabase.minio.fullname" . }} is healthy."
       restartPolicy: Never
 {{- end }}

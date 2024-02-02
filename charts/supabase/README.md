@@ -143,6 +143,34 @@ secret:
     apiKey: your-super-secret-with-at-least-32-characters-long-logflare-key
 ```
 
+### S3 secret
+
+Supabase storage supports the use of S3 object-storage. To enable S3 for Supabase storage:
+
+1. Set S3 key ID and access key:
+  ```yaml
+   secret:
+    s3:
+      keyId: your-s3-key-id
+      accessKey: your-s3-access-key
+  ```
+2. Set storage S3 environment variables:
+  ```yaml
+  storage:
+    environment:
+      # Set S3 endpoint if using external object-storage
+      # GLOBAL_S3_ENDPOINT: http://minio:9000
+      STORAGE_BACKEND: s3
+      GLOBAL_S3_PROTOCOL: http
+      GLOBAL_S3_FORCE_PATH_STYLE: true
+      AWS_DEFAULT_REGION: stub
+  ```
+3. (Optional) Enable internal minio deployment
+  ```yaml
+  minio:
+    enabled: true
+  ```
+
 ## How to use in Production
 
 We didn't provide a complete configuration to go production because of the multiple possibility.

@@ -11,6 +11,7 @@
 # |-- 10. Analytics
 # |-- 11. Vector
 # |-- 12. Functions
+# |-- 13. Minio
 
 secret:
   # jwt will be used to reference secret in multiple services:
@@ -39,6 +40,10 @@ secret:
   dashboard:
     # username: ""
     # password: ""
+  # S3 credentials for storage object bucket
+  s3:
+    # keyId: ""
+    # accessKey: ""
 
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services.
@@ -575,11 +580,17 @@ storage:
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: "52428800"
-    STORAGE_BACKEND: file
+    STORAGE_BACKEND: file  # file, s3
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
     REGION: stub
     GLOBAL_S3_BUCKET: stub
+    # Set variables below and secret.s3 above to enable S3 storage bucket
+    # If using this chart's minio, skip the endpoint and protocol below
+    # GLOBAL_S3_ENDPOINT: http://minio:9000
+    # GLOBAL_S3_PROTOCOL: http
+    # GLOBAL_S3_FORCE_PATH_STYLE: true
+    # AWS_DEFAULT_REGION: stub
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -1012,6 +1023,82 @@ functions:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# minio
+minio:
+  enabled: false
+  image:
+    repository: minio/minio
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 9000
+  environment: {}
+  # Mount user functions
+  # volumeMounts:
+  #   - name: my_functions
+  #     mountPath: /home/deno/functions/main/main
+  # volumes:
+  #   - name: my_functions
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.ts
+  #         path: name_of_file_in_container.ts
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  persistence:
+    enabled: false
+    storageClassName: ""
+    annotations: {}
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+    class: ""
   autoscaling:
     enabled: true
     minReplicas: 1
