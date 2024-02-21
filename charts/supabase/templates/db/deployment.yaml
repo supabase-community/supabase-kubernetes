@@ -66,27 +66,47 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: username
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: password
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: password
             - name: PGDATABASE
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: database
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: database
           {{- with .Values.db.livenessProbe }}
           livenessProbe:

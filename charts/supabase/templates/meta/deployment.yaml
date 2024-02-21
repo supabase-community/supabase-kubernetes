@@ -46,12 +46,20 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: password
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: database
             - name: PG_META_DB_HOST
               value: $(DB_HOST)

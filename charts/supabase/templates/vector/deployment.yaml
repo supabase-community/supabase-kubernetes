@@ -47,7 +47,11 @@ spec:
             - name: LOGFLARE_API_KEY
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.analytics.secretRef }}
+                  name: {{ .Values.secret.analytics.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.analytics" . }}
+                  {{- end }}
                   key: apiKey
           {{- end }}
           {{- with .Values.vector.livenessProbe }}

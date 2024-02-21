@@ -43,7 +43,11 @@ spec:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: username
             - name: DB_PORT
               value: {{ .Values.analytics.environment.DB_PORT | quote }}
@@ -102,34 +106,59 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: password
             - name: DB_PASSWORD_ENC
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: password
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
                   key: password_encoded
+                  {{- end }}
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: database
             - name: DATABASE_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
+                  {{- end }}
                   key: secret
             - name: ANON_KEY
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
+                  {{- end }}
                   key: anonKey
             - name: SERVICE_KEY
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
+                  {{- end }}
                   key: serviceKey
             {{- if .Values.imgproxy.enabled }}
             - name: IMGPROXY_URL

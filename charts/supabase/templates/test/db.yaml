@@ -28,7 +28,11 @@ spec:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: username
             - name: DB_PORT
               value: {{ .Values.auth.environment.DB_PORT | quote }}

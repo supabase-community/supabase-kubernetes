@@ -22,28 +22,40 @@ secret:
     serviceKey: ""
     secret: ""
     expiry: 3600
+    # specify existing secret, which takes precedence over variables above
+    secretRef: ""
   # database credentials
   # these fields must be provided even if using external database
   db:
     username: ""
     password: ""
     database: ""
+    # specify existing secret, which takes precedence over variables above
+    secretRef: ""
   # analytics Logflare API key
   analytics:
     apiKey: ""
+    # specify existing secret, which takes precedence over variable above
+    secretRef: ""
   # smtp will be used to reference secret including smtp credentials
   smtp:
     # username: ""
     # password: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
   # secret used to access the studio dashboard
   # leave it empty to disable dashboard authentication
   dashboard:
     # username: ""
     # password: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
   # S3 credentials for storage object bucket
   s3:
     # keyId: ""
     # accessKey: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
 
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services.
@@ -174,6 +186,8 @@ studio:
     STUDIO_PORT: "3000"
     SUPABASE_PUBLIC_URL: http://example.com
     NEXT_PUBLIC_ENABLE_LOGS: "true"
+    # Set value to bigquery to use Big Query backend for analytics
+    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres  # postgres, bigquery
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret

@@ -44,23 +44,39 @@ spec:
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
+                  {{- end }}
                   key: anonKey
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
+                  {{- end }}
                   key: serviceKey
             {{- if .Values.secret.dashboard }}
             - name: DASHBOARD_USERNAME
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.dashboard.secretRef }}
+                  name: {{ .Values.secret.dashboard.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.dashboard" . }}
+                  {{- end }}
                   key: username
             - name: DASHBOARD_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.dashboard.secretRef }}
+                  name: {{ .Values.secret.dashboard.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.dashboard" . }}
+                  {{- end }}
                   key: password
             {{- end }}
           {{- with .Values.kong.livenessProbe }}

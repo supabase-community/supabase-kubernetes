@@ -42,7 +42,11 @@ spec:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: username
             - name: DB_PORT
               value: {{ .Values.auth.environment.DB_PORT | quote }}
@@ -72,17 +76,30 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: password
             - name: DB_PASSWORD_ENC
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: password
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
                   key: password_encoded
+                  {{- end }}
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
+                  {{- end }}
                   key: database
             - name: GOTRUE_DB_DATABASE_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
@@ -91,17 +108,29 @@ spec:
             - name: GOTRUE_JWT_SECRET
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
+                  {{- end }}
                   key: secret
             - name: GOTRUE_SMTP_USER
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.smtp.secretRef }}
+                  name: {{ .Values.secret.smtp.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.smtp" . }}
+                  {{- end }}
                   key: username
             - name: GOTRUE_SMTP_PASS
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.smtp.secretRef }}
+                  name: {{ .Values.secret.smtp.secretRef }}
+                  {{- else }}
                   name: {{ include "supabase.secret.smtp" . }}
+                  {{- end }}
                   key: password
           {{- with .Values.auth.livenessProbe }}
           livenessProbe:
