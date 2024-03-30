@@ -32,7 +32,7 @@ db:
 
 studio:
   image:
-    tag: 20240101-8e4a094
+    tag: 20240205-b145c86
   environment:
     STUDIO_DEFAULT_ORGANIZATION: "My Organization"
     STUDIO_DEFAULT_PROJECT: "My Project"
@@ -72,11 +72,11 @@ realtime:
 
 meta:
   image:
-    tag: v0.75.0
+    tag: v0.77.2
 
 storage:
   image:
-    tag: v0.43.11
+    tag: v0.46.4
   livenessProbe:
     httpGet:
       path: /status
@@ -141,4 +141,4 @@ vector:
 
 functions:
   image:
-    tag: v1.32.0
+    tag: v1.36.1

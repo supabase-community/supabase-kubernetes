@@ -65,6 +65,15 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   {{- end }}
                   key: serviceKey
+            {{- if .Values.analytics.enabled }}
+            - name: LOGFLARE_URL
+              value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}
+            - name: LOGFLARE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.analytics" . }}
+                  key: apiKey
+            {{- end }}
           {{- with .Values.studio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

@@ -862,7 +862,6 @@ analytics:
     DB_USERNAME: supabase_admin
     DB_PORT: 5432
     DB_DRIVER: postgresql
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     DB_SCHEMA: _analytics
     LOGFLARE_SINGLE_TENANT: "true"
     LOGFLARE_SUPABASE_MODE: "true"
