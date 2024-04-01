@@ -72,7 +72,7 @@ realtime:
 
 meta:
   image:
-    tag: v0.77.2
+    tag: v0.80.0
 
 storage:
   image:

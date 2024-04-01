@@ -78,7 +78,7 @@ spec:
                 echo "Waiting for minio to start..."
                 sleep 2
               done
-              /usr/bin/mc mb supa-minio/stub
+              /usr/bin/mc mb --ignore-existing supa-minio/stub
         {{- end }}
       containers:
         - name: {{ include "supabase.storage.name" $ }}
