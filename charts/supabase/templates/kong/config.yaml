@@ -10,13 +10,15 @@ data:
   wrapper.sh: |
     #!/bin/sh
 
-    set -euo pipefail
+    set -eu
 
     echo "Replacing env placeholders of /home/kong/kong.yml"
 
     sed \
     -e "s/\${SUPABASE_ANON_KEY}/${SUPABASE_ANON_KEY}/" \
     -e "s/\${SUPABASE_SERVICE_KEY}/${SUPABASE_SERVICE_KEY}/" \
+    -e "s/\${DASHBOARD_USERNAME}/${DASHBOARD_USERNAME}/" \
+    -e "s/\${DASHBOARD_PASSWORD}/${DASHBOARD_PASSWORD}/" \
     /home/kong/template.yml \
     > /home/kong/kong.yml
 
@@ -29,6 +31,7 @@ data:
     _format_version: "1.1"
 
     consumers:
+      - username: DASHBOARD
       - username: anon
         keyauth_credentials:
             - key: ${SUPABASE_ANON_KEY}
@@ -41,6 +44,11 @@ data:
         group: anon
       - consumer: service_role
         group: admin
+
+    basicauth_credentials:
+      - consumer: DASHBOARD
+        username: ${DASHBOARD_USERNAME}
+        password: ${DASHBOARD_PASSWORD}
 
     services:
       - name: auth-v1-open
@@ -161,5 +169,33 @@ data:
               hide_groups_header: true
               allow:
                 - admin
+
+      ## Edge Functions routes
+      - name: functions-v1
+        _comment: 'Edge Functions: /functions/v1/* -> http://zupa-supabase-studio.supa.svc.cluster.local:9000/*'
+        url: http://{{ include "supabase.functions.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9000/
+        routes:
+          - name: functions-v1-all
+            strip_path: true
+            paths:
+              - /functions/v1/
+        plugins:
+          - name: cors
+
+      ## Protected Dashboard - catch all remaining routes
+      - name: dashboard
+        _comment: 'Studio: /* -> http://{{ include "supabase.studio.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:3000/*'
+        url: http://{{ include "supabase.studio.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:3000/
+        routes:
+          - name: dashboard-all
+            strip_path: true
+            paths:
+              - /
+        plugins:
+          - name: cors
+          - name: basic-auth
+            config:
+              hide_credentials: true
+
 {{- end }}
 {{- end }}

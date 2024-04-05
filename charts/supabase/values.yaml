@@ -6,7 +6,8 @@
 # |-- 5. Realtime
 # |-- 6. Meta
 # |-- 7. Storage
-# |-- 8. Kong
+# |-- 8. Functions
+# |-- 9. Kong
 
 # jwt will be used to reference secret in multiple services:
 # Anon & Service key: Studio, Storage, Kong
@@ -300,7 +301,7 @@ rest:
   image:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "latest" 
+    tag: "latest"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -633,6 +634,98 @@ storage:
   tolerations: []
   affinity: {}
 
+# Functions Service
+functions:
+  enabled: true # Disable the functions service
+  image:
+    repository: supabase/edge-runtime
+    pullPolicy: IfNotPresent
+    tag: "v1.41.2"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 9000
+  environment:
+      SUPABASE_URL: http://RELEASE_NAME-kong.NAMESPACE.svc.cluster.local:8000/
+      DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+      DB_PORT: "5432"
+      DB_NAME: postgres
+      # TODO: Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
+      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}" # FIXME I don't know what it is
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts: []
+    tls: []
+    #  - secretName: chart-example-tls
+    #    hosts:
+    #      - chart-example.local
+  # volumeMounts:
+  #   - name: volume_name
+  #     mountPath: /path/to/my/secret
+  # volumes:
+  #   - name: volume_name
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.txt
+  #         path: name_of_file_in_container.txt
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  persistence:
+    enabled: false
+    storageClassName: ""
+    annotations: {}
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+    class: ""
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+
+
+
+
 # Kong
 kong:
   enabled: true # Disable the kong service
@@ -670,7 +763,10 @@ kong:
     KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
     # https://github.com/supabase/cli/issues/14
     KONG_DNS_ORDER: LAST,A,CNAME
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl
+    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+    # dashboard credentials
+    DASHBOARD_USERNAME: user
+    DASHBOARD_PASSWORD: defaultpassword
   ingress:
     enabled: true
     className: "nginx"

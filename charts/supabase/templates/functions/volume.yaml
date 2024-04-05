@@ -1,0 +1,25 @@
+{{- if .Values.functions.enabled -}}
+{{- if .Values.functions.persistence.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "supabase.functions.fullname" . }}-pvc
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.functions.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.functions.persistence.functionsClassName }}
+  functionsClassName: {{ .Values.functions.persistence.functionsClassName }}
+  {{- end }}
+  accessModes:
+  {{- range .Values.functions.persistence.accessModes }}
+    - {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.functions.persistence.size | quote }}
+{{- end }}
+{{- end }}
