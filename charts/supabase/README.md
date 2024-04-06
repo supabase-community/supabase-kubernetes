@@ -271,3 +271,4 @@ docker run -it \
 * Ingress are now limited to `kong` & `db` services. This is by design to limit entry to the stack through secure `kong` service.
 * `kong.yaml` has been modified to follow [Docker kong.yaml](https://github.com/supabase/supabase/blob/master/docker/volumes/api/kong.yml) template.
 * `supabase/storage` does not comes with pre-populated `/var/lib/storage`, therefore an `emptyDir` will be created if persistence is disabled. This might be incompatible with previous version if the persistent storage location is set to location other than specified above.
+* `supabase/vector` requires read access to the `/var/log/pods` directory. When run in a Kubernetes cluster this can be provided with a [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) volume.
