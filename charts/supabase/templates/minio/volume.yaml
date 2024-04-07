@@ -20,6 +20,6 @@ spec:
   {{- end }}
   resources:
     requests:
-      minio: {{ .Values.minio.persistence.size | quote }}
+      storage: {{ .Values.minio.persistence.size | quote }}
 {{- end }}
 {{- end }}

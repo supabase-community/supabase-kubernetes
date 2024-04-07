@@ -1,0 +1,5 @@
+---
+Thank you for installing {{ .Chart.Name }}!
+{{ if .Values.kong.ingress.enabled }}
+Visit the Studio dashboard at http://{{ (index .Values.kong.ingress.hosts 0).host }}
+{{- end }}

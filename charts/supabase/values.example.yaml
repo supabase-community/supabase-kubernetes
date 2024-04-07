@@ -32,7 +32,7 @@ db:
 
 studio:
   image:
-    tag: 20240205-b145c86
+    tag: 20240326-5e5586d
   environment:
     STUDIO_DEFAULT_ORGANIZATION: "My Organization"
     STUDIO_DEFAULT_PROJECT: "My Project"
@@ -46,7 +46,7 @@ studio:
 
 auth:
   image:
-    tag: v2.132.3
+    tag: v2.143.0
   environment:
     API_EXTERNAL_URL: http://example.com
     GOTRUE_SITE_URL: http://example.com
@@ -63,7 +63,7 @@ rest:
 
 realtime:
   image:
-    tag: v2.25.50
+    tag: v2.27.5
   livenessProbe:
     httpGet:
       path: /
@@ -72,7 +72,7 @@ realtime:
 
 meta:
   image:
-    tag: v0.77.2
+    tag: v0.80.0
 
 storage:
   image:
@@ -132,13 +132,20 @@ analytics:
 
 vector:
   image:
-    tag: 0.28.1-alpine
+    tag: 0.34.0-alpine
   livenessProbe:
     httpGet:
       path: /health
       port: 9001
     initialDelaySeconds: 3
+  volumeMounts:
+    - name: pod-logs
+      mountPath: /var/log/pods
+  volumes:
+    - name: pod-logs
+      hostPath:
+        path: /var/log/pods
 
 functions:
   image:
-    tag: v1.36.1
+    tag: v1.41.2

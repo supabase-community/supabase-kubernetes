@@ -15,10 +15,11 @@ spec:
       {{- include "supabase.vector.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.vector.podAnnotations }}
       annotations:
+      {{- with .Values.vector.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/vector/config.yaml") . | sha256sum }}
       labels:
         {{- include "supabase.vector.selectorLabels" . | nindent 8 }}
     spec:
@@ -39,6 +40,10 @@ spec:
           image: "{{ .Values.vector.image.repository }}:{{ .Values.vector.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.vector.image.pullPolicy }}
           env:
+            {{- range $key, $value := .Values.vector.environment }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
             - name: VECTOR_SELF_NODE_NAME
               valueFrom:
                 fieldRef:
@@ -72,17 +77,21 @@ spec:
             - mountPath: /etc/vector/vector.yml
               name: vector-config
               subPath: vector.yml
+            - mountPath: /etc/vector/secret.sh
+              name: vector-config
+              subPath: secret.sh
           {{- with .Values.vector.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
         {{- with .Values.vector.volumes }}
-          {{- toYaml . | nindent 10 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
         - name: vector-config
           configMap:
             name:  {{ include "supabase.vector.fullname" . }}-config
+            defaultMode: 0777
       {{- with .Values.vector.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
