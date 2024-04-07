@@ -54,10 +54,11 @@ spec:
                 secretKeyRef:
                   {{- if .Values.secret.analytics.secretRef }}
                   name: {{ .Values.secret.analytics.secretRef }}
+                  key: {{ .Values.secret.analytics.secretRefKey.apiKey | default "apiKey" }}
                   {{- else }}
                   name: {{ include "supabase.secret.analytics" . }}
-                  {{- end }}
                   key: apiKey
+                  {{- end }}
           {{- end }}
           {{- with .Values.vector.livenessProbe }}
           livenessProbe:

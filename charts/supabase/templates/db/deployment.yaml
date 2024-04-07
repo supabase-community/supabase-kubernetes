@@ -68,46 +68,51 @@ spec:
                 secretKeyRef:
                   {{- if .Values.secret.db.secretRef }}
                   name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
                   {{- else }}
                   name: {{ include "supabase.secret.db" . }}
-                  {{- end }}
                   key: username
+                  {{- end }}
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.db.secretRef }}
                   name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
                   {{- else }}
                   name: {{ include "supabase.secret.db" . }}
-                  {{- end }}
                   key: password
+                  {{- end }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.db.secretRef }}
                   name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
                   {{- else }}
                   name: {{ include "supabase.secret.db" . }}
-                  {{- end }}
                   key: password
+                  {{- end }}
             - name: PGDATABASE
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.db.secretRef }}
                   name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
                   {{- else }}
                   name: {{ include "supabase.secret.db" . }}
-                  {{- end }}
                   key: database
+                  {{- end }}
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.db.secretRef }}
                   name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
                   {{- else }}
                   name: {{ include "supabase.secret.db" . }}
-                  {{- end }}
                   key: database
+                  {{- end }}
           {{- with .Values.db.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
