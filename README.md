@@ -12,6 +12,10 @@ Supabase is an open source Firebase alternative. We're building the features of 
 
 You can find the documentation inside the [chart directory](./charts/supabase/README.md)
 
+# Roadmap
+
+- [ ] Multi-node Support
+
 ## Support
 
 This project is supported by the community and not officially supported by Supabase. Please do not create any issues on the official Supabase repositories if you face any problems using this project, but rather open an issue on this repository.
