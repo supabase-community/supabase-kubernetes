@@ -1,0 +1,100 @@
+{{- if .Values.minio.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "supabase.minio.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.minio.autoscaling.enabled }}
+  replicas: {{ .Values.minio.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.minio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.minio.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "supabase.minio.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Always
+      {{- with .Values.minio.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "supabase.minio.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.minio.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ include "supabase.minio.name" $ }}
+          securityContext:
+            {{- toYaml .Values.minio.securityContext | nindent 12 }}
+          image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.minio.image.pullPolicy }}
+          args:
+            - server
+            - --console-address
+            - ":9001"
+            - /data
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.s3" . }}
+                  key: keyId
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.s3" . }}
+                  key: accessKey
+          {{- with .Values.minio.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.minio.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 9000
+              protocol: TCP
+          {{- with .Values.minio.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+          {{- with .Values.minio.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+            - mountPath: /data
+              name: minio-data
+      {{- with .Values.minio.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.minio.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.minio.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: minio-data
+          {{- if .Values.minio.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "supabase.minio.fullname" . }}-pvc
+          {{- else }}
+          emptyDir:
+            medium: ""
+          {{- end }}
+        {{- with .Values.minio.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}

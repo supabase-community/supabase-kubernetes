@@ -37,21 +37,43 @@ spec:
           env:
             {{- range $key, $value := .Values.studio.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.studio.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.kong.enabled }}
+            - name: SUPABASE_URL
+              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}
+            {{- end }}
+            {{- if .Values.meta.enabled }}
+            - name: STUDIO_PG_META_URL
+              value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}
             {{- end }}
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: anonKey
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
+            {{- if .Values.analytics.enabled }}
+            - name: LOGFLARE_URL
+              value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}
+            - name: LOGFLARE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.analytics" . }}
+                  key: apiKey
+            {{- end }}
+          {{- with .Values.studio.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.studio.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 3000
