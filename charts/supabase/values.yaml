@@ -21,7 +21,6 @@ secret:
     anonKey: ""
     serviceKey: ""
     secret: ""
-    expiry: 3600
     # specify existing secret, which takes precedence over variables above
     secretRef: ""
     # override secret keys for existing secret refs
@@ -29,7 +28,6 @@ secret:
       anonKey: anonKey
       serviceKey: serviceKey
       secret: secret
-      expiry: expiry
   # database credentials
   # these fields must be provided even if using external database
   db:
@@ -125,6 +123,7 @@ db:
     POSTGRES_HOST: /var/run/postgresql
     PGPORT: "5432"
     POSTGRES_PORT: "5432"
+    JWT_EXP: 3600
     # POSTGRES_HOST_AUTH_METHOD: md5
     # Enable SSL for postgres by specifying paths for mounted certificate key pair
     # POSTGRES_SSL_CERT: /path/to/ssl/server.crt
@@ -388,6 +387,7 @@ rest:
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: false
+    PGRST_APP_SETTINGS_JWT_EXP: 3600
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret

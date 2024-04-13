@@ -85,15 +85,15 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
                   {{- end }}
-            - name: JWT_EXPIRY
+            - name: PGRST_APP_SETTINGS_JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.jwt.secretRef }}
                   name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.expiry | default "expiry" }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
                   {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
-                  key: expiry
+                  key: secret
                   {{- end }}
           {{- with .Values.rest.livenessProbe }}
           livenessProbe:
