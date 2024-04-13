@@ -170,17 +170,27 @@ spec:
             - name: IMGPROXY_URL
               value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.port | int }}
             {{- end }}
-            {{- if .Values.secret.s3 }}
+            {{- if eq (include "supabase.secret.s3.isValid" .) "true" }}
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
+                {{- if .Values.secret.s3.secretRef }}
+                  name: {{ .Values.secret.s3.secretRef }}
+                  key: {{ .Values.secret.s3.secretRefKey.keyId | default "keyId" }}
+                {{- else }}
                   name: {{ include "supabase.secret.s3" . }}
                   key: keyId
+                {{- end }}
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
+                {{- if .Values.secret.s3.secretRef }}
+                  name: {{ .Values.secret.s3.secretRef }}
+                  key: {{ .Values.secret.s3.secretRefKey.keyId | default "accessKey" }}
+                {{- else }}
                   name: {{ include "supabase.secret.s3" . }}
                   key: accessKey
+                {{- end }}
             {{- end }}
             {{- if .Values.minio.enabled }}
             - name: GLOBAL_S3_ENDPOINT
