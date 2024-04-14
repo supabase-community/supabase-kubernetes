@@ -8,6 +8,8 @@ on:
       - "**.yaml"
       - "**.yml"
       - "**.tpl"
+      # Exclude build index.yaml from being collected into action
+      - "!index.yaml"
 
 jobs:
   release:
