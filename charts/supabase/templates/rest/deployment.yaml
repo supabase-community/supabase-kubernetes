@@ -46,30 +46,55 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
                   key: password
+                  {{- end }}
             - name: DB_PASSWORD_ENC
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
                   key: password_encoded
+                  {{- end }}
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
                   key: database
+                  {{- end }}
             - name: PGRST_DB_URI
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
-            - name: JWT_EXPIRY
+                  {{- end }}
+            - name: PGRST_APP_SETTINGS_JWT_SECRET
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
-                  key: expiry
+                  key: secret
+                  {{- end }}
           {{- with .Values.rest.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

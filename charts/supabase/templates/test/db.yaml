@@ -28,8 +28,13 @@ spec:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.db" . }}
                   key: username
+                  {{- end }}
             - name: DB_PORT
               value: {{ .Values.auth.environment.DB_PORT | quote }}
           image: postgres:15-alpine

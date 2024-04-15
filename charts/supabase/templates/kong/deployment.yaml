@@ -44,24 +44,44 @@ spec:
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
                   key: anonKey
+                  {{- end }}
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
+                  {{- end }}
             {{- if .Values.secret.dashboard }}
             - name: DASHBOARD_USERNAME
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.dashboard.secretRef }}
+                  name: {{ .Values.secret.dashboard.secretRef }}
+                  key: {{ .Values.secret.dashboard.secretRefKey.username | default "username" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.dashboard" . }}
                   key: username
+                  {{- end }}
             - name: DASHBOARD_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.dashboard.secretRef }}
+                  name: {{ .Values.secret.dashboard.secretRef }}
+                  key: {{ .Values.secret.dashboard.secretRefKey.password | default "password" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.dashboard" . }}
                   key: password
+                  {{- end }}
             {{- end }}
           {{- with .Values.kong.livenessProbe }}
           livenessProbe:

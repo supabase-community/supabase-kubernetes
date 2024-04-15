@@ -21,29 +21,65 @@ secret:
     anonKey: ""
     serviceKey: ""
     secret: ""
-    expiry: 3600
+    # specify existing secret, which takes precedence over variables above
+    secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      anonKey: anonKey
+      serviceKey: serviceKey
+      secret: secret
   # database credentials
   # these fields must be provided even if using external database
   db:
     username: ""
     password: ""
     database: ""
+    # specify existing secret, which takes precedence over variables above
+    secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      username: username
+      password: password
+      database: database
   # analytics Logflare API key
   analytics:
     apiKey: ""
+    # specify existing secret, which takes precedence over variable above
+    secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      apiKey: apiKey
   # smtp will be used to reference secret including smtp credentials
   smtp:
     # username: ""
     # password: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      username: username
+      password: password
   # secret used to access the studio dashboard
   # leave it empty to disable dashboard authentication
   dashboard:
     # username: ""
     # password: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      username: username
+      password: password
   # S3 credentials for storage object bucket
   s3:
     # keyId: ""
     # accessKey: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      keyId: keyId
+      accessKey: accessKey
 
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services.
@@ -87,6 +123,7 @@ db:
     POSTGRES_HOST: /var/run/postgresql
     PGPORT: "5432"
     POSTGRES_PORT: "5432"
+    JWT_EXP: 3600
     # POSTGRES_HOST_AUTH_METHOD: md5
     # Enable SSL for postgres by specifying paths for mounted certificate key pair
     # POSTGRES_SSL_CERT: /path/to/ssl/server.crt
@@ -174,6 +211,8 @@ studio:
     STUDIO_PORT: "3000"
     SUPABASE_PUBLIC_URL: http://example.com
     NEXT_PUBLIC_ENABLE_LOGS: "true"
+    # Set value to bigquery to use Big Query backend for analytics
+    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres  # postgres, bigquery
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -348,6 +387,7 @@ rest:
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: false
+    PGRST_APP_SETTINGS_JWT_EXP: 3600
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
