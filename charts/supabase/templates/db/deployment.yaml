@@ -9,6 +9,8 @@ spec:
   {{- if not .Values.db.autoscaling.enabled }}
   replicas: {{ .Values.db.replicaCount }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "supabase.db.selectorLabels" . | nindent 6 }}

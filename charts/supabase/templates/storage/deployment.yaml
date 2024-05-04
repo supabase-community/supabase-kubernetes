@@ -9,6 +9,10 @@ spec:
   {{- if not .Values.storage.autoscaling.enabled }}
   replicas: {{ .Values.storage.replicaCount }}
   {{- end }}
+  {{- if .Values.storage.persistence.enabled }}
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.storage.selectorLabels" . | nindent 6 }}

@@ -1,0 +1,15 @@
+{{- if .Values.storage.autoscaling.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.storage.fullname" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.storage.fullname" . }}
+  minReplicas: {{ .Values.storage.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.storage.autoscaling.maxReplicas }}
+  metrics:
+    {{- toYaml .Values.storage.autoscaling.metrics | nindent 4 }}
+{{- end }}
