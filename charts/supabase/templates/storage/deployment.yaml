@@ -186,7 +186,7 @@ spec:
                 secretKeyRef:
                 {{- if .Values.secret.s3.secretRef }}
                   name: {{ .Values.secret.s3.secretRef }}
-                  key: {{ .Values.secret.s3.secretRefKey.keyId | default "accessKey" }}
+                  key: {{ .Values.secret.s3.secretRefKey.accessKey | default "accessKey" }}
                 {{- else }}
                   name: {{ include "supabase.secret.s3" . }}
                   key: accessKey
