@@ -14,79 +14,91 @@
 # |-- 13. Minio
 
 secret:
-  # jwt will be used to reference secret in multiple services:
-  # Anon & Service key: Studio, Storage, Kong
-  # JWT Secret: Analytics, Auth, Rest, Realtime, Storage
+  # -- JWT will be used to reference secret in multiple services.
+  # Anon & Service key for Studio, Storage, Kong.
+  # JWT Secret for Analytics, Auth, Rest, Realtime, Storage.
+  # @default -- The configuration is detailed below.
   jwt:
     anonKey: ""
     serviceKey: ""
     secret: ""
-    # specify existing secret, which takes precedence over variables above
+    # -- Specify an existing secret, which takes precedence over the above variables above
     secretRef: ""
-    # override secret keys for existing secret refs
+    # -- Override secret keys for existing secret refs
+    # @default -- The configuration is detailed below.
     secretRefKey:
       anonKey: anonKey
       serviceKey: serviceKey
       secret: secret
-  # database credentials
-  # these fields must be provided even if using external database
+  # -- Database credentials
+  # These fields must be provided even if using an external database
+  # @default -- The configuration is detailed below.
   db:
     username: ""
     password: ""
     database: ""
-    # specify existing secret, which takes precedence over variables above
+    # -- Specify an existing secret, which takes precedence over the above variables
     secretRef: ""
-    # override secret keys for existing secret refs
+    # -- Override secret keys for existing secret refs
+    # @default -- The configuration is detailed below.
     secretRefKey:
       username: username
       password: password
       database: database
-  # analytics Logflare API key
+  # -- Analytics Logflare API key
+  # @default -- The configuration is detailed below.
   analytics:
     apiKey: ""
-    # specify existing secret, which takes precedence over variable above
+    # -- Specify an existing secret, which takes precedence over the above variable
     secretRef: ""
-    # override secret keys for existing secret refs
+    # -- Override secret keys for existing secret refs
     secretRefKey:
       apiKey: apiKey
-  # smtp will be used to reference secret including smtp credentials
+  # -- SMTP will be used to reference secrets including SMTP credentials
+  # @default -- The configuration is detailed below.
   smtp:
     # username: ""
     # password: ""
     # specify existing secret, which takes precedence over variables above
     # secretRef: ""
-    # override secret keys for existing secret refs
+    # -- Override secret keys for existing secret refs
+    # @default -- The configuration is detailed below.
     secretRefKey:
       username: username
       password: password
-  # secret used to access the studio dashboard
-  # leave it empty to disable dashboard authentication
+  # -- Secret used to access the studio dashboard
+  # Leave it empty to disable dashboard authentication
+  # @default -- The configuration is detailed below.
   dashboard:
     # username: ""
     # password: ""
     # specify existing secret, which takes precedence over variables above
     # secretRef: ""
-    # override secret keys for existing secret refs
+    # -- Override secret keys for existing secret refs
+    # @default -- The configuration is detailed below.
     secretRefKey:
       username: username
       password: password
-  # S3 credentials for storage object bucket
+  # -- S3 credentials for storage object bucket
+  # @default -- The configuration is detailed below.
   s3:
     # keyId: ""
     # accessKey: ""
     # specify existing secret, which takes precedence over variables above
     # secretRef: ""
-    # override secret keys for existing secret refs
+    # -- Override secret keys for existing secret refs
+    # @default -- The configuration is detailed below.
     secretRefKey:
       keyId: keyId
       accessKey: accessKey
 
-# Optional: Postgres Database
+# -- Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services.
 # You can spin up any other Postgres database container if required.
 # If so, make sure to adjust DB_HOST accordingly to point to the right database service.
+# @default -- The configuration is detailed below.
 db:
-  # Enable database provisioning
+  # -- Enable database provisioning
   enabled: true
   image:
     repository: supabase/postgres
@@ -99,17 +111,19 @@ db:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -139,7 +153,8 @@ db:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -167,12 +182,12 @@ db:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  # Additional migration scripts can be defined here
+  # -- Additional migration scripts can be defined here
   config: {}
 
 # Studio Application
 studio:
-  # Enable studio provisioning
+  # -- Enable studio provisioning
   enabled: true
   image:
     repository: supabase/studio
@@ -185,17 +200,19 @@ studio:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
-    # If not set and create is true, a name is generated using the fullname template
+    # -- The name of the service account to use.
+    # -- If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -211,8 +228,8 @@ studio:
     STUDIO_PORT: "3000"
     SUPABASE_PUBLIC_URL: http://example.com
     NEXT_PUBLIC_ENABLE_LOGS: "true"
-    # Set value to bigquery to use Big Query backend for analytics
-    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres  # postgres, bigquery
+    # -- Set value to bigquery to use Big Query backend for analytics (postgres or bigquery)
+    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres # postgres, bigquery
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -224,7 +241,8 @@ studio:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -247,7 +265,7 @@ studio:
 
 # Auth Service
 auth:
-  # Enable auth provisioning
+  # -- Enable auth provisioning
   enabled: true
   image:
     repository: supabase/gotrue
@@ -260,17 +278,19 @@ auth:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -286,7 +306,7 @@ auth:
     DB_USER: supabase_auth_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     API_EXTERNAL_URL: http://example.com
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
@@ -322,7 +342,8 @@ auth:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -345,7 +366,7 @@ auth:
 
 # Rest Service
 rest:
-  # Enable postgrest provisioning
+  # -- Enable postgrest provisioning
   enabled: true
   image:
     repository: postgrest/postgrest
@@ -357,17 +378,19 @@ rest:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -383,7 +406,7 @@ rest:
     DB_USER: authenticator
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: false
@@ -399,7 +422,8 @@ rest:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -422,7 +446,7 @@ rest:
 
 # Realtime Service
 realtime:
-  # Enable realtime provisioning
+  # -- Enable realtime provisioning
   enabled: true
   image:
     repository: supabase/realtime
@@ -434,17 +458,19 @@ realtime:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -459,7 +485,7 @@ realtime:
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_admin
     DB_PORT: 5432
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
     DB_ENC_KEY: supabaserealtime
     PORT: "4000"
@@ -480,7 +506,8 @@ realtime:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -503,7 +530,7 @@ realtime:
 
 # Meta Service
 meta:
-  # Enable meta provisioning
+  # -- Enable meta provisioning
   enabled: true
   image:
     repository: supabase/postgres-meta
@@ -516,17 +543,19 @@ meta:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -542,7 +571,7 @@ meta:
     DB_USER: supabase_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
   # volumeMounts:
   #   - name: volume_name
@@ -555,7 +584,8 @@ meta:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -578,7 +608,7 @@ meta:
 
 # Storage Service
 storage:
-  # Enable storage provisioning
+  # -- Enable storage provisioning
   enabled: true
   image:
     repository: supabase/storage-api
@@ -591,17 +621,19 @@ storage:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -617,10 +649,10 @@ storage:
     DB_USER: supabase_storage_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: "52428800"
-    STORAGE_BACKEND: file  # file, s3
+    STORAGE_BACKEND: file # file, s3
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
     REGION: stub
@@ -642,7 +674,8 @@ storage:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -673,7 +706,7 @@ storage:
 
 # imgproxy
 imgproxy:
-  # Enable imgproxy provisioning
+  # -- Enable imgproxy provisioning
   enabled: true
   image:
     repository: darthsim/imgproxy
@@ -686,17 +719,19 @@ imgproxy:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -722,7 +757,8 @@ imgproxy:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -753,7 +789,7 @@ imgproxy:
 
 # Kong
 kong:
-  # Enable kong provisioning
+  # -- Enable kong provisioning
   enabled: true
   image:
     repository: kong
@@ -766,17 +802,19 @@ kong:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -802,7 +840,8 @@ kong:
       nginx.ingress.kubernetes.io/rewrite-target: /
       # cert-manager.io/cluster-issuer: "letsencrypt-staging"
       # kubernetes.io/tls-acme: "true"
-    tls: []
+    tls:
+      []
       # Define TLS secret for SSL termination.
       # This section can be left blank if using cluster certificate manager.
       # Otherwise, setting this in tandem with certificate manager will overwrite the secret name.
@@ -825,7 +864,8 @@ kong:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -848,7 +888,7 @@ kong:
 
 # Analytics
 analytics:
-  # Enable analytics provisioning
+  # -- Enable analytics provisioning
   enabled: true
   image:
     repository: supabase/logflare
@@ -861,17 +901,19 @@ analytics:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -892,7 +934,8 @@ analytics:
     LOGFLARE_SINGLE_TENANT: "true"
     LOGFLARE_SUPABASE_MODE: "true"
     FEATURE_FLAG_OVERRIDE: multibackend=true
-  # Enable Big Query backend for analytics
+  # -- Enable Big Query backend for analytics
+  # @default -- `{}` (See [values.yaml])
   bigQuery:
     enabled: false
     projectId: google-project-id
@@ -909,7 +952,8 @@ analytics:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -932,7 +976,7 @@ analytics:
 
 # Vector
 vector:
-  # Enable vector provisioning
+  # -- Enable vector provisioning
   enabled: true
   image:
     repository: timberio/vector
@@ -945,17 +989,19 @@ vector:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -976,7 +1022,8 @@ vector:
   #       items:
   #       - key: my_secret.txt
   #         path: name_of_file_in_container.txt
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -999,7 +1046,7 @@ vector:
 
 # Functions
 functions:
-  # Enable functions provisioning
+  # -- Enable functions provisioning
   enabled: true
   image:
     repository: supabase/edge-runtime
@@ -1012,17 +1059,19 @@ functions:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -1038,7 +1087,7 @@ functions:
     DB_USERNAME: supabase_functions_admin
     DB_PORT: 5432
     DB_DRIVER: postgresql
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
   # Mount user functions
   # volumeMounts:
   #   - name: my_functions
@@ -1051,7 +1100,8 @@ functions:
   #       items:
   #       - key: my_secret.ts
   #         path: name_of_file_in_container.ts
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -1086,17 +1136,19 @@ minio:
   livenessProbe: {}
   readinessProbe: {}
   serviceAccount:
-    # Specifies whether a service account should be created
+    # -- Specifies whether a service account should be created
     create: true
-    # Annotations to add to the service account
+    # -- Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
+    # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podSecurityContext: {}
+  podSecurityContext:
+    {}
     # fsGroup: 2000
-  securityContext: {}
+  securityContext:
+    {}
     # capabilities:
     #   drop:
     #   - ALL
@@ -1119,7 +1171,8 @@ minio:
   #       items:
   #       - key: my_secret.ts
   #         path: name_of_file_in_container.ts
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
