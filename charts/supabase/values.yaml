@@ -229,7 +229,7 @@ studio:
     SUPABASE_PUBLIC_URL: http://example.com
     NEXT_PUBLIC_ENABLE_LOGS: "true"
     # -- Set value to bigquery to use Big Query backend for analytics (postgres or bigquery)
-    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres # postgres, bigquery
+    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres  # postgres, bigquery
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -306,7 +306,7 @@ auth:
     DB_USER: supabase_auth_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     API_EXTERNAL_URL: http://example.com
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
@@ -406,7 +406,7 @@ rest:
     DB_USER: authenticator
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: false
@@ -485,7 +485,7 @@ realtime:
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_admin
     DB_PORT: 5432
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
     DB_ENC_KEY: supabaserealtime
     PORT: "4000"
@@ -571,7 +571,7 @@ meta:
     DB_USER: supabase_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
   # volumeMounts:
   #   - name: volume_name
@@ -649,10 +649,10 @@ storage:
     DB_USER: supabase_storage_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: "52428800"
-    STORAGE_BACKEND: file # file, s3
+    STORAGE_BACKEND: file  # file, s3
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
     REGION: stub
@@ -1087,7 +1087,7 @@ functions:
     DB_USERNAME: supabase_functions_admin
     DB_PORT: 5432
     DB_DRIVER: postgresql
-    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
   # Mount user functions
   # volumeMounts:
   #   - name: my_functions
