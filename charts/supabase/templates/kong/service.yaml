@@ -5,7 +5,7 @@ metadata:
   name: {{ include "supabase.kong.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
-  {{- with .Values.kong.serviceAccount.annotations }}
+  {{- with .Values.kong.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
