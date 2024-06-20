@@ -786,6 +786,10 @@ kong:
   service:
     type: ClusterIP
     port: 8000
+    # Annotations to add to the service
+    annotations: {
+      # service.beta.kubernetes.io/azure-pip-name: kong-static-ip-name
+    }
   environment:
     KONG_DATABASE: "off"
     KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
