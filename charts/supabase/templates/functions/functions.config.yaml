@@ -14,6 +14,7 @@ data:
 
     const JWT_SECRET = Deno.env.get('JWT_SECRET')
     const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true'
+    const importMapPath = Deno.env.get('IMPORT_MAP_PATH')
 
     function getAuthToken(req: Request) {
       const authHeader = req.headers.get('authorization')
@@ -79,7 +80,6 @@ data:
       const memoryLimitMb = 150
       const workerTimeoutMs = 1 * 60 * 1000
       const noModuleCache = false
-      const importMapPath = null
       const envVarsObj = Deno.env.toObject()
       const envVars = Object.keys(envVarsObj).map((k) => [k, envVarsObj[k]])
 
