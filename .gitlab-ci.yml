@@ -14,5 +14,5 @@ release-helm:
     - helm plugin install https://github.com/chartmuseum/helm-push
     - helm dependency update charts/supabase
     - helm package charts/supabase
-    - helm repo add librechat https://gl.alv.is/api/v4/projects/$CI_PROJECT_ID/packages/helm/devel --username=$CI_DEPLOY_USER --password-stdin<<<$CI_DEPLOY_PASSWORD
-    - helm cm-push supabase-1.0.0.tgz supabase
+    - helm repo add supabase https://gl.alv.is/api/v4/projects/$CI_PROJECT_ID/packages/helm/devel --username=$CI_DEPLOY_USER --password-stdin<<<$CI_DEPLOY_PASSWORD
+    - helm cm-push supabase-0.1.2.tgz supabase
