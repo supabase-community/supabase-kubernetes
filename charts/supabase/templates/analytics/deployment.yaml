@@ -70,10 +70,12 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.db.enabled }}
             - name: DB_HOSTNAME
+              {{- if .Values.db.enabled }}
               value: {{ include "supabase.db.fullname" . }}
-            {{- end }}
+              {{- else }}
+              value: {{ .Values.analytics.environment.DB_HOST }}
+              {{- end }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
