@@ -1,0 +1,25 @@
+{{- if .Values.minio.enabled -}}
+{{- if .Values.minio.persistence.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "supabase.minio.fullname" . }}-pvc
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.minio.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.minio.persistence.minioClassName }}
+  minioClassName: {{ .Values.minio.persistence.minioClassName }}
+  {{- end }}
+  accessModes:
+  {{- range .Values.minio.persistence.accessModes }}
+    - {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.minio.persistence.size | quote }}
+{{- end }}
+{{- end }}

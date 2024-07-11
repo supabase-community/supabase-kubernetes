@@ -1,0 +1,26 @@
+{{- if .Values.imgproxy.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "supabase.fullname" . }}-test-imgproxy
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+        - name: test-imgproxy
+          image: kdevup/curljq
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              curl -sfo /dev/null \
+                http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.port }}/health
+              echo "Sevice {{ include "supabase.imgproxy.fullname" . }} is healthy."
+      restartPolicy: Never
+{{- end }}

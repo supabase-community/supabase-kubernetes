@@ -1,180 +1,154 @@
-jwt:
-  secretName: "demo-supabase-jwt"
-
-smtp:
-  secretName: "demo-supabase-smtp"
+secret:
+  jwt:
+    anonKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+    serviceKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+    secret: your-super-secret-jwt-token-with-at-least-32-characters-long
+  smtp:
+    username: your-mail@example.com
+    password: example123456
+  dashboard:
+    username: supabase
+    password: this_password_is_insecure_and_should_be_updated
+  db:
+    username: postgres
+    password: example123456
+    database: postgres
+  analytics:
+    apiKey: your-super-secret-and-long-logflare-key
 
 db:
   enabled: true
   image:
-    repository: supabase/postgres
-    tag: 14.1.0.105
-  secretName: "demo-supabase-db"
-  persistence: 
+    tag: 15.1.0.147
+  livenessProbe:
+    exec:
+      command:
+        - pg_isready
+        - -U
+        - postgres
+    initialDelaySeconds: 3
+  persistence:
     enabled: false
-  storage:
-      mountPath: /var/lib/postgresql/data
-      size: 20Gi
-      storageClass: standard
-      annotations:
-        helm.sh/resource-policy: "keep"
 
 studio:
   image:
-    repository: supabase/studio
-    tag: 20230127-6bfd87b
+    tag: 20240326-5e5586d
   environment:
-    SUPABASE_URL: http://localhost
-    SUPABASE_REST_URL: http://localhost/rest/v1/
-    STUDIO_PG_META_URL: http://demo-supabase-kong.default.svc.cluster.local:8000/pg
-    SUPABASE_PUBLIC_URL: http://localhost/
-  ingress:
-    enabled: true
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-    tls: []
-      # - secretName: studio.localhost
-      #   hosts:
-      #     - studio.localhost
-    hosts:
-      - host: studio.localhost
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              serviceName: api
-              servicePort: 3000
+    STUDIO_DEFAULT_ORGANIZATION: "My Organization"
+    STUDIO_DEFAULT_PROJECT: "My Project"
+    SUPABASE_PUBLIC_URL: http://example.com/
+    NEXT_PUBLIC_ENABLE_LOGS: "true"
+  livenessProbe:
+    httpGet:
+      path: /api/profile
+      port: 3000
+    initialDelaySeconds: 3
 
 auth:
   image:
-    repo: v2.40.1
+    tag: v2.143.0
   environment:
-    DB_HOST: demo-supabase-db.default.svc.cluster.local
-    DB_PORT: "5432"
-    DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow
-    GOTRUE_API_HOST: "0.0.0.0"
-    GOTRUE_API_PORT: "9999"
-    GOTRUE_SITE_URL: http://studio.localhost
-    GOTRUE_URI_ALLOW_LIST: "*"
-    GOTRUE_DISABLE_SIGNUP: "false"
-    GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
-    GOTRUE_JWT_ADMIN_ROLES: service_role
-    GOTRUE_JWT_AUD: authenticated
-    GOTRUE_JWT_EXP: "3600"
+    API_EXTERNAL_URL: http://example.com
+    GOTRUE_SITE_URL: http://example.com
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
     GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
     GOTRUE_SMTP_HOST: "smtp.example.com"
     GOTRUE_SMTP_PORT: "587"
     GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
-    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
-    GOTRUE_SMS_AUTOCONFIRM: "false"
-    GOTRUE_MAILER_URLPATHS_INVITE: "http://localhost:32534/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "http://localhost:32534/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_RECOVERY: "http://localhost:32534/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "http://localhost:32534/auth/v1/verify"
 
 rest:
   image:
-    repository: postgrest/postgrest
-    tag: v9.0.1.20220717
-  environment:
-    DB_HOST: demo-supabase-db.default.svc.cluster.local
-    DB_PORT: "5432"
-    DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow
-    PGRST_DB_SCHEMA: public,storage
-    PGRST_DB_ANON_ROLE: anon
-    PGRST_DB_USE_LEGACY_GUCS: "false"
+    tag: v12.0.1
 
 realtime:
   image:
-    repository: supabase/realtime
-    tag: v2.1.0
-  environment:
-    DB_HOST: demo-supabase-db.default.svc.cluster.local
-    DB_PORT: "5432"
-    DB_NAME: postgres
-    DB_SSL: "false"
-    PORT: "4000"
-    REPLICATION_MODE: RLS
-    REPLICATION_POLL_INTERVAL: "100"
-    SECURE_CHANNELS: "true"
-    SLOT_NAME: supabase_realtime_rls
-    TEMPORARY_SLOT: "true"
-    DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
-    DB_ENC_KEY: supabaserealtime
-    FLY_ALLOC_ID: fly123
-    FLY_APP_NAME: realtime
-    SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
-    ERL_AFLAGS: -proto_dist inet_tcp
-    ENABLE_TAILSCALE: "false"
-    DNS_NODES: "''"
+    tag: v2.27.5
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 4000
+    initialDelaySeconds: 3
+
 meta:
-  environment:
-    DB_HOST: demo-supabase-db.default.svc.cluster.local
-    DB_PORT: "5432"
-    DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: disable
-    PG_META_PORT: "8080"
+  image:
+    tag: v0.80.0
 
 storage:
   image:
-    repository: supabase/storage-api
-    tag: v0.26.1
-  environment:
-    DB_HOST: demo-supabase-db.default.svc.cluster.local
-    DB_PORT: "5432"
-    DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: disable
-    POSTGREST_URL: http://demo-supabase-rest.default.svc.cluster.local:3000
-    PGOPTIONS: -c search_path=storage,public
-    FILE_SIZE_LIMIT: '52428800'
-    STORAGE_BACKEND: file
-    FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-    TENANT_ID: stub
-    REGION: stub
-    GLOBAL_S3_BUCKET: stub
-  persistence: 
+    tag: v0.46.4
+  livenessProbe:
+    httpGet:
+      path: /status
+      port: 5000
+    initialDelaySeconds: 3
+  persistence:
     enabled: false
-    accessModes:
-      - ReadWriteOnce
-    size: 4Gi
-    storageClassName: standard
-    annotations:
-      helm.sh/resource-policy: "keep"
+
+imgproxy:
+  image:
+    tag: v3.8.0
+  environment:
+    IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+  livenessProbe:
+    exec:
+      command:
+        - imgproxy
+        - health
+    initialDelaySeconds: 3
+  persistence:
+    enabled: false
 
 kong:
   image:
     repository: kong
     tag: 2.8.1
   environment:
-    KONG_DATABASE: "off"
-    KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
-    KONG_DNS_ORDER: LAST,A,CNAME
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl
-    KONG_LOG_LEVEL: debug
-
+    KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
+    KONG_LOG_LEVEL: info
   ingress:
     enabled: true
     className: "nginx"
     annotations:
       nginx.ingress.kubernetes.io/rewrite-target: /
     tls: []
-      # - secretName: localhost
+      # - secretName: example-ingress-tls
       #   hosts:
-      #     - localhost
+      #     - example.com
     hosts:
-      - host: localhost
+      - host: example.com
         paths:
           - path: /
             pathType: Prefix
-            backend:
-              serviceName: api
-              servicePort: 80
+
+analytics:
+  image:
+    tag: 1.4.0
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 4000
+    initialDelaySeconds: 3
+
+vector:
+  image:
+    tag: 0.34.0-alpine
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 9001
+    initialDelaySeconds: 3
+  ## Vector requires logs from the control plane to function.
+  ## This is normally stored in /var/log/pods
+  ## Modify these values according to your environment.
+  volumeMounts:
+    - name: pod-logs
+      mountPath: /var/log/pods
+  volumes:
+    - name: pod-logs
+      hostPath:
+        path: /var/log/pods
+
+functions:
+  image:
+    tag: v1.41.2

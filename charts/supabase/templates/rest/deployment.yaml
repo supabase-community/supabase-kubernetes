@@ -37,28 +37,72 @@ spec:
           env:
             {{- range $key, $value := .Values.rest.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.rest.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: username
+            {{- if .Values.db.enabled }}
+            - name: DB_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            {{- end }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: password
+                  {{- end }}
+            - name: DB_PASSWORD_ENC
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: password_encoded
+                  {{- end }}
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: database
+                  {{- end }}
             - name: PGRST_DB_URI
-              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
+              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: secret
+                  {{- end }}
+            - name: PGRST_APP_SETTINGS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
+                  key: secret
+                  {{- end }}
+          {{- with .Values.rest.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.rest.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 3000

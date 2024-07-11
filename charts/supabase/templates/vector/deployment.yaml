@@ -1,0 +1,108 @@
+{{- if .Values.vector.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "supabase.vector.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    vector.dev/exclude: "true"
+spec:
+  {{- if not .Values.vector.autoscaling.enabled }}
+  replicas: {{ .Values.vector.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.vector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+      {{- with .Values.vector.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/vector/config.yaml") . | sha256sum }}
+      labels:
+        {{- include "supabase.vector.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.vector.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "supabase.vector.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.vector.podSecurityContext | nindent 8 }}
+      containers:
+        - args:
+            - --config
+            - /etc/vector/vector.yml
+          name: {{ include "supabase.vector.name" $ }}
+          securityContext:
+            {{- toYaml .Values.vector.securityContext | nindent 12 }}
+          image: "{{ .Values.vector.image.repository }}:{{ .Values.vector.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.vector.image.pullPolicy }}
+          env:
+            {{- range $key, $value := .Values.vector.environment }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: VECTOR_SELF_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          {{- if .Values.analytics.enabled }}
+            - name: LOGFLARE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.analytics.secretRef }}
+                  name: {{ .Values.secret.analytics.secretRef }}
+                  key: {{ .Values.secret.analytics.secretRefKey.apiKey | default "apiKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.analytics" . }}
+                  key: apiKey
+                  {{- end }}
+          {{- end }}
+          {{- with .Values.vector.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.vector.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.vector.service.port }}
+              protocol: TCP
+          volumeMounts:
+            {{- with .Values.vector.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            - mountPath: /etc/vector/vector.yml
+              name: vector-config
+              subPath: vector.yml
+            - mountPath: /etc/vector/secret.sh
+              name: vector-config
+              subPath: secret.sh
+          {{- with .Values.vector.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- with .Values.vector.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        - name: vector-config
+          configMap:
+            name:  {{ include "supabase.vector.fullname" . }}-config
+            defaultMode: 0777
+      {{- with .Values.vector.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.vector.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.vector.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

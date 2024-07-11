@@ -37,21 +37,32 @@ spec:
           env:
             {{- range $key, $value := .Values.meta.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.meta.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: username
+            {{- if .Values.db.enabled }}
+            - name: DB_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            {{- end }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: password
+                  {{- end }}
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: database
+                  {{- end }}
             - name: PG_META_DB_HOST
               value: $(DB_HOST)
             - name: PG_META_DB_PORT
@@ -64,6 +75,14 @@ spec:
               value: $(DB_PASSWORD)
             - name: PG_META_DB_SSL_MODE
               value: $(DB_SSL)
+          {{- with .Values.meta.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.meta.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 8080

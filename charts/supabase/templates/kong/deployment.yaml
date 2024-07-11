@@ -34,26 +34,63 @@ spec:
             {{- toYaml .Values.kong.securityContext | nindent 12 }}
           image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
-          command: ["/bin/sh"]
+          command: ["/bin/bash"]
           args: ["/scripts/wrapper.sh"]
           env:
             {{- range $key, $value := .Values.kong.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.kong.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: anonKey
+                  {{- end }}
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
+                  {{- end }}
+            {{- if .Values.secret.dashboard }}
+            - name: DASHBOARD_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.dashboard.secretRef }}
+                  name: {{ .Values.secret.dashboard.secretRef }}
+                  key: {{ .Values.secret.dashboard.secretRefKey.username | default "username" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.dashboard" . }}
+                  key: username
+                  {{- end }}
+            - name: DASHBOARD_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.dashboard.secretRef }}
+                  name: {{ .Values.secret.dashboard.secretRef }}
+                  key: {{ .Values.secret.dashboard.secretRefKey.password | default "password" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.dashboard" . }}
+                  key: password
+                  {{- end }}
+            {{- end }}
+          {{- with .Values.kong.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.kong.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 8000
@@ -63,9 +100,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-            - mountPath: /home/kong
-              name: home
-            - mountPath: /home/kong/template.yml
+            - mountPath: /usr/local/kong/template.yml
               name: config
               subPath: template.yml
             - mountPath: /scripts

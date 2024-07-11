@@ -29,7 +29,11 @@ spec:
       securityContext:
         {{- toYaml .Values.functions.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ include "supabase.functions.name" $ }}
+        - args:
+            - start
+            - --main-service
+            - /home/deno/functions/main
+          name: {{ include "supabase.functions.name" $ }}
           securityContext:
             {{- toYaml .Values.functions.securityContext | nindent 12 }}
           image: "{{ .Values.functions.image.repository }}:{{ .Values.functions.image.tag | default .Chart.AppVersion }}"
@@ -37,75 +41,101 @@ spec:
           env:
             {{- range $key, $value := .Values.functions.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.functions.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
+            - name: DB_HOSTNAME
+              {{- if .Values.db.enabled }}
+              value: {{ include "supabase.db.fullname" . }}
+              {{- else }}
+              value: $(DB_HOST)
+              {{- end }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: password
+                  {{- end }}
+            - name: DB_PASSWORD_ENC
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: password_encoded
+                  {{- end }}
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: database
+                  {{- end }}
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: secret
+                  {{- end }}
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: anonKey
+                  {{- end }}
             - name: SUPABASE_SERVICE_ROLE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: password
-            - name: SUPABASE_DB_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: url
-              # value: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-          args: ["start", "--main-service", "/home/deno/functions/main"]
-
-          ports:
-            - name: http
-              containerPort: 3000
-              protocol: TCP
+                  {{- end }}
+            - name: POSTGRES_BACKEND_URL
+              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
+          {{- with .Values.functions.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.functions.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- with .Values.functions.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            - mountPath: /home/deno/functions/main
+              name: functions-main
           {{- with .Values.functions.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          volumeMounts:
-          {{- if .Values.functions.persistence.enabled }}
-            - mountPath: /home/deno/functions
-              name: function-data
-          {{- end }}
-            - mountPath: /home/deno/functions/main/index.ts
-              name: index-ts
-              subPath: index.ts
-          {{- with .Values.functions.volumeMounts }}
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
       volumes:
-        - name: index-ts
-          configMap:
-            name: {{ include "supabase.functions.fullname" . }}-index-ts
-            defaultMode: 0777
-            items:
-            - key: index.ts
-              path: index.ts
-        {{- if .Values.functions.persistence.enabled }}
-        - name: function-data
-          persistentVolumeClaim:
-            claimName: {{ include "supabase.functions.fullname" . }}-pvc
+        {{- with .Values.functions.volumes }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.functions.volumes }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-
+        - name: functions-main
+          configMap:
+            name: {{ include "supabase.functions.fullname" . }}-main
       {{- with .Values.functions.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

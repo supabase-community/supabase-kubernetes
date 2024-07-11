@@ -34,14 +34,23 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
-              value: {{ .Values.realtime.environment.DB_HOST | quote }}
-            - name: DB_PORT
-              value: {{ .Values.realtime.environment.DB_PORT | quote }}
+              {{- if .Values.db.enabled }}
+              value: {{ include "supabase.db.fullname" . | quote }}
+              {{- else }}
+              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              {{- end }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: username
+                  {{- end }}
+            - name: DB_PORT
+              value: {{ .Values.analytics.environment.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -61,31 +70,60 @@ spec:
           env:
             {{- range $key, $value := .Values.realtime.environment }}
             - name: {{ $key }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "supabase.realtime.fullname" $ }}
-                  key: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: username
+            {{- if .Values.db.enabled }}
+            - name: DB_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            {{- end }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
                   key: password
+                  {{- end }}
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: database
+                  {{- end }}
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: secret
+                  {{- end }}
             - name: API_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.jwt.secretName }}
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
                   key: secret
+                  {{- end }}
+          {{- with .Values.realtime.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.realtime.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 4000

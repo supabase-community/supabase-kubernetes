@@ -1,0 +1,25 @@
+{{- if .Values.minio.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "supabase.fullname" . }}-test-minio
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+        - name: test-minio
+          image: kdevup/curljq
+          command:
+            - /bin/bash
+            - -c
+            - |
+              curl -sfo /dev/null \
+                http://{{ include "supabase.minio.fullname" . }}:{{ .Values.minio.service.port }}/minio/health/live
+              echo "Sevice {{ include "supabase.minio.fullname" . }} is healthy."
+      restartPolicy: Never
+{{- end }}

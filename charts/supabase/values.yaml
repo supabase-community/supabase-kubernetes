@@ -1,31 +1,93 @@
 # File structure of values.yaml:
-# |-- 1. Database
-# |-- 2. Studio
-# |-- 3. Auth
-# |-- 4. Rest
-# |-- 5. Realtime
-# |-- 6. Meta
-# |-- 7. Storage
-# |-- 8. Functions
-# |-- 9. Kong
+# |-- 1.  Database
+# |-- 2.  Studio
+# |-- 3.  Auth
+# |-- 4.  Rest
+# |-- 5.  Realtime
+# |-- 6.  Meta
+# |-- 7.  Storage
+# |-- 8.  Image Proxy
+# |-- 9.  Kong
+# |-- 10. Analytics
+# |-- 11. Vector
+# |-- 12. Functions
+# |-- 13. Minio
 
-# jwt will be used to reference secret in multiple services:
-# Anon & Service key: Studio, Storage, Kong
-# JWT Secret: Auth, Rest, Realtime, Storage
-jwt:
-  secretName: "JWT_SECRET_NAME"
-
-# smtp will be used to reference secret including smtp credentials
-smtp:
-  secretName: "SMTP_SECRET_NAME"
+secret:
+  # jwt will be used to reference secret in multiple services:
+  # Anon & Service key: Studio, Storage, Kong
+  # JWT Secret: Analytics, Auth, Rest, Realtime, Storage
+  jwt:
+    anonKey: ""
+    serviceKey: ""
+    secret: ""
+    # specify existing secret, which takes precedence over variables above
+    secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      anonKey: anonKey
+      serviceKey: serviceKey
+      secret: secret
+  # database credentials
+  # these fields must be provided even if using external database
+  db:
+    username: ""
+    password: ""
+    database: ""
+    # specify existing secret, which takes precedence over variables above
+    secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      username: username
+      password: password
+      database: database
+  # analytics Logflare API key
+  analytics:
+    apiKey: ""
+    # specify existing secret, which takes precedence over variable above
+    secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      apiKey: apiKey
+  # smtp will be used to reference secret including smtp credentials
+  smtp:
+    # username: ""
+    # password: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      username: username
+      password: password
+  # secret used to access the studio dashboard
+  # leave it empty to disable dashboard authentication
+  dashboard:
+    # username: ""
+    # password: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      username: username
+      password: password
+  # S3 credentials for storage object bucket
+  s3:
+    # keyId: ""
+    # accessKey: ""
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
+    # override secret keys for existing secret refs
+    secretRefKey:
+      keyId: keyId
+      accessKey: accessKey
 
 # Optional: Postgres Database
-# A standalone Postgres database configured to work with Supabase services. 
-# You can spin up any other Postgres database container if required. 
+# A standalone Postgres database configured to work with Supabase services.
+# You can spin up any other Postgres database container if required.
 # If so, make sure to adjust DB_HOST accordingly to point to the right database service.
 db:
-  enabled: false # Disable the database provisioning
-  secretName: "DB_SECRET_NAME" # Still NEEDS TO BE DEFINED, even if database provisioning is disabled
+  # Enable database provisioning
+  enabled: true
   image:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
@@ -34,6 +96,8 @@ db:
   replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -56,26 +120,14 @@ db:
     type: ClusterIP
     port: 5432
   environment:
+    POSTGRES_HOST: /var/run/postgresql
+    PGPORT: "5432"
+    POSTGRES_PORT: "5432"
+    JWT_EXP: 3600
     # POSTGRES_HOST_AUTH_METHOD: md5
-  ingress:
-    enabled: false
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
-      # kubernetes.io/tls-acme: "true"
-    tls:
-      - secretName: DB.EXAMPLE.COM
-        hosts:
-          - DB.EXAMPLE.COM
-    hosts:
-      - host: DB.EXAMPLE.COM
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              serviceName: database
-              servicePort: 5432
+    # Enable SSL for postgres by specifying paths for mounted certificate key pair
+    # POSTGRES_SSL_CERT: /path/to/ssl/server.crt
+    # POSTGRES_SSL_KEY: /path/to/ssl/server.key
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -98,6 +150,14 @@ db:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  persistence:
+    enabled: true
+    storageClassName: ""
+    annotations: {}
+    size: 8Gi
+    accessModes:
+      - ReadWriteOnce
+    class: ""
   autoscaling:
     enabled: true
     minReplicas: 1
@@ -107,10 +167,13 @@ db:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # Additional migration scripts can be defined here
+  config: {}
 
 # Studio Application
 studio:
-  enabled: true # Disable the studio
+  # Enable studio provisioning
+  enabled: true
   image:
     repository: supabase/studio
     pullPolicy: IfNotPresent
@@ -119,6 +182,8 @@ studio:
   replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -141,28 +206,13 @@ studio:
     type: ClusterIP
     port: 3000
   environment:
-    SUPABASE_URL: https://API.EXAMPLE.COM
-    SUPABASE_REST_URL: https://API.EXAMPLE.COM/rest/v1/
-    STUDIO_PG_META_URL: http://RELEASE_NAME-kong.NAMESPACE.svc.cluster.local:8000/pg
-  ingress:
-    enabled: true
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
-      # kubernetes.io/tls-acme: "true"
-    tls:
-      - secretName: STUDIO.EXAMPLE.COM
-        hosts:
-          - STUDIO.EXAMPLE.COM
-    hosts:
-      - host: STUDIO.EXAMPLE.COM
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              serviceName: api
-              servicePort: 3000
+    STUDIO_DEFAULT_ORGANIZATION: Default Organization
+    STUDIO_DEFAULT_PROJECT: Default Project
+    STUDIO_PORT: "3000"
+    SUPABASE_PUBLIC_URL: http://example.com
+    NEXT_PUBLIC_ENABLE_LOGS: "true"
+    # Set value to bigquery to use Big Query backend for analytics
+    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres  # postgres, bigquery
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -197,7 +247,8 @@ studio:
 
 # Auth Service
 auth:
-  enabled: true # Disable the auth service
+  # Enable auth provisioning
+  enabled: true
   image:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
@@ -206,6 +257,8 @@ auth:
   replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -228,14 +281,16 @@ auth:
     type: ClusterIP
     port: 9999
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: supabase_auth_admin
+    DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    API_EXTERNAL_URL: http://example.com
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
-    GOTRUE_SITE_URL: https://STUDIO.EXAMPLE.COM
+    GOTRUE_SITE_URL: http://example.com
     GOTRUE_URI_ALLOW_LIST: "*"
     GOTRUE_DISABLE_SIGNUP: "false"
     GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
@@ -244,25 +299,18 @@ auth:
     GOTRUE_JWT_EXP: "3600"
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
+    # GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: true
+    # GOTRUE_SMTP_MAX_FREQUENCY: 1s
     GOTRUE_SMTP_ADMIN_EMAIL: "SMTP_ADMIN_MAIL"
     GOTRUE_SMTP_HOST: "SMTP_HOST"
     GOTRUE_SMTP_PORT: "SMTP_PORT"
     GOTRUE_SMTP_SENDER_NAME: "SMTP_SENDER_NAME"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
-    GOTRUE_MAILER_URLPATHS_INVITE: "https://API.EXAMPLE.COM/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "https://API.EXAMPLE.COM/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_RECOVERY: "https://API.EXAMPLE.COM/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "https://API.EXAMPLE.COM/auth/v1/verify"
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
+    GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -297,7 +345,8 @@ auth:
 
 # Rest Service
 rest:
-  enabled: true # Disable the rest service
+  # Enable postgrest provisioning
+  enabled: true
   image:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
@@ -305,6 +354,8 @@ rest:
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -327,23 +378,16 @@ rest:
     type: ClusterIP
     port: 3000
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: authenticator
+    DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
-    PGRST_DB_SCHEMA: public,storage
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
-    PGRST_DB_USE_LEGACY_GUCS: "false"
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
+    PGRST_DB_USE_LEGACY_GUCS: false
+    PGRST_APP_SETTINGS_JWT_EXP: 3600
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -378,14 +422,17 @@ rest:
 
 # Realtime Service
 realtime:
-  enabled: true # Disable the realtime service
+  # Enable realtime provisioning
+  enabled: true
   image:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
     tag: "latest"
   imagePullSecrets: []
   nameOverride: ""
-  fullnameOverride: "" 
+  fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -408,25 +455,20 @@ realtime:
     type: ClusterIP
     port: 4000
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
-    DB_NAME: postgres
-    DB_SSL: "false"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: supabase_admin
+    DB_PORT: 5432
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+    DB_ENC_KEY: supabaserealtime
     PORT: "4000"
-    REPLICATION_MODE: RLS
-    REPLICATION_POLL_INTERVAL: "100"
-    SECURE_CHANNELS: "true"
-    SLOT_NAME: supabase_realtime_rls
-    TEMPORARY_SLOT: "true"
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
+    FLY_ALLOC_ID: fly123
+    FLY_APP_NAME: realtime
+    SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+    ERL_AFLAGS: -proto_dist inet_tcp
+    ENABLE_TAILSCALE: "false"
+    DNS_NODES: "''"
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -461,15 +503,18 @@ realtime:
 
 # Meta Service
 meta:
-  enabled: true # Disable the meta service
+  # Enable meta provisioning
+  enabled: true
   image:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
     tag: "latest"
   imagePullSecrets: []
-  replicaCount: 1  
+  replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -492,21 +537,13 @@ meta:
     type: ClusterIP
     port: 8080
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: supabase_admin
+    DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -537,11 +574,12 @@ meta:
     # targetMemoryUtilizationPercentage: 80
   nodeSelector: {}
   tolerations: []
-  affinity: {}    
+  affinity: {}
 
 # Storage Service
 storage:
-  enabled: true # Disable the storage service
+  # Enable storage provisioning
+  enabled: true
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
@@ -550,6 +588,8 @@ storage:
   replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -572,28 +612,105 @@ storage:
     type: ClusterIP
     port: 5000
   environment:
-    DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_PORT: "5432"
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USER: supabase_storage_admin
+    DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_NAME: postgres
-    DB_SSL: allow # disable, allow, prefer, require, verify-ca, verify-full
-    POSTGREST_URL: http://RELEASE_NAME-rest.NAMESPACE.svc.cluster.local:3000
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PGOPTIONS: -c search_path=storage,public
-    FILE_SIZE_LIMIT: '52428800'
-    STORAGE_BACKEND: file
+    FILE_SIZE_LIMIT: "52428800"
+    STORAGE_BACKEND: file  # file, s3
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
     REGION: stub
     GLOBAL_S3_BUCKET: stub
-  ingress:
-    enabled: false
-    className: ""
+    # Set variables below and secret.s3 above to enable S3 storage bucket
+    # If using this chart's minio, skip the endpoint and protocol below
+    # GLOBAL_S3_ENDPOINT: http://minio:9000
+    # GLOBAL_S3_PROTOCOL: http
+    # GLOBAL_S3_FORCE_PATH_STYLE: true
+    # AWS_DEFAULT_REGION: stub
+  # volumeMounts:
+  #   - name: volume_name
+  #     mountPath: /path/to/my/secret
+  # volumes:
+  #   - name: volume_name
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.txt
+  #         path: name_of_file_in_container.txt
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  persistence:
+    enabled: true
+    storageClassName: ""
     annotations: {}
-    hosts: []
-    tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+    class: ""
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# imgproxy
+imgproxy:
+  # Enable imgproxy provisioning
+  enabled: true
+  image:
+    repository: darthsim/imgproxy
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 5001
+  environment:
+    IMGPROXY_BIND: ":5001"
+    IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+    IMGPROXY_USE_ETAG: "true"
+    IMGPROXY_ENABLE_WEBP_DETECTION: "true"
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -728,7 +845,8 @@ functions:
 
 # Kong
 kong:
-  enabled: true # Disable the kong service
+  # Enable kong provisioning
+  enabled: true
   image:
     repository: kong
     pullPolicy: IfNotPresent
@@ -737,6 +855,8 @@ kong:
   replicaCount: 1
   nameOverride: ""
   fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -760,13 +880,13 @@ kong:
     port: 8000
   environment:
     KONG_DATABASE: "off"
-    KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+    KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
     # https://github.com/supabase/cli/issues/14
     KONG_DNS_ORDER: LAST,A,CNAME
     KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
-    # dashboard credentials
-    DASHBOARD_USERNAME: user
-    DASHBOARD_PASSWORD: defaultpassword
+    KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+    KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    KONG_LOG_LEVEL: warn
   ingress:
     enabled: true
     className: "nginx"
@@ -774,18 +894,18 @@ kong:
       nginx.ingress.kubernetes.io/rewrite-target: /
       # cert-manager.io/cluster-issuer: "letsencrypt-staging"
       # kubernetes.io/tls-acme: "true"
-    tls:
-      - secretName: API.EXAMPLE.COM
-        hosts:
-          - API.EXAMPLE.COM
+    tls: []
+      # Define TLS secret for SSL termination.
+      # This section can be left blank if using cluster certificate manager.
+      # Otherwise, setting this in tandem with certificate manager will overwrite the secret name.
+      # - secretName: example-com-tls
+      #   hosts:
+      #     - example.com
     hosts:
-      - host: API.EXAMPLE.COM
+      - host: example.com
         paths:
           - path: /
             pathType: Prefix
-            backend:
-              serviceName: api
-              servicePort: 80
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -817,152 +937,305 @@ kong:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  config: {}
-  #   _format_version: "1.1"
 
-  #   ###
-  #   ### Consumers / Users
-  #   ###
-  #   consumers:
-  #     - username: anon
-  #       keyauth_credentials:
-  #         - key: ${JWT_ANON_KEY}
-  #     - username: service_role
-  #       keyauth_credentials:
-  #         - key: ${JWT_SERVICE_KEY}
+# Analytics
+analytics:
+  # Enable analytics provisioning
+  enabled: true
+  image:
+    repository: supabase/logflare
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 4000
+  environment:
+    LOGFLARE_NODE_HOST: 127.0.0.1
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USERNAME: supabase_admin
+    DB_PORT: 5432
+    DB_DRIVER: postgresql
+    DB_SCHEMA: _analytics
+    LOGFLARE_SINGLE_TENANT: "true"
+    LOGFLARE_SUPABASE_MODE: "true"
+    FEATURE_FLAG_OVERRIDE: multibackend=true
+  # Enable Big Query backend for analytics
+  bigQuery:
+    enabled: false
+    projectId: google-project-id
+    projectNumber: google-project-number
+    gcloudJson: ""
+  # volumeMounts:
+  #   - name: volume_name
+  #     mountPath: /path/to/my/secret
+  # volumes:
+  #   - name: volume_name
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.txt
+  #         path: name_of_file_in_container.txt
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-  #   ###
-  #   ### Access Control List
-  #   ###
-  #   acls:
-  #     - consumer: anon
-  #       group: anon
-  #     - consumer: service_role
-  #       group: admin
+# Vector
+vector:
+  # Enable vector provisioning
+  enabled: true
+  image:
+    repository: timberio/vector
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 9001
+  # volumeMounts:
+  #   - name: volume_name
+  #     mountPath: /path/to/my/secret
+  # volumes:
+  #   - name: volume_name
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.txt
+  #         path: name_of_file_in_container.txt
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-  #   ###
-  #   ### API Routes
-  #   ###
-  #   services:
-  #     ## Open Auth routes
-  #     - name: auth-v1-open
-  #       url: http://svc.cluster.local:9999/verify
-  #       routes:
-  #         - name: auth-v1-open
-  #           strip_path: true
-  #           paths:
-  #             - /auth/v1/verify
-  #       plugins:
-  #         - name: cors
-  #     - name: auth-v1-open-callback
-  #       url: http://svc.cluster.local:9999/callback
-  #       routes:
-  #         - name: auth-v1-open-callback
-  #           strip_path: true
-  #           paths:
-  #             - /auth/v1/callback
-  #       plugins:
-  #         - name: cors
-  #     - name: auth-v1-open-authorize
-  #       url: http://svc.cluster.local:9999/authorize
-  #       routes:
-  #         - name: auth-v1-open-authorize
-  #           strip_path: true
-  #           paths:
-  #             - /auth/v1/authorize
-  #       plugins:
-  #         - name: cors
+# Functions
+functions:
+  # Enable functions provisioning
+  enabled: true
+  image:
+    repository: supabase/edge-runtime
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 9000
+  environment:
+    # Override the database hostname if using external database
+    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
+    DB_USERNAME: supabase_functions_admin
+    DB_PORT: 5432
+    DB_DRIVER: postgresql
+    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+  # Mount user functions
+  # volumeMounts:
+  #   - name: my_functions
+  #     mountPath: /home/deno/functions/main/main
+  # volumes:
+  #   - name: my_functions
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.ts
+  #         path: name_of_file_in_container.ts
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-  #     ## Secure Auth routes
-  #     - name: auth-v1
-  #       _comment: "GoTrue: /auth/v1/* -> http://svc.cluster.local:9999/*"
-  #       url: http://svc.cluster.local:9999/
-  #       routes:
-  #         - name: auth-v1-all
-  #           strip_path: true
-  #           paths:
-  #             - /auth/v1/
-  #       plugins:
-  #         - name: cors
-  #         - name: key-auth
-  #           config:
-  #             hide_credentials: false
-  #         - name: acl
-  #           config:
-  #             hide_groups_header: true
-  #             allow:
-  #               - admin
-  #               - anon
-
-  #     ## Secure REST routes
-  #     - name: rest-v1
-  #       _comment: "PostgREST: /rest/v1/* -> http://DATABASE_ENDPOINT:3000/*"
-  #       url: http://DATABASE_ENDPOINT:3000/
-  #       routes:
-  #         - name: rest-v1-all
-  #           strip_path: true
-  #           paths:
-  #             - /rest/v1/
-  #       plugins:
-  #         - name: cors
-  #         - name: key-auth
-  #           config:
-  #             hide_credentials: true
-  #         - name: acl
-  #           config:
-  #             hide_groups_header: true
-  #             allow:
-  #               - admin
-  #               - anon
-
-  #     ## Secure Realtime routes
-  #     - name: realtime-v1
-  #       _comment: "Realtime: /realtime/v1/* -> ws://svc.cluster.local:4000/socket/*"
-  #       url: http://svc.cluster.local:4000/socket/
-  #       routes:
-  #         - name: realtime-v1-all
-  #           strip_path: true
-  #           paths:
-  #             - /realtime/v1/
-  #       plugins:
-  #         - name: cors
-  #         - name: key-auth
-  #           config:
-  #             hide_credentials: false
-  #         - name: acl
-  #           config:
-  #             hide_groups_header: true
-  #             allow:
-  #               - admin
-  #               - anon
-
-  #     ## Storage routes: the storage server manages its own auth
-  #     - name: storage-v1
-  #       _comment: "Storage: /storage/v1/* -> http://svc.cluster.local:5000/*"
-  #       url: http://svc.cluster.local:5000/
-  #       routes:
-  #         - name: storage-v1-all
-  #           strip_path: true
-  #           paths:
-  #             - /storage/v1/
-  #       plugins:
-  #         - name: cors
-
-  #     ## Secure Database routes
-  #     - name: meta
-  #       _comment: "pg-meta: /pg/* -> http://svc.cluster.local:8080/*"
-  #       url: http://svc.cluster.local:8080/
-  #       routes:
-  #         - name: meta-all
-  #           strip_path: true
-  #           paths:
-  #             - /pg/
-  #       plugins:
-  #         - name: key-auth
-  #           config:
-  #             hide_credentials: false
-  #         - name: acl
-  #           config:
-  #             hide_groups_header: true
-  #             allow:
-  #               - admin
+# minio
+minio:
+  enabled: false
+  image:
+    repository: minio/minio
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  imagePullSecrets: []
+  replicaCount: 1
+  nameOverride: ""
+  fullnameOverride: ""
+  livenessProbe: {}
+  readinessProbe: {}
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations: {}
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  service:
+    type: ClusterIP
+    port: 9000
+  environment: {}
+  # Mount user functions
+  # volumeMounts:
+  #   - name: my_functions
+  #     mountPath: /home/deno/functions/main/main
+  # volumes:
+  #   - name: my_functions
+  #     secret:
+  #       defaultMode: 733
+  #       secretName: my_secret
+  #       items:
+  #       - key: my_secret.ts
+  #         path: name_of_file_in_container.ts
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  persistence:
+    enabled: false
+    storageClassName: ""
+    annotations: {}
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+    class: ""
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
