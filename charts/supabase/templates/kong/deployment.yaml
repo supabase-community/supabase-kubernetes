@@ -121,9 +121,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        - name: home
-          emptyDir:
-            medium: Memory
         - name: config
           configMap:
             name: {{ include "supabase.kong.fullname" $ }}

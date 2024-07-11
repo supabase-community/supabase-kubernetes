@@ -9,7 +9,7 @@ data:
   wrapper.sh: |
     #!/bin/bash
 
-    set -eu
+    set -euo pipefail
 
     echo "Replacing env placeholders of /usr/local/kong/kong.yml"
 
