@@ -11,8 +11,8 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.minio.persistence.minioClassName }}
-  minioClassName: {{ .Values.minio.persistence.minioClassName }}
+  {{- if .Values.minio.persistence.storageClassName }}
+  storageClassName: {{ .Values.minio.persistence.storageClassName }}
   {{- end }}
   accessModes:
   {{- range .Values.minio.persistence.accessModes }}
