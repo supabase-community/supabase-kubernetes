@@ -311,6 +311,9 @@ auth:
     GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
+  envFrom: []
+    # - secretRef:
+    #     name: env-secret
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
