@@ -159,11 +159,7 @@ db:
       - ReadWriteOnce
     class: ""
   autoscaling:
-    enabled: true
-    minReplicas: 1
-    maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    enabled: false
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -239,8 +235,19 @@ studio:
     enabled: true
     minReplicas: 1
     maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
+      # - type: Resource
+      #   resource:
+      #     name: memory
+      #     target:
+      #       type: Utilization
+      #       averageUtilization: 90
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -340,8 +347,19 @@ auth:
     enabled: true
     minReplicas: 1
     maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
+      # - type: Resource
+      #   resource:
+      #     name: memory
+      #     target:
+      #       type: Utilization
+      #       averageUtilization: 90
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -417,8 +435,19 @@ rest:
     enabled: true
     minReplicas: 1
     maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
+      # - type: Resource
+      #   resource:
+      #     name: memory
+      #     target:
+      #       type: Utilization
+      #       averageUtilization: 90
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -498,8 +527,19 @@ realtime:
     enabled: true
     minReplicas: 1
     maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
+      # - type: Resource
+      #   resource:
+      #     name: memory
+      #     target:
+      #       type: Utilization
+      #       averageUtilization: 90
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -573,8 +613,19 @@ meta:
     enabled: true
     minReplicas: 1
     maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
+      # - type: Resource
+      #   resource:
+      #     name: memory
+      #     target:
+      #       type: Utilization
+      #       averageUtilization: 90
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -745,11 +796,7 @@ imgproxy:
       - ReadWriteOnce
     class: ""
   autoscaling:
-    enabled: true
-    minReplicas: 1
-    maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    enabled: false
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -843,8 +890,19 @@ kong:
     enabled: true
     minReplicas: 1
     maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
+      # - type: Resource
+      #   resource:
+      #     name: memory
+      #     target:
+      #       type: Utilization
+      #       averageUtilization: 90
   nodeSelector: {}
   tolerations: []
   affinity: {}
