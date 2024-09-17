@@ -93,7 +93,7 @@ secret:
 ```
 
 > 32 characters long secret can be generated with `openssl rand 64 | base64`
-> You can use the [JWT Tool](https://supabase.com/docs/guides/hosting/overview#api-keys) to generate anon and service keys.
+> You can use the [JWT Tool](https://supabase.com/docs/guides/self-hosting/docker#generate-api-keys) to generate anon and service keys.
 
 ### SMTP Secret
 
