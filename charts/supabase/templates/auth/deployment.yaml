@@ -138,6 +138,10 @@ spec:
                   name: {{ include "supabase.secret.smtp" . }}
                   key: password
                   {{- end }}
+          {{- with .Values.auth.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.auth.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
