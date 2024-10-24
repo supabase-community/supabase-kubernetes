@@ -1,6 +1,6 @@
 {{- if .Values.db.enabled -}}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "supabase.db.fullname" . }}
   labels:
@@ -58,6 +58,10 @@ spec:
             {{- toYaml .Values.db.securityContext | nindent 12 }}
           image: "{{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.db.image.pullPolicy }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "pg_ctl -D /var/lib/postgres/data -w -t 60 -m fast stop"]
           env:
             {{- range $key, $value := .Values.db.environment }}
             - name: {{ $key }}
