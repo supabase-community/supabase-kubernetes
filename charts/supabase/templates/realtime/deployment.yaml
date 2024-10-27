@@ -76,6 +76,8 @@ spec:
             - name: DB_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
+            - name: TENANT_NAME
+              value: {{ include "supabase.realtime.fullname" . }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -132,14 +134,20 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.realtime.volumeMounts }}
           volumeMounts:
+          {{- with .Values.realtime.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.realtime.volumes }}
+            - name: realtime-seed-volume
+              mountPath: /app/lib/realtime-2.30.34/priv/repo/seeds.exs
+              subPath: seeds.exs
       volumes:
+      {{- with .Values.realtime.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
+        - name: realtime-seed-volume
+          configMap:
+            name: {{ printf "%s-seeds" (include "supabase.realtime.fullname" .) }}
       {{- with .Values.realtime.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
