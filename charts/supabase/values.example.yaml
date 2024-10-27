@@ -19,7 +19,7 @@ secret:
 db:
   enabled: true
   image:
-    tag: 15.1.0.147
+    tag: 15.1.1.78
   livenessProbe:
     exec:
       command:
@@ -32,7 +32,7 @@ db:
 
 studio:
   image:
-    tag: 20240326-5e5586d
+    tag: 20241014-c083b3b
   environment:
     STUDIO_DEFAULT_ORGANIZATION: "My Organization"
     STUDIO_DEFAULT_PROJECT: "My Project"
@@ -46,7 +46,7 @@ studio:
 
 auth:
   image:
-    tag: v2.143.0
+    tag: v2.158.1
   environment:
     API_EXTERNAL_URL: http://example.com
     GOTRUE_SITE_URL: http://example.com
@@ -59,11 +59,13 @@ auth:
 
 rest:
   image:
-    tag: v12.0.1
+    tag: v12.2.0
 
 realtime:
   image:
-    tag: v2.27.5
+    tag: v2.30.34
+  environment:
+    APP_NAME: realtime
   livenessProbe:
     httpGet:
       path: /
@@ -76,7 +78,7 @@ meta:
 
 storage:
   image:
-    tag: v0.46.4
+    tag: v1.11.13
   livenessProbe:
     httpGet:
       path: /status
