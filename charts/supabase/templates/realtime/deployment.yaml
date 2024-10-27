@@ -139,7 +139,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
             - name: realtime-seed-volume
-              mountPath: /app/lib/realtime-2.30.34/priv/repo/seeds.exs
+              mountPath: /app/lib/realtime-{{ .Values.realtime.image.tag | trimPrefix "v" }}/priv/repo/seeds.exs
               subPath: seeds.exs
       volumes:
       {{- with .Values.realtime.volumes }}
