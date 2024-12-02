@@ -17,7 +17,7 @@ spec:
             - -c
             - |
               pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) \
-                || { echo -e "\033[31mFailed to connect to the database."; exit 1; }
+                || { echo -e "\033[31mFailed to connect to the database.\033[0m"; exit 1; }
 
               echo "Database is ready"
           env:

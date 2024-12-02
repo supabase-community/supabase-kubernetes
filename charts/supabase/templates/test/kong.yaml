@@ -34,7 +34,7 @@ spec:
               curl -sL --fail \
                 -o /dev/null \
                 "http://${DASHBOARD_USERNAME}:${DASHBOARD_PASSWORD}@{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}" \
-                  || { echo -e "\033[31mFailed to connect to the {{ include "supabase.kong.fullname" . }}."; exit 1; }
+                  || { echo -e "\033[31mFailed to connect to the {{ include "supabase.kong.fullname" . }}.\033[0m"; exit 1; }
 
               echo "Successfully connected."
       restartPolicy: Never
