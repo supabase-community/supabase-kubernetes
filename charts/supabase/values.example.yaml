@@ -10,8 +10,8 @@ secret:
     username: supabase
     password: this_password_is_insecure_and_should_be_updated
   db:
-    username:
-    password:
+    username: ""
+    password: ""
     database: postgres
   analytics:
     apiKey: your-super-secret-and-long-logflare-key
