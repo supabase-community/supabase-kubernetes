@@ -1,11 +1,11 @@
 secret:
   jwt:
-    anonKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-    serviceKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+    anonKey: ANON_KEY
+    serviceKey: ServiceKey
     secret: your-super-secret-jwt-token-with-at-least-32-characters-long
   smtp:
-    username: your-mail@example.com
-    password: example123456
+    username: resend
+    password: API_KEY
   dashboard:
     username: supabase
     password: this_password_is_insecure_and_should_be_updated
@@ -15,10 +15,35 @@ secret:
     database: postgres
   analytics:
     apiKey: your-super-secret-and-long-logflare-key
+  s3:
+    keyId: keyId
+    accessKey: your-super-secret-s3-access-key
+    secretKey: your-super-secret-s3-secret-key
+    bucket: your-super-secret-s3-bucket
+    region: your-super-secret-s3-region
+    endpoint: your-super-secret-s3-endpoint
+    cdnUrl: your-super-secret-s3-cdn-url
+  git:
+    token: GIT_TOKEN
+
+# db:
+#   enabled: true
+#   image:
+#     tag: 15.1.0.147
+#   livenessProbe:
+#     exec:
+#       command:
+#         - pg_isready
+#         - -U
+#         - postgres
+#     initialDelaySeconds: 3
+#   persistence:
+#     enabled: false
 
 db:
   enabled: true
   image:
+    repository: supabase/postgres
     tag: 15.1.0.147
   livenessProbe:
     exec:
@@ -26,9 +51,25 @@ db:
         - pg_isready
         - -U
         - postgres
-    initialDelaySeconds: 3
+    initialDelaySeconds: 30  # Esperar 30 segundos antes de validar
+    timeoutSeconds: 10       # Esperar 10 segundos antes de marcar timeout
+    periodSeconds: 15        # Ejecutar cada 15 segundos
+    failureThreshold: 5      # Permitir 5 fallos antes de reiniciar
+  replicaCount: 1
+  # service:
+  #   type: ClusterIP
+  #   port: 5432
+  environment:
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "example123456"
+    POSTGRES_DB: "postgres"
+    PGPORT: "5432"
+    JWT_EXP: 3600
   persistence:
-    enabled: false
+    enabled: true
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
 
 studio:
   image:
@@ -42,7 +83,10 @@ studio:
     httpGet:
       path: /api/profile
       port: 3000
-    initialDelaySeconds: 3
+    initialDelaySeconds: 15  # Aumentado para dar más tiempo de arranque
+    periodSeconds: 10         # Revisa cada 10s
+    timeoutSeconds: 5         # Espera hasta 5s antes de timeout
+    failureThreshold: 5       # Permite hasta 5 fallos antes de reiniciar
 
 auth:
   image:
@@ -52,10 +96,10 @@ auth:
     GOTRUE_SITE_URL: http://example.com
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
-    GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
-    GOTRUE_SMTP_HOST: "smtp.example.com"
-    GOTRUE_SMTP_PORT: "587"
-    GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
+    GOTRUE_SMTP_ADMIN_EMAIL: "team@mail.cuemby.net"
+    GOTRUE_SMTP_HOST: "smtp.resend.com"
+    GOTRUE_SMTP_PORT: "465"
+    GOTRUE_SMTP_SENDER_NAME: "team@mail.cuemby.net"
 
 rest:
   image:
@@ -81,9 +125,14 @@ storage:
     httpGet:
       path: /status
       port: 5000
-    initialDelaySeconds: 3
+    initialDelaySeconds: 10
   persistence:
-    enabled: false
+    enabled: true
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+  environment:
+    DB_USER: "postgres"
 
 imgproxy:
   image:
@@ -95,7 +144,10 @@ imgproxy:
       command:
         - imgproxy
         - health
-    initialDelaySeconds: 3
+    initialDelaySeconds: 15  # Aumentado para dar más tiempo de arranque
+    timeoutSeconds: 5         # Espera hasta 5s antes de timeout
+    periodSeconds: 10         # Revisa cada 10s
+    failureThreshold: 5       # Permite hasta 5 fallos antes de reiniciar
   persistence:
     enabled: false
 
@@ -106,6 +158,7 @@ kong:
   environment:
     KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
     KONG_LOG_LEVEL: info
+    KONG_PLUGINS: "request-transformer,cors,key-auth,acl,basic-auth"
   ingress:
     enabled: true
     className: "nginx"
@@ -128,7 +181,10 @@ analytics:
     httpGet:
       path: /health
       port: 4000
-    initialDelaySeconds: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 vector:
   image:
@@ -150,5 +206,46 @@ vector:
         path: /var/log/pods
 
 functions:
+  enabled: true
   image:
     tag: v1.41.2
+  service:
+    type: ClusterIP
+    port: 9000
+  initContainers:
+    image:
+      repository: test
+      tag: v3
+  environment:
+    DB_USERNAME: "supabase_functions_admin"
+    DB_PORT: 5432
+    DB_DRIVER: "postgresql"
+    DB_SSL: "disable"
+  volumeMounts:
+    - name: functions-source
+      mountPath: /home/deno/functions
+  volumes:
+    - name: functions-source
+      emptyDir: {}
+
+git:
+  repoUrl: "https://github.com/cuemby/ccp-supabase.git"
+  secretName: "my-git-secret"
+
+
+minio:
+  enabled: true
+  image:
+    repository: minio/minio
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 9000
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+  environment:
+    MINIO_ROOT_PASSWORD: "example"
+    MINIO_ROOT_USER: "admin"
