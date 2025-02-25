@@ -28,6 +28,18 @@ spec:
       serviceAccountName: {{ include "supabase.functions.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.functions.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: init-myservice
+          image: "{{ .Values.functions.initContainers.image.repository }}:{{ .Values.functions.initContainers.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: Never
+          env:
+            - name: GIT_REPO_URL
+              value: "{{ .Values.git.repoUrl }}"
+            - name: GIT_TOKEN
+              value: {{ .Values.git.token | quote }}
+          volumeMounts:
+            - name: functions-source
+              mountPath: /home/deno/functions
       containers:
         - args:
             - start
