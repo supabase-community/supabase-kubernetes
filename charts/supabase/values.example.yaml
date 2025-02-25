@@ -10,8 +10,8 @@ secret:
     username: supabase
     password: this_password_is_insecure_and_should_be_updated
   db:
-    username: postgres
-    password: example123456
+    username:
+    password:
     database: postgres
   analytics:
     apiKey: your-super-secret-and-long-logflare-key
@@ -60,8 +60,8 @@ db:
   #   type: ClusterIP
   #   port: 5432
   environment:
-    POSTGRES_USER: "postgres"
-    POSTGRES_PASSWORD: "example123456"
+    POSTGRES_USER: ""
+    POSTGRES_PASSWORD: ""
     POSTGRES_DB: "postgres"
     PGPORT: "5432"
     JWT_EXP: 3600
@@ -97,8 +97,8 @@ auth:
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
     GOTRUE_SMTP_ADMIN_EMAIL: "team@mail.cuemby.net"
-    GOTRUE_SMTP_HOST: "smtp.resend.com"
-    GOTRUE_SMTP_PORT: "465"
+    GOTRUE_SMTP_HOST: ""
+    GOTRUE_SMTP_PORT: ""
     GOTRUE_SMTP_SENDER_NAME: "team@mail.cuemby.net"
 
 rest:
