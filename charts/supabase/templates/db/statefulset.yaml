@@ -1,6 +1,6 @@
 {{- if .Values.db.enabled -}}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "supabase.db.fullname" . }}
   labels:
