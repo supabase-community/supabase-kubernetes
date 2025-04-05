@@ -16,6 +16,21 @@ secret:
   analytics:
     apiKey: your-super-secret-and-long-logflare-key
 
+# Use pre-created secrets:
+#secret:
+#  jwt:
+#    secretRef: supabase-jwt
+#  smtp:
+#    secretRef: supabase-smtp
+#  dashboard:
+#    secretRef: supabase-dashboard
+#  db:
+#    secretRef: supabase-db
+#  analytics:
+#    secretRef: supabase-analytics
+#  s3:
+#    secretRef: supabase-s3
+
 db:
   enabled: true
   image:
