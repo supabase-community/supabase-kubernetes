@@ -6,6 +6,10 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
     vector.dev/exclude: "true"
+  {{- with .Values.vector.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.vector.autoscaling.enabled }}
   replicas: {{ .Values.vector.replicaCount }}

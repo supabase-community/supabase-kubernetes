@@ -5,6 +5,10 @@ metadata:
   name: {{ include "supabase.analytics.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.analytics.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.analytics.autoscaling.enabled }}
   replicas: {{ .Values.analytics.replicaCount }}
