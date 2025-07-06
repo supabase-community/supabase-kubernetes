@@ -5,6 +5,10 @@ metadata:
   name: {{ include "supabase.db.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.db.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.db.service.type }}
   ports:

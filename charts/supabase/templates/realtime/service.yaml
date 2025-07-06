@@ -5,6 +5,10 @@ metadata:
   name: {{ include "supabase.realtime.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.realtime.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.realtime.service.type }}
   ports:

@@ -116,7 +116,10 @@ db:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 5432
   environment:
@@ -202,7 +205,10 @@ studio:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 3000
   environment:
@@ -277,7 +283,10 @@ auth:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 9999
   environment:
@@ -377,7 +386,10 @@ rest:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 3000
   environment:
@@ -454,7 +466,10 @@ realtime:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 4000
   environment:
@@ -536,7 +551,10 @@ meta:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 8080
   environment:
@@ -611,7 +629,10 @@ storage:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 5000
   environment:
@@ -706,7 +727,10 @@ imgproxy:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 5001
   environment:
@@ -786,7 +810,10 @@ kong:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 8000
   environment:
@@ -881,7 +908,10 @@ analytics:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 4000
   environment:
@@ -965,7 +995,10 @@ vector:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 9001
   # volumeMounts:
@@ -1032,7 +1065,10 @@ functions:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 9000
   environment:
@@ -1106,7 +1142,10 @@ minio:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+  deployment:
+    annotations: {}
   service:
+    annotations: {}
     type: ClusterIP
     port: 9000
   environment: {}

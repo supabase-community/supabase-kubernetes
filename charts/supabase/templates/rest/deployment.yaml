@@ -5,6 +5,10 @@ metadata:
   name: {{ include "supabase.rest.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.rest.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.rest.autoscaling.enabled }}
   replicas: {{ .Values.rest.replicaCount }}
