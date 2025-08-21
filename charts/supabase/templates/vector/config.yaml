@@ -57,7 +57,6 @@ data:
           storage: '.appname == {{ include "supabase.storage.name" . | quote }}'
           functions: '.appname == {{ include "supabase.functions.name" . | quote }}'
           db: '.appname == {{ include "supabase.db.name" . | quote }}'
-      # Ignores non nginx errors since they are related with kong booting up
       kong_logs:
         type: remap
         inputs:
@@ -77,7 +76,6 @@ data:
           if err != null {
             abort
           }
-      # Ignores non nginx errors since they are related with kong booting up
       kong_err:
         type: remap
         inputs:
@@ -101,7 +99,6 @@ data:
           if err != null {
             abort
           }
-      # Gotrue logs are structured json strings which frontend parses directly. But we keep metadata for consistency.
       auth_logs:
         type: remap
         inputs:
@@ -112,7 +109,6 @@ data:
               .metadata.timestamp = parsed.time
               .metadata = merge!(.metadata, parsed)
           }
-      # PostgREST logs are structured so we separate timestamp from message using regex
       rest_logs:
         type: remap
         inputs:
@@ -124,7 +120,6 @@ data:
               .timestamp = parse_timestamp!(parsed.time, format: "%e/%b/%Y %R %:z")
               .metadata.host = .project
           }
-      # Realtime logs are structured so we parse the severity level using regex (ignore time because it has no date)
       realtime_logs:
         type: remap
         inputs:
@@ -137,7 +132,6 @@ data:
               .event_message = parsed.msg
               .metadata.level = parsed.level
           }
-      # Storage logs may contain json objects so we parse them for completeness
       storage_logs:
         type: remap
         inputs:
@@ -153,7 +147,6 @@ data:
               .metadata.context[0].host = parsed.hostname
               .metadata.context[0].pid = parsed.pid
           }
-      # Postgres logs some messages to stderr which we map to warning severity level
       db_logs:
         type: remap
         inputs:
@@ -178,78 +171,96 @@ data:
     {{- if .Values.analytics.enabled }}
     sinks:
       logflare_auth:
-        type: 'http'
+        type: http
         inputs:
           - auth_logs
         encoding:
-          codec: 'json'
-        method: 'post'
+          codec: json
+        method: post
         request:
           retry_max_duration_secs: 10
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=gotrue.logs.prod&api_key=SECRET[credentials.logflare_api_key]'
+          headers:
+            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+        uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=gotrue.logs.prod"
+
       logflare_realtime:
-        type: 'http'
+        type: http
         inputs:
           - realtime_logs
         encoding:
-          codec: 'json'
-        method: 'post'
+          codec: json
+        method: post
         request:
           retry_max_duration_secs: 10
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=realtime.logs.prod&api_key=SECRET[credentials.logflare_api_key]'
+          headers:
+            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+        uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=realtime.logs.prod"
+
       logflare_rest:
-        type: 'http'
+        type: http
         inputs:
           - rest_logs
         encoding:
-          codec: 'json'
-        method: 'post'
+          codec: json
+        method: post
         request:
           retry_max_duration_secs: 10
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgREST.logs.prod&api_key=SECRET[credentials.logflare_api_key]'
+          headers:
+            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+        uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgREST.logs.prod"
+
       logflare_db:
-        type: 'http'
+        type: http
         inputs:
           - db_logs
         encoding:
-          codec: 'json'
-        method: 'post'
+          codec: json
+        method: post
         request:
           retry_max_duration_secs: 10
-        # We must route the sink through kong because ingesting logs before logflare is fully initialised will
-        # lead to broken queries from studio. This works by the assumption that containers are started in the
-        # following order: vector > db > logflare > kong
-        uri: 'http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}/analytics/v1/api/logs?source_name=postgres.logs&api_key=SECRET[credentials.logflare_api_key]'
+          headers:
+            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+        # routed through kong
+        uri: "http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}/analytics/v1/api/logs?source_name=postgres.logs"
+
       logflare_functions:
-        type: 'http'
+        type: http
         inputs:
           - router.functions
         encoding:
-          codec: 'json'
-        method: 'post'
+          codec: json
+        method: post
         request:
           retry_max_duration_secs: 10
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=deno-relay-logs&api_key=SECRET[credentials.logflare_api_key]'
+          headers:
+            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+        uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=deno-relay-logs"
+
       logflare_storage:
-        type: 'http'
+        type: http
         inputs:
           - storage_logs
         encoding:
-          codec: 'json'
-        method: 'post'
+          codec: json
+        method: post
         request:
           retry_max_duration_secs: 10
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=storage.logs.prod.2&api_key=SECRET[credentials.logflare_api_key]'
+          headers:
+            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+        uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=storage.logs.prod.2"
+
       logflare_kong:
-        type: 'http'
+        type: http
         inputs:
           - kong_logs
           - kong_err
         encoding:
-          codec: 'json'
-        method: 'post'
+          codec: json
+        method: post
         request:
           retry_max_duration_secs: 10
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=cloudflare.logs.prod&api_key=SECRET[credentials.logflare_api_key]'
+          headers:
+            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+        uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=cloudflare.logs.prod"
     {{- end }}
 {{- end }}
