@@ -180,7 +180,7 @@ data:
         request:
           retry_max_duration_secs: 10
           headers:
-            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+            x-api-key: "SECRET[credentials.logflare_api_key]"
         uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=gotrue.logs.prod"
 
       logflare_realtime:
@@ -193,7 +193,7 @@ data:
         request:
           retry_max_duration_secs: 10
           headers:
-            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+            x-api-key: "SECRET[credentials.logflare_api_key]"
         uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=realtime.logs.prod"
 
       logflare_rest:
@@ -206,7 +206,7 @@ data:
         request:
           retry_max_duration_secs: 10
           headers:
-            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+            x-api-key: "SECRET[credentials.logflare_api_key]"
         uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgREST.logs.prod"
 
       logflare_db:
@@ -219,7 +219,7 @@ data:
         request:
           retry_max_duration_secs: 10
           headers:
-            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+            x-api-key: "SECRET[credentials.logflare_api_key]"
         # routed through kong
         uri: "http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}/analytics/v1/api/logs?source_name=postgres.logs"
 
@@ -233,7 +233,7 @@ data:
         request:
           retry_max_duration_secs: 10
           headers:
-            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+            x-api-key: "SECRET[credentials.logflare_api_key]"
         uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=deno-relay-logs"
 
       logflare_storage:
@@ -246,7 +246,7 @@ data:
         request:
           retry_max_duration_secs: 10
           headers:
-            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+            x-api-key: "SECRET[credentials.logflare_api_key]"
         uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=storage.logs.prod.2"
 
       logflare_kong:
@@ -260,7 +260,8 @@ data:
         request:
           retry_max_duration_secs: 10
           headers:
-            Authorization: "Bearer SECRET[credentials.logflare_api_key]"
+            # NOTE: Verify the Kong key-auth key_names in your chart values (Values.analytics.kong.apiKeyHeader) match your Kong configuration before deploying.
+            {{ .Values.analytics.kong.apiKeyHeader | default "apikey" }}: "{{ .Values.analytics.secret }}"
         uri: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=cloudflare.logs.prod"
     {{- end }}
 {{- end }}
