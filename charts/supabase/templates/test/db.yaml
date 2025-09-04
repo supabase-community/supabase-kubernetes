@@ -37,8 +37,8 @@ spec:
                   {{- end }}
             - name: DB_PORT
               value: {{ .Values.auth.environment.DB_PORT | quote }}
-          image: postgres:15-alpine
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.initContainer.image.repository }}:{{ .Values.initContainer.image.tag }}"
+          imagePullPolicy: {{ .Values.initContainer.image.pullPolicy }}
           name: test-db
       restartPolicy: Never
 {{- end }}
