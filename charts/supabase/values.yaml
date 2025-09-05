@@ -13,6 +13,13 @@
 # |-- 12. Functions
 # |-- 13. Minio
 
+# Global configuration for initContainer image used across services
+initContainer:
+  image:
+    repository: postgres
+    pullPolicy: IfNotPresent
+    tag: "15-alpine"
+
 secret:
   # jwt will be used to reference secret in multiple services:
   # Anon & Service key: Studio, Storage, Kong
