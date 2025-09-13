@@ -1,4 +1,5 @@
 # File structure of values.yaml:
+# |-- 0.  Global & High Availability
 # |-- 1.  Database
 # |-- 2.  Studio
 # |-- 3.  Auth
@@ -12,6 +13,32 @@
 # |-- 11. Vector
 # |-- 12. Functions
 # |-- 13. Minio
+# |-- 14. Migrations (CloudNativePG)
+
+# =============================================================================
+# GLOBAL CONFIGURATION & HIGH AVAILABILITY
+# =============================================================================
+
+global:
+  # High Availability configuration
+  # Enable this for production deployments with multiple replicas and advanced features
+  highAvailability:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+    
+    # Pod Disruption Budget settings
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 1
+      # minAvailable: 1  # Alternative to maxUnavailable
+    
+  # Multi-zone deployment support
+  multiZone:
+    enabled: false
+    preferZoneSpread: true
 
 secret:
   # jwt will be used to reference secret in multiple services:
@@ -177,7 +204,7 @@ studio:
   image:
     repository: supabase/studio
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "2025.09.08-sha-67c1421"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -252,7 +279,7 @@ auth:
   image:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v2.179.0"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -353,7 +380,7 @@ rest:
   image:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v13.0.6"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -430,7 +457,7 @@ realtime:
   image:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v2.47.2"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -511,7 +538,7 @@ meta:
   image:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v0.91.6"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -586,7 +613,7 @@ storage:
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v1.26.7"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -681,7 +708,7 @@ imgproxy:
   image:
     repository: darthsim/imgproxy
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v3.29.1"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -761,7 +788,7 @@ kong:
   image:
     repository: kong
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "3.9.1"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -856,7 +883,7 @@ analytics:
   image:
     repository: supabase/logflare
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "1.21.1"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -940,7 +967,7 @@ vector:
   image:
     repository: timberio/vector
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "0.42.0-alpine"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -1007,7 +1034,7 @@ functions:
   image:
     repository: supabase/edge-runtime
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v1.68.3"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -1081,7 +1108,7 @@ minio:
   image:
     repository: minio/minio
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "RELEASE.2025-09-07T16-13-09Z"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -1147,6 +1174,43 @@ minio:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+
+# =============================================================================
+# MIGRATIONS (CloudNativePG Integration)
+# =============================================================================
+
+# CloudNativePG Migration Job
+# This job handles database initialization and migration for CloudNativePG deployments
+# Only enable this when using CloudNativePG as your PostgreSQL backend
+migrations:
+  enabled: false  # Set to true when using CloudNativePG
+  
+  image:
+    repository: supabase/postgres
+    tag: "15.14.1.003"
+    pullPolicy: IfNotPresent
+  
+  # Database connection configuration
+  database:
+    host: "supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local"
+    port: "5432"
+    name: "postgres"
+    user: "postgres"
+    secretRef: "supabase-postgres-cluster-superuser"
+    secretKey: "password"
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
   nodeSelector: {}
   tolerations: []
   affinity: {}

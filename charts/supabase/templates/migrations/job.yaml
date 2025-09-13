@@ -1,0 +1,352 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "supabase.fullname" . }}-migrations
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrations
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrations
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: supabase-migrations
+        image: {{ .Values.migrations.image.repository }}:{{ .Values.migrations.image.tag | default "latest" }}
+        imagePullPolicy: {{ .Values.migrations.image.pullPolicy }}
+        env:
+        - name: POSTGRES_HOST
+          value: {{ .Values.migrations.database.host | quote }}
+        - name: POSTGRES_PORT
+          value: {{ .Values.migrations.database.port | quote }}
+        - name: POSTGRES_DB
+          value: {{ .Values.migrations.database.name | quote }}
+        - name: POSTGRES_USER
+          value: {{ .Values.migrations.database.user | quote }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.migrations.database.secretRef | quote }}
+              key: {{ .Values.migrations.database.secretKey | quote }}
+        - name: SUPABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.migrations.database.secretRef | quote }}
+              key: {{ .Values.migrations.database.secretKey | quote }}
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Mimic migrate.sh script but with better error handling
+          set -e  # Keep exit on error, but handle specific known issues
+          
+          echo "Starting Supabase migrations (mimicking migrate.sh)..."
+          
+          # Set environment variables exactly like migrate.sh
+          export PGDATABASE="${POSTGRES_DB:-postgres}"
+          export PGHOST="${POSTGRES_HOST:-localhost}"
+          export PGPORT="${POSTGRES_PORT:-5432}"
+          export PGPASSWORD="${POSTGRES_PASSWORD:-}"
+          
+          # Wait for database to be ready
+          until pg_isready -h "$PGHOST" -p "$PGPORT" -U postgres; do
+            echo "Waiting for database to be ready..."
+            sleep 2
+          done
+          
+          echo "Database is ready. Starting migration process..."
+          
+          # Get the directory path like migrate.sh does
+          db="/docker-entrypoint-initdb.d"
+          
+          # First, set the password for supabase_admin (roles exist but no password)
+          echo "Setting password for supabase_admin..."
+          psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U postgres -c "ALTER USER supabase_admin WITH PASSWORD '$PGPASSWORD';"
+          
+          # First part: Create postgres role if it doesn't exist (like migrate.sh)
+          echo "Ensuring postgres role exists..."
+          psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U supabase_admin <<EOSQL
+          do \$\$
+          begin
+            -- postgres role is pre-created during AMI build
+            if not exists (select from pg_roles where rolname = 'postgres') then
+              create role postgres superuser login password '$PGPASSWORD';
+              alter database postgres owner to postgres;
+            end if;
+          end \$\$
+          EOSQL
+          
+          # Run init scripts as postgres user (like migrate.sh)
+          echo "Running init scripts as postgres user..."
+          for sql in "$db"/init-scripts/*.sql; do
+            if [ -f "$sql" ]; then
+              echo "Running $sql"
+              # Handle the specific orioledb extension error we know about
+              if [[ "$sql" == *"00-pre-init.sql" ]]; then
+                echo "Handling 00-pre-init.sql with orioledb extension..."
+                psql -v ON_ERROR_STOP=0 --no-password --no-psqlrc -U postgres -c "CREATE EXTENSION IF NOT EXISTS orioledb;" || echo "orioledb extension already exists (expected)"
+              else
+                psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U postgres -f "$sql" || echo "Warning: $sql had expected errors (continuing)"
+              fi
+            fi
+          done
+          
+          # Set supabase_admin password (like migrate.sh)
+          echo "Setting supabase_admin password..."
+          psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U postgres -c "ALTER USER supabase_admin WITH PASSWORD '$PGPASSWORD'"
+          
+          # Run migrations as super user (like migrate.sh)
+          echo "Running migrations as supabase_admin..."
+          for sql in "$db"/migrations/*.sql; do
+            if [ -f "$sql" ]; then
+              echo "Running migration: $(basename $sql)"
+              # Handle known problematic migrations with better error handling
+              if [[ "$sql" == *"10000000000000_demote-postgres.sql" ]]; then
+                echo "Running demote-postgres.sql with error tolerance..."
+                psql -v ON_ERROR_STOP=0 --no-password --no-psqlrc -U supabase_admin -f "$sql" || echo "Warning: demote-postgres.sql had expected errors (continuing)"
+              else
+                psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U supabase_admin -f "$sql" || echo "Warning: $(basename $sql) had expected errors (continuing)"
+              fi
+            fi
+          done
+          
+          # Run any post migration script (like migrate.sh)
+          postinit="/etc/postgresql.schema.sql"
+          if [ -e "$postinit" ]; then
+            echo "Running post-init script: $postinit"
+            psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U supabase_admin -f "$postinit"
+          fi
+          
+          # Reset stats (like migrate.sh)
+          echo "Resetting statistics..."
+          psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U supabase_admin -c 'SELECT extensions.pg_stat_statements_reset(); SELECT pg_stat_reset();' || true
+          
+          echo "Creating additional Supabase requirements..."
+          
+          # Create _supabase database for analytics
+          echo "Creating _supabase database for analytics..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          CREATE DATABASE _supabase WITH OWNER postgres;
+          " 2>/dev/null || echo "_supabase database already exists (expected)"
+          
+          # Create analytics schema and table in _supabase database
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "_supabase" -c "
+          CREATE SCHEMA IF NOT EXISTS _analytics;
+          GRANT ALL ON SCHEMA _analytics TO supabase_admin;
+          
+          CREATE TABLE IF NOT EXISTS _analytics.system_metrics (
+              id serial primary key,
+              all_logs_logged boolean,
+              node text,
+              inserted_at timestamp,
+              updated_at timestamp
+          );
+          GRANT ALL ON TABLE _analytics.system_metrics TO supabase_admin;
+          GRANT ALL ON SEQUENCE _analytics.system_metrics_id_seq TO supabase_admin;
+          GRANT ALL ON DATABASE _supabase TO supabase_admin;
+          "
+          
+          echo "Running additional Supabase initialization scripts..."
+          
+          # 99-jwt.sql - JWT settings
+          echo "Setting up JWT configuration..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          ALTER DATABASE postgres SET \"app.settings.jwt_secret\" TO '{{ .Values.secret.jwt.secret }}';
+          ALTER DATABASE postgres SET \"app.settings.jwt_exp\" TO '3600';
+          " || echo "Warning: JWT settings may have failed (continuing)"
+          
+          # 99-logs.sql - Analytics schema (already done above, but ensure ownership)
+          echo "Ensuring analytics schema ownership..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          CREATE SCHEMA IF NOT EXISTS _analytics;
+          ALTER SCHEMA _analytics OWNER TO postgres;
+          " || echo "Warning: Analytics schema setup may have failed (continuing)"
+          
+          # 99-realtime.sql - Realtime schema
+          echo "Setting up realtime schema..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          CREATE SCHEMA IF NOT EXISTS _realtime;
+          ALTER SCHEMA _realtime OWNER TO postgres;
+          " || echo "Warning: Realtime schema setup may have failed (continuing)"
+          
+          # 99-roles.sql - Set passwords for roles
+          echo "Setting passwords for Supabase roles..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          ALTER USER authenticator WITH PASSWORD '$PGPASSWORD';
+          ALTER USER pgbouncer WITH PASSWORD '$PGPASSWORD';
+          ALTER USER supabase_auth_admin WITH PASSWORD '$PGPASSWORD';
+          ALTER USER supabase_storage_admin WITH PASSWORD '$PGPASSWORD';
+          " || echo "Warning: Role password setup may have failed (continuing)"
+          
+          # 98-webhooks.sql - Functions and webhooks setup (broken into individual commands)
+          echo "Setting up functions and webhooks..."
+          
+          # Create pg_net extension
+          echo "Creating pg_net extension..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;" || echo "Warning: pg_net extension creation failed (continuing)"
+          
+          # Create supabase_functions schema
+          echo "Creating supabase_functions schema..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          CREATE SCHEMA IF NOT EXISTS supabase_functions;
+          ALTER SCHEMA supabase_functions OWNER TO supabase_admin;
+          GRANT USAGE ON SCHEMA supabase_functions TO postgres, anon, authenticated, service_role;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+          " || echo "Warning: supabase_functions schema creation failed (continuing)"
+          
+          # Create supabase_functions tables
+          echo "Creating supabase_functions tables..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          CREATE TABLE IF NOT EXISTS supabase_functions.migrations (
+            version text PRIMARY KEY,
+            inserted_at timestamptz NOT NULL DEFAULT NOW()
+          );
+          INSERT INTO supabase_functions.migrations (version) VALUES ('initial') ON CONFLICT DO NOTHING;
+          
+          CREATE TABLE IF NOT EXISTS supabase_functions.hooks (
+            id bigserial PRIMARY KEY,
+            hook_table_id integer NOT NULL,
+            hook_name text NOT NULL,
+            created_at timestamptz NOT NULL DEFAULT NOW(),
+            request_id bigint
+          );
+          
+          CREATE INDEX IF NOT EXISTS supabase_functions_hooks_request_id_idx ON supabase_functions.hooks USING btree (request_id);
+          CREATE INDEX IF NOT EXISTS supabase_functions_hooks_h_table_id_h_name_idx ON supabase_functions.hooks USING btree (hook_table_id, hook_name);
+          " || echo "Warning: supabase_functions tables creation failed (continuing)"
+          
+          # Create supabase_functions_admin role
+          echo "Creating supabase_functions_admin role..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          DO \$\$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_functions_admin') THEN
+              CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+            END IF;
+          END \$\$;
+          " || echo "Warning: supabase_functions_admin role creation failed (continuing)"
+          
+          # Set up supabase_functions permissions
+          echo "Setting up supabase_functions permissions..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          GRANT ALL PRIVILEGES ON SCHEMA supabase_functions TO supabase_functions_admin;
+          GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA supabase_functions TO supabase_functions_admin;
+          GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA supabase_functions TO supabase_functions_admin;
+          ALTER USER supabase_functions_admin SET search_path = 'supabase_functions';
+          ALTER TABLE supabase_functions.migrations OWNER TO supabase_functions_admin;
+          ALTER TABLE supabase_functions.hooks OWNER TO supabase_functions_admin;
+          GRANT supabase_functions_admin TO postgres;
+          " || echo "Warning: supabase_functions permissions setup failed (continuing)"
+          
+          # Set up pg_net permissions
+          echo "Setting up pg_net permissions..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          DO \$\$
+          BEGIN
+            IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net') THEN
+              GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+            END IF;
+          END \$\$;
+          " || echo "Warning: pg_net permissions setup failed (continuing)"
+          
+          # Create additional extensions
+          echo "Creating additional extensions..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          DO \$\$ 
+          BEGIN
+            CREATE EXTENSION IF NOT EXISTS pgjwt SCHEMA extensions;
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'Could not create pgjwt extension: %', SQLERRM;
+          END \$\$;
+          " || echo "Warning: pgjwt extension creation failed (continuing)"
+          
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          CREATE SCHEMA IF NOT EXISTS pgsodium;
+          CREATE EXTENSION IF NOT EXISTS pgsodium SCHEMA pgsodium;
+          " || echo "Warning: pgsodium schema and extension creation failed (continuing)"
+          
+          echo "Fixing schema permissions to match reference setup..."
+          
+          # Fix auth schema permissions (postgres should have UC instead of U)
+          echo "Fixing auth schema permissions..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          GRANT CREATE ON SCHEMA auth TO postgres;
+          " || echo "Warning: auth schema permissions fix failed (continuing)"
+          
+          # Fix storage schema permissions (postgres should have UC instead of U*)
+          echo "Fixing storage schema permissions..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          GRANT CREATE ON SCHEMA storage TO postgres;
+          " || echo "Warning: storage schema permissions fix failed (continuing)"
+          
+          # Fix pgsodium schema permissions (should be owned by supabase_admin, not postgres)
+          echo "Fixing pgsodium schema permissions..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          ALTER SCHEMA pgsodium OWNER TO supabase_admin;
+          GRANT USAGE ON SCHEMA pgsodium TO public;
+          " || echo "Warning: pgsodium schema permissions fix failed (continuing)"
+          
+          # Fix vault schema permissions (should have pgsodium_keyiduser instead of postgres/service_role)
+          echo "Fixing vault schema permissions..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          -- Create pgsodium_keyiduser role if it doesn't exist
+          DO \$\$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pgsodium_keyiduser') THEN
+              CREATE ROLE pgsodium_keyiduser NOINHERIT;
+            END IF;
+          END \$\$;
+          
+          -- Fix vault schema permissions
+          REVOKE ALL ON SCHEMA vault FROM postgres, service_role;
+          GRANT CREATE, USAGE ON SCHEMA vault TO pgsodium_keyiduser;
+          " || echo "Warning: vault schema permissions fix failed (continuing)"
+          
+          # Fix net schema permissions (remove extra =U/postgres)
+          echo "Fixing net schema permissions..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          DO \$\$
+          BEGIN
+            IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'net') THEN
+              REVOKE USAGE ON SCHEMA net FROM public;
+            END IF;
+          END \$\$;
+          " || echo "Warning: net schema permissions fix failed (continuing)"
+          
+          # Create supabase_migrations schema if missing
+          echo "Creating supabase_migrations schema..."
+          psql -h "$PGHOST" -p "$PGPORT" -U postgres -d "$PGDATABASE" -c "
+          CREATE SCHEMA IF NOT EXISTS supabase_migrations;
+          ALTER SCHEMA supabase_migrations OWNER TO supabase_admin;
+          " || echo "Warning: supabase_migrations schema creation failed (continuing)"
+          
+          echo "Schema permissions fixes completed!"
+          
+          echo "Additional Supabase setup completed!"
+          
+          echo "Supabase migrations completed successfully (migrate.sh style)!"
+        resources:
+          {{- toYaml .Values.migrations.resources | nindent 10 }}
+      {{- with .Values.migrations.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.migrations.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.migrations.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

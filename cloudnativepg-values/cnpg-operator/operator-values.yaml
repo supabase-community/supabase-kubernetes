@@ -1,0 +1,191 @@
+# CloudNativePG Operator Helm Values
+# This file configures the CloudNativePG operator deployment using official chart structure
+
+# =============================================================================
+# OPERATOR CONFIGURATION
+# =============================================================================
+
+# High availability for production
+replicaCount: 2
+
+# Operator image configuration
+image:
+  repository: ghcr.io/cloudnative-pg/cloudnative-pg
+  pullPolicy: IfNotPresent
+  tag: "1.27.0"
+
+# =============================================================================
+# RESOURCE CONFIGURATION
+# =============================================================================
+
+# Resource requests and limits for the operator
+resources:
+  requests:
+    cpu: 200m
+    memory: 400Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Container Security Context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+  capabilities:
+    drop:
+      - "ALL"
+
+# Security Context for the whole pod
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# =============================================================================
+# SERVICE ACCOUNT CONFIGURATION
+# =============================================================================
+
+serviceAccount:
+  create: true
+  name: ""
+
+# =============================================================================
+# RBAC CONFIGURATION
+# =============================================================================
+
+rbac:
+  create: true
+  aggregateClusterRoles: false
+
+# =============================================================================
+# WEBHOOK CONFIGURATION
+# =============================================================================
+
+webhook:
+  port: 9443
+  mutating:
+    create: true
+    failurePolicy: Fail
+  validating:
+    create: true
+    failurePolicy: Fail
+  livenessProbe:
+    initialDelaySeconds: 3
+  readinessProbe:
+    initialDelaySeconds: 3
+  startupProbe:
+    failureThreshold: 6
+    periodSeconds: 5
+
+# =============================================================================
+# OPERATOR CONFIGURATION
+# =============================================================================
+
+config:
+  create: true
+  name: cnpg-controller-manager-config
+  secret: false
+  clusterWide: true
+  # Production concurrent reconciles
+  maxConcurrentReconciles: 10
+  data:
+    INHERITED_ANNOTATIONS: "service.beta.kubernetes.io/*"
+    INHERITED_LABELS: ""
+    WATCH_NAMESPACE: ""
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+
+monitoring:
+  podMonitorEnabled: false
+  #podMonitorMetricRelabelings: []
+  #podMonitorRelabelings: []
+  #podMonitorAdditionalLabels:
+  #  app.kubernetes.io/part-of: supabase
+  #  environment: production
+  #  team: platform
+  
+  grafanaDashboard:
+    create: false
+  #  namespace: monitoring
+  #  labels:
+  #    grafana_dashboard: "1"
+    annotations:
+  #    grafana-folder: "CloudNativePG"
+
+# =============================================================================
+# SERVICE CONFIGURATION
+# =============================================================================
+
+service:
+  type: ClusterIP
+  name: cnpg-webhook-service
+  port: 443
+
+# =============================================================================
+# AVAILABILITY CONFIGURATION
+# =============================================================================
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity (automatically enabled for production with replicaCount > 1)
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: cloudnative-pg
+        topologyKey: kubernetes.io/hostname
+
+# Topology spread constraints
+topologySpreadConstraints: []
+
+# =============================================================================
+# ADDITIONAL CONFIGURATION
+# =============================================================================
+
+# Annotations to be added to all other resources
+commonAnnotations:
+  app.kubernetes.io/managed-by: "helm"
+  app.kubernetes.io/part-of: "supabase"
+
+# Annotations to be added to the pod
+podAnnotations: {}
+
+# Labels to be added to the pod
+podLabels:
+  environment: production
+  team: platform
+
+# Priority class name
+priorityClassName: ""
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# Additional arguments
+additionalArgs: []
+
+# Additional environment variables
+additionalEnv:
+- name: LOG_LEVEL
+  value: "info"

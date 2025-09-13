@@ -1,0 +1,125 @@
+{{- if .Values.global.highAvailability.enabled }}
+{{- if .Values.global.highAvailability.podDisruptionBudget.enabled }}
+
+{{- if .Values.kong.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "supabase.kong.fullname" . }}-pdb
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kong
+spec:
+  {{- if .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.global.highAvailability.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.kong.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{- if .Values.auth.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "supabase.auth.fullname" . }}-pdb
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: auth
+spec:
+  {{- if .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.global.highAvailability.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.auth.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{- if .Values.rest.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "supabase.rest.fullname" . }}-pdb
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rest
+spec:
+  {{- if .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.global.highAvailability.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.rest.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{- if .Values.realtime.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "supabase.realtime.fullname" . }}-pdb
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: realtime
+spec:
+  {{- if .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.global.highAvailability.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.realtime.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{- if .Values.meta.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "supabase.meta.fullname" . }}-pdb
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: meta
+spec:
+  {{- if .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.global.highAvailability.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.meta.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{- if .Values.storage.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "supabase.storage.fullname" . }}-pdb
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: storage
+spec:
+  {{- if .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.global.highAvailability.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.global.highAvailability.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.storage.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{- end }}
+{{- end }}

@@ -1,0 +1,525 @@
+# Supabase Helm Chart Values for CloudNativePG Integration
+# This configuration assumes PostgreSQL is managed by CloudNativePG operator
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+# Disable internal PostgreSQL deployment
+db:
+  enabled: false
+
+# Database connection secrets (using CloudNativePG secrets)
+secret:
+  # JWT tokens for Supabase services
+  jwt:
+    anonKey: ""
+    serviceKey: ""
+    secret: ""
+  # Database credentials - use CloudNativePG secret with database override
+  db:
+    username: postgres
+    password: "" # Will be retrieved from secret
+    database: postgres
+    # Use CloudNativePG secret and override database name via environment variables
+    secretRef: supabase-postgres-cluster-superuser
+    secretRefKey:
+      username: username
+      password: password
+  # Analytics API key
+  analytics:
+    apiKey: apiKey
+  # SMTP configuration
+  smtp:
+    username: "noreply@example.com"
+    password: "smtp-password-placeholder"
+  # Dashboard credentials
+  dashboard:
+    username: "admin"
+    password: "admin-password"
+
+# =============================================================================
+# HIGH AVAILABILITY CONFIGURATION
+# =============================================================================
+
+# Auth service
+auth:
+  enabled: true
+  replicaCount: 2
+  environment:
+    # Individual variables for init containers
+    DB_HOST: supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local
+    DB_USER: supabase_auth_admin
+    DB_PORT: "5432"
+    DB_DRIVER: postgres
+    DB_SSL: disable
+    # Connection string for main container - will be constructed from secret
+    # GOTRUE_DB_DATABASE_URL will be set via secretKeyRef in deployment template
+    GOTRUE_DB_DRIVER: postgres
+    # Auth configuration
+    API_EXTERNAL_URL: https://supabase-dev.preview.ingenimax.ai
+    GOTRUE_API_HOST: "0.0.0.0"
+    GOTRUE_API_PORT: "9999"
+    GOTRUE_SITE_URL: https://supabase-dev.preview.ingenimax.ai
+    GOTRUE_URI_ALLOW_LIST: "*"
+    GOTRUE_DISABLE_SIGNUP: "false"
+    GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+    GOTRUE_JWT_ADMIN_ROLES: service_role
+    GOTRUE_JWT_AUD: authenticated
+    GOTRUE_JWT_EXP: "3600"
+    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+    GOTRUE_MAILER_AUTOCONFIRM: "true"
+    # SMTP Configuration
+    GOTRUE_SMTP_ADMIN_EMAIL: "admin@example.com"
+    GOTRUE_SMTP_HOST: "localhost"
+    GOTRUE_SMTP_PORT: "587"
+    GOTRUE_SMTP_SENDER_NAME: "Supabase"
+    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+    GOTRUE_SMS_AUTOCONFIRM: "false"
+    GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
+    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: auth
+          topologyKey: kubernetes.io/hostname
+
+# Rest service (PostgREST)
+rest:
+  enabled: true
+  replicaCount: 2
+  environment:
+    # Database connection - will be constructed from secret
+    # PGRST_DB_URI will be set via secretKeyRef in deployment template
+    # PostgREST configuration
+    PGRST_DB_SCHEMAS: public,storage,graphql_public
+    PGRST_DB_ANON_ROLE: anon
+    PGRST_DB_USE_LEGACY_GUCS: "false"
+    PGRST_APP_SETTINGS_JWT_EXP: "3600"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: api
+          topologyKey: kubernetes.io/hostname
+
+# Realtime service
+realtime:
+  enabled: true
+  replicaCount: 2
+  # Override environment with boolean DB_SSL for Elixir compatibility
+  environment:
+    # Database connection (DB_SSL as boolean for Elixir)
+    DB_HOST: supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local
+    DB_USER: supabase_admin
+    DB_PORT: "5432"
+    DB_SSL: false
+    DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+    DB_ENC_KEY: supabaserealtime
+    # Realtime application configuration
+    PORT: "4000"
+    APP_NAME: realtime
+    FLY_ALLOC_ID: fly123
+    FLY_APP_NAME: realtime
+    SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+    ERL_AFLAGS: -proto_dist inet_tcp
+    ENABLE_TAILSCALE: "false"
+    DNS_NODES: "''"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: realtime
+          topologyKey: kubernetes.io/hostname
+
+# Storage service
+storage:
+  enabled: true
+  replicaCount: 2
+  environment:
+    # Individual variables for init containers
+    DB_HOST: supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local
+    DB_USER: supabase_storage_admin
+    DB_PORT: "5432"
+    DB_SSL: disable
+    # Connection string for main container - will be constructed from secret
+    # DATABASE_URL will be set via secretKeyRef in deployment template
+    # Storage configuration
+    PGOPTIONS: "-c search_path=storage,public"
+    FILE_SIZE_LIMIT: "52428800"
+    STORAGE_BACKEND: s3
+    TENANT_ID: stub
+    REGION: us-east-1
+    GLOBAL_S3_BUCKET: supabase-storage
+    GLOBAL_S3_ENDPOINT: http://supabase-minio:9000
+    GLOBAL_S3_PROTOCOL: http
+    GLOBAL_S3_FORCE_PATH_STYLE: "true"
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_ACCESS_KEY_ID: supabase
+    AWS_SECRET_ACCESS_KEY: supabase123
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: storage
+          topologyKey: kubernetes.io/hostname
+
+# Meta service
+meta:
+  enabled: true
+  replicaCount: 2
+  environment:
+    # Database connection - matches Docker Compose pattern
+    DB_HOST: supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local
+    DB_PORT: "5432"
+    DB_USER: supabase_admin
+    DB_SSL: disable
+    PG_META_DB_HOST: supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local
+    PG_META_DB_PORT: "5432"
+    PG_META_DB_NAME: postgres
+    PG_META_DB_USER: supabase_admin
+    PG_META_DB_SSL_MODE: disable
+    # PG_META_DB_PASSWORD will be set via secretKeyRef in deployment template
+    # Meta configuration
+    PG_META_PORT: "8080"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: meta
+          topologyKey: kubernetes.io/hostname
+
+# Functions service (Edge Functions)
+functions:
+  enabled: true
+  replicaCount: 2
+  environment:
+    DB_DATABASE: postgres
+    # Database connection - will be constructed from secret
+    # SUPABASE_DB_URL will be set via secretKeyRef in deployment template
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: functions
+          topologyKey: kubernetes.io/hostname
+
+# Kong API Gateway
+kong:
+  enabled: true
+  replicaCount: 2
+  environment:
+    KONG_DATABASE: "off"
+    KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
+    KONG_DNS_ORDER: LAST,A,CNAME
+    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+    KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+    KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    KONG_LOG_LEVEL: warn
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/rewrite-target: /
+    tls:
+      - secretName: supabase-ingress-tls
+        hosts:
+          - supabase-dev.preview.ingenimax.ai
+    hosts:
+      - host: supabase-dev.preview.ingenimax.ai
+        paths:
+          - path: /
+            pathType: Prefix
+# Studio (Dashboard)
+studio:
+  enabled: true
+  replicaCount: 1  # Studio doesn't need HA typically
+  environment:
+    STUDIO_DEFAULT_ORGANIZATION: Default Organization
+    STUDIO_DEFAULT_PROJECT: Default Project
+    STUDIO_PORT: "3000"
+    SUPABASE_PUBLIC_URL: https://supabase-dev.preview.ingenimax.ai
+    NEXT_PUBLIC_ENABLE_LOGS: "true"
+    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+# Analytics service
+analytics:
+  enabled: true
+  replicaCount: 1
+  environment:
+    # Individual variables for init containers
+    DB_HOST: supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local
+    DB_USER: supabase_admin
+    DB_PORT: "5432"
+    # Analytics-specific variables - matches Docker Compose pattern
+    LOGFLARE_NODE_HOST: 127.0.0.1
+    DB_HOSTNAME: supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local
+    DB_USERNAME: supabase_admin
+    DB_DATABASE: _supabase
+    DB_SCHEMA: _analytics
+    # Analytics configuration
+    LOGFLARE_SINGLE_TENANT: "true"
+    LOGFLARE_SUPABASE_MODE: "true"
+    LOGFLARE_MIN_CLUSTER_SIZE: "1"
+    LOGFLARE_PUBLIC_ACCESS_TOKEN: "your-logflare-public-token"
+    LOGFLARE_PRIVATE_ACCESS_TOKEN: "your-logflare-private-token"
+    LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
+    # Backend URL for analytics - will be constructed from secret
+    # POSTGRES_BACKEND_URL will be set via secretKeyRef in deployment template
+    POSTGRES_BACKEND_SCHEMA: _analytics
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# =============================================================================
+# MONITORING AND OBSERVABILITY
+# =============================================================================
+
+# Enable monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+  prometheusRule:
+    enabled: true
+
+# Logging configuration
+logging:
+  level: info
+  format: json
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    enabled: true
+  egress:
+    enabled: true
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+# =============================================================================
+# INGRESS CONFIGURATION
+# =============================================================================
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+  - host: supabase-dev.preview.ingenimax.ai
+    paths:
+    - path: /
+      pathType: Prefix
+  tls:
+  - secretName: supabase-dev-tls
+    hosts:
+    - supabase-dev.preview.ingenimax.ai
+
+# =============================================================================
+# STORAGE CONFIGURATION
+# =============================================================================
+
+# Persistent storage for file uploads
+persistence:
+  enabled: true
+  storageClass: gp3
+  size: 100Gi
+  accessMode: ReadWriteOnce
+
+# Object storage (S3-compatible)
+objectStorage:
+  enabled: true
+  provider: s3
+  bucket: supabase-dev-storage
+  region: us-west-2
+  # Configure via secrets
+  existingSecret: supabase-storage-credentials
+
+# =============================================================================
+# ENVIRONMENT CONFIGURATION
+# =============================================================================
+
+# JWT configuration
+jwt:
+  secret: "your-jwt-secret-here"  # Change in production
+  expiry: 3600
+
+
+# =============================================================================
+# BACKUP AND RECOVERY
+# =============================================================================
+
+# Database backups are handled by CloudNativePG
+# Application-level backups can be configured here
+backup:
+  enabled: false  # CloudNativePG handles database backups
+  
+# =============================================================================
+# AUTOSCALING
+# =============================================================================
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# ADDITIONAL CONFIGURATION
+# =============================================================================
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Additional labels
+additionalLabels:
+  environment: development
+  team: platform
+
+# Supabase Database Migrations Job
+migrations:
+  enabled: true
+  image:
+    repository: supabase/postgres
+    tag: "15.14.1.003"
+    pullPolicy: IfNotPresent
+  # Database connection configuration
+  database:
+    host: "supabase-postgres-cluster-rw.supabase-dev.svc.cluster.local"
+    port: "5432"
+    name: "postgres"
+    user: "postgres"
+    # Use CloudNativePG secret
+    secretRef: "supabase-postgres-cluster-superuser"
+    secretKey: "password"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+

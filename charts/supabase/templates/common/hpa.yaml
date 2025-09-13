@@ -1,0 +1,227 @@
+{{- if .Values.global.highAvailability.enabled }}
+
+{{- if and .Values.kong.enabled .Values.kong.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.kong.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kong
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.kong.fullname" . }}
+  {{- include "supabase.ha.hpa" (dict "service" .Values.kong "global" .Values.global) | nindent 2 }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetCPUUtilization | default .Values.kong.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.global.highAvailability.targetMemoryUtilization }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetMemoryUtilization }}
+  {{- end }}
+{{- end }}
+
+{{- if and .Values.auth.enabled .Values.auth.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.auth.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: auth
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.auth.fullname" . }}
+  {{- include "supabase.ha.hpa" (dict "service" .Values.auth "global" .Values.global) | nindent 2 }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetCPUUtilization | default .Values.auth.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.global.highAvailability.targetMemoryUtilization }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetMemoryUtilization }}
+  {{- end }}
+{{- end }}
+
+{{- if and .Values.rest.enabled .Values.rest.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.rest.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rest
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.rest.fullname" . }}
+  {{- include "supabase.ha.hpa" (dict "service" .Values.rest "global" .Values.global) | nindent 2 }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetCPUUtilization | default .Values.rest.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.global.highAvailability.targetMemoryUtilization }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetMemoryUtilization }}
+  {{- end }}
+{{- end }}
+
+{{- if and .Values.realtime.enabled .Values.realtime.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.realtime.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: realtime
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.realtime.fullname" . }}
+  {{- include "supabase.ha.hpa" (dict "service" .Values.realtime "global" .Values.global) | nindent 2 }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetCPUUtilization | default .Values.realtime.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.global.highAvailability.targetMemoryUtilization }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetMemoryUtilization }}
+  {{- end }}
+{{- end }}
+
+{{- if and .Values.meta.enabled .Values.meta.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.meta.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: meta
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.meta.fullname" . }}
+  {{- include "supabase.ha.hpa" (dict "service" .Values.meta "global" .Values.global) | nindent 2 }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetCPUUtilization | default .Values.meta.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.global.highAvailability.targetMemoryUtilization }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetMemoryUtilization }}
+  {{- end }}
+{{- end }}
+
+{{- if and .Values.storage.enabled .Values.storage.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.storage.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: storage
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.storage.fullname" . }}
+  {{- include "supabase.ha.hpa" (dict "service" .Values.storage "global" .Values.global) | nindent 2 }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetCPUUtilization | default .Values.storage.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.global.highAvailability.targetMemoryUtilization }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetMemoryUtilization }}
+  {{- end }}
+{{- end }}
+
+{{- if and .Values.analytics.enabled .Values.analytics.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "supabase.analytics.fullname" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: analytics
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "supabase.analytics.fullname" . }}
+  {{- include "supabase.ha.hpa" (dict "service" .Values.analytics "global" .Values.global) | nindent 2 }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetCPUUtilization | default .Values.analytics.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.global.highAvailability.targetMemoryUtilization }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.global.highAvailability.targetMemoryUtilization }}
+  {{- end }}
+{{- end }}
+
+{{- end }}
