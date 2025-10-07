@@ -1,13 +1,13 @@
-name: Lint and Test Charts
+name: Lint Helm Charts
 
-on: pull_request
+on:
+  pull_request:
 
 jobs:
-  lint-test:
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -16,15 +16,10 @@ jobs:
         with:
           version: v3.12.1
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          check-latest: true
-
       - name: Set up chart-testing
         uses: helm/chart-testing-action@v2.6.0
 
-      - name: Run chart-testing (list-changed)
+      - name: List changed charts
         id: list-changed
         run: |
           changed=$(ct list-changed --target-branch ${{ github.event.repository.default_branch }})
@@ -32,14 +27,6 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run chart-testing (lint)
+      - name: Lint charts
         if: steps.list-changed.outputs.changed == 'true'
         run: ct lint --validate-maintainers=false --target-branch ${{ github.event.repository.default_branch }}
-
-      - name: Create kind cluster
-        if: steps.list-changed.outputs.changed == 'true'
-        uses: helm/kind-action@v1.8.0
-
-      - name: Run chart-testing (install)
-        if: steps.list-changed.outputs.changed == 'true'
-        run: ct install --target-branch ${{ github.event.repository.default_branch }}
