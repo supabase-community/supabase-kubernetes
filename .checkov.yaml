@@ -1,0 +1,4 @@
+skip_paths:
+  - charts/supabase/templates/test
+  - charts/supabase/ci/example-values.yaml
+  - charts/supabase/values.example.yaml

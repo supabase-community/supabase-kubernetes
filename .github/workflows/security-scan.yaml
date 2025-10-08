@@ -6,7 +6,8 @@ on:
             - main
             - security/**
     pull_request:
-        branches: [main]
+        branches:
+            - main
 
 permissions:
     contents: read
@@ -24,6 +25,7 @@ jobs:
             - name: Run Trivy config scan
               uses: aquasecurity/trivy-action@master
               with:
+                  version: v0.67.0
                   scan-type: config
                   ignore-unfixed: true
                   severity: HIGH,CRITICAL
@@ -53,7 +55,7 @@ jobs:
                   docker run --rm \
                     -v "${{ github.workspace }}:/project" \
                     ghcr.io/stackrox/kube-linter:v0.6.7 \
-                    kube-linter lint /project/rendered.yaml | tee kubelinter.log
+                    lint /project/rendered.yaml | tee kubelinter.log
 
             - name: Run Checkov
               if: always()
@@ -67,8 +69,17 @@ jobs:
               if: always()
               uses: gitleaks/gitleaks-action@v2
               with:
-                  args: detect --no-git -v --redact
-              continue-on-error: true
+                  args: >
+                      detect --no-git -v --redact
+                      --report-format=sarif
+                      --report-path="${{ github.workspace }}/gitleaks.sarif"
+                      --exit-code=0
+
+            - name: Upload Gitleaks results
+              if: always()
+              uses: github/codeql-action/upload-sarif@v3
+              with:
+                  sarif_file: gitleaks.sarif
 
             - name: Upload logs
               if: always()
@@ -80,4 +91,4 @@ jobs:
                       rendered.yaml
                       kubelinter.log
                       checkov_report*
-                      gitleaks.log
+                      gitleaks.sarif
