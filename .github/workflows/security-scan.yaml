@@ -1,0 +1,67 @@
+name: Security Scan
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+permissions:
+    contents: read
+    security-events: write
+
+jobs:
+    security-scan:
+        name: Run security scanners
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Run Trivy config scan
+              uses: aquasecurity/trivy-action@master
+              with:
+                  scan-type: config
+                  ignore-unfixed: true
+                  severity: HIGH,CRITICAL
+                  format: sarif
+                  output: trivy-results.sarif
+                  scan-ref: ./charts/supabase
+
+            - name: Upload Trivy results
+              uses: github/codeql-action/upload-sarif@v3
+              with:
+                  sarif_file: trivy-results.sarif
+
+            - name: Install KubeLinter
+              run: |
+                  curl -sSL https://github.com/stackrox/kube-linter/releases/latest/download/kube-linter-linux-amd64.tar.gz | tar -xz
+                  sudo mv kube-linter /usr/local/bin/
+
+            - name: Run KubeLinter
+              run: |
+                  helm template ./charts/supabase | kube-linter lint - --format plain
+
+            - name: Run Checkov
+              uses: bridgecrewio/checkov-action@master
+              with:
+                  directory: ./charts/supabase
+                  quiet: true
+                  soft_fail: false
+
+            - name: Run Gitleaks
+              uses: gitleaks/gitleaks-action@v2
+              with:
+                  args: detect --no-git -v --redact
+
+            # Upload all logs for debugging
+            - name: Upload logs
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: security-scan-logs
+                  path: |
+                      trivy-results.sarif
+                      checkov_report*
+                      gitleaks.log
