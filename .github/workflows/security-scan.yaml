@@ -72,14 +72,14 @@ jobs:
                   args: >
                       detect --no-git -v --redact
                       --report-format=sarif
-                      --report-path="${{ github.workspace }}/gitleaks.sarif"
+                      --report-path="results.sarif"
                       --exit-code=0
 
             - name: Upload Gitleaks results
               if: always()
               uses: github/codeql-action/upload-sarif@v3
               with:
-                  sarif_file: gitleaks.sarif
+                  sarif_file: results.sarif
 
             - name: Upload logs
               if: always()
@@ -91,4 +91,4 @@ jobs:
                       rendered.yaml
                       kubelinter.log
                       checkov_report*
-                      gitleaks.sarif
+                      results.sarif
