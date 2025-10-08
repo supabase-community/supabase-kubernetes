@@ -34,19 +34,9 @@ jobs:
               with:
                   sarif_file: trivy-results.sarif
 
-            - name: Install KubeLinter
-              run: |
-                  curl -sSL https://api.github.com/repos/stackrox/kube-linter/releases/latest \
-                  | grep "browser_download_url.*linux-amd64.tar.gz" \
-                  | cut -d '"' -f 4 \
-                  | xargs curl -L -o kube-linter.tar.gz
-                  tar -xzf kube-linter.tar.gz
-                  sudo mv kube-linter /usr/local/bin/
-                  kube-linter version
-
             - name: Run KubeLinter
               run: |
-                  helm template ./charts/supabase | kube-linter lint - --format plain
+                  docker run --rm -v "${{ github.workspace }}/charts/supabase:/charts/supabase" ghcr.io/stackrox/kube-linter:v0.6.7 lint /charts/supabase
 
             - name: Run Checkov
               uses: bridgecrewio/checkov-action@master
