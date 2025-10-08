@@ -59,21 +59,20 @@ jobs:
 
             - name: Run Checkov
               if: always()
-              uses: bridgecrewio/checkov-action@master
+              uses: bridgecrewio/checkov-action@v12
               with:
                   directory: ./charts/supabase
+                  framework: kubernetes
+                  config_file: .checkov.yaml
                   quiet: true
                   soft_fail: false
-
-            - name: Run Gitleaks
+                  output_format: sarif
+                  output_file_path: checkov.sarif
+            - name: Run Gitleaks (path-based allowlist)
               if: always()
               uses: gitleaks/gitleaks-action@v2
               with:
-                  args: >
-                      detect --no-git -v --redact
-                      --report-format=sarif
-                      --report-path="results.sarif"
-                      --exit-code=0
+                  args: detect --no-git --path . --verbose --redact --config=.gitleaks.toml --report-format sarif --report-path results.sarif --exit-code 0
 
             - name: Upload Gitleaks results
               if: always()

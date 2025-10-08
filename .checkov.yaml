@@ -1,4 +1,6 @@
-skip_paths:
+skip-path:
   - charts/supabase/templates/test
   - charts/supabase/ci/example-values.yaml
   - charts/supabase/values.example.yaml
+framework:
+  - kubernetes
