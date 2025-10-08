@@ -36,8 +36,13 @@ jobs:
 
             - name: Install KubeLinter
               run: |
-                  curl -sSL https://github.com/stackrox/kube-linter/releases/latest/download/kube-linter-linux-amd64.tar.gz | tar -xz
+                  curl -sSL https://api.github.com/repos/stackrox/kube-linter/releases/latest \
+                  | grep "browser_download_url.*linux-amd64.tar.gz" \
+                  | cut -d '"' -f 4 \
+                  | xargs curl -L -o kube-linter.tar.gz
+                  tar -xzf kube-linter.tar.gz
                   sudo mv kube-linter /usr/local/bin/
+                  kube-linter version
 
             - name: Run KubeLinter
               run: |
