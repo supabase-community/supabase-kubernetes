@@ -34,6 +34,20 @@ Expand the name of the analytics secret.
 {{- end -}}
 
 {{/*
+Expand the name of the meta secret.
+*/}}
+{{- define "supabase.secret.meta" -}}
+{{- printf "%s-meta" (include "supabase.fullname" .) }}
+{{- end -}}
+
+{{/*
+Expand the name of the realtime secret.
+*/}}
+{{- define "supabase.secret.realtime" -}}
+{{- printf "%s-realtime" (include "supabase.fullname" .) }}
+{{- end -}}
+
+{{/*
 Expand the name of the s3 secret.
 */}}
 {{- define "supabase.secret.s3" -}}
