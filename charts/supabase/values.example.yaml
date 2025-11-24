@@ -43,7 +43,6 @@ studio:
     DEFAULT_PROJECT_NAME: Default Project
     SUPABASE_PUBLIC_URL: http://example.com
     NEXT_PUBLIC_ENABLE_LOGS: true
-    initialDelaySeconds: 3
 
 auth:
   image:
