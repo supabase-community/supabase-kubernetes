@@ -40,21 +40,13 @@ spec:
               value: {{ .Values.analytics.environment.DB_HOST | quote }}
               {{- end }}
             - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: username
-                  {{- end }}
+              value: $(DB_USERNAME)
             - name: DB_PORT
               value: {{ .Values.analytics.environment.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
-              until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER); do
+              until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U postgres; do
               echo "Waiting for database to start..."
               sleep 2
               done
@@ -70,10 +62,12 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.db.enabled }}
             - name: DB_HOSTNAME
-              value: {{ include "supabase.db.fullname" . }}
-            {{- end }}
+              {{- if .Values.db.enabled }}
+              value: {{ include "supabase.db.fullname" . | quote }}
+              {{- else }}
+              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              {{- end }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -94,25 +88,25 @@ spec:
                   name: {{ include "supabase.secret.db" . }}
                   key: password_encoded
                   {{- end }}
-            - name: DB_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: database
-                  {{- end }}
-            - name: LOGFLARE_API_KEY
+            - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.analytics.secretRef }}
                   name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.apiKey | default "apiKey" }}
+                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "apiKey" }}
                   {{- else }}
                   name: {{ include "supabase.secret.analytics" . }}
-                  key: apiKey
+                  key: publicAccessToken
+                  {{- end }}
+            - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.analytics.secretRef }}
+                  name: {{ .Values.secret.analytics.secretRef }}
+                  key: {{ .Values.secret.analytics.secretRefKey.privateAccessToken | default "apiKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.analytics" . }}
+                  key: privateAccessToken
                   {{- end }}
             {{- if .Values.analytics.bigQuery.enabled }}
             - name: GOOGLE_PROJECT_ID
@@ -122,10 +116,6 @@ spec:
             {{- else }}
             - name: POSTGRES_BACKEND_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
-            - name: POSTGRES_BACKEND_SCHEMA
-              value: $(DB_SCHEMA)
-            - name: LOGFLARE_FEATURE_FLAG_OVERRIDE
-              value: $(FEATURE_FLAG_OVERRIDE)
             {{- end }}
           {{- with .Values.analytics.livenessProbe }}
           livenessProbe:

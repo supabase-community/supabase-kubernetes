@@ -47,6 +47,57 @@ spec:
             - name: STUDIO_PG_META_URL
               value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}
             {{- end }}
+
+            {{- if .Values.db.enabled }}
+            - name: POSTGRES_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            {{- end }}
+
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: database
+                  {{- end }}
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.db.secretRef }}
+                  name: {{ .Values.secret.db.secretRef }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.db" . }}
+                  key: password
+                  {{- end }}
+
+            - name: PG_META_CRYPTO_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.meta.secretRef }}
+                  name: {{ .Values.secret.meta.secretRef }}
+                  key: {{ .Values.secret.meta.secretRefKey.cryptoKey | default "cryptoKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.meta" . }}
+                  key: cryptoKey
+                  {{- end }}
+
+
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.dashboard.secretRef }}
+                  name: {{ .Values.secret.dashboard.secretRef }}
+                  key: {{ .Values.secret.dashboard.secretRefKey.openAiApiKey | default "openAiApiKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.dashboard" . }}
+                  key: openAiApiKey
+                  {{- end }}
+
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
@@ -57,6 +108,7 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: anonKey
                   {{- end }}
+
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
@@ -67,14 +119,41 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
                   {{- end }}
+
+            - name: AUTH_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
+                  key: secret
+                  {{- end }}
+
             {{- if .Values.analytics.enabled }}
             - name: LOGFLARE_URL
               value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}
-            - name: LOGFLARE_API_KEY
+            - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.secret.analytics.secretRef }}
+                  name: {{ .Values.secret.analytics.secretRef }}
+                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "apiKey" }}
+                  {{- else }}
                   name: {{ include "supabase.secret.analytics" . }}
-                  key: apiKey
+                  key: publicAccessToken
+                  {{- end }}
+            - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.analytics.secretRef }}
+                  name: {{ .Values.secret.analytics.secretRef }}
+                  key: {{ .Values.secret.analytics.secretRefKey.privateAccessToken | default "apiKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.analytics" . }}
+                  key: privateAccessToken
+                  {{- end }}
             {{- end }}
           {{- with .Values.studio.livenessProbe }}
           livenessProbe:

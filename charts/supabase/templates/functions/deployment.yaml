@@ -38,11 +38,21 @@ spec:
             {{- toYaml .Values.functions.securityContext | nindent 12 }}
           image: "{{ .Values.functions.image.repository }}:{{ .Values.functions.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.functions.image.pullPolicy }}
+          {{- if .Values.functions.envFrom }}
+          envFrom:
+            {{- toYaml .Values.functions.envFrom | nindent 12 }}
+          {{- end }}
           env:
             {{- range $key, $value := .Values.functions.environment }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+
+            {{- if .Values.kong.enabled }}
+            - name: SUPABASE_URL
+              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}
+            {{- end }}
+
             - name: DB_HOSTNAME
               {{- if .Values.db.enabled }}
               value: {{ include "supabase.db.fullname" . }}
@@ -109,7 +119,7 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
                   {{- end }}
-            - name: POSTGRES_BACKEND_URL
+            - name: SUPABASE_DB_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
           {{- with .Values.functions.livenessProbe }}
           livenessProbe:

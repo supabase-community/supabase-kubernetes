@@ -48,18 +48,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          {{- if .Values.analytics.enabled }}
-            - name: LOGFLARE_API_KEY
+            {{- if .Values.analytics.enabled }}
+            - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.analytics.secretRef }}
                   name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.apiKey | default "apiKey" }}
+                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "apiKey" }}
                   {{- else }}
                   name: {{ include "supabase.secret.analytics" . }}
-                  key: apiKey
+                  key: publicAccessToken
                   {{- end }}
-          {{- end }}
+            {{- end }}
           {{- with .Values.vector.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -78,9 +78,6 @@ spec:
             - mountPath: /etc/vector/vector.yml
               name: vector-config
               subPath: vector.yml
-            - mountPath: /etc/vector/secret.sh
-              name: vector-config
-              subPath: secret.sh
           {{- with .Values.vector.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
