@@ -16,7 +16,7 @@ spec:
             - /bin/sh
             - -c
             - |
-              pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) || $(echo "\e[0;31mFailed to connect to the database." && exit 1)
+              pg_isready -h $(DB_HOST) -p $(DB_PORT) -U postgres || $(echo "\e[0;31mFailed to connect to the database." && exit 1)
               echo "Database is ready"
           env:
             - name: DB_HOST
@@ -25,16 +25,6 @@ spec:
               {{- else }}
               value: {{ .Values.auth.environment.DB_HOST | quote }}
               {{- end }}
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: username
-                  {{- end }}
             - name: DB_PORT
               value: {{ .Values.auth.environment.DB_PORT | quote }}
           image: postgres:15-alpine
