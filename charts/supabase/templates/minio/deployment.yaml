@@ -5,6 +5,10 @@ metadata:
   name: {{ include "supabase.minio.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.minio.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.minio.autoscaling.enabled }}
   replicas: {{ .Values.minio.replicaCount }}

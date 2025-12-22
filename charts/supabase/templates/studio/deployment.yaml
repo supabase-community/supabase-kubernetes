@@ -5,6 +5,10 @@ metadata:
   name: {{ include "supabase.studio.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.studio.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.studio.autoscaling.enabled }}
   replicas: {{ .Values.studio.replicaCount }}
