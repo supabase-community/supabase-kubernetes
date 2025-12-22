@@ -75,6 +75,18 @@ spec:
               value: $(DB_PASSWORD)
             - name: PG_META_DB_SSL_MODE
               value: $(DB_SSL)
+            - name: CRYPTO_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.meta.secretRef }}
+                  name: {{ .Values.secret.meta.secretRef }}
+                  key: {{ .Values.secret.meta.secretRefKey.cryptoKey }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.meta" . }}
+                  key: cryptoKey
+                  {{- end }}
+
+
           {{- with .Values.meta.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

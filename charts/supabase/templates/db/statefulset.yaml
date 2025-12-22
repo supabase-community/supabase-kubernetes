@@ -1,6 +1,6 @@
 {{- if .Values.db.enabled -}}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "supabase.db.fullname" . }}
   labels:
@@ -39,8 +39,12 @@ spec:
               cp -r /docker-entrypoint-initdb.d/* /initdb.d/
               cp /custom-init-scripts/98-webhooks.sql /initdb.d/init-scripts/
               cp /custom-init-scripts/99-roles.sql /initdb.d/init-scripts/
+              cp /custom-init-scripts/99-jwt.sql /initdb.d/init-scripts/
+
               cp /custom-init-scripts/99-logs.sql /initdb.d/migrations/
               cp /custom-init-scripts/99-realtime.sql /initdb.d/migrations/
+              cp /custom-init-scripts/97-_supabase.sql /initdb.d/migrations/
+              cp /custom-init-scripts/99-pooler.sql /initdb.d/migrations/
 
               echo "Copying user-defined migration scripts..."
               cp /custom-migrations/* /initdb.d/migrations/ || echo "Skip migrations"
@@ -58,21 +62,15 @@ spec:
             {{- toYaml .Values.db.securityContext | nindent 12 }}
           image: "{{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.db.image.pullPolicy }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "pg_ctl -D /var/lib/postgres/data -w -t 60 -m fast stop"]
           env:
             {{- range $key, $value := .Values.db.environment }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: username
-                  {{- end }}
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
@@ -113,6 +111,16 @@ spec:
                   name: {{ include "supabase.secret.db" . }}
                   key: database
                   {{- end }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "database" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
+                  key: secret
+                  {{- end }}
           {{- with .Values.db.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -123,7 +131,7 @@ spec:
           {{- end }}
           ports:
             - name: http
-              containerPort: 9999
+              containerPort: 5432
               protocol: TCP
           volumeMounts:
             - mountPath: /docker-entrypoint-initdb.d

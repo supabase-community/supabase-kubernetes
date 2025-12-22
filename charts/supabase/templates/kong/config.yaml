@@ -177,7 +177,7 @@ data:
     {{- if .Values.functions.enabled }}
       - name: functions-v1
         _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.port }}/*'
-        url: http://functions:{{ .Values.functions.service.port }}/
+        url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.port }}/
         routes:
           - name: functions-v1-all
             strip_path: true

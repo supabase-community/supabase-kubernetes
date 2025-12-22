@@ -31,24 +31,24 @@ secret:
   # database credentials
   # these fields must be provided even if using external database
   db:
-    username: ""
     password: ""
     database: ""
     # specify existing secret, which takes precedence over variables above
     secretRef: ""
     # override secret keys for existing secret refs
     secretRefKey:
-      username: username
       password: password
       database: database
-  # analytics Logflare API key
+  # analytics Logflare Public/Private access token
   analytics:
-    apiKey: ""
+    publicAccessToken: your-super-secret-and-long-logflare-key-public
+    privateAccessToken: your-super-secret-and-long-logflare-key-private
     # specify existing secret, which takes precedence over variable above
     secretRef: ""
     # override secret keys for existing secret refs
     secretRefKey:
-      apiKey: apiKey
+      publicAccessToken: publicAccessToken
+      privateAccessToken: privateAccessToken
   # smtp will be used to reference secret including smtp credentials
   smtp:
     # username: ""
@@ -64,12 +64,14 @@ secret:
   dashboard:
     # username: ""
     # password: ""
+    # openAiApiKey: api-key
     # specify existing secret, which takes precedence over variables above
     # secretRef: ""
     # override secret keys for existing secret refs
     secretRefKey:
       username: username
       password: password
+      openAiApiKey: openAiApiKey
   # S3 credentials for storage object bucket
   s3:
     # keyId: ""
@@ -80,6 +82,18 @@ secret:
     secretRefKey:
       keyId: keyId
       accessKey: accessKey
+  # Realtime environment
+  realtime:
+    secretKeyBase: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+    # secretRef: ""
+    secretRefKey:
+      secretKeyBase: secretKeyBase
+  # Meta environment
+  meta:
+    cryptoKey: "your-super-secret-and-long-crypto-key"
+    # secretRef: ""
+    secretRefKey:
+      cryptoKey: cryptoKey
 
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services.
@@ -206,11 +220,13 @@ studio:
     type: ClusterIP
     port: 3000
   environment:
-    STUDIO_DEFAULT_ORGANIZATION: Default Organization
-    STUDIO_DEFAULT_PROJECT: Default Project
+    HOSTNAME: "::"
     STUDIO_PORT: "3000"
+    POSTGRES_PORT: 5432
+    DEFAULT_ORGANIZATION_NAME: Default Organization
+    DEFAULT_PROJECT_NAME: Default Project
     SUPABASE_PUBLIC_URL: http://example.com
-    NEXT_PUBLIC_ENABLE_LOGS: "true"
+    NEXT_PUBLIC_ENABLE_LOGS: true
     # Set value to bigquery to use Big Query backend for analytics
     NEXT_ANALYTICS_BACKEND_PROVIDER: postgres  # postgres, bigquery
   # volumeMounts:
@@ -299,18 +315,33 @@ auth:
     GOTRUE_JWT_EXP: "3600"
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "true"
+    GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
     # GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: true
     # GOTRUE_SMTP_MAX_FREQUENCY: 1s
     GOTRUE_SMTP_ADMIN_EMAIL: "SMTP_ADMIN_MAIL"
     GOTRUE_SMTP_HOST: "SMTP_HOST"
-    GOTRUE_SMTP_PORT: "SMTP_PORT"
-    GOTRUE_SMTP_SENDER_NAME: "SMTP_SENDER_NAME"
+    GOTRUE_SMTP_PORT: "123"
     GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
     GOTRUE_SMS_AUTOCONFIRM: "false"
+    GOTRUE_SMTP_SENDER_NAME: "SMTP_SENDER_NAME"
     GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
+    # Uncomment to enable custom access token hook. Please see: https://supabase.com/docs/guides/auth/auth-hooks for full list of hooks and additional details about custom_access_token_hook
+    # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED: "true"
+    # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI: "pg-functions://postgres/public/custom_access_token_hook"
+    # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_SECRETS: "<standard-base64-secret>"
+    # GOTRUE_HOOK_MFA_VERIFICATION_ATTEMPT_ENABLED: "true"
+    # GOTRUE_HOOK_MFA_VERIFICATION_ATTEMPT_URI: "pg-functions://postgres/public/mfa_verification_attempt"
+    # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED: "true"
+    # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI: "pg-functions://postgres/public/password_verification_attempt"
+    # GOTRUE_HOOK_SEND_SMS_ENABLED: "false"
+    # GOTRUE_HOOK_SEND_SMS_URI: "pg-functions://postgres/public/custom_access_token_hook"
+    # GOTRUE_HOOK_SEND_SMS_SECRETS: "v1,whsec_VGhpcyBpcyBhbiBleGFtcGxlIG9mIGEgc2hvcnRlciBCYXNlNjQgc3RyaW5n"
+    # GOTRUE_HOOK_SEND_EMAIL_ENABLED: "false"
+    # GOTRUE_HOOK_SEND_EMAIL_URI: "http://host.docker.internal:54321/functions/v1/email_sender"
+    # GOTRUE_HOOK_SEND_EMAIL_SECRETS: "v1,whsec_VGhpcyBpcyBhbiBleGFtcGxlIG9mIGEgc2hvcnRlciBCYXNlNjQgc3RyaW5n"
   envFrom: []
     # - secretRef:
     #     name: env-secret
@@ -462,16 +493,19 @@ realtime:
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_admin
     DB_PORT: 5432
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
-    DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
-    DB_ENC_KEY: supabaserealtime
+    DB_SSL: false  # true
     PORT: "4000"
     FLY_ALLOC_ID: fly123
     FLY_APP_NAME: realtime
-    SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
-    ERL_AFLAGS: -proto_dist inet_tcp
     ENABLE_TAILSCALE: "false"
+    DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+    DB_ENC_KEY: supabaserealtime
+    ERL_AFLAGS: -proto_dist inet_tcp
     DNS_NODES: "''"
+    RLIMIT_NOFILE: "10000"
+    APP_NAME: realtime
+    SEED_SELF_HOST: true
+    RUN_JANITOR: true
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -621,6 +655,7 @@ storage:
     DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    REQUEST_ALLOW_X_FORWARDED_PATH: "true"
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: "52428800"
     STORAGE_BACKEND: file  # file, s3
@@ -628,6 +663,7 @@ storage:
     TENANT_ID: stub
     REGION: stub
     GLOBAL_S3_BUCKET: stub
+    ENABLE_IMAGE_TRANSFORMATION: "true"
     # Set variables below and secret.s3 above to enable S3 storage bucket
     # If using this chart's minio, skip the endpoint and protocol below
     # GLOBAL_S3_ENDPOINT: http://minio:9000
@@ -889,12 +925,14 @@ analytics:
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USERNAME: supabase_admin
+    DB_DATABASE: _supabase
     DB_PORT: 5432
     DB_DRIVER: postgresql
     DB_SCHEMA: _analytics
+    POSTGRES_BACKEND_SCHEMA: _analytics
     LOGFLARE_SINGLE_TENANT: "true"
     LOGFLARE_SUPABASE_MODE: "true"
-    FEATURE_FLAG_OVERRIDE: multibackend=true
+    LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
   # Enable Big Query backend for analytics
   bigQuery:
     enabled: false
@@ -1038,10 +1076,11 @@ functions:
   environment:
     # Override the database hostname if using external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
-    DB_USERNAME: supabase_functions_admin
+    DB_USERNAME: postgres
     DB_PORT: 5432
     DB_DRIVER: postgresql
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    VERIFY_JWT: false
   # Mount user functions
   # volumeMounts:
   #   - name: my_functions

@@ -10,13 +10,21 @@ data:
     \set jwt_secret `echo "$JWT_SECRET"`
     \set jwt_exp `echo "$JWT_EXP"`
 
-    ALTER DATABASE postgres SET "app.settings.jwt_secret" TO :jwt_secret;
-    ALTER DATABASE postgres SET "app.settings.jwt_exp" TO :jwt_exp;
-  99-logs.sql: |
+    ALTER DATABASE postgres SET "app.settings.jwt_secret" TO :'jwt_secret';
+    ALTER DATABASE postgres SET "app.settings.jwt_exp" TO :'jwt_exp';
+  99-pooler.sql: |
     \set pguser `echo "$POSTGRES_USER"`
 
+    \c _supabase
+    create schema if not exists _supavisor;
+    alter schema _supavisor owner to :pguser;
+    \c postgres
+  99-logs.sql: |
+    \set pguser `echo "$POSTGRES_USER"`
+    \c _supabase
     create schema if not exists _analytics;
     alter schema _analytics owner to :pguser;
+    \c postgres
   99-realtime.sql: |
     \set pguser `echo "$POSTGRES_USER"`
 
@@ -31,6 +39,10 @@ data:
     ALTER USER supabase_auth_admin WITH PASSWORD :'pgpass';
     ALTER USER supabase_functions_admin WITH PASSWORD :'pgpass';
     ALTER USER supabase_storage_admin WITH PASSWORD :'pgpass';
+  97-_supabase.sql: |
+    \set pguser `echo "$POSTGRES_USER"`
+
+    CREATE DATABASE _supabase WITH OWNER :pguser;
   98-webhooks.sql: |
     BEGIN;
       -- Create pg_net extension
@@ -75,29 +87,29 @@ data:
           IF url IS NULL OR url = 'null' THEN
             RAISE EXCEPTION 'url argument is missing';
           END IF;
-    
+
           IF method IS NULL OR method = 'null' THEN
             RAISE EXCEPTION 'method argument is missing';
           END IF;
-    
+
           IF TG_ARGV[2] IS NULL OR TG_ARGV[2] = 'null' THEN
             headers = '{"Content-Type": "application/json"}'::jsonb;
           ELSE
             headers = TG_ARGV[2]::jsonb;
           END IF;
-    
+
           IF TG_ARGV[3] IS NULL OR TG_ARGV[3] = 'null' THEN
             params = '{}'::jsonb;
           ELSE
             params = TG_ARGV[3]::jsonb;
           END IF;
-    
+
           IF TG_ARGV[4] IS NULL OR TG_ARGV[4] = 'null' THEN
             timeout_ms = 1000;
           ELSE
             timeout_ms = TG_ARGV[4]::integer;
           END IF;
-    
+
           CASE
             WHEN method = 'GET' THEN
               SELECT http_get INTO request_id FROM net.http_get(
@@ -114,7 +126,7 @@ data:
                 'table', TG_TABLE_NAME,
                 'schema', TG_TABLE_SCHEMA
               );
-    
+
               SELECT http_post INTO request_id FROM net.http_post(
                 url,
                 payload,
@@ -125,12 +137,12 @@ data:
             ELSE
               RAISE EXCEPTION 'method argument % is invalid', method;
           END CASE;
-    
+
           INSERT INTO supabase_functions.hooks
             (hook_table_id, hook_name, request_id)
           VALUES
             (TG_RELID, TG_NAME, request_id);
-    
+
           RETURN NEW;
         END
       $function$;
