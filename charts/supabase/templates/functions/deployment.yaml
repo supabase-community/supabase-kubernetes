@@ -110,7 +110,7 @@ spec:
                   key: serviceKey
                   {{- end }}
             - name: POSTGRES_BACKEND_URL
-              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
+              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
           {{- with .Values.functions.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
