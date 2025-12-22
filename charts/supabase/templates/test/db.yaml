@@ -16,9 +16,12 @@ spec:
             - /bin/sh
             - -c
             - |
-              pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) || $(echo "\e[0;31mFailed to connect to the database." && exit 1)
+              pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) \
+                || { echo -e "\033[31mFailed to connect to the database.\033[0m"; exit 1; }
+
               echo "Database is ready"
           env:
+          # no password?
             - name: DB_HOST
               {{- if .Values.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}

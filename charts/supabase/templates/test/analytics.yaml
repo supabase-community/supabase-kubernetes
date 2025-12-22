@@ -20,7 +20,9 @@ spec:
             - -c
             - |
               curl -sfo /dev/null \
-                http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/health
+                http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/health \
+                  || { echo -e "\033[31mFailed to connect to the {{ include "supabase.analytics.fullname" . }}\033[0m."; exit 1; }
+
               echo "Sevice {{ include "supabase.analytics.fullname" . }} is healthy."
       restartPolicy: Never
 {{- end }}

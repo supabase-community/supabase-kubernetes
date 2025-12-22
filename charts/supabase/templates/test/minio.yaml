@@ -19,7 +19,9 @@ spec:
             - -c
             - |
               curl -sfo /dev/null \
-                http://{{ include "supabase.minio.fullname" . }}:{{ .Values.minio.service.port }}/minio/health/live
+                http://{{ include "supabase.minio.fullname" . }}:{{ .Values.minio.service.port }}/minio/health/live \
+                  || { echo -e "\033[31mFailed to connect to the {{ include "supabase.minio.fullname" . }}.\033[0m"; exit 1; }
+
               echo "Sevice {{ include "supabase.minio.fullname" . }} is healthy."
       restartPolicy: Never
 {{- end }}
