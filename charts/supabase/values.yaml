@@ -1042,6 +1042,7 @@ functions:
     DB_PORT: 5432
     DB_DRIVER: postgresql
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    # IMPORT_MAP_PATH: home/deno/functions/import-map.json
   # Mount user functions
   # volumeMounts:
   #   - name: my_functions
