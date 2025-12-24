@@ -1,6 +1,6 @@
 apiVersion: v2
 name: supabase
-description: The open source Firebase alternative.
+description: The open source Firebase alternative with high availability and multi-node support.
 
 # A chart can be either an 'application' or a 'library' chart.
 #

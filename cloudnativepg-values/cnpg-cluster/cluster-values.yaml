@@ -1,0 +1,156 @@
+cluster:
+  instances: 1
+  imageName: "supabase/postgres:15.14.1.003"
+  primaryUpdateStrategy: unsupervised
+  postgresUID: 101
+  postgresGID: 102
+  
+  storage:
+    size: 100Gi
+    storageClass: gp3
+  
+  walStorage:
+    enabled: true
+    size: 50Gi
+    storageClass: gp3
+  
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "2000m"
+    limits:
+      memory: "8Gi"
+      cpu: "4000m"
+  
+  # PostgreSQL configuration for Supabase extensions (based on working CNPG config)
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      work_mem: "4MB"
+      maintenance_work_mem: "64MB"
+      wal_level: "logical"
+      max_wal_senders: "10"
+      max_replication_slots: "10"
+      track_activities: "on"
+      track_counts: "on"
+      track_io_timing: "on"
+      track_functions: "all"
+      cron.database_name: "postgres"
+    # Use the exact shared_preload_libraries from working CNPG config
+    shared_preload_libraries:
+      - "pg_stat_statements"
+      - "pg_stat_monitor"
+      - "pgaudit"
+      - "plpgsql"
+      - "plpgsql_check"
+      - "pg_cron"
+      - "pg_net"
+      - "auto_explain"
+      - "pg_tle"
+      - "supautils"
+    # Add pg_hba configuration from working example
+    pg_hba:
+      - "local all supabase_admin scram-sha-256"
+      - "local all all peer map=supabase_map"
+      - "host all all 127.0.0.1/32 trust"
+      - "host all all ::1/128 trust"
+      - "host all all 10.0.0.0/8 scram-sha-256"
+      - "host all all 172.16.0.0/12 scram-sha-256"
+      - "host all all 192.168.0.0/16 scram-sha-256"
+      - "host all all 0.0.0.0/0 scram-sha-256"
+      - "host all all ::0/0 scram-sha-256"
+    # Add pg_ident configuration
+    pg_ident:
+      - "supabase_map postgres postgres"
+      - "supabase_map gotrue supabase_auth_admin"
+      - "supabase_map postgrest authenticator"
+      - "supabase_map adminapi postgres"
+
+  # Declarative role management for Supabase
+  roles:
+    - name: authenticator
+      ensure: present
+      login: true
+      inherit: false
+      inRoles:
+        - anon
+        - authenticated
+        - service_role
+    - name: supabase_admin
+      ensure: present
+      login: true
+      inherit: true
+      createrole: true
+      bypassrls: true
+      superuser: true
+  # Database initialization with Supabase setup
+  initdb:
+    database: postgres
+    owner: postgres
+    encoding: UTF8
+    secret:
+      name: supabase-postgres-cluster-superuser
+    postInitApplicationSQLRefs: {}
+      #configMapRefs:
+      #- name: post-init-sql-configmap
+      #  key: configmap.sql
+
+  # Enable monitoring
+  monitoring:
+    enabled: true
+    podMonitor:
+      enabled: true
+    prometheusRule:
+      enabled: true
+    customQueries: []
+poolers:
+  - enabled: true
+    name: pooler-rw
+    instances: 4
+    type: rw
+    pgbouncer:
+      poolMode: transaction
+      parameters:
+        max_client_conn: "2000"
+        default_pool_size: "50"
+        max_db_connections: "200"
+        max_user_connections: "200"
+        server_reset_query: "DISCARD ALL"
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+
+# =============================================================================
+# BACKUP CONFIGURATION
+# =============================================================================
+
+backups:
+  enabled: true
+  destinationPath: "s3://supabase-backups/postgres"
+  s3:
+    region: "us-west-2"
+    bucket: "supabase-backups"
+    path: "/postgres"
+    inheritFromIAMRole: true
+  
+  # Backup schedule and retention
+  scheduledBackups:
+    - name: daily-backup
+      schedule: "0 2 * * *"  # Daily at 2 AM
+      backupOwnerReference: self
+  
+  retentionPolicy: "30d"
+  
+  # WAL and data backup settings
+  wal:
+    compression: gzip
+    encryption: AES256
+  data:
+    compression: gzip
+    encryption: AES256
