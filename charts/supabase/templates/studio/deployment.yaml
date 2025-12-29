@@ -139,7 +139,7 @@ spec:
                 secretKeyRef:
                   {{- if .Values.secret.analytics.secretRef }}
                   name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "apiKey" }}
+                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "publicAccessToken" }}
                   {{- else }}
                   name: {{ include "supabase.secret.analytics" . }}
                   key: publicAccessToken
@@ -149,7 +149,7 @@ spec:
                 secretKeyRef:
                   {{- if .Values.secret.analytics.secretRef }}
                   name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.privateAccessToken | default "apiKey" }}
+                  key: {{ .Values.secret.analytics.secretRefKey.privateAccessToken | default "privateAccessToken" }}
                   {{- else }}
                   name: {{ include "supabase.secret.analytics" . }}
                   key: privateAccessToken
