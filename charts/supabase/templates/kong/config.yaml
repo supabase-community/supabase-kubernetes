@@ -141,15 +141,36 @@ data:
                 - admin
                 - anon
     {{- end }}
-    {{- if .Values.realtime.enabled }}
-      - name: realtime-v1
-        _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket/*"
-        url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket
+    {{- if .Values.supabase.realtime.enabled }}
+      - name: realtime-v1-ws
+        _comment: "Realtime: /realtime/v1/* -> ws://{{ .Values.supabase.realtime.service.name }}:{{ .Values.supabase.realtime.service.port }}/socket/*"
+        url: http://{{ .Values.supabase.realtime.service.name }}:{{ .Values.supabase.realtime.service.port }}/socket
+        protocol: ws
         routes:
-          - name: realtime-v1-all
+          - name: realtime-v1-ws
             strip_path: true
             paths:
               - /realtime/v1/
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow:
+                - admin
+                - anon
+      - name: realtime-v1-rest
+        _comment: 'Realtime: /realtime/v1/* -> http://{{ .Values.supabase.realtime.service.name }}:{{ .Values.supabase.realtime.service.port }}/api/*'
+        url: http://{{ .Values.supabase.realtime.service.name }}:{{ .Values.supabase.realtime.service.port }}/api
+        protocol: http
+        routes:
+          - name: realtime-v1-rest
+            strip_path: true
+            paths:
+              - /realtime/v1/api
         plugins:
           - name: cors
           - name: key-auth
