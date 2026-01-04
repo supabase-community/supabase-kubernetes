@@ -48,12 +48,18 @@ spec:
 
               echo "Copying user-defined migration scripts..."
               cp /custom-migrations/* /initdb.d/migrations/ || echo "Skip migrations"
+              {{- if and .Values.db.migrations.enabled .Values.db.migrations.existingConfigMap }}
+              echo "Copying external migrations from ConfigMap..."
+              cp {{ .Values.db.migrations.mountPath }}/* /initdb.d/migrations/ || echo "No external migrations found"
+              {{- end }}
               echo "Initialization scripts are ready"
           volumeMounts:
             - mountPath: /custom-init-scripts
               name: custom-init-scripts
-            - mountPath: /custom-migrations
+            {{- if and .Values.db.migrations.enabled .Values.db.migrations.existingConfigMap }}
+            - mountPath: {{ .Values.db.migrations.mountPath }}
               name: custom-migrations
+            {{- end }}
             - mountPath: /initdb.d
               name: initdb-scripts-data
       containers:
@@ -158,6 +164,11 @@ spec:
         - name: custom-migrations
           configMap:
             name: {{ include "supabase.db.fullname" . }}-migrations
+        {{- if and .Values.db.migrations.enabled .Values.db.migrations.existingConfigMap }}
+        - name: user-migrations
+          configMap:
+            name: {{ .Values.db.migrations.existingConfigMap }}
+        {{- end }}
         {{- with .Values.db.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}

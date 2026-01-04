@@ -6,5 +6,11 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 data:
-  {{- toYaml .Values.db.config | nindent 2 }}
+{{- range $path, $_ := .Files.Glob "migrations/*.sql" }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+{{- if .Values.db.config }}
+{{- toYaml .Values.db.config | nindent 2 }}
+{{- end }}
 {{- end }}
