@@ -183,6 +183,16 @@ db:
   affinity: {}
   # Additional migration scripts can be defined here
   config: {}
+  # Database migrations from external ConfigMap
+  # Users should create ConfigMap before installing the chart:
+  # kubectl create configmap my-migrations --from-file=./migrations/ -n namespace
+  migrations:
+    # Enable mounting external migrations ConfigMap
+    enabled: true
+    # Name of existing ConfigMap containing migration SQL files
+    existingConfigMap: "custom-migrations"
+    # Mount path for migrations in init container
+    mountPath: /custom-migrations
 
 # Studio Application
 studio:
