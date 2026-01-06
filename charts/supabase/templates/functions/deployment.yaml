@@ -54,11 +54,9 @@ spec:
             {{- end }}
 
             - name: DB_HOSTNAME
-              {{- if .Values.db.enabled }}
-              value: {{ include "supabase.db.fullname" . }}
-              {{- else }}
-              value: $(DB_HOST)
-              {{- end }}
+              value: {{ include "supabase.db.host" . | quote }}
+            - name: DB_PORT
+              value: {{ include "supabase.db.port" . | quote }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

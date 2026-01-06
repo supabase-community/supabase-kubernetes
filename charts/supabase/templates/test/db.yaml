@@ -19,14 +19,11 @@ spec:
               pg_isready -h $(DB_HOST) -p $(DB_PORT) -U postgres || $(echo "\e[0;31mFailed to connect to the database." && exit 1)
               echo "Database is ready"
           env:
+          
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
-              value: {{ include "supabase.db.fullname" . | quote }}
-              {{- else }}
-              value: {{ .Values.auth.environment.DB_HOST | quote }}
-              {{- end }}
+              value: {{ include "supabase.db.host" . | quote }}
             - name: DB_PORT
-              value: {{ .Values.auth.environment.DB_PORT | quote }}
+              value: {{ include "supabase.db.port" . | quote }}
           image: postgres:15-alpine
           imagePullPolicy: IfNotPresent
           name: test-db

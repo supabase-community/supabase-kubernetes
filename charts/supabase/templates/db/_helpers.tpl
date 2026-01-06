@@ -24,6 +24,28 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
+Database host (internal or external)
+*/}}
+{{- define "supabase.db.host" -}}
+{{- if .Values.db.enabled -}}
+{{- include "supabase.db.fullname" . -}}
+{{- else -}}
+{{- required "db.external.host must be set when db.enabled=false" .Values.db.external.host -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Database port (internal or external)
+*/}}
+{{- define "supabase.db.port" -}}
+{{- if .Values.db.enabled -}}
+5432
+{{- else -}}
+{{- default 5432 .Values.db.external.port -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Selector labels
 */}}
 {{- define "supabase.db.selectorLabels" -}}

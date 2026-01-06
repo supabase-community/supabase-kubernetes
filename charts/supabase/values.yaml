@@ -95,11 +95,19 @@ secret:
     secretRefKey:
       cryptoKey: cryptoKey
 
-# Optional: Postgres Database
-# A standalone Postgres database configured to work with Supabase services.
-# You can spin up any other Postgres database container if required.
-# If so, make sure to adjust DB_HOST accordingly to point to the right database service.
+# Postgres Database
+# Standalone Postgres database configured to work with Supabase services.
+# When enabled, the chart provisions an internal Postgres instance and
+# services will automatically connect to it.
+
+# If disabled, an external Postgres database must be provided via `db.external`.
+# In this case, make sure `db.external.host` and `db.external.port` point to
+# the correct database endpoint.
 db:
+  # external:
+  #   host: "mypostgres.com"
+  #   port: 5432
+
   # Enable database provisioning
   enabled: true
   image:
@@ -135,8 +143,6 @@ db:
     port: 5432
   environment:
     POSTGRES_HOST: /var/run/postgresql
-    PGPORT: "5432"
-    POSTGRES_PORT: "5432"
     JWT_EXP: 3600
     # POSTGRES_HOST_AUTH_METHOD: md5
     # Enable SSL for postgres by specifying paths for mounted certificate key pair
@@ -222,7 +228,6 @@ studio:
   environment:
     HOSTNAME: "::"
     STUDIO_PORT: "3000"
-    POSTGRES_PORT: 5432
     DEFAULT_ORGANIZATION_NAME: Default Organization
     DEFAULT_PROJECT_NAME: Default Project
     SUPABASE_PUBLIC_URL: http://example.com
@@ -297,10 +302,7 @@ auth:
     type: ClusterIP
     port: 9999
   environment:
-    # Override the database hostname if using external database
-    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_auth_admin
-    DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     API_EXTERNAL_URL: http://example.com
@@ -412,10 +414,7 @@ rest:
     type: ClusterIP
     port: 3000
   environment:
-    # Override the database hostname if using external database
-    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: authenticator
-    DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMAS: public,storage,graphql_public
@@ -489,10 +488,7 @@ realtime:
     type: ClusterIP
     port: 4000
   environment:
-    # Override the database hostname if using external database
-    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_admin
-    DB_PORT: 5432
     DB_SSL: false  # true
     PORT: "4000"
     FLY_ALLOC_ID: fly123
@@ -574,10 +570,7 @@ meta:
     type: ClusterIP
     port: 8080
   environment:
-    # Override the database hostname if using external database
-    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_admin
-    DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
@@ -649,10 +642,7 @@ storage:
     type: ClusterIP
     port: 5000
   environment:
-    # Override the database hostname if using external database
-    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_storage_admin
-    DB_PORT: 5432
     DB_DRIVER: postgres
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     REQUEST_ALLOW_X_FORWARDED_PATH: "true"
@@ -922,11 +912,8 @@ analytics:
     port: 4000
   environment:
     LOGFLARE_NODE_HOST: 127.0.0.1
-    # Override the database hostname if using external database
-    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USERNAME: supabase_admin
     DB_DATABASE: _supabase
-    DB_PORT: 5432
     DB_DRIVER: postgresql
     DB_SCHEMA: _analytics
     POSTGRES_BACKEND_SCHEMA: _analytics
@@ -1074,10 +1061,7 @@ functions:
     type: ClusterIP
     port: 9000
   environment:
-    # Override the database hostname if using external database
-    # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USERNAME: postgres
-    DB_PORT: 5432
     DB_DRIVER: postgresql
     DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
     VERIFY_JWT: false
