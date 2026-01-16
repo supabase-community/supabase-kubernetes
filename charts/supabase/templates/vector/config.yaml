@@ -121,6 +121,13 @@ data:
               .event_message = parsed.msg
               .metadata.level = parsed.level
           }
+      # Function logs are unstructured messages on stderr
+      functions_logs:
+        type: remap
+        inputs:
+          - router.functions
+        source: |-
+          .metadata.project_ref = del(.project)
       # Storage logs may contain json objects so we parse them for completeness
       storage_logs:
         type: remap
@@ -215,7 +222,7 @@ data:
       logflare_functions:
         type: 'http'
         inputs:
-          - router.functions
+          - functions_logs
         encoding:
           codec: 'json'
         method: 'post'
