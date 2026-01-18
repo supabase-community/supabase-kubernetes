@@ -48,10 +48,12 @@ spec:
               value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}
             {{- end }}
 
-            {{- if .Values.db.enabled }}
             - name: POSTGRES_HOST
-              value: {{ include "supabase.db.fullname" . }}
-            {{- end }}
+              value: {{ include "supabase.db.host" . | quote }}
+            - name: PGPORT
+              value: {{ include "supabase.db.port" . | quote }}
+            - name: POSTGRES_PORT
+              value: {{ include "supabase.db.port" . | quote }}
 
             - name: POSTGRES_DB
               valueFrom:
