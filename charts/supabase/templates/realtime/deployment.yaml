@@ -66,6 +66,8 @@ spec:
             - name: DB_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
+            - name: SELF_HOST_TENANT_NAME
+              value: {{ include "supabase.realtime.fullname" . }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

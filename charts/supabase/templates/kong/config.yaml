@@ -141,10 +141,10 @@ data:
                 - admin
                 - anon
     {{- end }}
-    {{- if .Values.supabase.realtime.enabled }}
+    {{- if .Values.realtime.enabled }}
       - name: realtime-v1-ws
-        _comment: "Realtime: /realtime/v1/* -> ws://{{ .Values.supabase.realtime.service.name }}:{{ .Values.supabase.realtime.service.port }}/socket/*"
-        url: http://{{ .Values.supabase.realtime.service.name }}:{{ .Values.supabase.realtime.service.port }}/socket
+        _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket/*"
+        url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket
         protocol: ws
         routes:
           - name: realtime-v1-ws
@@ -163,8 +163,8 @@ data:
                 - admin
                 - anon
       - name: realtime-v1-rest
-        _comment: 'Realtime: /realtime/v1/* -> http://{{ .Values.supabase.realtime.service.name }}:{{ .Values.supabase.realtime.service.port }}/api/*'
-        url: http://{{ .Values.supabase.realtime.service.name }}:{{ .Values.supabase.realtime.service.port }}/api
+        _comment: 'Realtime: /realtime/v1/* -> http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/api/*'
+        url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/api
         protocol: http
         routes:
           - name: realtime-v1-rest
