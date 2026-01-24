@@ -105,7 +105,7 @@ db:
   image:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "15.8.1.085"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -191,7 +191,7 @@ studio:
   image:
     repository: supabase/studio
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "2025.11.10-sha-5291fe3"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -228,7 +228,7 @@ studio:
     SUPABASE_PUBLIC_URL: http://example.com
     NEXT_PUBLIC_ENABLE_LOGS: true
     # Set value to bigquery to use Big Query backend for analytics
-    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres  # postgres, bigquery
+    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres # postgres, bigquery
   # volumeMounts:
   #   - name: volume_name
   #     mountPath: /path/to/my/secret
@@ -268,7 +268,7 @@ auth:
   image:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v2.182.1"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -302,7 +302,7 @@ auth:
     DB_USER: supabase_auth_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     API_EXTERNAL_URL: http://example.com
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
@@ -384,7 +384,7 @@ rest:
   image:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v13.0.7"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -417,7 +417,7 @@ rest:
     DB_USER: authenticator
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
     PGRST_DB_USE_LEGACY_GUCS: false
@@ -461,7 +461,7 @@ realtime:
   image:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v2.63.0"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -493,7 +493,7 @@ realtime:
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
     DB_USER: supabase_admin
     DB_PORT: 5432
-    DB_SSL: false  # true
+    DB_SSL: false # true
     PORT: "4000"
     FLY_ALLOC_ID: fly123
     FLY_APP_NAME: realtime
@@ -545,7 +545,7 @@ meta:
   image:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v0.93.1"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -579,7 +579,7 @@ meta:
     DB_USER: supabase_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     PG_META_PORT: "8080"
   # volumeMounts:
   #   - name: volume_name
@@ -620,7 +620,7 @@ storage:
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v1.29.0"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -654,11 +654,11 @@ storage:
     DB_USER: supabase_storage_admin
     DB_PORT: 5432
     DB_DRIVER: postgres
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     REQUEST_ALLOW_X_FORWARDED_PATH: "true"
     PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: "52428800"
-    STORAGE_BACKEND: file  # file, s3
+    STORAGE_BACKEND: file # file, s3
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
     REGION: stub
@@ -717,7 +717,7 @@ imgproxy:
   image:
     repository: darthsim/imgproxy
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v3.8.0"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -797,7 +797,7 @@ kong:
   image:
     repository: kong
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "2.8.1"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -892,7 +892,7 @@ analytics:
   image:
     repository: supabase/logflare
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "1.22.6"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -978,7 +978,7 @@ vector:
   image:
     repository: timberio/vector
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "0.28.1-alpine"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -1045,7 +1045,7 @@ functions:
   image:
     repository: supabase/edge-runtime
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v1.68.4"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
@@ -1080,7 +1080,7 @@ functions:
     DB_USERNAME: postgres
     DB_PORT: 5432
     DB_DRIVER: postgresql
-    DB_SSL: disable  # disable, allow, prefer, require, verify-ca, verify-full
+    DB_SSL: disable # disable, allow, prefer, require, verify-ca, verify-full
     VERIFY_JWT: false
   # Mount user functions
   # volumeMounts:
@@ -1121,7 +1121,7 @@ minio:
   image:
     repository: minio/minio
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "RELEASE.2025-09-07T16-13-09Z"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""
