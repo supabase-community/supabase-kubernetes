@@ -18,82 +18,89 @@ secret:
   # Anon & Service key: Studio, Storage, Kong
   # JWT Secret: Analytics, Auth, Rest, Realtime, Storage
   jwt:
-    anonKey: ""
-    serviceKey: ""
-    secret: ""
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
+    serviceKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
+    secret: "your-super-secret-jwt-token-with-at-least-32-characters-long"
     # specify existing secret, which takes precedence over variables above
-    secretRef: ""
+    # secretRef: ""
     # override secret keys for existing secret refs
-    secretRefKey:
-      anonKey: anonKey
-      serviceKey: serviceKey
-      secret: secret
+    # secretRefKey:
+    #   anonKey: anonKey
+    #   serviceKey: serviceKey
+    #   secret: secret
+
   # database credentials
   # these fields must be provided even if using external database
   db:
-    password: ""
-    database: ""
-    # specify existing secret, which takes precedence over variables above
-    secretRef: ""
-    # override secret keys for existing secret refs
-    secretRefKey:
-      password: password
-      database: database
-  # analytics Logflare Public/Private access token
-  analytics:
-    publicAccessToken: your-super-secret-and-long-logflare-key-public
-    privateAccessToken: your-super-secret-and-long-logflare-key-private
-    # specify existing secret, which takes precedence over variable above
-    secretRef: ""
-    # override secret keys for existing secret refs
-    secretRefKey:
-      publicAccessToken: publicAccessToken
-      privateAccessToken: privateAccessToken
-  # smtp will be used to reference secret including smtp credentials
-  smtp:
-    # username: ""
-    # password: ""
+    password: "your-super-secret-and-long-postgres-password"
+    database: "postgres"
     # specify existing secret, which takes precedence over variables above
     # secretRef: ""
     # override secret keys for existing secret refs
-    secretRefKey:
-      username: username
-      password: password
+    # secretRefKey:
+    #   password: password
+    #   database: database
+
+  # analytics Logflare Public/Private access token
+  analytics:
+    publicAccessToken: "your-super-secret-and-long-logflare-key-public"
+    privateAccessToken: "your-super-secret-and-long-logflare-key-private"
+    # specify existing secret, which takes precedence over variable above
+    # secretRef: ""
+    # override secret keys for existing secret refs
+    # secretRefKey:
+    #   publicAccessToken: publicAccessToken
+    #   privateAccessToken: privateAccessToken
+
+  # smtp will be used to reference secret including smtp credentials
+  smtp:
+    username: "fake_mail_user"
+    password: "fake_mail_password"
+    # specify existing secret, which takes precedence over variables above
+    # secretRef: ""
+    # override secret keys for existing secret refs
+    # secretRefKey:
+    #   username: username
+    #   password: password
+
   # secret used to access the studio dashboard
   # leave it empty to disable dashboard authentication
   dashboard:
-    # username: ""
-    # password: ""
-    # openAiApiKey: api-key
+    username: "supabase"
+    password: "this_password_is_insecure_and_should_be_updated"
+    openAiApiKey: "key_super_secret"
     # specify existing secret, which takes precedence over variables above
     # secretRef: ""
     # override secret keys for existing secret refs
-    secretRefKey:
-      username: username
-      password: password
-      openAiApiKey: openAiApiKey
+    # secretRefKey:
+    #   username: username
+    #   password: password
+    #   openAiApiKey: openAiApiKey
+
   # S3 credentials for storage object bucket
   s3:
-    # keyId: ""
-    # accessKey: ""
+    keyId: ""
+    accessKey: ""
     # specify existing secret, which takes precedence over variables above
     # secretRef: ""
     # override secret keys for existing secret refs
-    secretRefKey:
-      keyId: keyId
-      accessKey: accessKey
+    # secretRefKey:
+    #   keyId: keyId
+    #   accessKey: accessKey
+
   # Realtime environment
   realtime:
-    secretKeyBase: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+    secretKeyBase: "UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq"
     # secretRef: ""
-    secretRefKey:
-      secretKeyBase: secretKeyBase
+    # secretRefKey:
+    #   secretKeyBase: secretKeyBase
+
   # Meta environment
   meta:
-    cryptoKey: "your-super-secret-and-long-crypto-key"
+    cryptoKey: "your-encryption-key-32-chars-min"
     # secretRef: ""
-    secretRefKey:
-      cryptoKey: cryptoKey
+    # secretRefKey:
+    #   cryptoKey: cryptoKey
 
 # Optional: Postgres Database
 # A standalone Postgres database configured to work with Supabase services.
