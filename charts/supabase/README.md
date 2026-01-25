@@ -1,4 +1,4 @@
-# Supabase for Kubernetes with Helm 3
+# Supabase for Kubernetes with Helm
 
 This directory contains the configurations and scripts required to run Supabase inside a Kubernetes cluster.
 
@@ -10,61 +10,64 @@ For the moment we are using a root container to permit the installation of the m
 
 The database configuration we provide is an example using only one master. If you want to go to production, we highly recommend you to use a replicated database.
 
-## Quickstart
+## Usage example
 
 > For this section we're using Minikube and Docker to create a Kubernetes cluster
 
-```bash
-# Clone Repository
-git clone https://github.com/supabase-community/supabase-kubernetes
 
-# Switch to charts directory
-cd supabase-kubernetes/charts/supabase/
+1. Create a cluster with Minikube:
 
-# Install the chart
-helm install demo -f values.example.yaml .
-```
+    ```bash
+    minikube start --driver=docker
+    minikube addons enable ingress
+    echo "$(minikube ip)     supabase.local" | sudo tee -a /etc/hosts > /dev/null
+    ```
 
-The first deployment can take some time to complete (especially auth service). You can view the status of the pods using:
+2. Add the Supabase Helm repository:
 
-```bash
-kubectl get pod -l app.kubernetes.io/instance=demo
+    ```bash
+    helm repo add supabase https://supabase-community.github.io/supabase-kubernetes
+    ```
+  
+3. Install Supabase:
 
-NAME                                      READY   STATUS    RESTARTS      AGE
-demo-supabase-analytics-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
-demo-supabase-auth-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
-demo-supabase-db-xxxxxxxxxx-xxxxx         1/1     Running   0             47s
-demo-supabase-functions-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
-demo-supabase-imgproxy-xxxxxxxxxx-xxxxx   1/1     Running   0             47s
-demo-supabase-kong-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
-demo-supabase-meta-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
-demo-supabase-realtime-xxxxxxxxxx-xxxxx   1/1     Running   0             47s
-demo-supabase-rest-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
-demo-supabase-storage-xxxxxxxxxx-xxxxx    1/1     Running   0             47s
-```
+    ```bash
+    helm install demo supabase/supabase
+    ```
 
-### Access with Minikube
+4. The first deployment can take some time to complete (especially auth service). You can view the status of the pods using:
 
-Assuming that you have enabled Minikube ingress addon, note down the Minikube IP address:
-```shell
-minikube ip
-```
-Then, add the IP into your `/etc/hosts` file:
-```bash
-# This will redirect request for example.com to the minikube IP
-<minikube-ip> example.com
-```
-Open http://example.com in your browser.
+    ```bash
+    kubectl get pod -l app.kubernetes.io/instance=demo
+    
+    NAME                                      READY   STATUS    RESTARTS      AGE
+    demo-supabase-analytics-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
+    demo-supabase-auth-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
+    demo-supabase-db-0-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
+    demo-supabase-functions-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
+    demo-supabase-imgproxy-xxxxxxxxxx-xxxxx   1/1     Running   0             47s
+    demo-supabase-kong-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
+    demo-supabase-meta-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
+    demo-supabase-realtime-xxxxxxxxxx-xxxxx   1/1     Running   0             47s
+    demo-supabase-rest-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
+    demo-supabase-storage-xxxxxxxxxx-xxxxx    1/1     Running   0             47s
+    demo-supabase-studio-xxxxxxxxxx-xxxxx     1/1     Running   0             47s
+    demo-supabase-vector-xxxxxxxxxx-xxxxx     1/1     Running   0             47s
+    ```
 
-### Uninstall
+5. Open Supabase Studio in your browser: http://supabase.local
 
-```Bash
-# Uninstall Helm chart
-helm uninstall demo
+   Use the **default credentials** below (for local development only):
+   - **Username:** `supabase`
+   - **Password:** `this_password_is_insecure_and_should_be_updated`
 
-# Backup and/or remove any Persistent Volume Claims that have keep annotation
-kubectl delete pvc demo-supabase-storage-pvc
-```
+6. Uninstall Supabase example:
+
+    ```bash
+    helm uninstall demo
+    minikube delete
+    sudo sed -i '/[[:space:]]supabase\.local$/d' /etc/hosts
+    ```
 
 ## Customize
 
@@ -113,7 +116,6 @@ DB credentials will also be stored in a Kubernetes secret and referenced in `val
 ```yaml
 secret:
   db:
-    username: <db-username>
     password: <db-password>
     database: <supabase-database-name>
 ```
@@ -140,7 +142,8 @@ A new logflare secret API key is required for securing communication between all
 ```yaml
 secret:
   analytics:
-    apiKey: your-super-secret-with-at-least-32-characters-long-logflare-key
+    publicAccessToken: "your-super-secret-and-long-logflare-key-public"
+    privateAccessToken: "your-super-secret-and-long-logflare-key-private"
 ```
 
 ### S3 secret
