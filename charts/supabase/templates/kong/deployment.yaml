@@ -41,6 +41,8 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            - name: KONG_PORT_MAPS
+              value: "80:8000,443:8443"
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
