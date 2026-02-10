@@ -262,7 +262,7 @@ studio:
   image:
     repository: supabase/studio
     pullPolicy: IfNotPresent
-    tag: "2025.11.10-sha-5291fe3"
+    tag: "2026.01.27-sha-6aa59ff"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -343,7 +343,7 @@ auth:
   image:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "v2.182.1"
+    tag: "v2.185.0"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -464,7 +464,7 @@ rest:
   image:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "v13.0.7"
+    tag: "v14.3"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -544,7 +544,7 @@ realtime:
   image:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
-    tag: "v2.63.0"
+    tag: "v2.72.0"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -631,7 +631,7 @@ meta:
   image:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
-    tag: "v0.93.1"
+    tag: "v0.95.2"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -711,7 +711,7 @@ storage:
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "v1.29.0"
+    tag: "v1.37.1"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -816,7 +816,7 @@ imgproxy:
   image:
     repository: darthsim/imgproxy
     pullPolicy: IfNotPresent
-    tag: "v3.8.0"
+    tag: "v3.30.1"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -1003,7 +1003,7 @@ analytics:
   image:
     repository: supabase/logflare
     pullPolicy: IfNotPresent
-    tag: "1.22.6"
+    tag: "1.30.3"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -1164,7 +1164,7 @@ functions:
   image:
     repository: supabase/edge-runtime
     pullPolicy: IfNotPresent
-    tag: "v1.68.4"
+    tag: "v1.70.0"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
