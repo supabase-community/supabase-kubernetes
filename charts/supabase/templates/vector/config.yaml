@@ -227,7 +227,7 @@ data:
         # We must route the sink through kong because ingesting logs before logflare is fully initialised will
         # lead to broken queries from studio. This works by the assumption that containers are started in the
         # following order: vector > db > logflare > kong
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/analytics/v1/api/logs?source_name=postgres.logs'
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgres.logs'
       logflare_functions:
         type: 'http'
         inputs:
