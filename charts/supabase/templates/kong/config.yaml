@@ -111,6 +111,14 @@ data:
             strip_path: true
             paths:
               - /.well-known/oauth-authorization-server
+      - name: auth-v1-open-sso
+        _comment: "GoTrue SSO: /sso/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/sso/*"
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/sso
+        routes:
+          - name: auth-v1-open-sso
+            strip_path: true
+            paths:
+              - /sso
         plugins:
           - name: cors
       - name: auth-v1
