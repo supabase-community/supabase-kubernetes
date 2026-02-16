@@ -262,7 +262,7 @@ studio:
   image:
     repository: supabase/studio
     pullPolicy: IfNotPresent
-    tag: "2026.01.27-sha-6aa59ff"
+    tag: "2026.02.16-sha-26c615c"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -343,7 +343,7 @@ auth:
   image:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "v2.185.0"
+    tag: "v2.186.0"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -464,7 +464,7 @@ rest:
   image:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "v14.3"
+    tag: "v14.5"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -544,7 +544,7 @@ realtime:
   image:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
-    tag: "v2.72.0"
+    tag: "v2.76.5"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -711,7 +711,7 @@ storage:
   image:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "v1.37.1"
+    tag: "v1.37.8"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -1003,7 +1003,7 @@ analytics:
   image:
     repository: supabase/logflare
     pullPolicy: IfNotPresent
-    tag: "1.30.3"
+    tag: "1.31.2"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -1094,7 +1094,7 @@ vector:
   image:
     repository: timberio/vector
     pullPolicy: IfNotPresent
-    tag: "0.28.1-alpine"
+    tag: "0.53.0-alpine"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
@@ -1164,7 +1164,7 @@ functions:
   image:
     repository: supabase/edge-runtime
     pullPolicy: IfNotPresent
-    tag: "v1.70.0"
+    tag: "v1.70.3"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
