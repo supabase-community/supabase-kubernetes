@@ -207,6 +207,13 @@ data:
         plugins:
           - name: cors
     {{- end }}
+    
+    {{/*
+    ## Not used - Studio and Vector talk directly to analytics via Docker networking.
+    ## If external access is needed, add routes with key-auth matching Logflare's x-api-key auth.
+    */}}
+    
+    {{/*
     {{- if .Values.analytics.enabled }}
       - name: analytics-v1
         _comment: 'Analytics: /analytics/v1/* -> http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/*'
@@ -217,6 +224,8 @@ data:
             paths:
               - /analytics/v1/
     {{- end }}
+    */}}
+    
     {{- if .Values.meta.enabled }}
       - name: meta
         _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}/*"

@@ -41,3 +41,10 @@ Create the name of the service account to use
 {{- default "default" .Values.functions.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Persistent volume claim name for edge functions shared storage
+*/}}
+{{- define "supabase.functions.persistenceClaimName" -}}
+{{- printf "%s-pvc" (include "supabase.functions.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
