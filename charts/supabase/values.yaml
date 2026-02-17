@@ -1294,7 +1294,7 @@ persistence:
     annotations: {}
     size: 1Gi
     accessModes:
-      - ReadWriteMany
+      - ReadWriteOnce
 
   imgproxy:
     enabled: true
