@@ -28,6 +28,27 @@ spec:
       serviceAccountName: {{ include "supabase.rest.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.rest.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: init-db
+          image: postgres:15-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DB_HOST
+              {{- if .Values.db.enabled }}
+              value: {{ include "supabase.db.fullname" . | quote }}
+              {{- else }}
+              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              {{- end }}
+            - name: DB_PORT
+              value: {{ .Values.auth.environment.DB_PORT | quote }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U postgres; do
+              echo "Waiting for database to start..."
+              sleep 2
+              done
+            - echo "Database is ready"
       containers:
         - name: {{ include "supabase.rest.name" $ }}
           securityContext:
