@@ -222,7 +222,7 @@ spec:
       {{- end }}
       volumes:
         - name: storage-data
-          {{- if .Values.storage.persistence.enabled }}
+          {{- if .Values.persistence.storage.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "storage") }}
           {{- else }}

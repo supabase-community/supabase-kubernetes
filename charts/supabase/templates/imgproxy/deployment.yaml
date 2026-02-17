@@ -51,12 +51,12 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          {{- if or (.Values.imgproxy.persistence.enabled) (.Values.imgproxy.volumes) }}
+          {{- if or (.Values.persistence.imgproxy.enabled) (.Values.imgproxy.volumes) }}
           volumeMounts:
             {{- with .Values.imgproxy.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
-            {{- if .Values.imgproxy.persistence.enabled }}
+            {{- if .Values.persistence.imgproxy.enabled }}
             - mountPath: /var/lib/storage
               name: imgproxy-volume
             {{- end }}
@@ -65,12 +65,12 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- if or (.Values.imgproxy.persistence.enabled) (.Values.imgproxy.volumes) }}
+      {{- if or (.Values.persistence.imgproxy.enabled) (.Values.imgproxy.volumes) }}
       volumes:
         {{- with .Values.imgproxy.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- if .Values.imgproxy.persistence.enabled }}
+        {{- if .Values.persistence.imgproxy.enabled }}
         - name: imgproxy-volume
           persistentVolumeClaim:
             claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "imgproxy") }}
