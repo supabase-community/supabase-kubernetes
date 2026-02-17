@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   supabase:
   - apiVersion: v2
+    created: "2026-02-17T22:53:50.33283131Z"
+    description: Supabase is the Postgres development platform.
+    digest: 1a8fcce57446fb2f40d095b8c906e0fe1251b271f1ab443d73b28fefabc3866a
+    icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
+    name: supabase
+    type: application
+    urls:
+    - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-0.4.1/supabase-0.4.1.tgz
+    version: 0.4.1
+  - apiVersion: v2
     created: "2026-02-17T21:24:21.086606802Z"
     description: Supabase is the Postgres development platform.
     digest: 4588eae60093faf8231a9c9164502b90a07b89d5b7b39733c999a7e3c6276622
@@ -71,4 +81,4 @@ entries:
     urls:
     - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-0.3.0/supabase-0.3.0.tgz
     version: 0.3.0
-generated: "2026-02-17T21:24:21.086634293Z"
+generated: "2026-02-17T22:53:50.332866467Z"
