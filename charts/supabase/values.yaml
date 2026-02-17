@@ -777,16 +777,6 @@ storage:
   ## and explicitly configure it according to your cluster capacity
   resources: {}
 
-  ## Persistent volume configuration
-  persistence:
-    enabled: true
-    storageClassName: ""
-    annotations: {}
-    size: 10Gi
-    accessModes:
-      - ReadWriteOnce
-    class: ""
-
   ## TODO: remove autoscaling for storage
   autoscaling:
     enabled: true
@@ -862,16 +852,6 @@ imgproxy:
   ## NOTE: It is recommended to leave this empty by default
   ## and explicitly configure it according to your cluster capacity
   resources: {}
-
-  ## Persistent volume configuration
-  persistence:
-    enabled: true
-    storageClassName: ""
-    annotations: {}
-    size: 10Gi
-    accessModes:
-      - ReadWriteOnce
-    class: ""
 
   ## TODO: remove autoscaling for imgproxy
   autoscaling:
@@ -1288,16 +1268,6 @@ minio:
   ## NOTE: It is recommended to leave this empty by default
   ## and explicitly configure it according to your cluster capacity
   resources: {}
-
-  ## Persistent volume configuration
-  persistence:
-    enabled: false
-    storageClassName: ""
-    annotations: {}
-    size: 10Gi
-    accessModes:
-      - ReadWriteOnce
-    class: ""
 
   ## TODO: remove autoscaling for minio
   autoscaling:
