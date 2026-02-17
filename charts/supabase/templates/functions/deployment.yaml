@@ -133,7 +133,7 @@ spec:
           {{- with .Values.functions.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if .Values.functions.persistence.enabled }}
+          {{- if .Values.persistence.functions.enabled }}
             - name: functions-storage
               mountPath: /home/deno/functions
           {{- end }}
@@ -148,10 +148,10 @@ spec:
         {{- with .Values.functions.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- if .Values.functions.persistence.enabled }}
+        {{- if .Values.persistence.functions.enabled }}
         - name: functions-storage
           persistentVolumeClaim:
-            claimName: {{ default (include "supabase.functions.persistenceClaimName" .) .Values.functions.persistence.existingClaim }}
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "functions") }}
         {{- end }}
         - name: functions-main
           configMap:

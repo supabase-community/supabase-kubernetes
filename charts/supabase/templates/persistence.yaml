@@ -1,0 +1,11 @@
+{{ include "supabase.pvc" (dict "root" $ "name" "db" "enabled" .Values.db.enabled) }}
+---
+{{ include "supabase.pvc" (dict "root" $ "name" "functions" "enabled" .Values.functions.enabled) }}
+---
+{{ include "supabase.pvc" (dict "root" $ "name" "imgproxy" "enabled" .Values.imgproxy.enabled) }}
+---
+{{ include "supabase.pvc" (dict "root" $ "name" "minio" "enabled" .Values.minio.enabled) }}
+---
+{{ include "supabase.pvc" (dict "root" $ "name" "snippets" "enabled" .Values.studio.enabled) }}
+---
+{{ include "supabase.pvc" (dict "root" $ "name" "storage" "enabled" .Values.storage.enabled) }}

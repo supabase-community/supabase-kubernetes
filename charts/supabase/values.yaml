@@ -215,16 +215,6 @@ db:
   ## and explicitly configure it according to your cluster capacity
   resources: {}
 
-  ## Persistent volume configuration
-  persistence:
-    enabled: true
-    storageClassName: ""
-    annotations: {}
-    size: 8Gi
-    accessModes:
-      - ReadWriteOnce
-    class: ""
-
   ## TODO: remove autoscaling for database
   autoscaling:
     enabled: true
@@ -1222,17 +1212,6 @@ functions:
   #       - key: my_secret.ts
   #         path: name_of_file_in_container.ts
 
-  ## Persistent shared storage for edge functions
-  persistence:
-    enabled: true
-    ## Use an existing PVC instead of creating one
-    existingClaim: ""
-    storageClassName: ""
-    annotations: {}
-    size: 1Gi
-    accessModes:
-      - ReadWriteMany
-
   ## Resource requests and limits
   ## NOTE: It is recommended to leave this empty by default
   ## and explicitly configure it according to your cluster capacity
@@ -1327,3 +1306,58 @@ minio:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
+
+persistence:
+  db:
+    enabled: true
+    storageClassName: ""
+    # existingClaim: ""
+    annotations: {}
+    size: 5Gi
+    accessModes:
+      - ReadWriteOnce
+
+  functions:
+    enabled: true
+    storageClassName: ""
+    # existingClaim: ""
+    annotations: {}
+    size: 1Gi
+    accessModes:
+      - ReadWriteMany
+
+  imgproxy:
+    enabled: true
+    storageClassName: ""
+    # existingClaim: ""
+    annotations: {}
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
+  minio:
+    enabled: true
+    storageClassName: ""
+    # existingClaim: ""
+    annotations: {}
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
+  snippets:
+    enabled: true
+    storageClassName: ""
+    # existingClaim: ""
+    annotations: {}
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
+  storage:
+    enabled: true
+    storageClassName: ""
+    # existingClaim: ""
+    annotations: {}
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
