@@ -1222,6 +1222,17 @@ functions:
   #       - key: my_secret.ts
   #         path: name_of_file_in_container.ts
 
+  ## Persistent shared storage for edge functions
+  persistence:
+    enabled: true
+    ## Use an existing PVC instead of creating one
+    existingClaim: ""
+    storageClassName: ""
+    annotations: {}
+    size: 1Gi
+    accessModes:
+      - ReadWriteMany
+
   ## Resource requests and limits
   ## NOTE: It is recommended to leave this empty by default
   ## and explicitly configure it according to your cluster capacity

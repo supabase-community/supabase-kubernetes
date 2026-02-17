@@ -155,6 +155,10 @@ spec:
                   key: privateAccessToken
                   {{- end }}
             {{- end }}
+            {{- if .Values.functions.persistence.enabled }}
+            - name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER
+              value: /home/deno/functions
+            {{- end }}
           {{- with .Values.studio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -171,13 +175,26 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.studio.volumeMounts }}
+          {{- if or .Values.studio.volumeMounts .Values.functions.persistence.enabled }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
+            {{- with .Values.studio.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.functions.persistence.enabled }}
+            - name: functions-storage
+              mountPath: /home/deno/functions
+            {{- end }}
           {{- end }}
-      {{- with .Values.studio.volumes }}
+      {{- if or .Values.studio.volumes .Values.functions.persistence.enabled }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+        {{- with .Values.studio.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.functions.persistence.enabled }}
+        - name: functions-storage
+          persistentVolumeClaim:
+            claimName: {{ default (include "supabase.functions.persistenceClaimName" .) .Values.functions.persistence.existingClaim }}
+        {{- end }}
       {{- end }}
       {{- with .Values.studio.nodeSelector }}
       nodeSelector:

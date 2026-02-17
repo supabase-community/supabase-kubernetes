@@ -130,9 +130,13 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-            {{- with .Values.functions.volumeMounts }}
-              {{- toYaml . | nindent 12 }}
-            {{- end }}
+          {{- with .Values.functions.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.functions.persistence.enabled }}
+            - name: functions-storage
+              mountPath: /home/deno/functions
+          {{- end }}
             - mountPath: /home/deno/functions/main/index.ts
               name: functions-main
               subPath: index.ts
@@ -143,6 +147,11 @@ spec:
       volumes:
         {{- with .Values.functions.volumes }}
           {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.functions.persistence.enabled }}
+        - name: functions-storage
+          persistentVolumeClaim:
+            claimName: {{ default (include "supabase.functions.persistenceClaimName" .) .Values.functions.persistence.existingClaim }}
         {{- end }}
         - name: functions-main
           configMap:
