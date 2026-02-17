@@ -1,4 +1,4 @@
-name: Lint Helm Charts
+name: lint
 
 on:
   pull_request:

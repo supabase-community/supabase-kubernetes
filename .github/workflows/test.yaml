@@ -1,19 +1,11 @@
-name: Test Helm Charts
+name: test
 
 on:
-  workflow_run:
-    workflows: ["Lint Helm Charts"]
-    types: [completed]
+  pull_request:
 
 jobs:
-  install-test:
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request'
-
-    environment: github-cicd
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
