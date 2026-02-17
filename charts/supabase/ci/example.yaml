@@ -20,3 +20,22 @@ secret:
     secretKeyBase: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
   meta:
     cryptoKey: "your-super-secret-and-long-crypto-key"
+
+persistence:
+  db:
+    enabled: false
+
+  functions:
+    enabled: false
+
+  imgproxy:
+    enabled: false
+
+  minio:
+    enabled: false
+
+  snippets:
+    enabled: false
+
+  storage:
+    enabled: false
