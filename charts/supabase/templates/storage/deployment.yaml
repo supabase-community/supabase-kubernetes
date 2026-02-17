@@ -224,7 +224,7 @@ spec:
         - name: storage-data
           {{- if .Values.storage.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "supabase.storage.fullname" . }}-pvc
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "storage") }}
           {{- else }}
           emptyDir:
             medium: ""

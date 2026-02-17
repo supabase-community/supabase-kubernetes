@@ -155,9 +155,13 @@ spec:
                   key: privateAccessToken
                   {{- end }}
             {{- end }}
-            {{- if .Values.functions.persistence.enabled }}
+            {{- if .Values.persistence.functions.enabled }}
             - name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER
               value: /home/deno/functions
+            {{- end }}
+            {{- if .Values.persistence.snippets.enabled }}
+            - name: SNIPPETS_MANAGEMENT_FOLDER
+              value: /app/snippets
             {{- end }}
           {{- with .Values.studio.livenessProbe }}
           livenessProbe:
@@ -175,25 +179,34 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if or .Values.studio.volumeMounts .Values.functions.persistence.enabled }}
+          {{- if or .Values.studio.volumeMounts .Values.persistence.functions.enabled }}
           volumeMounts:
             {{- with .Values.studio.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
-            {{- if .Values.functions.persistence.enabled }}
+            {{- if .Values.persistence.functions.enabled }}
             - name: functions-storage
               mountPath: /home/deno/functions
             {{- end }}
+            {{- if .Values.persistence.snippets.enabled }}
+            - name: snippets-storage
+              mountPath: /app/snippets
+            {{- end }}
           {{- end }}
-      {{- if or .Values.studio.volumes .Values.functions.persistence.enabled }}
+      {{- if or .Values.studio.volumes .Values.persistence.functions.enabled }}
       volumes:
         {{- with .Values.studio.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- if .Values.functions.persistence.enabled }}
+        {{- if .Values.persistence.functions.enabled }}
         - name: functions-storage
           persistentVolumeClaim:
-            claimName: {{ default (include "supabase.functions.persistenceClaimName" .) .Values.functions.persistence.existingClaim }}
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "functions") }}
+        {{- end }}
+        {{- if .Values.persistence.snippets.enabled }}
+        - name: snippets-storage
+          persistentVolumeClaim:
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "snippets") }}
         {{- end }}
       {{- end }}
       {{- with .Values.studio.nodeSelector }}

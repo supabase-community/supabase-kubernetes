@@ -73,7 +73,7 @@ spec:
         {{- if .Values.imgproxy.persistence.enabled }}
         - name: imgproxy-volume
           persistentVolumeClaim:
-            claimName: {{ include "supabase.imgproxy.fullname" . }}-pvc
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "imgproxy") }}
         {{- end }}
       {{- end }}
       {{- with .Values.imgproxy.nodeSelector }}

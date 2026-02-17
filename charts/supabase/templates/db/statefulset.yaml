@@ -139,7 +139,7 @@ spec:
             {{- with .Values.db.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
-            {{- if .Values.db.persistence.enabled }}
+            {{- if .Values.persistence.db.enabled }}
             - mountPath: /var/lib/postgresql/data
               name: postgres-volume
               subPath: postgres-data
@@ -161,10 +161,10 @@ spec:
         {{- with .Values.db.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- if .Values.db.persistence.enabled }}
+        {{- if .Values.persistence.db.enabled }}
         - name: postgres-volume
           persistentVolumeClaim:
-            claimName: {{ include "supabase.db.fullname" . }}-pvc
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "db") }}
         {{- end }}
       {{- with .Values.db.nodeSelector }}
       nodeSelector:
