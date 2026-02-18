@@ -141,6 +141,18 @@ secret:
     # secretRefKey:
     #   cryptoKey: cryptoKey
 
+  minio:
+    user: supa-storage
+    password: secret1234
+
+    ## Reference to existing secret
+    # secretRef: ""
+
+    ## Map to actual keys inside secretRef if they differ
+    # secretRefKey:
+    #   user: user
+    #   password: password
+
 ## 2. Database
 ##    Primary Postgres instance consumed by every Supabase workload in this chart.
 ##
