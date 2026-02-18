@@ -137,6 +137,10 @@ spec:
             - name: functions-storage
               mountPath: /home/deno/functions
           {{- end }}
+          {{- if .Values.persistence.deno.enabled }}
+            - name: deno-cache
+              mountPath: /root/.cache/deno
+          {{- end }}
             - mountPath: /home/deno/functions/main/index.ts
               name: functions-main
               subPath: index.ts
@@ -152,6 +156,11 @@ spec:
         - name: functions-storage
           persistentVolumeClaim:
             claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "functions") }}
+        {{- end }}
+        {{- if .Values.persistence.deno.enabled }}
+        - name: deno-cache
+          persistentVolumeClaim:
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "deno") }}
         {{- end }}
         - name: functions-main
           configMap:

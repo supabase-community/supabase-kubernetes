@@ -1331,3 +1331,12 @@ persistence:
     size: 1Gi
     accessModes:
       - ReadWriteOnce
+
+  deno:
+    enabled: true
+    storageClassName: ""
+    # existingClaim: ""
+    annotations: {}
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
