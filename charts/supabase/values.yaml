@@ -1226,9 +1226,9 @@ minio:
 
   ## Minio container image configuration
   image:
-    repository: minio/minio
+    repository: cgr.dev/chainguard/minio
     pullPolicy: IfNotPresent
-    tag: "RELEASE.2025-09-07T16-13-09Z"
+    tag: "latest"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
