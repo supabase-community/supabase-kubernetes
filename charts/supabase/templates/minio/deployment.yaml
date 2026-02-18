@@ -44,13 +44,23 @@ spec:
             - name: MINIO_ROOT_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "supabase.secret.s3" . }}
-                  key: keyId
+                {{- if .Values.secret.minio.secretRef }}
+                  name: {{ .Values.secret.minio.secretRef }}
+                  key: {{ .Values.secret.minio.secretRefKey.user | default "user" }}
+                {{- else }}
+                  name: {{ include "supabase.secret.minio" . }}
+                  key: user
+                {{- end }}
             - name: MINIO_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "supabase.secret.s3" . }}
-                  key: accessKey
+                {{- if .Values.secret.s3.secretRef }}
+                  name: {{ .Values.secret.s3.secretRef }}
+                  key: {{ .Values.secret.s3.secretRefKey.password | default "password" }}
+                {{- else }}
+                  name: {{ include "supabase.secret.minio" . }}
+                  key: password
+                {{- end }}
           {{- with .Values.minio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -87,9 +97,9 @@ spec:
       {{- end }}
       volumes:
         - name: minio-data
-          {{- if .Values.minio.persistence.enabled }}
+          {{- if .Values.persistence.minio.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "supabase.minio.fullname" . }}-pvc
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "minio") }}
           {{- else }}
           emptyDir:
             medium: ""
