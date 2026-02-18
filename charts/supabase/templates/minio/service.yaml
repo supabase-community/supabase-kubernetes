@@ -6,9 +6,9 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.minio.service.type }}
+  type: {{ .Values.service.minio.type }}
   ports:
-    - port: {{ .Values.minio.service.port }}
+    - port: {{ .Values.service.minio.port }}
       targetPort: 9000
       protocol: TCP
       name: http

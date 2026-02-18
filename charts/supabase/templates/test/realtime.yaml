@@ -20,7 +20,7 @@ spec:
             - -c
             - |
               curl -sfo /dev/null \
-                http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}
+                http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}
               echo "Sevice {{ include "supabase.realtime.fullname" . }} is healthy."
       restartPolicy: Never
 {{- end }}

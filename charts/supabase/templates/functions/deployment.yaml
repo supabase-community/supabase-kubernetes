@@ -50,7 +50,7 @@ spec:
 
             {{- if .Values.kong.enabled }}
             - name: SUPABASE_URL
-              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}
+              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
             {{- end }}
 
             - name: DB_HOSTNAME

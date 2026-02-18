@@ -69,7 +69,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.vector.service.port }}
+            - containerPort: {{ .Values.service.vector.port }}
               protocol: TCP
           volumeMounts:
             {{- with .Values.vector.volumeMounts }}

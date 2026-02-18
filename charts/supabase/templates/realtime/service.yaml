@@ -6,9 +6,9 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.realtime.service.type }}
+  type: {{ .Values.service.realtime.type }}
   ports:
-    - port: {{ .Values.realtime.service.port }}
+    - port: {{ .Values.service.realtime.port }}
       targetPort: 4000
       protocol: TCP
       name: http

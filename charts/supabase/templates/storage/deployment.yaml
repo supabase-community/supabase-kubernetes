@@ -81,7 +81,7 @@ spec:
             - /bin/sh
             - -c
             - |
-              until /usr/bin/mc alias set supa-minio http://{{ include "supabase.minio.fullname" . }}:{{ .Values.minio.service.port }} $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD; do
+              until /usr/bin/mc alias set supa-minio http://{{ include "supabase.minio.fullname" . }}:{{ .Values.service.minio.port }} $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD; do
                 echo "Waiting for minio to start..."
                 sleep 2
               done
@@ -104,7 +104,7 @@ spec:
             {{- end }}
             {{- if .Values.rest.enabled }}
             - name: POSTGREST_URL
-              value: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}
+              value: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}
             {{- end }}
             - name: DB_PASSWORD
               valueFrom:
@@ -190,7 +190,7 @@ spec:
                   {{- end }}
             {{- if .Values.imgproxy.enabled }}
             - name: IMGPROXY_URL
-              value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.port | int }}
+              value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.service.imgproxy.port | int }}
             {{- end }}
             
             - name: STORAGE_BACKEND
@@ -198,7 +198,7 @@ spec:
               
             {{- if .Values.minio.enabled }}
             - name: GLOBAL_S3_ENDPOINT
-              value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.minio.service.port }}
+              value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.service.minio.port }}
             - name: GLOBAL_S3_PROTOCOl
               value: http
             - name: GLOBAL_S3_FORCE_PATH_STYLE
