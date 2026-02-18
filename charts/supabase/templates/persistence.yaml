@@ -9,3 +9,5 @@
 {{ include "supabase.pvc" (dict "root" $ "name" "snippets" "enabled" .Values.studio.enabled) }}
 ---
 {{ include "supabase.pvc" (dict "root" $ "name" "storage" "enabled" .Values.storage.enabled) }}
+---
+{{ include "supabase.pvc" (dict "root" $ "name" "deno" "enabled" .Values.functions.enabled) }}
