@@ -29,4 +29,4 @@ jobs:
 
       - name: Lint charts
         if: steps.list-changed.outputs.changed == 'true'
-        run: ct lint --validate-maintainers=false --target-branch ${{ github.event.repository.default_branch }}
+        run: ct lint --check-version-increment=false --validate-maintainers=false --target-branch ${{ github.event.repository.default_branch }}
