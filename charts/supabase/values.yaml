@@ -181,10 +181,6 @@ db:
   tolerations: []
   affinity: {}
 
-  service:
-    type: ClusterIP
-    port: 5432
-
   environment:
     POSTGRES_HOST: /var/run/postgresql
     PGPORT: "5432"
@@ -279,10 +275,6 @@ studio:
   tolerations: []
   affinity: {}
 
-  service:
-    type: ClusterIP
-    port: 3000
-
   environment:
     HOSTNAME: "::"
     STUDIO_PORT: "3000"
@@ -359,10 +351,6 @@ auth:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-
-  service:
-    type: ClusterIP
-    port: 9999
 
   environment:
     ## Override the database hostname if using an external database
@@ -478,10 +466,6 @@ rest:
   tolerations: []
   affinity: {}
 
-  service:
-    type: ClusterIP
-    port: 3000
-
   environment:
     ## Override the database hostname if using an external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
@@ -557,10 +541,6 @@ realtime:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-
-  service:
-    type: ClusterIP
-    port: 4000
 
   environment:
     ## Override the database hostname if using an external database
@@ -648,10 +628,6 @@ meta:
   tolerations: []
   affinity: {}
 
-  service:
-    type: ClusterIP
-    port: 8080
-
   environment:
     ## Override the database hostname if using an external database
     # DB_HOST: DATABASE.NAMESPACE.svc.cluster.local
@@ -727,10 +703,6 @@ storage:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-
-  service:
-    type: ClusterIP
-    port: 5000
 
   environment:
     ## Override the database hostname if using an external database
@@ -823,10 +795,6 @@ imgproxy:
   tolerations: []
   affinity: {}
 
-  service:
-    type: ClusterIP
-    port: 5001
-
   environment:
     IMGPROXY_BIND: ":5001"
     IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
@@ -898,10 +866,6 @@ kong:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-
-  service:
-    type: ClusterIP
-    port: 8000
 
   environment:
     KONG_DATABASE: "off"
@@ -1000,10 +964,6 @@ analytics:
   tolerations: []
   affinity: {}
 
-  service:
-    type: ClusterIP
-    port: 4000
-
   environment:
     LOGFLARE_NODE_HOST: 127.0.0.1
     ## Override the database hostname if using an external database
@@ -1091,10 +1051,6 @@ vector:
   tolerations: []
   affinity: {}
 
-  service:
-    type: ClusterIP
-    port: 9001
-
   ## Extra volume mounts
   # volumeMounts:
   #   - name: volume_name
@@ -1160,10 +1116,6 @@ functions:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-
-  service:
-    type: ClusterIP
-    port: 9000
 
   environment:
     ## Override the database hostname if using an external database
@@ -1242,10 +1194,6 @@ minio:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-
-  service:
-    type: ClusterIP
-    port: 9000
 
   environment: {}
 
@@ -1340,3 +1288,121 @@ persistence:
     size: 1Gi
     accessModes:
       - ReadWriteOnce
+
+service:
+  analytics:
+    type: ClusterIP
+    port: 4000
+    targetPort: 4000
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  auth:
+    type: ClusterIP
+    port: 9999
+    targetPort: 9999
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  db:
+    type: ClusterIP
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  functions:
+    type: ClusterIP
+    port: 9000
+    targetPort: 9000
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  imgproxy:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  kong:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  meta:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  minio:
+    type: ClusterIP
+    port: 9000
+    targetPort: 9000
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  realtime:
+    type: ClusterIP
+    port: 4000
+    targetPort: 4000
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  rest:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  storage:
+    type: ClusterIP
+    port: 5000
+    targetPort: 5000
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  studio:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
+
+  vector:
+    type: ClusterIP
+    port: 9001
+    targetPort: 9001
+    protocol: TCP
+    annotations: {}
+    labels: {}
+    portName: http
