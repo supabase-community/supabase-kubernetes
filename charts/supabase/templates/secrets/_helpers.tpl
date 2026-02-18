@@ -55,6 +55,13 @@ Expand the name of the s3 secret.
 {{- end -}}
 
 {{/*
+Expand the name of the minio secret.
+*/}}
+{{- define "supabase.secret.minio" -}}
+{{- printf "%s-minio" (include "supabase.fullname" .) }}
+{{- end -}}
+
+{{/*
 Check if both s3 keys are valid
 */}}
 {{- define "supabase.secret.s3.isValid" -}}
