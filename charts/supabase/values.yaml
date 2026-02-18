@@ -1089,6 +1089,11 @@ minio:
     repository: minio/minio
     pullPolicy: IfNotPresent
     tag: "latest"
+  # Image for init container (mc client) - used by storage to create stub bucket
+  mcImage:
+    repository: minio/mc
+    pullPolicy: IfNotPresent
+    tag: "latest"
   imagePullSecrets: []
   replicaCount: 1
   nameOverride: ""

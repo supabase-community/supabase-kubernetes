@@ -73,8 +73,8 @@ spec:
                   name: {{ include "supabase.secret.s3" . }}
                   key: accessKey
           name: init-bucket
-          image: minio/mc
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.minio.mcImage.repository }}:{{ .Values.minio.mcImage.tag }}"
+          imagePullPolicy: {{ .Values.minio.mcImage.pullPolicy }}
           command:
             - /bin/sh
             - -c
