@@ -37,12 +37,12 @@ spec:
               {{- if .Values.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
-              value: {{ .Values.analytics.environment.DB_HOST | quote }}
+              value: {{ .Values.environment.analytics.DB_HOST | quote }}
               {{- end }}
             - name: DB_USER
               value: $(DB_USERNAME)
             - name: DB_PORT
-              value: {{ .Values.analytics.environment.DB_PORT | quote }}
+              value: {{ .Values.environment.analytics.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -58,7 +58,7 @@ spec:
           image: "{{ .Values.analytics.image.repository }}:{{ .Values.analytics.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.analytics.image.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.analytics.environment }}
+            {{- range $key, $value := .Values.environment.analytics }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
@@ -66,7 +66,7 @@ spec:
               {{- if .Values.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
-              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              value: {{ .Values.environment.auth.DB_HOST | quote }}
               {{- end }}
             - name: DB_PASSWORD
               valueFrom:

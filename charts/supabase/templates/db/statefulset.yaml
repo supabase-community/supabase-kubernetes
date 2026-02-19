@@ -67,7 +67,7 @@ spec:
               exec:
                 command: ["/bin/sh", "-c", "pg_ctl -D /var/lib/postgres/data -w -t 60 -m fast stop"]
           env:
-            {{- range $key, $value := .Values.db.environment }}
+            {{- range $key, $value := .Values.environment.db }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}

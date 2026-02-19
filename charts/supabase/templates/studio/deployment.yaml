@@ -35,7 +35,7 @@ spec:
           image: "{{ .Values.studio.image.repository }}:{{ .Values.studio.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.studio.image.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.studio.environment }}
+            {{- range $key, $value := .Values.environment.studio }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}

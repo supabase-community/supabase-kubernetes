@@ -35,7 +35,7 @@ spec:
           image: "{{ .Values.meta.image.repository }}:{{ .Values.meta.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.meta.image.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.meta.environment }}
+            {{- range $key, $value := .Values.environment.meta }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}

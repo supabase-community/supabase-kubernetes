@@ -40,7 +40,7 @@ spec:
           image: "{{ .Values.vector.image.repository }}:{{ .Values.vector.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.vector.image.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.vector.environment }}
+            {{- range $key, $value := .Values.environment.vector }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}

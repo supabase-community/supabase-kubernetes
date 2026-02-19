@@ -38,10 +38,10 @@ spec:
               {{- if .Values.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
-              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              value: {{ .Values.environment.auth.DB_HOST | quote }}
               {{- end }}
             - name: DB_PORT
-              value: {{ .Values.analytics.environment.DB_PORT | quote }}
+              value: {{ .Values.environment.analytics.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -75,7 +75,7 @@ spec:
                   key: password
                 {{- end }}
             - name: GLOBAL_S3_BUCKET
-              value: {{ .Values.storage.environment.GLOBAL_S3_BUCKET }}
+              value: {{ .Values.environment.storage.GLOBAL_S3_BUCKET }}
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -94,7 +94,7 @@ spec:
           image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.storage.environment }}
+            {{- range $key, $value := .Values.environment.storage }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}

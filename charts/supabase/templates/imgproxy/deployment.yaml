@@ -35,7 +35,7 @@ spec:
           image: "{{ .Values.imgproxy.image.repository }}:{{ .Values.imgproxy.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.imgproxy.image.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.imgproxy.environment }}
+            {{- range $key, $value := .Values.environment.imgproxy }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}

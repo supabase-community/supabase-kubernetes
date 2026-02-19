@@ -43,7 +43,7 @@ spec:
             {{- toYaml .Values.functions.envFrom | nindent 12 }}
           {{- end }}
           env:
-            {{- range $key, $value := .Values.functions.environment }}
+            {{- range $key, $value := .Values.environment.functions }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}

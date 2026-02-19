@@ -37,7 +37,7 @@ spec:
           command: ["/bin/bash"]
           args: ["/scripts/wrapper.sh"]
           env:
-            {{- range $key, $value := .Values.kong.environment }}
+            {{- range $key, $value := .Values.environment.kong }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}

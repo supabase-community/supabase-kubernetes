@@ -37,10 +37,10 @@ spec:
               {{- if .Values.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
-              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              value: {{ .Values.environment.auth.DB_HOST | quote }}
               {{- end }}
             - name: DB_PORT
-              value: {{ .Values.analytics.environment.DB_PORT | quote }}
+              value: {{ .Values.environment.analytics.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -58,7 +58,7 @@ spec:
           command: ["/bin/sh"]
           args: ["-c", "/app/bin/migrate && /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)' && /app/bin/server"]
           env:
-            {{- range $key, $value := .Values.realtime.environment }}
+            {{- range $key, $value := .Values.environment.realtime }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
