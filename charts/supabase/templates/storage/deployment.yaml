@@ -51,19 +51,31 @@ spec:
               done
             - echo "Database is ready"
         {{- if .Values.minio.enabled }}
-        - env:
+        - name: init-bucket
+          image: cgr.dev/chainguard/minio-client:latest-dev
+          env:
             - name: MINIO_ROOT_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "supabase.secret.s3" . }}
-                  key: keyId
+                {{- if .Values.secret.minio.secretRef }}
+                  name: {{ .Values.secret.minio.secretRef }}
+                  key: {{ .Values.secret.minio.secretRefKey.user | default "user" }}
+                {{- else }}
+                  name: {{ include "supabase.secret.minio" . }}
+                  key: user
+                {{- end }}
             - name: MINIO_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "supabase.secret.s3" . }}
-                  key: accessKey
-          name: init-bucket
-          image: minio/mc
+                {{- if .Values.secret.s3.secretRef }}
+                  name: {{ .Values.secret.s3.secretRef }}
+                  key: {{ .Values.secret.s3.secretRefKey.password | default "password" }}
+                {{- else }}
+                  name: {{ include "supabase.secret.minio" . }}
+                  key: password
+                {{- end }}
+            - name: GLOBAL_S3_BUCKET
+              value: {{ .Values.storage.environment.GLOBAL_S3_BUCKET }}
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -73,7 +85,7 @@ spec:
                 echo "Waiting for minio to start..."
                 sleep 2
               done
-              /usr/bin/mc mb --ignore-existing supa-minio/stub
+              /usr/bin/mc mb --ignore-existing supa-minio/$GLOBAL_S3_BUCKET
         {{- end }}
       containers:
         - name: {{ include "supabase.storage.name" $ }}
@@ -156,35 +168,61 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
                   {{- end }}
+            - name: S3_PROTOCOL_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.s3.secretRef }}
+                  name: {{ .Values.secret.s3.secretRef }}
+                  key: {{ .Values.secret.s3.secretRefKey.keyId | default "keyId" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.s3" . }}
+                  key: keyId
+                  {{- end }}
+            - name: S3_PROTOCOL_ACCESS_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.s3.secretRef }}
+                  name: {{ .Values.secret.s3.secretRef }}
+                  key: {{ .Values.secret.s3.secretRefKey.accessKey | default "accessKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.s3" . }}
+                  key: accessKey
+                  {{- end }}
             {{- if .Values.imgproxy.enabled }}
             - name: IMGPROXY_URL
               value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.port | int }}
             {{- end }}
-            {{- if eq (include "supabase.secret.s3.isValid" .) "true" }}
+            
+            - name: STORAGE_BACKEND
+              value: {{ if .Values.minio.enabled }}s3{{ else }}file{{ end }}
+              
+            {{- if .Values.minio.enabled }}
+            - name: GLOBAL_S3_ENDPOINT
+              value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.minio.service.port }}
+            - name: GLOBAL_S3_PROTOCOl
+              value: http
+            - name: GLOBAL_S3_FORCE_PATH_STYLE
+              value: "true"
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                {{- if .Values.secret.s3.secretRef }}
-                  name: {{ .Values.secret.s3.secretRef }}
-                  key: {{ .Values.secret.s3.secretRefKey.keyId | default "keyId" }}
+                {{- if .Values.secret.minio.secretRef }}
+                  name: {{ .Values.secret.minio.secretRef }}
+                  key: {{ .Values.secret.minio.secretRefKey.user | default "user" }}
                 {{- else }}
-                  name: {{ include "supabase.secret.s3" . }}
-                  key: keyId
+                  name: {{ include "supabase.secret.minio" . }}
+                  key: user
                 {{- end }}
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                 {{- if .Values.secret.s3.secretRef }}
                   name: {{ .Values.secret.s3.secretRef }}
-                  key: {{ .Values.secret.s3.secretRefKey.accessKey | default "accessKey" }}
+                  key: {{ .Values.secret.s3.secretRefKey.password | default "password" }}
                 {{- else }}
-                  name: {{ include "supabase.secret.s3" . }}
-                  key: accessKey
+                  name: {{ include "supabase.secret.minio" . }}
+                  key: password
                 {{- end }}
-            {{- end }}
-            {{- if .Values.minio.enabled }}
-            - name: GLOBAL_S3_ENDPOINT
-              value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.minio.service.port }}
             {{- end }}
           {{- with .Values.storage.livenessProbe }}
           livenessProbe:

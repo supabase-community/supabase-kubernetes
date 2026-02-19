@@ -55,17 +55,8 @@ Expand the name of the s3 secret.
 {{- end -}}
 
 {{/*
-Check if both s3 keys are valid
+Expand the name of the minio secret.
 */}}
-{{- define "supabase.secret.s3.isValid" -}}
-{{- $isValid := "false" -}}
-{{- if .Values.secret.s3.keyId -}}
-{{- if .Values.secret.s3.accessKey -}}
-{{- printf "true" -}}
-{{- else -}}
-{{- printf "false" -}}
-{{- end -}}
-{{- else -}}
-{{- printf "false" -}}
-{{- end -}}
+{{- define "supabase.secret.minio" -}}
+{{- printf "%s-minio" (include "supabase.fullname" .) }}
 {{- end -}}

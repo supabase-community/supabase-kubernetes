@@ -99,8 +99,8 @@ secret:
   ## S3-compatible credentials
   ##
   s3:
-    keyId: ""
-    accessKey: ""
+    keyId: "625729a08b95bf1b7ff351a663f3a23c"
+    accessKey: "850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -140,6 +140,18 @@ secret:
     ## Map to actual keys inside secretRef if they differ
     # secretRefKey:
     #   cryptoKey: cryptoKey
+
+  minio:
+    user: supa-storage
+    password: secret1234
+
+    ## Reference to existing secret
+    # secretRef: ""
+
+    ## Map to actual keys inside secretRef if they differ
+    # secretRefKey:
+    #   user: user
+    #   password: password
 
 ## 2. Database
 ##    Primary Postgres instance consumed by every Supabase workload in this chart.
@@ -741,21 +753,12 @@ storage:
     ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
     DB_SSL: disable
     REQUEST_ALLOW_X_FORWARDED_PATH: "true"
-    PGOPTIONS: -c search_path=storage,public
     FILE_SIZE_LIMIT: "52428800"
-    ## Select file for local PVs or s3 when delegating to an external bucket
-    STORAGE_BACKEND: file
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
     REGION: stub
     GLOBAL_S3_BUCKET: stub
     ENABLE_IMAGE_TRANSFORMATION: "true"
-    ## Set variables below and secret.s3 above to enable S3 storage bucket
-    ## If using this chart's minio, skip the endpoint and protocol below
-    # GLOBAL_S3_ENDPOINT: http://minio:9000
-    # GLOBAL_S3_PROTOCOL: http
-    # GLOBAL_S3_FORCE_PATH_STYLE: true
-    # AWS_DEFAULT_REGION: stub
 
   ## Extra volume mounts
   # volumeMounts:
@@ -1214,9 +1217,9 @@ minio:
 
   ## Minio container image configuration
   image:
-    repository: minio/minio
+    repository: cgr.dev/chainguard/minio
     pullPolicy: IfNotPresent
-    tag: "RELEASE.2025-09-07T16-13-09Z"
+    tag: "latest"
 
   ## Secrets used to pull private images
   imagePullSecrets: []
