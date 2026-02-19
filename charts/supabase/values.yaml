@@ -581,27 +581,6 @@ kong:
   tolerations: []
   affinity: {}
 
-  ## Ingress configuration
-  ingress:
-    enabled: true
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
-      # kubernetes.io/tls-acme: "true"
-    tls: []
-      ## Define TLS secret for SSL termination.
-      ## This section can be left blank if using cluster certificate manager.
-      ## Otherwise, setting this in tandem with certificate manager will overwrite the secret name.
-      # - secretName: example-com-tls
-      #   hosts:
-      #     - example.com
-    hosts:
-      - host: supabase.local
-        paths:
-          - path: /
-            pathType: Prefix
-
   ## Extra volume mounts
   # volumeMounts:
   #   - name: volume_name
@@ -1264,6 +1243,26 @@ autoscaling:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    # kubernetes.io/tls-acme: "true"
+  tls: []
+    ## Define TLS secret for SSL termination.
+    ## This section can be left blank if using cluster certificate manager.
+    ## Otherwise, setting this in tandem with certificate manager will overwrite the secret name.
+    # - secretName: example-com-tls
+    #   hosts:
+    #     - example.com
+  hosts:
+    - host: supabase.local
+      paths:
+        - path: /
+          pathType: Prefix
 
 serviceAccount:
   analytics:
