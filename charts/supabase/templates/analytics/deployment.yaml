@@ -108,11 +108,11 @@ spec:
                   name: {{ include "supabase.secret.analytics" . }}
                   key: privateAccessToken
                   {{- end }}
-            {{- if .Values.analytics.bigQuery.enabled }}
+            {{- if .Values.bigQuery.enabled }}
             - name: GOOGLE_PROJECT_ID
-              value: {{ .Values.analytics.bigQuery.projectId | quote }}
+              value: {{ .Values.bigQuery.projectId | quote }}
             - name: GOOGLE_PROJECT_NUMBER
-              value: {{ .Values.analytics.bigQuery.projectNumber | quote }}
+              value: {{ .Values.bigQuery.projectNumber | quote }}
             {{- else }}
             - name: POSTGRES_BACKEND_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
@@ -128,12 +128,12 @@ spec:
           ports:
             - containerPort: {{ .Values.service.analytics.port }}
               protocol: TCP
-          {{- if or (.Values.analytics.bigQuery.enabled) (.Values.analytics.volumes) }}
+          {{- if or (.Values.bigQuery.enabled) (.Values.analytics.volumes) }}
           volumeMounts:
             {{- with .Values.analytics.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
-            {{- if .Values.analytics.bigQuery.enabled }}
+            {{- if .Values.bigQuery.enabled }}
             - mountPath: /opt/app/rel/logflare/bin/gcloud.json
               name: gcloud-credentials
               subPath: gcloud.json
@@ -143,12 +143,12 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- if or (.Values.analytics.bigQuery.enabled) (.Values.analytics.volumes) }}
+      {{- if or (.Values.bigQuery.enabled) (.Values.analytics.volumes) }}
       volumes:
         {{- with .Values.analytics.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- if .Values.analytics.bigQuery.enabled }}
+        {{- if .Values.bigQuery.enabled }}
         - name: gcloud-credentials
           secret:
             secretName: {{ include "supabase.analytics.fullname" . }}-gcloud

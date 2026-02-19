@@ -631,13 +631,6 @@ analytics:
   tolerations: []
   affinity: {}
 
-  ## Enable BigQuery backend for analytics
-  bigQuery:
-    enabled: false
-    projectId: google-project-id
-    projectNumber: google-project-number
-    gcloudJson: ""
-
   ## Extra volume mounts
   # volumeMounts:
   #   - name: volume_name
@@ -1346,3 +1339,9 @@ migration:
 
   #   -- Set table owner
   #   alter table app.items owner to :pguser;
+
+bigQuery:
+  enabled: false
+  projectId: google-project-id
+  projectNumber: google-project-number
+  gcloudJson: ""
