@@ -205,24 +205,6 @@ db:
   ## and explicitly configure it according to your cluster capacity
   resources: {}
 
-  ## Additional migration scripts can be defined here
-  config:
-    # example.sql: |
-    #   \set pguser `echo "$POSTGRES_USER"`
-
-    #   -- Create schema
-    #   create schema if not exists app;
-    #   alter schema app owner to :pguser;
-
-    #   -- Create example table
-    #   create table if not exists app.items (
-    #     id   serial primary key,
-    #     name text not null
-    #   );
-
-    #   -- Set table owner
-    #   alter table app.items owner to :pguser;
-
 ## 3. Studio
 ##    Supabase Studio web console for managing projects, database, and auth.
 ##
@@ -1348,3 +1330,20 @@ serviceAccount:
     create: true
     annotations: {}
     name: ""
+
+migration:
+  # example.sql: |
+  #   \set pguser `echo "$POSTGRES_USER"`
+
+  #   -- Create schema
+  #   create schema if not exists app;
+  #   alter schema app owner to :pguser;
+
+  #   -- Create example table
+  #   create table if not exists app.items (
+  #     id   serial primary key,
+  #     name text not null
+  #   );
+
+  #   -- Set table owner
+  #   alter table app.items owner to :pguser;
