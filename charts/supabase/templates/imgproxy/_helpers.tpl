@@ -35,9 +35,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "supabase.imgproxy.serviceAccountName" -}}
-{{- if .Values.imgproxy.serviceAccount.create }}
-{{- default (include "supabase.imgproxy.fullname" .) .Values.imgproxy.serviceAccount.name }}
+{{- if .Values.serviceAccount.imgproxy.create }}
+{{- default (include "supabase.imgproxy.fullname" .) .Values.serviceAccount.imgproxy.name }}
 {{- else }}
-{{- default "default" .Values.imgproxy.serviceAccount.name }}
+{{- default "default" .Values.serviceAccount.imgproxy.name }}
 {{- end }}
 {{- end }}

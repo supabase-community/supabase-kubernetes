@@ -35,9 +35,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "supabase.minio.serviceAccountName" -}}
-{{- if .Values.minio.serviceAccount.create }}
-{{- default (include "supabase.minio.fullname" .) .Values.minio.serviceAccount.name }}
+{{- if .Values.serviceAccount.minio.create }}
+{{- default (include "supabase.minio.fullname" .) .Values.serviceAccount.minio.name }}
 {{- else }}
-{{- default "default" .Values.minio.serviceAccount.name }}
+{{- default "default" .Values.serviceAccount.minio.name }}
 {{- end }}
 {{- end }}

@@ -35,9 +35,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "supabase.vector.serviceAccountName" -}}
-{{- if .Values.vector.serviceAccount.create }}
-{{- default (include "supabase.vector.fullname" .) .Values.vector.serviceAccount.name }}
+{{- if .Values.serviceAccount.vector.create }}
+{{- default (include "supabase.vector.fullname" .) .Values.serviceAccount.vector.name }}
 {{- else }}
-{{- default "default" .Values.vector.serviceAccount.name }}
+{{- default "default" .Values.serviceAccount.vector.name }}
 {{- end }}
 {{- end }}

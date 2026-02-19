@@ -35,9 +35,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "supabase.analytics.serviceAccountName" -}}
-{{- if .Values.analytics.serviceAccount.create }}
-{{- default (include "supabase.analytics.fullname" .) .Values.analytics.serviceAccount.name }}
+{{- if .Values.serviceAccount.analytics.create }}
+{{- default (include "supabase.analytics.fullname" .) .Values.serviceAccount.analytics.name }}
 {{- else }}
-{{- default "default" .Values.analytics.serviceAccount.name }}
+{{- default "default" .Values.serviceAccount.analytics.name }}
 {{- end }}
 {{- end }}

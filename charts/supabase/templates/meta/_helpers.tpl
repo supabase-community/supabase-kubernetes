@@ -35,9 +35,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "supabase.meta.serviceAccountName" -}}
-{{- if .Values.meta.serviceAccount.create }}
-{{- default (include "supabase.meta.fullname" .) .Values.meta.serviceAccount.name }}
+{{- if .Values.serviceAccount.meta.create }}
+{{- default (include "supabase.meta.fullname" .) .Values.serviceAccount.meta.name }}
 {{- else }}
-{{- default "default" .Values.meta.serviceAccount.name }}
+{{- default "default" .Values.serviceAccount.meta.name }}
 {{- end }}
 {{- end }}

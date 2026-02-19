@@ -174,14 +174,6 @@ db:
   ## replication tooling. Keep this as 1 unless you know what you're doing.
   replicaCount: 1
 
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -250,14 +242,6 @@ studio:
   ## Number of Studio replicas
   replicaCount: 1
 
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -308,14 +292,6 @@ auth:
   ## Number of Auth replicas
   replicaCount: 1
 
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -365,14 +341,6 @@ rest:
   ## Secrets used to pull private images
   imagePullSecrets: []
 
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -419,14 +387,6 @@ realtime:
 
   ## Secrets used to pull private images
   imagePullSecrets: []
-
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
 
   nameOverride: ""
   fullnameOverride: ""
@@ -478,14 +438,6 @@ meta:
   ## Number of Meta replicas
   replicaCount: 1
 
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -535,14 +487,6 @@ storage:
 
   ## Number of Storage replicas
   replicaCount: 1
-
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
 
   nameOverride: ""
   fullnameOverride: ""
@@ -594,14 +538,6 @@ imgproxy:
   ## Number of Imgproxy replicas
   replicaCount: 1
 
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -651,14 +587,6 @@ kong:
 
   ## Number of Kong replicas
   replicaCount: 1
-
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
 
   nameOverride: ""
   fullnameOverride: ""
@@ -731,14 +659,6 @@ analytics:
   ## Number of Analytics replicas
   replicaCount: 1
 
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -796,14 +716,6 @@ vector:
   ## Number of Vector replicas
   replicaCount: 1
 
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -853,14 +765,6 @@ functions:
 
   ## Number of Functions replicas
   replicaCount: 1
-
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
 
   nameOverride: ""
   fullnameOverride: ""
@@ -913,14 +817,6 @@ minio:
 
   ## Number of Minio replicas
   replicaCount: 1
-
-  ## Service Account configuration
-  serviceAccount:
-    create: true
-    annotations: {}
-    ## The name of the service account to use.
-    ## If not set and create is true, a name is generated using the fullname template
-    name: ""
 
   nameOverride: ""
   fullnameOverride: ""
@@ -1386,3 +1282,69 @@ autoscaling:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
+
+serviceAccount:
+  analytics:
+    create: true
+    annotations: {}
+    name: ""
+
+  auth:
+    create: true
+    annotations: {}
+    name: ""
+
+  db:
+    create: true
+    annotations: {}
+    name: ""
+
+  functions:
+    create: true
+    annotations: {}
+    name: ""
+
+  imgproxy:
+    create: true
+    annotations: {}
+    name: ""
+
+  kong:
+    create: true
+    annotations: {}
+    name: ""
+
+  meta:
+    create: true
+    annotations: {}
+    name: ""
+
+  minio:
+    create: true
+    annotations: {}
+    name: ""
+
+  realtime:
+    create: true
+    annotations: {}
+    name: ""
+
+  rest:
+    create: true
+    annotations: {}
+    name: ""
+
+  storage:
+    create: true
+    annotations: {}
+    name: ""
+
+  studio:
+    create: true
+    annotations: {}
+    name: ""
+
+  vector:
+    create: true
+    annotations: {}
+    name: ""
