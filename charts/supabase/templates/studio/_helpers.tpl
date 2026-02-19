@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.studio.name" -}}
-{{- default (print .Chart.Name "-studio") .Values.studio.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-studio") .Values.deployment.studio.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.studio.fullname" -}}
-{{- if .Values.studio.fullnameOverride }}
-{{- .Values.studio.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.studio.fullnameOverride }}
+{{- .Values.deployment.studio.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-studio") .Values.studio.nameOverride }}
+{{- $name := default (print .Chart.Name "-studio") .Values.deployment.studio.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

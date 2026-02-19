@@ -1,4 +1,4 @@
-{{- if .Values.analytics.enabled -}}
+{{- if .Values.deployment.analytics.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:

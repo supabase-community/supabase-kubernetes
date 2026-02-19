@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "supabase.kong.fullname" . -}}
 {{- $svcPort := .Values.service.kong.port -}}

@@ -1,4 +1,4 @@
-{{- if .Values.minio.enabled -}}
+{{- if .Values.deployment.minio.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,14 +7,14 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.minio.enabled }}
-  replicas: {{ .Values.minio.replicaCount }}
+  replicas: {{ .Values.deployment.minio.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.minio.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.minio.podAnnotations }}
+      {{- with .Values.deployment.minio.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -28,11 +28,11 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "supabase.minio.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.minio.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.minio.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "supabase.minio.name" $ }}
           securityContext:
-            {{- toYaml .Values.minio.securityContext | nindent 12 }}
+            {{- toYaml .Values.deployment.minio.securityContext | nindent 12 }}
           image: "{{ .Values.image.minio.repository }}:{{ .Values.image.minio.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.minio.pullPolicy }}
           args:
@@ -61,11 +61,11 @@ spec:
                   name: {{ include "supabase.secret.minio" . }}
                   key: password
                 {{- end }}
-          {{- with .Values.minio.livenessProbe }}
+          {{- with .Values.deployment.minio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.minio.readinessProbe }}
+          {{- with .Values.deployment.minio.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -73,25 +73,25 @@ spec:
             - name: http
               containerPort: 9000
               protocol: TCP
-          {{- with .Values.minio.resources }}
+          {{- with .Values.deployment.minio.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-          {{- with .Values.minio.volumeMounts }}
+          {{- with .Values.deployment.minio.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
             - mountPath: /data
               name: minio-data
-      {{- with .Values.minio.nodeSelector }}
+      {{- with .Values.deployment.minio.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.minio.affinity }}
+      {{- with .Values.deployment.minio.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.minio.tolerations }}
+      {{- with .Values.deployment.minio.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -104,7 +104,7 @@ spec:
           emptyDir:
             medium: ""
           {{- end }}
-        {{- with .Values.minio.volumes }}
+        {{- with .Values.deployment.minio.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
 {{- end }}

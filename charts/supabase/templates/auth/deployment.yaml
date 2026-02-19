@@ -1,4 +1,4 @@
-{{- if .Values.auth.enabled -}}
+{{- if .Values.deployment.auth.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,14 +7,14 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.auth.enabled }}
-  replicas: {{ .Values.auth.replicaCount }}
+  replicas: {{ .Values.deployment.auth.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.auth.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.auth.podAnnotations }}
+      {{- with .Values.deployment.auth.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -27,14 +27,14 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "supabase.auth.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.auth.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.auth.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
           image: postgres:15-alpine
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
               value: {{ .Values.environment.auth.DB_HOST | quote }}
@@ -52,7 +52,7 @@ spec:
       containers:
         - name: {{ include "supabase.auth.name" $ }}
           securityContext:
-            {{- toYaml .Values.auth.securityContext | nindent 12 }}
+            {{- toYaml .Values.deployment.auth.securityContext | nindent 12 }}
           image: "{{ .Values.image.auth.repository }}:{{ .Values.image.auth.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.auth.pullPolicy }}
           env:
@@ -60,7 +60,7 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.db.enabled }}
+            {{- if .Values.deployment.db.enabled }}
             - name: DB_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
@@ -128,15 +128,15 @@ spec:
                   name: {{ include "supabase.secret.smtp" . }}
                   key: password
                   {{- end }}
-          {{- with .Values.auth.envFrom }}
+          {{- with .Values.deployment.auth.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.auth.livenessProbe }}
+          {{- with .Values.deployment.auth.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.auth.readinessProbe }}
+          {{- with .Values.deployment.auth.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -144,27 +144,27 @@ spec:
             - name: http
               containerPort: 9999
               protocol: TCP
-          {{- with .Values.auth.resources }}
+          {{- with .Values.deployment.auth.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.auth.volumeMounts }}
+          {{- with .Values.deployment.auth.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.auth.volumes }}
+      {{- with .Values.deployment.auth.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.auth.nodeSelector }}
+      {{- with .Values.deployment.auth.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.auth.affinity }}
+      {{- with .Values.deployment.auth.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.auth.tolerations }}
+      {{- with .Values.deployment.auth.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

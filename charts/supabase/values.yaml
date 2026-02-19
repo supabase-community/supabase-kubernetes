@@ -153,551 +153,227 @@ secret:
     #   user: user
     #   password: password
 
-## 2. Database
-##    Primary Postgres instance consumed by every Supabase workload in this chart.
-##
-db:
-  ## Enable database provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of PostgreSQL replicas
-  ## NOTE: PostgreSQL does not support horizontal scaling without
-  ## replication tooling. Keep this as 1 unless you know what you're doing.
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext:
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 3. Studio
-##    Supabase Studio web console for managing projects, database, and auth.
-##
-studio:
-  ## Enable studio provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Studio replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 4. Auth
-##    GoTrue handles authentication flows, OTP delivery, and JWT management.
-##
-auth:
-  ## Enable auth provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Auth replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  envFrom: []
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 5. REST
-##    PostgREST exposes database schemas as RESTful endpoints for anonymous and service clients.
-##
-rest:
-  ## Enable PostgREST provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 6. Realtime
-##    Realtime delivers database change events and presence updates over websockets.
-##
-realtime:
-  ## Enable realtime provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 7. Meta
-##    Postgres Meta offers a lightweight Postgres management API for dashboards and automations.
-##
-meta:
-  ## Enable meta provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Meta replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 8. Storage
-##    Storage API handles file uploads, policies, and optional image transformations.
-##
-storage:
-  ## Enable storage provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Storage replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 9. Image Proxy
-##    Imgproxy provides fast, on-the-fly image optimization for storage assets.
-##
-imgproxy:
-  ## Enable imgproxy provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Imgproxy replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 10. Kong
-##     Kong serves as the API gateway, routing external traffic to Supabase services.
-##
-kong:
-  ## Enable Kong provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Kong replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 11. Analytics
-##     Logflare captures structured logs and metrics for dashboards or BigQuery forwarding.
-##
-analytics:
-  ## Enable Analytics provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Analytics replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 12. Vector
-##     Vector ships container logs to destinations defined in its configuration.
-##
-vector:
-  ## Enable Vector provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Vector replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 13. Functions
-##     Edge Functions (Deno) power custom logic deployed alongside Supabase.
-##
-functions:
-  ## Enable Functions provisioning
-  enabled: true
-
-  ## Secrets used to pull private images
-  ## Number of Functions replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  envFrom: []
-
-  ## Mount user functions
-  # volumeMounts:
-  #   - name: my_functions
-  #     mountPath: /home/deno/functions/main/main
-
-  ## Functions volume
-  # volumes:
-  #   - name: my_functions
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.ts
-  #         path: name_of_file_in_container.ts
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
-
-## 14. Minio
-##     Optional S3-compatible backend leveraged by the Storage API when no external bucket exists.
-##
-minio:
-  ## Enable Minio provisioning
-  enabled: false
-
-  ## Secrets used to pull private images
-  ## Number of Minio replicas
-  replicaCount: 1
-
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  podAnnotations: {}
-  podSecurityContext: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  ## Extra volume mounts
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-
-  ## Extra volumes
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-
-  ## Resource requests and limits
-  ## NOTE: It is recommended to leave this empty by default
-  ## and explicitly configure it according to your cluster capacity
-  resources: {}
+deployment:
+  analytics:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  auth:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  db:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  functions:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  imgproxy:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  kong:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  meta:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  minio:
+    enabled: false
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  realtime:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  rest:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  storage:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  studio:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
+
+  vector:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    livenessProbe: {}
+    readinessProbe: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumeMounts: {}
+    volumes: {}
+    resources: {}
 
 image:
   analytics:

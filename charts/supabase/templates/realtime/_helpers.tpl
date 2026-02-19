@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.realtime.name" -}}
-{{- default (print .Chart.Name "-realtime") .Values.realtime.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-realtime") .Values.deployment.realtime.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.realtime.fullname" -}}
-{{- if .Values.realtime.fullnameOverride }}
-{{- .Values.realtime.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.realtime.fullnameOverride }}
+{{- .Values.deployment.realtime.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-realtime") .Values.realtime.nameOverride }}
+{{- $name := default (print .Chart.Name "-realtime") .Values.deployment.realtime.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

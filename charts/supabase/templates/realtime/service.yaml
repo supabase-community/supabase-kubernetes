@@ -1,4 +1,4 @@
-{{- if .Values.realtime.enabled -}}
+{{- if .Values.deployment.realtime.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:

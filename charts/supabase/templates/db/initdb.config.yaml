@@ -1,4 +1,4 @@
-{{- if .Values.db.enabled -}}
+{{- if .Values.deployment.db.enabled -}}
 kind: ConfigMap
 apiVersion: v1
 metadata:

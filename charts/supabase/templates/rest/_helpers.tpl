@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.rest.name" -}}
-{{- default (print .Chart.Name "-rest") .Values.rest.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-rest") .Values.deployment.rest.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.rest.fullname" -}}
-{{- if .Values.rest.fullnameOverride }}
-{{- .Values.rest.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.rest.fullnameOverride }}
+{{- .Values.deployment.rest.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-rest") .Values.rest.nameOverride }}
+{{- $name := default (print .Chart.Name "-rest") .Values.deployment.rest.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

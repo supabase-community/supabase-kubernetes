@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.vector.name" -}}
-{{- default (print .Chart.Name "-vector") .Values.vector.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-vector") .Values.deployment.vector.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.vector.fullname" -}}
-{{- if .Values.vector.fullnameOverride }}
-{{- .Values.vector.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.vector.fullnameOverride }}
+{{- .Values.deployment.vector.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-vector") .Values.vector.nameOverride }}
+{{- $name := default (print .Chart.Name "-vector") .Values.deployment.vector.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

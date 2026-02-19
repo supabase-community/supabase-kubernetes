@@ -1,4 +1,4 @@
-{{- if .Values.studio.enabled -}}
+{{- if .Values.deployment.studio.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,14 +7,14 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.studio.enabled }}
-  replicas: {{ .Values.studio.replicaCount }}
+  replicas: {{ .Values.deployment.studio.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.studio.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.studio.podAnnotations }}
+      {{- with .Values.deployment.studio.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -27,11 +27,11 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "supabase.studio.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.studio.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.studio.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "supabase.studio.name" $ }}
           securityContext:
-            {{- toYaml .Values.studio.securityContext | nindent 12 }}
+            {{- toYaml .Values.deployment.studio.securityContext | nindent 12 }}
           image: "{{ .Values.image.studio.repository }}:{{ .Values.image.studio.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.studio.pullPolicy }}
           env:
@@ -39,16 +39,16 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.kong.enabled }}
+            {{- if .Values.deployment.kong.enabled }}
             - name: SUPABASE_URL
               value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
             {{- end }}
-            {{- if .Values.meta.enabled }}
+            {{- if .Values.deployment.meta.enabled }}
             - name: STUDIO_PG_META_URL
               value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}
             {{- end }}
 
-            {{- if .Values.db.enabled }}
+            {{- if .Values.deployment.db.enabled }}
             - name: POSTGRES_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
@@ -131,7 +131,7 @@ spec:
                   key: secret
                   {{- end }}
 
-            {{- if .Values.analytics.enabled }}
+            {{- if .Values.deployment.analytics.enabled }}
             - name: LOGFLARE_URL
               value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}
             - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
@@ -163,11 +163,11 @@ spec:
             - name: SNIPPETS_MANAGEMENT_FOLDER
               value: /app/snippets
             {{- end }}
-          {{- with .Values.studio.livenessProbe }}
+          {{- with .Values.deployment.studio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.studio.readinessProbe }}
+          {{- with .Values.deployment.studio.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -175,13 +175,13 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
-          {{- with .Values.studio.resources }}
+          {{- with .Values.deployment.studio.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if or .Values.studio.volumeMounts .Values.persistence.functions.enabled }}
+          {{- if or .Values.deployment.studio.volumeMounts .Values.persistence.functions.enabled }}
           volumeMounts:
-            {{- with .Values.studio.volumeMounts }}
+            {{- with .Values.deployment.studio.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
             {{- if .Values.persistence.functions.enabled }}
@@ -193,9 +193,9 @@ spec:
               mountPath: /app/snippets
             {{- end }}
           {{- end }}
-      {{- if or .Values.studio.volumes .Values.persistence.functions.enabled }}
+      {{- if or .Values.deployment.studio.volumes .Values.persistence.functions.enabled }}
       volumes:
-        {{- with .Values.studio.volumes }}
+        {{- with .Values.deployment.studio.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- if .Values.persistence.functions.enabled }}
@@ -209,15 +209,15 @@ spec:
             claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "snippets") }}
         {{- end }}
       {{- end }}
-      {{- with .Values.studio.nodeSelector }}
+      {{- with .Values.deployment.studio.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.studio.affinity }}
+      {{- with .Values.deployment.studio.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.studio.tolerations }}
+      {{- with .Values.deployment.studio.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

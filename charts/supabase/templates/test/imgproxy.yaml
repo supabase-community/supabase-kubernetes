@@ -1,4 +1,4 @@
-{{- if .Values.imgproxy.enabled -}}
+{{- if .Values.deployment.imgproxy.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:

@@ -1,4 +1,4 @@
-{{- if .Values.analytics.enabled -}}
+{{- if .Values.deployment.analytics.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,14 +7,14 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.analytics.enabled }}
-  replicas: {{ .Values.analytics.replicaCount }}
+  replicas: {{ .Values.deployment.analytics.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.analytics.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.analytics.podAnnotations }}
+      {{- with .Values.deployment.analytics.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -27,14 +27,14 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "supabase.analytics.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.analytics.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.analytics.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
           image: postgres:15-alpine
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
               value: {{ .Values.environment.analytics.DB_HOST | quote }}
@@ -54,7 +54,7 @@ spec:
       containers:
         - name: {{ include "supabase.analytics.name" $ }}
           securityContext:
-            {{- toYaml .Values.analytics.securityContext | nindent 12 }}
+            {{- toYaml .Values.deployment.analytics.securityContext | nindent 12 }}
           image: "{{ .Values.image.analytics.repository }}:{{ .Values.image.analytics.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.analytics.pullPolicy }}
           env:
@@ -63,7 +63,7 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
             - name: DB_HOSTNAME
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
               value: {{ .Values.environment.auth.DB_HOST | quote }}
@@ -117,20 +117,20 @@ spec:
             - name: POSTGRES_BACKEND_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
             {{- end }}
-          {{- with .Values.analytics.livenessProbe }}
+          {{- with .Values.deployment.analytics.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.analytics.readinessProbe }}
+          {{- with .Values.deployment.analytics.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
             - containerPort: {{ .Values.service.analytics.port }}
               protocol: TCP
-          {{- if or (.Values.bigQuery.enabled) (.Values.analytics.volumes) }}
+          {{- if or (.Values.bigQuery.enabled) (.Values.deployment.analytics.volumes) }}
           volumeMounts:
-            {{- with .Values.analytics.volumeMounts }}
+            {{- with .Values.deployment.analytics.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
             {{- if .Values.bigQuery.enabled }}
@@ -139,13 +139,13 @@ spec:
               subPath: gcloud.json
             {{- end }}
           {{- end }}
-          {{- with .Values.analytics.resources }}
+          {{- with .Values.deployment.analytics.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- if or (.Values.bigQuery.enabled) (.Values.analytics.volumes) }}
+      {{- if or (.Values.bigQuery.enabled) (.Values.deployment.analytics.volumes) }}
       volumes:
-        {{- with .Values.analytics.volumes }}
+        {{- with .Values.deployment.analytics.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- if .Values.bigQuery.enabled }}
@@ -154,15 +154,15 @@ spec:
             secretName: {{ include "supabase.analytics.fullname" . }}-gcloud
         {{- end }}
       {{- end }}
-      {{- with .Values.analytics.nodeSelector }}
+      {{- with .Values.deployment.analytics.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.analytics.affinity }}
+      {{- with .Values.deployment.analytics.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.analytics.tolerations }}
+      {{- with .Values.deployment.analytics.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

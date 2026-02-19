@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -48,7 +48,7 @@ data:
         password: ${DASHBOARD_PASSWORD}
     {{- end }}
     services:
-    {{- if .Values.auth.enabled }}
+    {{- if .Values.deployment.auth.enabled }}
       - name: auth-v1-open
         url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/verify
         routes:
@@ -96,7 +96,7 @@ data:
                 - admin
                 - anon
     {{- end }}
-    {{- if .Values.rest.enabled }}
+    {{- if .Values.deployment.rest.enabled }}
       - name: rest-v1
         _comment: "PostgREST: /rest/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/*"
         url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/
@@ -141,7 +141,7 @@ data:
                 - admin
                 - anon
     {{- end }}
-    {{- if .Values.realtime.enabled }}
+    {{- if .Values.deployment.realtime.enabled }}
       - name: realtime-v1-ws
         _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/socket/*"
         url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/socket
@@ -183,7 +183,7 @@ data:
                 - admin
                 - anon
     {{- end }}
-    {{- if .Values.storage.enabled }}
+    {{- if .Values.deployment.storage.enabled }}
       - name: storage-v1
         _comment: "Storage: /storage/v1/* -> http://{{ include "supabase.storage.fullname" . }}:{{ .Values.service.storage.port }}/*"
         url: http://{{ include "supabase.storage.fullname" . }}:{{ .Values.service.storage.port }}/
@@ -195,7 +195,7 @@ data:
         plugins:
           - name: cors
     {{- end }}
-    {{- if .Values.functions.enabled }}
+    {{- if .Values.deployment.functions.enabled }}
       - name: functions-v1
         _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.service.functions.port }}/*'
         url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.service.functions.port }}/
@@ -214,7 +214,7 @@ data:
     */}}
     
     {{/*
-    {{- if .Values.analytics.enabled }}
+    {{- if .Values.deployment.analytics.enabled }}
       - name: analytics-v1
         _comment: 'Analytics: /analytics/v1/* -> http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/*'
         url: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/
@@ -226,7 +226,7 @@ data:
     {{- end }}
     */}}
     
-    {{- if .Values.meta.enabled }}
+    {{- if .Values.deployment.meta.enabled }}
       - name: meta
         _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}/*"
         url: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}/

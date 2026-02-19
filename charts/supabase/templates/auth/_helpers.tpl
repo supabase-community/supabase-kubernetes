@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.auth.name" -}}
-{{- default (print .Chart.Name "-auth") .Values.auth.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-auth") .Values.deployment.auth.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.auth.fullname" -}}
-{{- if .Values.auth.fullnameOverride }}
-{{- .Values.auth.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.auth.fullnameOverride }}
+{{- .Values.deployment.auth.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-auth") .Values.auth.nameOverride }}
+{{- $name := default (print .Chart.Name "-auth") .Values.deployment.auth.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:

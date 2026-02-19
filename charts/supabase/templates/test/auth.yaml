@@ -1,4 +1,4 @@
-{{- if .Values.auth.enabled -}}
+{{- if .Values.deployment.auth.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:

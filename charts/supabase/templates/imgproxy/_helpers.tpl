@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.imgproxy.name" -}}
-{{- default (print .Chart.Name "-imgproxy") .Values.imgproxy.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-imgproxy") .Values.deployment.imgproxy.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.imgproxy.fullname" -}}
-{{- if .Values.imgproxy.fullnameOverride }}
-{{- .Values.imgproxy.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.imgproxy.fullnameOverride }}
+{{- .Values.deployment.imgproxy.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-imgproxy") .Values.imgproxy.nameOverride }}
+{{- $name := default (print .Chart.Name "-imgproxy") .Values.deployment.imgproxy.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

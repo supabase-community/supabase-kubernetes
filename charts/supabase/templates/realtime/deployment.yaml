@@ -1,4 +1,4 @@
-{{- if .Values.realtime.enabled -}}
+{{- if .Values.deployment.realtime.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,14 +7,14 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.realtime.enabled }}
-  replicas: {{ .Values.realtime.replicaCount }}
+  replicas: {{ .Values.deployment.realtime.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.realtime.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.realtime.podAnnotations }}
+      {{- with .Values.deployment.realtime.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -27,14 +27,14 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "supabase.realtime.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.realtime.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.realtime.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
           image: postgres:15-alpine
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
               value: {{ .Values.environment.auth.DB_HOST | quote }}
@@ -52,7 +52,7 @@ spec:
       containers:
         - name: {{ include "supabase.realtime.name" $ }}
           securityContext:
-            {{- toYaml .Values.realtime.securityContext | nindent 12 }}
+            {{- toYaml .Values.deployment.realtime.securityContext | nindent 12 }}
           image: "{{ .Values.image.realtime.repository }}:{{ .Values.image.realtime.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.realtime.pullPolicy }}
           command: ["/bin/sh"]
@@ -62,7 +62,7 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.db.enabled }}
+            {{- if .Values.deployment.db.enabled }}
             - name: DB_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
@@ -120,11 +120,11 @@ spec:
                   key: secretKeyBase
                   {{- end }}
 
-          {{- with .Values.realtime.livenessProbe }}
+          {{- with .Values.deployment.realtime.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.realtime.readinessProbe }}
+          {{- with .Values.deployment.realtime.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -132,27 +132,27 @@ spec:
             - name: http
               containerPort: 4000
               protocol: TCP
-          {{- with .Values.realtime.resources }}
+          {{- with .Values.deployment.realtime.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.realtime.volumeMounts }}
+          {{- with .Values.deployment.realtime.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.realtime.volumes }}
+      {{- with .Values.deployment.realtime.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.realtime.nodeSelector }}
+      {{- with .Values.deployment.realtime.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.realtime.affinity }}
+      {{- with .Values.deployment.realtime.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.realtime.tolerations }}
+      {{- with .Values.deployment.realtime.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

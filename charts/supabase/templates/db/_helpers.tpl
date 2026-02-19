@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.db.name" -}}
-{{- default (print .Chart.Name "-db") .Values.db.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-db") .Values.deployment.db.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.db.fullname" -}}
-{{- if .Values.db.fullnameOverride }}
-{{- .Values.db.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.db.fullnameOverride }}
+{{- .Values.deployment.db.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-db") .Values.db.nameOverride }}
+{{- $name := default (print .Chart.Name "-db") .Values.deployment.db.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

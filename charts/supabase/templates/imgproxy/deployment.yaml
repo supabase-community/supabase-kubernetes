@@ -1,4 +1,4 @@
-{{- if .Values.imgproxy.enabled -}}
+{{- if .Values.deployment.imgproxy.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,14 +7,14 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.imgproxy.enabled }}
-  replicas: {{ .Values.imgproxy.replicaCount }}
+  replicas: {{ .Values.deployment.imgproxy.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.imgproxy.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.imgproxy.podAnnotations }}
+      {{- with .Values.deployment.imgproxy.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -27,11 +27,11 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "supabase.imgproxy.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.imgproxy.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.imgproxy.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "supabase.imgproxy.name" $ }}
           securityContext:
-            {{- toYaml .Values.imgproxy.securityContext | nindent 12 }}
+            {{- toYaml .Values.deployment.imgproxy.securityContext | nindent 12 }}
           image: "{{ .Values.image.imgproxy.repository }}:{{ .Values.image.imgproxy.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.imgproxy.pullPolicy }}
           env:
@@ -39,11 +39,11 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-          {{- with .Values.imgproxy.livenessProbe }}
+          {{- with .Values.deployment.imgproxy.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.imgproxy.readinessProbe }}
+          {{- with .Values.deployment.imgproxy.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -51,9 +51,9 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          {{- if or (.Values.persistence.imgproxy.enabled) (.Values.imgproxy.volumes) }}
+          {{- if or (.Values.persistence.imgproxy.enabled) (.Values.deployment.imgproxy.volumes) }}
           volumeMounts:
-            {{- with .Values.imgproxy.volumeMounts }}
+            {{- with .Values.deployment.imgproxy.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
             {{- if .Values.persistence.imgproxy.enabled }}
@@ -61,13 +61,13 @@ spec:
               name: imgproxy-volume
             {{- end }}
           {{- end }}
-          {{- with .Values.imgproxy.resources }}
+          {{- with .Values.deployment.imgproxy.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- if or (.Values.persistence.imgproxy.enabled) (.Values.imgproxy.volumes) }}
+      {{- if or (.Values.persistence.imgproxy.enabled) (.Values.deployment.imgproxy.volumes) }}
       volumes:
-        {{- with .Values.imgproxy.volumes }}
+        {{- with .Values.deployment.imgproxy.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- if .Values.persistence.imgproxy.enabled }}
@@ -76,15 +76,15 @@ spec:
             claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "imgproxy") }}
         {{- end }}
       {{- end }}
-      {{- with .Values.imgproxy.nodeSelector }}
+      {{- with .Values.deployment.imgproxy.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.imgproxy.affinity }}
+      {{- with .Values.deployment.imgproxy.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.imgproxy.tolerations }}
+      {{- with .Values.deployment.imgproxy.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

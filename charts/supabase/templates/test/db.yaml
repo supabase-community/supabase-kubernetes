@@ -1,4 +1,4 @@
-{{- if .Values.db.enabled -}}
+{{- if .Values.deployment.db.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -20,7 +20,7 @@ spec:
               echo "Database is ready"
           env:
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
               value: {{ .Values.environment.auth.DB_HOST | quote }}

@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.kong.name" -}}
-{{- default (print .Chart.Name "-kong") .Values.kong.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-kong") .Values.deployment.kong.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.kong.fullname" -}}
-{{- if .Values.kong.fullnameOverride }}
-{{- .Values.kong.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.kong.fullnameOverride }}
+{{- .Values.deployment.kong.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-kong") .Values.kong.nameOverride }}
+{{- $name := default (print .Chart.Name "-kong") .Values.deployment.kong.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

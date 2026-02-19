@@ -1,4 +1,4 @@
-{{- if .Values.realtime.enabled -}}
+{{- if .Values.deployment.realtime.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
