@@ -7,7 +7,7 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
     vector.dev/exclude: "true"
 spec:
-  {{- if not .Values.vector.autoscaling.enabled }}
+  {{- if not .Values.autoscaling.vector.enabled }}
   replicas: {{ .Values.vector.replicaCount }}
   {{- end }}
   selector:

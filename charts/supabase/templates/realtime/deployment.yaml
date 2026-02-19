@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.realtime.autoscaling.enabled }}
+  {{- if not .Values.autoscaling.realtime.enabled }}
   replicas: {{ .Values.realtime.replicaCount }}
   {{- end }}
   selector:
