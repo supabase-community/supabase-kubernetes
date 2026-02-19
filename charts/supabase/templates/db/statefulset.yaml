@@ -21,7 +21,7 @@ spec:
       labels:
         {{- include "supabase.db.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.db.imagePullSecrets }}
+      {{- with .Values.image.db.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -30,7 +30,7 @@ spec:
         {{- toYaml .Values.db.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
-          image: "{{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
@@ -60,8 +60,8 @@ spec:
         - name: {{ include "supabase.db.name" $ }}
           securityContext:
             {{- toYaml .Values.db.securityContext | nindent 12 }}
-          image: "{{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.db.image.pullPolicy }}
+          image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.db.pullPolicy }}
           lifecycle:
             preStop:
               exec:

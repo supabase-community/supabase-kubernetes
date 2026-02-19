@@ -160,15 +160,7 @@ db:
   ## Enable database provisioning
   enabled: true
 
-  ## PostgreSQL container image configuration
-  image:
-    repository: supabase/postgres
-    pullPolicy: IfNotPresent
-    tag: "15.8.1.085"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of PostgreSQL replicas
   ## NOTE: PostgreSQL does not support horizontal scaling without
   ## replication tooling. Keep this as 1 unless you know what you're doing.
@@ -212,15 +204,7 @@ studio:
   ## Enable studio provisioning
   enabled: true
 
-  ## Studio container image configuration
-  image:
-    repository: supabase/studio
-    pullPolicy: IfNotPresent
-    tag: "2026.02.16-sha-26c615c"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Studio replicas
   replicaCount: 1
 
@@ -262,15 +246,7 @@ auth:
   ## Enable auth provisioning
   enabled: true
 
-  ## Auth container image configuration
-  image:
-    repository: supabase/gotrue
-    pullPolicy: IfNotPresent
-    tag: "v2.186.0"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Auth replicas
   replicaCount: 1
 
@@ -314,15 +290,7 @@ rest:
   ## Enable PostgREST provisioning
   enabled: true
 
-  ## PostgREST container image configuration
-  image:
-    repository: postgrest/postgrest
-    pullPolicy: IfNotPresent
-    tag: "v14.5"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -361,15 +329,7 @@ realtime:
   ## Enable realtime provisioning
   enabled: true
 
-  ## Realtime container image configuration
-  image:
-    repository: supabase/realtime
-    pullPolicy: IfNotPresent
-    tag: "v2.76.5"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   nameOverride: ""
   fullnameOverride: ""
   livenessProbe: {}
@@ -408,15 +368,7 @@ meta:
   ## Enable meta provisioning
   enabled: true
 
-  ## Meta container image configuration
-  image:
-    repository: supabase/postgres-meta
-    pullPolicy: IfNotPresent
-    tag: "v0.95.2"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Meta replicas
   replicaCount: 1
 
@@ -458,15 +410,7 @@ storage:
   ## Enable storage provisioning
   enabled: true
 
-  ## Storage container image configuration
-  image:
-    repository: supabase/storage-api
-    pullPolicy: IfNotPresent
-    tag: "v1.37.8"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Storage replicas
   replicaCount: 1
 
@@ -508,15 +452,7 @@ imgproxy:
   ## Enable imgproxy provisioning
   enabled: true
 
-  ## Imgproxy container image configuration
-  image:
-    repository: darthsim/imgproxy
-    pullPolicy: IfNotPresent
-    tag: "v3.30.1"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Imgproxy replicas
   replicaCount: 1
 
@@ -558,15 +494,7 @@ kong:
   ## Enable Kong provisioning
   enabled: true
 
-  ## Kong container image configuration
-  image:
-    repository: kong
-    pullPolicy: IfNotPresent
-    tag: "2.8.1"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Kong replicas
   replicaCount: 1
 
@@ -608,15 +536,7 @@ analytics:
   ## Enable Analytics provisioning
   enabled: true
 
-  ## Analytics container image configuration
-  image:
-    repository: supabase/logflare
-    pullPolicy: IfNotPresent
-    tag: "1.31.2"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Analytics replicas
   replicaCount: 1
 
@@ -658,15 +578,7 @@ vector:
   ## Enable Vector provisioning
   enabled: true
 
-  ## Vector container image configuration
-  image:
-    repository: timberio/vector
-    pullPolicy: IfNotPresent
-    tag: "0.53.0-alpine"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Vector replicas
   replicaCount: 1
 
@@ -708,15 +620,7 @@ functions:
   ## Enable Functions provisioning
   enabled: true
 
-  ## Functions container image configuration
-  image:
-    repository: supabase/edge-runtime
-    pullPolicy: IfNotPresent
-    tag: "v1.70.3"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Functions replicas
   replicaCount: 1
 
@@ -760,15 +664,7 @@ minio:
   ## Enable Minio provisioning
   enabled: false
 
-  ## Minio container image configuration
-  image:
-    repository: cgr.dev/chainguard/minio
-    pullPolicy: IfNotPresent
-    tag: "latest"
-
   ## Secrets used to pull private images
-  imagePullSecrets: []
-
   ## Number of Minio replicas
   replicaCount: 1
 
@@ -802,6 +698,85 @@ minio:
   ## NOTE: It is recommended to leave this empty by default
   ## and explicitly configure it according to your cluster capacity
   resources: {}
+
+image:
+  analytics:
+    repository: supabase/logflare
+    pullPolicy: IfNotPresent
+    tag: "1.31.2"
+    pullSecrets: []
+
+  auth:
+    repository: supabase/gotrue
+    pullPolicy: IfNotPresent
+    tag: "v2.186.0"
+    pullSecrets: []
+
+  db:
+    repository: supabase/postgres
+    pullPolicy: IfNotPresent
+    tag: "15.8.1.085"
+    pullSecrets: []
+
+  functions:
+    repository: supabase/edge-runtime
+    pullPolicy: IfNotPresent
+    tag: "v1.70.3"
+    pullSecrets: []
+
+  imgproxy:
+    repository: darthsim/imgproxy
+    pullPolicy: IfNotPresent
+    tag: "v3.30.1"
+    pullSecrets: []
+
+  kong:
+    repository: kong
+    pullPolicy: IfNotPresent
+    tag: "2.8.1"
+    pullSecrets: []
+
+  meta:
+    repository: supabase/postgres-meta
+    pullPolicy: IfNotPresent
+    tag: "v0.95.2"
+    pullSecrets: []
+
+  minio:
+    repository: cgr.dev/chainguard/minio
+    pullPolicy: IfNotPresent
+    tag: "latest"
+    pullSecrets: []
+
+  realtime:
+    repository: supabase/realtime
+    pullPolicy: IfNotPresent
+    tag: "v2.76.5"
+    pullSecrets: []
+
+  rest:
+    repository: postgrest/postgrest
+    pullPolicy: IfNotPresent
+    tag: "v14.5"
+    pullSecrets: []
+
+  storage:
+    repository: supabase/storage-api
+    pullPolicy: IfNotPresent
+    tag: "v1.37.8"
+    pullSecrets: []
+
+  studio:
+    repository: supabase/studio
+    pullPolicy: IfNotPresent
+    tag: "2026.02.16-sha-26c615c"
+    pullSecrets: []
+
+  vector:
+    repository: timberio/vector
+    pullPolicy: IfNotPresent
+    tag: "0.53.0-alpine"
+    pullSecrets: []
 
 environment:
   analytics:

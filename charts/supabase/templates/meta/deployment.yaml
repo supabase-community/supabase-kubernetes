@@ -21,7 +21,7 @@ spec:
       labels:
         {{- include "supabase.meta.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.meta.imagePullSecrets }}
+      {{- with .Values.image.meta.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -32,8 +32,8 @@ spec:
         - name: {{ include "supabase.meta.name" $ }}
           securityContext:
             {{- toYaml .Values.meta.securityContext | nindent 12 }}
-          image: "{{ .Values.meta.image.repository }}:{{ .Values.meta.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.meta.image.pullPolicy }}
+          image: "{{ .Values.image.meta.repository }}:{{ .Values.image.meta.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.meta.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.meta }}
             - name: {{ $key }}

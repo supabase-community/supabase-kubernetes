@@ -22,7 +22,7 @@ spec:
         {{- include "supabase.minio.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: Always
-      {{- with .Values.minio.imagePullSecrets }}
+      {{- with .Values.image.minio.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -33,8 +33,8 @@ spec:
         - name: {{ include "supabase.minio.name" $ }}
           securityContext:
             {{- toYaml .Values.minio.securityContext | nindent 12 }}
-          image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.minio.image.pullPolicy }}
+          image: "{{ .Values.image.minio.repository }}:{{ .Values.image.minio.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.minio.pullPolicy }}
           args:
             - server
             - --console-address

@@ -21,7 +21,7 @@ spec:
       labels:
         {{- include "supabase.auth.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.auth.imagePullSecrets }}
+      {{- with .Values.image.auth.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -53,8 +53,8 @@ spec:
         - name: {{ include "supabase.auth.name" $ }}
           securityContext:
             {{- toYaml .Values.auth.securityContext | nindent 12 }}
-          image: "{{ .Values.auth.image.repository }}:{{ .Values.auth.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.auth.image.pullPolicy }}
+          image: "{{ .Values.image.auth.repository }}:{{ .Values.image.auth.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.auth.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.auth }}
             - name: {{ $key }}

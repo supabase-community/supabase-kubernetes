@@ -21,7 +21,7 @@ spec:
       labels:
         {{- include "supabase.kong.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.kong.imagePullSecrets }}
+      {{- with .Values.image.kong.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -32,8 +32,8 @@ spec:
         - name: {{ include "supabase.kong.name" $ }}
           securityContext:
             {{- toYaml .Values.kong.securityContext | nindent 12 }}
-          image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
+          image: "{{ .Values.image.kong.repository }}:{{ .Values.image.kong.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.kong.pullPolicy }}
           command: ["/bin/bash"]
           args: ["/scripts/wrapper.sh"]
           env:

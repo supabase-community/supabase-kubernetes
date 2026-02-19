@@ -21,7 +21,7 @@ spec:
       labels:
         {{- include "supabase.realtime.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.realtime.imagePullSecrets }}
+      {{- with .Values.image.realtime.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -53,8 +53,8 @@ spec:
         - name: {{ include "supabase.realtime.name" $ }}
           securityContext:
             {{- toYaml .Values.realtime.securityContext | nindent 12 }}
-          image: "{{ .Values.realtime.image.repository }}:{{ .Values.realtime.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.realtime.image.pullPolicy }}
+          image: "{{ .Values.image.realtime.repository }}:{{ .Values.image.realtime.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.realtime.pullPolicy }}
           command: ["/bin/sh"]
           args: ["-c", "/app/bin/migrate && /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)' && /app/bin/server"]
           env:

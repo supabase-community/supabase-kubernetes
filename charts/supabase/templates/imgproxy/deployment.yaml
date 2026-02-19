@@ -21,7 +21,7 @@ spec:
       labels:
         {{- include "supabase.imgproxy.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.imgproxy.imagePullSecrets }}
+      {{- with .Values.image.imgproxy.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -32,8 +32,8 @@ spec:
         - name: {{ include "supabase.imgproxy.name" $ }}
           securityContext:
             {{- toYaml .Values.imgproxy.securityContext | nindent 12 }}
-          image: "{{ .Values.imgproxy.image.repository }}:{{ .Values.imgproxy.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.imgproxy.image.pullPolicy }}
+          image: "{{ .Values.image.imgproxy.repository }}:{{ .Values.image.imgproxy.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.imgproxy.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.imgproxy }}
             - name: {{ $key }}

@@ -23,7 +23,7 @@ spec:
       labels:
         {{- include "supabase.vector.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.vector.imagePullSecrets }}
+      {{- with .Values.image.vector.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -37,8 +37,8 @@ spec:
           name: {{ include "supabase.vector.name" $ }}
           securityContext:
             {{- toYaml .Values.vector.securityContext | nindent 12 }}
-          image: "{{ .Values.vector.image.repository }}:{{ .Values.vector.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.vector.image.pullPolicy }}
+          image: "{{ .Values.image.vector.repository }}:{{ .Values.image.vector.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.vector.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.vector }}
             - name: {{ $key }}
