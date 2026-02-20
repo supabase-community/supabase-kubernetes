@@ -1,23 +1,44 @@
 ## Supabase Helm Chart Configuration
 ##
+## Supabase is composed of multiple services running together
+## to provide a full backend platform. This chart deploys and
+## configures the following components:
+##
+## - Kong (API Gateway)
+## - Studio (Admin UI)
+## - Postgres (Database)
+## - PostgREST (REST API)
+## - Realtime (WebSocket server)
+## - Storage API
+## - Postgres Meta
+## - GoTrue (Authentication)
+## - Edge Functions (Deno runtime)
+## - Logflare (Analytics)
+## - Vector (Logs pipeline)
+## - Imgproxy (Image transformation)
+## - MinIO (S3-compatible storage)
+##
 ## This chart mirrors the official Supabase
-## docker setup, adapted for Kubernetes.
+## Docker setup, adapted for Kubernetes.
 ##
-## See: https://github.com/supabase/supabase/tree/master/docker
+## Reference:
+## https://github.com/supabase/supabase/tree/master/docker
 ##
-## File structure of values.yaml
+## Configuration is grouped by domain rather than by component.
+## Each section contains per-component blocks where applicable.
 ##
-## 1. Secrets      |  8. Storage
-## 2. Database     |  9. Image Proxy
-## 3. Studio       | 10. Kong
-## 4. Auth         | 11. Analytics
-## 5. REST         | 12. Vector
-## 6. Realtime     | 13. Functions
-## 7. Meta         | 14. Minio
+##  1. secret         - All credentials and sensitive values
+##  2. deployment     - Pod configuration per component
+##  3. image          - Container image settings per component
+##  4. environment    - Environment variables per component
+##  5. persistence    - PVC configuration per component
+##  6. service        - Kubernetes Service configuration per component
+##  7. autoscaling    - HPA configuration per component
+##  8. ingress        - External access configuration
+##  9. serviceAccount - ServiceAccount configuration per component
+## 10. migration      - Optional SQL migration scripts
+## 11. bigQuery       - Optional BigQuery backend configuration
 
-## 1. Secrets
-##    Shared credentials consumed by all chart components.
-##
 secret:
   ## JSON Web Tokens
   ## Used to sign and validate access tokens across all Supabase services
