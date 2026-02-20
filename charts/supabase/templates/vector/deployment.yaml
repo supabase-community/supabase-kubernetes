@@ -1,4 +1,4 @@
-{{- if .Values.vector.enabled -}}
+{{- if .Values.deployment.vector.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,8 +7,8 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
     vector.dev/exclude: "true"
 spec:
-  {{- if not .Values.vector.autoscaling.enabled }}
-  replicas: {{ .Values.vector.replicaCount }}
+  {{- if not .Values.autoscaling.vector.enabled }}
+  replicas: {{ .Values.deployment.vector.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
@@ -16,31 +16,31 @@ spec:
   template:
     metadata:
       annotations:
-      {{- with .Values.vector.podAnnotations }}
+      {{- with .Values.deployment.vector.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
         checksum/config: {{ include (print $.Template.BasePath "/vector/config.yaml") . | sha256sum }}
       labels:
         {{- include "supabase.vector.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.vector.imagePullSecrets }}
+      {{- with .Values.image.vector.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "supabase.vector.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.vector.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.vector.podSecurityContext | nindent 8 }}
       containers:
         - args:
             - --config
             - /etc/vector/vector.yml
           name: {{ include "supabase.vector.name" $ }}
           securityContext:
-            {{- toYaml .Values.vector.securityContext | nindent 12 }}
-          image: "{{ .Values.vector.image.repository }}:{{ .Values.vector.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.vector.image.pullPolicy }}
+            {{- toYaml .Values.deployment.vector.securityContext | nindent 12 }}
+          image: "{{ .Values.image.vector.repository }}:{{ .Values.image.vector.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.vector.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.vector.environment }}
+            {{- range $key, $value := .Values.environment.vector }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
@@ -48,7 +48,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            {{- if .Values.analytics.enabled }}
+            {{- if .Values.deployment.analytics.enabled }}
             - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -60,19 +60,19 @@ spec:
                   key: publicAccessToken
                   {{- end }}
             {{- end }}
-          {{- with .Values.vector.livenessProbe }}
+          {{- with .Values.deployment.vector.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.vector.readinessProbe }}
+          {{- with .Values.deployment.vector.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.vector.service.port }}
+            - containerPort: {{ .Values.service.vector.port }}
               protocol: TCP
           volumeMounts:
-            {{- with .Values.vector.volumeMounts }}
+            {{- with .Values.deployment.vector.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
             - mountPath: /etc/vector/vector.yml
@@ -84,12 +84,12 @@ spec:
             - name: varlibdockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
-          {{- with .Values.vector.resources }}
+          {{- with .Values.deployment.vector.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
-        {{- with .Values.vector.volumes }}
+        {{- with .Values.deployment.vector.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
         - name: vector-config
@@ -102,15 +102,15 @@ spec:
         - name: varlibdockercontainers
           hostPath:
             path: /var/lib/docker/containers
-      {{- with .Values.vector.nodeSelector }}
+      {{- with .Values.deployment.vector.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.vector.affinity }}
+      {{- with .Values.deployment.vector.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.vector.tolerations }}
+      {{- with .Values.deployment.vector.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

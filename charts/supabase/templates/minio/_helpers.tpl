@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "supabase.minio.name" -}}
-{{- default (print .Chart.Name "-minio") .Values.minio.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (print .Chart.Name "-minio") .Values.deployment.minio.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,10 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "supabase.minio.fullname" -}}
-{{- if .Values.minio.fullnameOverride }}
-{{- .Values.minio.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.deployment.minio.fullnameOverride }}
+{{- .Values.deployment.minio.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default (print .Chart.Name "-minio") .Values.minio.nameOverride }}
+{{- $name := default (print .Chart.Name "-minio") .Values.deployment.minio.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -35,9 +35,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "supabase.minio.serviceAccountName" -}}
-{{- if .Values.minio.serviceAccount.create }}
-{{- default (include "supabase.minio.fullname" .) .Values.minio.serviceAccount.name }}
+{{- if .Values.serviceAccount.minio.create }}
+{{- default (include "supabase.minio.fullname" .) .Values.serviceAccount.minio.name }}
 {{- else }}
-{{- default "default" .Values.minio.serviceAccount.name }}
+{{- default "default" .Values.serviceAccount.minio.name }}
 {{- end }}
 {{- end }}

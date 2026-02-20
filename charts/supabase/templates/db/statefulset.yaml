@@ -1,4 +1,4 @@
-{{- if .Values.db.enabled -}}
+{{- if .Values.deployment.db.enabled -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -6,31 +6,31 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.db.autoscaling.enabled }}
-  replicas: {{ .Values.db.replicaCount }}
+  {{- if not .Values.autoscaling.db.enabled }}
+  replicas: {{ .Values.deployment.db.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.db.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.db.podAnnotations }}
+      {{- with .Values.deployment.db.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "supabase.db.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.db.imagePullSecrets }}
+      {{- with .Values.image.db.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "supabase.db.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.db.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.db.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
-          image: "{{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
@@ -59,15 +59,15 @@ spec:
       containers:
         - name: {{ include "supabase.db.name" $ }}
           securityContext:
-            {{- toYaml .Values.db.securityContext | nindent 12 }}
-          image: "{{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.db.image.pullPolicy }}
+            {{- toYaml .Values.deployment.db.securityContext | nindent 12 }}
+          image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.db.pullPolicy }}
           lifecycle:
             preStop:
               exec:
                 command: ["/bin/sh", "-c", "pg_ctl -D /var/lib/postgres/data -w -t 60 -m fast stop"]
           env:
-            {{- range $key, $value := .Values.db.environment }}
+            {{- range $key, $value := .Values.environment.db }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
@@ -121,11 +121,11 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
                   {{- end }}
-          {{- with .Values.db.livenessProbe }}
+          {{- with .Values.deployment.db.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.db.readinessProbe }}
+          {{- with .Values.deployment.db.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -136,7 +136,7 @@ spec:
           volumeMounts:
             - mountPath: /docker-entrypoint-initdb.d
               name: initdb-scripts-data
-            {{- with .Values.db.volumeMounts }}
+            {{- with .Values.deployment.db.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
             {{- if .Values.persistence.db.enabled }}
@@ -144,7 +144,7 @@ spec:
               name: postgres-volume
               subPath: postgres-data
             {{- end }}
-          {{- with .Values.db.resources }}
+          {{- with .Values.deployment.db.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -158,7 +158,7 @@ spec:
         - name: custom-migrations
           configMap:
             name: {{ include "supabase.db.fullname" . }}-migrations
-        {{- with .Values.db.volumes }}
+        {{- with .Values.deployment.db.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- if .Values.persistence.db.enabled }}
@@ -166,15 +166,15 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "db") }}
         {{- end }}
-      {{- with .Values.db.nodeSelector }}
+      {{- with .Values.deployment.db.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.db.affinity }}
+      {{- with .Values.deployment.db.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.db.tolerations }}
+      {{- with .Values.deployment.db.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

@@ -1,4 +1,4 @@
-{{- if .Values.db.enabled -}}
+{{- if .Values.deployment.db.enabled -}}
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -6,5 +6,5 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 data:
-  {{- toYaml .Values.db.config | nindent 2 }}
+  {{- toYaml .Values.migration | nindent 2 }}
 {{- end }}

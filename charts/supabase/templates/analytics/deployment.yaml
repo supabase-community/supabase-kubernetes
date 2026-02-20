@@ -1,4 +1,4 @@
-{{- if .Values.analytics.enabled -}}
+{{- if .Values.deployment.analytics.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,43 +6,43 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.analytics.autoscaling.enabled }}
-  replicas: {{ .Values.analytics.replicaCount }}
+  {{- if not .Values.autoscaling.analytics.enabled }}
+  replicas: {{ .Values.deployment.analytics.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.analytics.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.analytics.podAnnotations }}
+      {{- with .Values.deployment.analytics.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "supabase.analytics.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.analytics.imagePullSecrets }}
+      {{- with .Values.image.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "supabase.analytics.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.analytics.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.analytics.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
           image: postgres:15-alpine
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
-              value: {{ .Values.analytics.environment.DB_HOST | quote }}
+              value: {{ .Values.environment.analytics.DB_HOST | quote }}
               {{- end }}
             - name: DB_USER
               value: $(DB_USERNAME)
             - name: DB_PORT
-              value: {{ .Values.analytics.environment.DB_PORT | quote }}
+              value: {{ .Values.environment.analytics.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -54,19 +54,19 @@ spec:
       containers:
         - name: {{ include "supabase.analytics.name" $ }}
           securityContext:
-            {{- toYaml .Values.analytics.securityContext | nindent 12 }}
-          image: "{{ .Values.analytics.image.repository }}:{{ .Values.analytics.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.analytics.image.pullPolicy }}
+            {{- toYaml .Values.deployment.analytics.securityContext | nindent 12 }}
+          image: "{{ .Values.image.analytics.repository }}:{{ .Values.image.analytics.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.analytics.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.analytics.environment }}
+            {{- range $key, $value := .Values.environment.analytics }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
             - name: DB_HOSTNAME
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
-              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              value: {{ .Values.environment.auth.DB_HOST | quote }}
               {{- end }}
             - name: DB_PASSWORD
               valueFrom:
@@ -108,61 +108,61 @@ spec:
                   name: {{ include "supabase.secret.analytics" . }}
                   key: privateAccessToken
                   {{- end }}
-            {{- if .Values.analytics.bigQuery.enabled }}
+            {{- if .Values.bigQuery.enabled }}
             - name: GOOGLE_PROJECT_ID
-              value: {{ .Values.analytics.bigQuery.projectId | quote }}
+              value: {{ .Values.bigQuery.projectId | quote }}
             - name: GOOGLE_PROJECT_NUMBER
-              value: {{ .Values.analytics.bigQuery.projectNumber | quote }}
+              value: {{ .Values.bigQuery.projectNumber | quote }}
             {{- else }}
             - name: POSTGRES_BACKEND_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
             {{- end }}
-          {{- with .Values.analytics.livenessProbe }}
+          {{- with .Values.deployment.analytics.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.analytics.readinessProbe }}
+          {{- with .Values.deployment.analytics.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.analytics.service.port }}
+            - containerPort: {{ .Values.service.analytics.port }}
               protocol: TCP
-          {{- if or (.Values.analytics.bigQuery.enabled) (.Values.analytics.volumes) }}
+          {{- if or (.Values.bigQuery.enabled) (.Values.deployment.analytics.volumes) }}
           volumeMounts:
-            {{- with .Values.analytics.volumeMounts }}
+            {{- with .Values.deployment.analytics.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
-            {{- if .Values.analytics.bigQuery.enabled }}
+            {{- if .Values.bigQuery.enabled }}
             - mountPath: /opt/app/rel/logflare/bin/gcloud.json
               name: gcloud-credentials
               subPath: gcloud.json
             {{- end }}
           {{- end }}
-          {{- with .Values.analytics.resources }}
+          {{- with .Values.deployment.analytics.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- if or (.Values.analytics.bigQuery.enabled) (.Values.analytics.volumes) }}
+      {{- if or (.Values.bigQuery.enabled) (.Values.deployment.analytics.volumes) }}
       volumes:
-        {{- with .Values.analytics.volumes }}
+        {{- with .Values.deployment.analytics.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- if .Values.analytics.bigQuery.enabled }}
+        {{- if .Values.bigQuery.enabled }}
         - name: gcloud-credentials
           secret:
             secretName: {{ include "supabase.analytics.fullname" . }}-gcloud
         {{- end }}
       {{- end }}
-      {{- with .Values.analytics.nodeSelector }}
+      {{- with .Values.deployment.analytics.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.analytics.affinity }}
+      {{- with .Values.deployment.analytics.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.analytics.tolerations }}
+      {{- with .Values.deployment.analytics.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

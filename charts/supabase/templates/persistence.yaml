@@ -1,13 +1,13 @@
-{{ include "supabase.pvc" (dict "root" $ "name" "db" "enabled" .Values.db.enabled) }}
+{{ include "supabase.pvc" (dict "root" $ "name" "db" "enabled" .Values.deployment.db.enabled) }}
 ---
-{{ include "supabase.pvc" (dict "root" $ "name" "functions" "enabled" .Values.functions.enabled) }}
+{{ include "supabase.pvc" (dict "root" $ "name" "functions" "enabled" .Values.deployment.functions.enabled) }}
 ---
-{{ include "supabase.pvc" (dict "root" $ "name" "imgproxy" "enabled" .Values.imgproxy.enabled) }}
+{{ include "supabase.pvc" (dict "root" $ "name" "imgproxy" "enabled" .Values.deployment.imgproxy.enabled) }}
 ---
-{{ include "supabase.pvc" (dict "root" $ "name" "minio" "enabled" .Values.minio.enabled) }}
+{{ include "supabase.pvc" (dict "root" $ "name" "minio" "enabled" .Values.deployment.minio.enabled) }}
 ---
-{{ include "supabase.pvc" (dict "root" $ "name" "snippets" "enabled" .Values.studio.enabled) }}
+{{ include "supabase.pvc" (dict "root" $ "name" "snippets" "enabled" .Values.deployment.studio.enabled) }}
 ---
-{{ include "supabase.pvc" (dict "root" $ "name" "storage" "enabled" .Values.storage.enabled) }}
+{{ include "supabase.pvc" (dict "root" $ "name" "storage" "enabled" .Values.deployment.storage.enabled) }}
 ---
-{{ include "supabase.pvc" (dict "root" $ "name" "deno" "enabled" .Values.functions.enabled) }}
+{{ include "supabase.pvc" (dict "root" $ "name" "deno" "enabled" .Values.deployment.functions.enabled) }}

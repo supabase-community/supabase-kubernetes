@@ -1,4 +1,4 @@
-{{- if .Values.storage.enabled -}}
+{{- if .Values.deployment.storage.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,15 +6,15 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.storage.autoscaling.enabled }}
-  replicas: {{ .Values.storage.replicaCount }}
+  {{- if not .Values.autoscaling.storage.enabled }}
+  replicas: {{ .Values.deployment.storage.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.storage.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.storage.podAnnotations }}
+      {{- with .Values.deployment.storage.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -22,26 +22,26 @@ spec:
         {{- include "supabase.storage.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: Always
-      {{- with .Values.storage.imagePullSecrets }}
+      {{- with .Values.image.storage.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "supabase.storage.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.storage.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.storage.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
           image: postgres:15-alpine
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
-              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              value: {{ .Values.environment.auth.DB_HOST | quote }}
               {{- end }}
             - name: DB_PORT
-              value: {{ .Values.analytics.environment.DB_PORT | quote }}
+              value: {{ .Values.environment.analytics.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -50,7 +50,7 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
-        {{- if .Values.minio.enabled }}
+        {{- if .Values.deployment.minio.enabled }}
         - name: init-bucket
           image: cgr.dev/chainguard/minio-client:latest-dev
           env:
@@ -75,13 +75,13 @@ spec:
                   key: password
                 {{- end }}
             - name: GLOBAL_S3_BUCKET
-              value: {{ .Values.storage.environment.GLOBAL_S3_BUCKET }}
+              value: {{ .Values.environment.storage.GLOBAL_S3_BUCKET }}
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
             - -c
             - |
-              until /usr/bin/mc alias set supa-minio http://{{ include "supabase.minio.fullname" . }}:{{ .Values.minio.service.port }} $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD; do
+              until /usr/bin/mc alias set supa-minio http://{{ include "supabase.minio.fullname" . }}:{{ .Values.service.minio.port }} $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD; do
                 echo "Waiting for minio to start..."
                 sleep 2
               done
@@ -90,21 +90,21 @@ spec:
       containers:
         - name: {{ include "supabase.storage.name" $ }}
           securityContext:
-            {{- toYaml .Values.storage.securityContext | nindent 12 }}
-          image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
+            {{- toYaml .Values.deployment.storage.securityContext | nindent 12 }}
+          image: "{{ .Values.image.storage.repository }}:{{ .Values.image.storage.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.storage.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.storage.environment }}
+            {{- range $key, $value := .Values.environment.storage }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.db.enabled }}
+            {{- if .Values.deployment.db.enabled }}
             - name: DB_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
-            {{- if .Values.rest.enabled }}
+            {{- if .Values.deployment.rest.enabled }}
             - name: POSTGREST_URL
-              value: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}
+              value: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}
             {{- end }}
             - name: DB_PASSWORD
               valueFrom:
@@ -188,17 +188,17 @@ spec:
                   name: {{ include "supabase.secret.s3" . }}
                   key: accessKey
                   {{- end }}
-            {{- if .Values.imgproxy.enabled }}
+            {{- if .Values.deployment.imgproxy.enabled }}
             - name: IMGPROXY_URL
-              value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.port | int }}
+              value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.service.imgproxy.port | int }}
             {{- end }}
             
             - name: STORAGE_BACKEND
-              value: {{ if .Values.minio.enabled }}s3{{ else }}file{{ end }}
+              value: {{ if .Values.deployment.minio.enabled }}s3{{ else }}file{{ end }}
               
-            {{- if .Values.minio.enabled }}
+            {{- if .Values.deployment.minio.enabled }}
             - name: GLOBAL_S3_ENDPOINT
-              value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.minio.service.port }}
+              value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.service.minio.port }}
             - name: GLOBAL_S3_PROTOCOl
               value: http
             - name: GLOBAL_S3_FORCE_PATH_STYLE
@@ -224,11 +224,11 @@ spec:
                   key: password
                 {{- end }}
             {{- end }}
-          {{- with .Values.storage.livenessProbe }}
+          {{- with .Values.deployment.storage.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.storage.readinessProbe }}
+          {{- with .Values.deployment.storage.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -236,25 +236,25 @@ spec:
             - name: http
               containerPort: 5000
               protocol: TCP
-          {{- with .Values.storage.resources }}
+          {{- with .Values.deployment.storage.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-          {{- with .Values.storage.volumeMounts }}
+          {{- with .Values.deployment.storage.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
             - mountPath: /var/lib/storage
               name: storage-data
-      {{- with .Values.storage.nodeSelector }}
+      {{- with .Values.deployment.storage.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.storage.affinity }}
+      {{- with .Values.deployment.storage.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.storage.tolerations }}
+      {{- with .Values.deployment.storage.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -267,7 +267,7 @@ spec:
           emptyDir:
             medium: ""
           {{- end }}
-        {{- with .Values.storage.volumes }}
+        {{- with .Values.deployment.storage.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
 {{- end }}

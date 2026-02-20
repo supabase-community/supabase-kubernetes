@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -43,7 +43,7 @@ spec:
               echo "Attempting to access dashboard with provided credentials..."
               curl -sL --fail \
                 -o /dev/null \
-                "http://${DASHBOARD_USERNAME}:${DASHBOARD_PASSWORD}@{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}" \
+                "http://${DASHBOARD_USERNAME}:${DASHBOARD_PASSWORD}@{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}" \
                 || ( echo -e "\e[0;31mFailed to get a valid response." && exit 1 )
               echo "Successfully connected."
       restartPolicy: Never

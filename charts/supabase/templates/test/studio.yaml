@@ -1,4 +1,4 @@
-{{- if .Values.studio.enabled -}}
+{{- if .Values.deployment.studio.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -20,7 +20,7 @@ spec:
             - -c
             - |
               curl -sfo /dev/null \
-                http://{{ include "supabase.studio.fullname" . }}:{{ .Values.studio.service.port }}/api/profile
+                http://{{ include "supabase.studio.fullname" . }}:{{ .Values.service.studio.port }}/api/profile
               echo "Sevice {{ include "supabase.studio.fullname" . }} is healthy."
       restartPolicy: Never
 {{- end }}

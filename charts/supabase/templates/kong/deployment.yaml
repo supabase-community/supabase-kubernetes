@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,38 +6,38 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.kong.autoscaling.enabled }}
-  replicas: {{ .Values.kong.replicaCount }}
+  {{- if not .Values.autoscaling.kong.enabled }}
+  replicas: {{ .Values.deployment.kong.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.kong.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.kong.podAnnotations }}
+      {{- with .Values.deployment.kong.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "supabase.kong.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.kong.imagePullSecrets }}
+      {{- with .Values.image.kong.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "supabase.kong.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.kong.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.kong.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "supabase.kong.name" $ }}
           securityContext:
-            {{- toYaml .Values.kong.securityContext | nindent 12 }}
-          image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
+            {{- toYaml .Values.deployment.kong.securityContext | nindent 12 }}
+          image: "{{ .Values.image.kong.repository }}:{{ .Values.image.kong.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.kong.pullPolicy }}
           command: ["/bin/bash"]
           args: ["/scripts/wrapper.sh"]
           env:
-            {{- range $key, $value := .Values.kong.environment }}
+            {{- range $key, $value := .Values.environment.kong }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
@@ -83,11 +83,11 @@ spec:
                   key: password
                   {{- end }}
             {{- end }}
-          {{- with .Values.kong.livenessProbe }}
+          {{- with .Values.deployment.kong.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.kong.readinessProbe }}
+          {{- with .Values.deployment.kong.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -95,7 +95,7 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
-          {{- with .Values.kong.resources }}
+          {{- with .Values.deployment.kong.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -105,18 +105,18 @@ spec:
               subPath: template.yml
             - mountPath: /scripts
               name: wrapper
-            {{- with .Values.kong.volumeMounts }}
+            {{- with .Values.deployment.kong.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
-      {{- with .Values.kong.nodeSelector }}
+      {{- with .Values.deployment.kong.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.kong.affinity }}
+      {{- with .Values.deployment.kong.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.kong.tolerations }}
+      {{- with .Values.deployment.kong.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -135,7 +135,7 @@ spec:
             items:
             - key: wrapper.sh
               path: wrapper.sh
-        {{- with .Values.kong.volumes }}
+        {{- with .Values.deployment.kong.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
 {{- end }}

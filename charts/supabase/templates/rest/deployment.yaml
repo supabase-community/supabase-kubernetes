@@ -1,4 +1,4 @@
-{{- if .Values.rest.enabled -}}
+{{- if .Values.deployment.rest.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,41 +6,41 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.rest.autoscaling.enabled }}
-  replicas: {{ .Values.rest.replicaCount }}
+  {{- if not .Values.autoscaling.rest.enabled }}
+  replicas: {{ .Values.deployment.rest.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.rest.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.rest.podAnnotations }}
+      {{- with .Values.deployment.rest.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "supabase.rest.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.rest.imagePullSecrets }}
+      {{- with .Values.image.rest.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "supabase.rest.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.rest.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.rest.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
           image: postgres:15-alpine
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
+              {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
               {{- else }}
-              value: {{ .Values.auth.environment.DB_HOST | quote }}
+              value: {{ .Values.environment.auth.DB_HOST | quote }}
               {{- end }}
             - name: DB_PORT
-              value: {{ .Values.auth.environment.DB_PORT | quote }}
+              value: {{ .Values.environment.auth.DB_PORT | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -52,15 +52,15 @@ spec:
       containers:
         - name: {{ include "supabase.rest.name" $ }}
           securityContext:
-            {{- toYaml .Values.rest.securityContext | nindent 12 }}
-          image: "{{ .Values.rest.image.repository }}:{{ .Values.rest.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.rest.image.pullPolicy }}
+            {{- toYaml .Values.deployment.rest.securityContext | nindent 12 }}
+          image: "{{ .Values.image.rest.repository }}:{{ .Values.image.rest.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.rest.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.rest.environment }}
+            {{- range $key, $value := .Values.environment.rest }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.db.enabled }}
+            {{- if .Values.deployment.db.enabled }}
             - name: DB_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
@@ -116,11 +116,11 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
                   {{- end }}
-          {{- with .Values.rest.livenessProbe }}
+          {{- with .Values.deployment.rest.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.rest.readinessProbe }}
+          {{- with .Values.deployment.rest.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -128,27 +128,27 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
-          {{- with .Values.rest.resources }}
+          {{- with .Values.deployment.rest.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.rest.volumeMounts }}
+          {{- with .Values.deployment.rest.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.rest.volumes }}
+      {{- with .Values.deployment.rest.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.rest.nodeSelector }}
+      {{- with .Values.deployment.rest.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.rest.affinity }}
+      {{- with .Values.deployment.rest.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.rest.tolerations }}
+      {{- with .Values.deployment.rest.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
