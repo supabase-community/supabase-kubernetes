@@ -1,0 +1,54 @@
+name: tags
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # daily at 00:00 UTC
+  workflow_dispatch:
+
+jobs:
+  tags:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          check-latest: true
+
+      - name: Sync image tags
+        working-directory: charts/supabase
+        run: |
+          python scripts/tags.py | tee /tmp/output.txt
+
+      - name: Prepare PR body
+        run: |
+          {
+            echo "This PR updates Supabase chart image tags from the upstream docker-compose files."
+            echo
+            echo "## Summary"
+            if [ -s /tmp/output.txt ]; then
+              sed 's/^/- /' /tmp/output.txt
+            else
+              echo "- No changes detected."
+            fi
+          } > /tmp/body.md
+
+      - name: Create or update PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: bump/tags
+          base: ${{ github.event.repository.default_branch }}
+          delete-branch: false
+          commit-message: "chore: sync image tags"
+          title: "chore: sync image tags"
+          body-path: /tmp/body.md
+          add-paths: |
+            charts/supabase/values.yaml
