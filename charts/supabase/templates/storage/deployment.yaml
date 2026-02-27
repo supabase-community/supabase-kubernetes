@@ -94,10 +94,25 @@ spec:
           image: "{{ .Values.image.storage.repository }}:{{ .Values.image.storage.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.storage.pullPolicy }}
           env:
+            
             {{- range $key, $value := .Values.environment.storage }}
+            {{- if ne $key "STORAGE_BACKEND" }}
+            # 1. Print every env var EXCEPT STORAGE_BACKEND
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- end }}
+
+            # 2. Now handle STORAGE_BACKEND specifically
+            - name: STORAGE_BACKEND
+              value: {{ if hasKey .Values.environment.storage "STORAGE_BACKEND" -}}
+                {{ index .Values.environment.storage "STORAGE_BACKEND" | quote }}
+              {{- else if .Values.deployment.minio.enabled -}}
+                "s3"
+              {{- else -}}
+                "file"
+              {{- end }}
+
             {{- if .Values.deployment.db.enabled }}
             - name: DB_HOST
               value: {{ include "supabase.db.fullname" . }}
@@ -192,9 +207,6 @@ spec:
             - name: IMGPROXY_URL
               value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.service.imgproxy.port | int }}
             {{- end }}
-            
-            - name: STORAGE_BACKEND
-              value: {{ if .Values.deployment.minio.enabled }}s3{{ else }}file{{ end }}
               
             {{- if .Values.deployment.minio.enabled }}
             - name: GLOBAL_S3_ENDPOINT
