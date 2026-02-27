@@ -94,7 +94,7 @@ spec:
           image: "{{ .Values.image.storage.repository }}:{{ .Values.image.storage.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.storage.pullPolicy }}
           env:
-           
+            {{- range $key, $value := .Values.environment.storage }}
             {{- if and (ne $key "AWS_ACCESS_KEY_ID") (ne $key "AWS_SECRET_ACCESS_KEY") (ne $key "STORAGE_BACKEND") }}
             - name: {{ $key }}
               value: {{ $value | quote }}
