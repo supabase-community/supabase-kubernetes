@@ -94,15 +94,13 @@ spec:
           image: "{{ .Values.image.storage.repository }}:{{ .Values.image.storage.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.storage.pullPolicy }}
           env:
-            
-            {{- range $key, $value := .Values.environment.storage }}
-            {{- if ne $key "STORAGE_BACKEND" }}
-            # 1. Print every env var EXCEPT STORAGE_BACKEND
+           
+            {{- if and (ne $key "AWS_ACCESS_KEY_ID") (ne $key "AWS_SECRET_ACCESS_KEY") (ne $key "STORAGE_BACKEND") }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
             {{- end }}
-
+            
             # 2. Now handle STORAGE_BACKEND specifically
             - name: STORAGE_BACKEND
               value: {{ if hasKey .Values.environment.storage "STORAGE_BACKEND" -}}
@@ -112,6 +110,30 @@ spec:
               {{- else -}}
                 "file"
               {{- end }}
+
+            {{- if or .Values.secret.s3.secretRef .Values.deployment.minio.enabled }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.s3.secretRef }}
+                  name: {{ .Values.secret.s3.secretRef | quote }}
+                  key: {{ .Values.secret.s3.secretRefKey.keyId | default "keyId" | quote }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.minio" . }}
+                  key: user
+                  {{- end }}
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.s3.secretRef }}
+                  name: {{ .Values.secret.s3.secretRef | quote }}
+                  key: {{ .Values.secret.s3.secretRefKey.accessKey | default "accessKey" | quote }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.minio" . }}
+                  key: password
+                  {{- end }}
+            {{- end }}
 
             {{- if .Values.deployment.db.enabled }}
             - name: DB_HOST
@@ -215,27 +237,6 @@ spec:
               value: http
             - name: GLOBAL_S3_FORCE_PATH_STYLE
               value: "true"
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                {{- if .Values.secret.minio.secretRef }}
-                  name: {{ .Values.secret.minio.secretRef }}
-                  key: {{ .Values.secret.minio.secretRefKey.user | default "user" }}
-                {{- else }}
-                  name: {{ include "supabase.secret.minio" . }}
-                  key: user
-                {{- end }}
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                {{- if .Values.secret.s3.secretRef }}
-                  name: {{ .Values.secret.s3.secretRef }}
-                  key: {{ .Values.secret.s3.secretRefKey.password | default "password" }}
-                {{- else }}
-                  name: {{ include "supabase.secret.minio" . }}
-                  key: password
-                {{- end }}
-            {{- end }}
           {{- with .Values.deployment.storage.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
