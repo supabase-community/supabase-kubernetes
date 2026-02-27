@@ -237,6 +237,7 @@ spec:
               value: http
             - name: GLOBAL_S3_FORCE_PATH_STYLE
               value: "true"
+            {{- end }}
           {{- with .Values.deployment.storage.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
