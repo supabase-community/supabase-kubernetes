@@ -76,6 +76,16 @@ data:
               - /auth/v1/authorize
         plugins:
           - name: cors
+      - name: auth-v1-open-sso
+        _comment: "GoTrue SSO: /sso/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/sso/*"
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/sso
+        routes:
+          - name: auth-v1-open-sso
+            strip_path: true
+            paths:
+              - /sso
+        plugins:
+          - name: cors
       - name: auth-v1
         _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/*"
         url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}
