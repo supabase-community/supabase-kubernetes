@@ -99,12 +99,21 @@ spec:
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
+                  {{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtJwks }}
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  {{- end }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "jwtJwks" | default "jwtJwks" }}
+                  {{- else }}
                   {{- if .Values.secret.jwt.secretRef }}
                   name: {{ .Values.secret.jwt.secretRef }}
                   key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
                   {{- else }}
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
+                  {{- end }}
                   {{- end }}
             - name: PGRST_APP_SETTINGS_JWT_SECRET
               valueFrom:

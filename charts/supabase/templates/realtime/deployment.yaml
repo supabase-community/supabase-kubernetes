@@ -108,6 +108,17 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
                   {{- end }}
+            {{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtJwks }}
+            - name: API_JWT_JWKS
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  {{- end }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "jwtJwks" | default "jwtJwks" }}
+            {{- end }}
 
             - name: SECRET_KEY_BASE
               valueFrom:

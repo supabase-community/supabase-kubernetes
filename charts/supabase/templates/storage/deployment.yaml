@@ -185,6 +185,27 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
                   {{- end }}
+            - name: AUTH_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.jwt.secretRef }}
+                  name: {{ .Values.secret.jwt.secretRef }}
+                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.jwt" . }}
+                  key: secret
+                  {{- end }}
+            {{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtJwks }}
+            - name: JWT_JWKS
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  {{- end }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "jwtJwks" | default "jwtJwks" }}
+            {{- end }}
             - name: ANON_KEY
               valueFrom:
                 secretKeyRef:

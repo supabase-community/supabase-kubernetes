@@ -108,6 +108,17 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: secret
                   {{- end }}
+            {{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtKeys }}
+            - name: GOTRUE_JWT_KEYS
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  {{- end }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "jwtKeys" | default "jwtKeys" }}
+            {{- end }}
             - name: GOTRUE_SMTP_USER
               valueFrom:
                 secretKeyRef:
