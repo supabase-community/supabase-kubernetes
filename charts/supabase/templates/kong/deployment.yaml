@@ -61,6 +61,46 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
                   {{- end }}
+            - name: SUPABASE_PUBLISHABLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "supabasePublishableKey" | default "supabasePublishableKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  key: supabasePublishableKey
+                  {{- end }}
+            - name: SUPABASE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "supabaseSecretKey" | default "supabaseSecretKey" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  key: supabaseSecretKey
+                  {{- end }}
+            - name: ANON_KEY_ASYMMETRIC
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "anonKeyAsymmetric" | default "anonKeyAsymmetric" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  key: anonKeyAsymmetric
+                  {{- end }}
+            - name: SERVICE_ROLE_KEY_ASYMMETRIC
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "serviceRoleKeyAsymmetric" | default "serviceRoleKeyAsymmetric" }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  key: serviceRoleKeyAsymmetric
+                  {{- end }}
             {{- if .Values.secret.dashboard }}
             - name: DASHBOARD_USERNAME
               valueFrom:

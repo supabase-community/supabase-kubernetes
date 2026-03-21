@@ -11,15 +11,31 @@ data:
 
     set -euo pipefail
 
+    if [ -n "${SUPABASE_SECRET_KEY:-}" ] && [ -n "${SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+      export LUA_AUTH_EXPR="\$((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or (headers.apikey == '${SUPABASE_SECRET_KEY}' and 'Bearer ${SERVICE_ROLE_KEY_ASYMMETRIC}') or (headers.apikey == '${SUPABASE_PUBLISHABLE_KEY}' and 'Bearer ${ANON_KEY_ASYMMETRIC}') or headers.apikey)"
+      export LUA_RT_WS_EXPR="\$((query_params.apikey == '${SUPABASE_SECRET_KEY}' and '${SERVICE_ROLE_KEY_ASYMMETRIC}') or (query_params.apikey == '${SUPABASE_PUBLISHABLE_KEY}' and '${ANON_KEY_ASYMMETRIC}') or query_params.apikey)"
+    else
+      export LUA_AUTH_EXPR="\$((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+      export LUA_RT_WS_EXPR="\$(query_params.apikey)"
+    fi
+
     echo "Replacing env placeholders of /usr/local/kong/kong.yml"
 
     sed \
     -e "s|\${SUPABASE_ANON_KEY}|${SUPABASE_ANON_KEY}|" \
     -e "s|\${SUPABASE_SERVICE_KEY}|${SUPABASE_SERVICE_KEY}|" \
+    -e "s|\${SUPABASE_PUBLISHABLE_KEY}|${SUPABASE_PUBLISHABLE_KEY:-}|" \
+    -e "s|\${SUPABASE_SECRET_KEY}|${SUPABASE_SECRET_KEY:-}|" \
+    -e "s|\${ANON_KEY_ASYMMETRIC}|${ANON_KEY_ASYMMETRIC:-}|" \
+    -e "s|\${SERVICE_ROLE_KEY_ASYMMETRIC}|${SERVICE_ROLE_KEY_ASYMMETRIC:-}|" \
+    -e "s|\${LUA_AUTH_EXPR}|${LUA_AUTH_EXPR}|" \
+    -e "s|\${LUA_RT_WS_EXPR}|${LUA_RT_WS_EXPR}|" \
     -e "s|\${DASHBOARD_USERNAME}|${DASHBOARD_USERNAME}|" \
     -e "s|\${DASHBOARD_PASSWORD}|${DASHBOARD_PASSWORD}|" \
     /usr/local/kong/template.yml \
     > /usr/local/kong/kong.yml
+
+    sed -i '/^[[:space:]]*- key:[[:space:]]*$/d' /usr/local/kong/kong.yml
 
     exec /docker-entrypoint.sh kong docker-start
   template.yml: |
@@ -33,9 +49,11 @@ data:
       - username: anon
         keyauth_credentials:
             - key: ${SUPABASE_ANON_KEY}
+            - key: ${SUPABASE_PUBLISHABLE_KEY}
       - username: service_role
         keyauth_credentials:
             - key: ${SUPABASE_SERVICE_KEY}
+            - key: ${SUPABASE_SECRET_KEY}
     acls:
       - consumer: anon
         group: anon
@@ -76,6 +94,25 @@ data:
               - /auth/v1/authorize
         plugins:
           - name: cors
+      - name: auth-v1-open-jwks
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/.well-known/jwks.json
+        routes:
+          - name: auth-v1-open-jwks
+            strip_path: true
+            paths:
+              - /auth/v1/.well-known/jwks.json
+        plugins:
+          - name: cors
+      - name: well-known-oauth
+        _comment: 'Auth: /.well-known/oauth-authorization-server -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/.well-known/oauth-authorization-server'
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/.well-known/oauth-authorization-server
+        routes:
+          - name: well-known-oauth
+            strip_path: true
+            paths:
+              - /.well-known/oauth-authorization-server
+        plugins:
+          - name: cors
       - name: auth-v1
         _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/*"
         url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}
@@ -89,6 +126,14 @@ data:
           - name: key-auth
             config:
               hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -109,7 +154,15 @@ data:
           - name: cors
           - name: key-auth
             config:
-              hide_credentials: true
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -128,12 +181,16 @@ data:
           - name: cors
           - name: key-auth
             config:
-              hide_credentials: true
+              hide_credentials: false
           - name: request-transformer
             config:
               add:
                 headers:
-                  - Content-Profile:graphql_public
+                  - "Content-Profile: graphql_public"
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -156,6 +213,14 @@ data:
           - name: key-auth
             config:
               hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "x-api-key:${LUA_RT_WS_EXPR}"
+              replace:
+                querystring:
+                  - "apikey:${LUA_RT_WS_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -176,6 +241,14 @@ data:
           - name: key-auth
             config:
               hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -194,11 +267,28 @@ data:
               - /storage/v1/
         plugins:
           - name: cors
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+          - name: post-function
+            config:
+              access:
+                - |
+                  local auth = kong.request.get_header("authorization")
+                  if auth == nil or auth == "" or auth:find("^%s*$") then
+                    kong.service.request.clear_header("authorization")
+                  end
     {{- end }}
     {{- if .Values.deployment.functions.enabled }}
       - name: functions-v1
         _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.service.functions.port }}/*'
         url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.service.functions.port }}/
+        read_timeout: 150000
         routes:
           - name: functions-v1-all
             strip_path: true

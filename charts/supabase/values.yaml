@@ -58,6 +58,29 @@ secret:
     #   serviceKey: serviceKey
     #   secret: secret
 
+  ## API key material for asymmetric auth support
+  ## Docs: https://supabase.com/docs/guides/self-hosting/self-hosted-auth-keys
+  ##
+  apikey:
+    supabasePublishableKey: ""
+    supabaseSecretKey: ""
+    anonKeyAsymmetric: ""
+    serviceRoleKeyAsymmetric: ""
+    jwtKeys: ""
+    jwtJwks: ""
+
+    ## Reference to existing secret
+    # secretRef: ""
+
+    ## Map to actual keys inside secretRef if they differ
+    # secretRefKey:
+    #   supabasePublishableKey: supabasePublishableKey
+    #   supabaseSecretKey: supabaseSecretKey
+    #   anonKeyAsymmetric: anonKeyAsymmetric
+    #   serviceRoleKeyAsymmetric: serviceRoleKeyAsymmetric
+    #   jwtKeys: jwtKeys
+    #   jwtJwks: jwtJwks
+
   ## PostgreSQL credentials
   ## Required even when using an external database
   ##
@@ -564,7 +587,7 @@ environment:
     KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
     ## https://github.com/supabase/cli/issues/14
     KONG_DNS_ORDER: LAST,A,CNAME
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,post-function
     KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
     KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
     KONG_LOG_LEVEL: warn

@@ -119,6 +119,28 @@ spec:
                   name: {{ include "supabase.secret.jwt" . }}
                   key: serviceKey
                   {{- end }}
+            - name: SUPABASE_PUBLISHABLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  {{- end }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "supabasePublishableKey" | default "supabasePublishableKey" }}
+            - name: SUPABASE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.secret.apikey.secretRef }}
+                  name: {{ .Values.secret.apikey.secretRef }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.apikey" . }}
+                  {{- end }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "supabaseSecretKey" | default "supabaseSecretKey" }}
+            - name: SUPABASE_PUBLISHABLE_KEYS
+              value: '{"default":"$(SUPABASE_PUBLISHABLE_KEY)"}'
+            - name: SUPABASE_SECRET_KEYS
+              value: '{"default":"$(SUPABASE_SECRET_KEY)"}'
             - name: SUPABASE_DB_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
           {{- with .Values.deployment.functions.livenessProbe }}
