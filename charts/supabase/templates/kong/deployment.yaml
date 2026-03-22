@@ -66,20 +66,20 @@ spec:
                 secretKeyRef:
                   {{- if .Values.secret.apikey.secretRef }}
                   name: {{ .Values.secret.apikey.secretRef }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "supabasePublishableKey" | default "supabasePublishableKey" }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "publishableKey" | default "publishableKey" }}
                   {{- else }}
                   name: {{ include "supabase.secret.apikey" . }}
-                  key: supabasePublishableKey
+                  key: publishableKey
                   {{- end }}
             - name: SUPABASE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.apikey.secretRef }}
                   name: {{ .Values.secret.apikey.secretRef }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "supabaseSecretKey" | default "supabaseSecretKey" }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "secretKey" | default "secretKey" }}
                   {{- else }}
                   name: {{ include "supabase.secret.apikey" . }}
-                  key: supabaseSecretKey
+                  key: secretKey
                   {{- end }}
             - name: ANON_KEY_ASYMMETRIC
               valueFrom:

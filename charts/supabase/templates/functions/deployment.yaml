@@ -127,7 +127,7 @@ spec:
                   {{- else }}
                   name: {{ include "supabase.secret.apikey" . }}
                   {{- end }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "supabasePublishableKey" | default "supabasePublishableKey" }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "publishableKey" | default "publishableKey" }}
             - name: SUPABASE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -136,7 +136,7 @@ spec:
                   {{- else }}
                   name: {{ include "supabase.secret.apikey" . }}
                   {{- end }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "supabaseSecretKey" | default "supabaseSecretKey" }}
+                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "secretKey" | default "secretKey" }}
             - name: SUPABASE_PUBLISHABLE_KEYS
               value: '{"default":"$(SUPABASE_PUBLISHABLE_KEY)"}'
             - name: SUPABASE_SECRET_KEYS
