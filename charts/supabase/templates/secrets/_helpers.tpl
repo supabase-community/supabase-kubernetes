@@ -67,3 +67,10 @@ Expand the name of the apikey secret.
 {{- define "supabase.secret.apikey" -}}
 {{- printf "%s-apikey" (include "supabase.fullname" .) }}
 {{- end -}}
+
+{{/*
+Expand the name of the bigquery secret.
+*/}}
+{{- define "supabase.secret.bigquery" -}}
+{{- printf "%s-bigquery" (include "supabase.fullname" .) }}
+{{- end -}}

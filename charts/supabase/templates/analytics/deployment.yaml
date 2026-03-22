@@ -136,7 +136,7 @@ spec:
             {{- if .Values.bigQuery.enabled }}
             - mountPath: /opt/app/rel/logflare/bin/gcloud.json
               name: gcloud-credentials
-              subPath: gcloud.json
+              subPath: {{ .Values.secret.bigquery.secretRefKey.gcloudJson | default "gcloud.json" }}
             {{- end }}
           {{- end }}
           {{- with .Values.deployment.analytics.resources }}
@@ -151,7 +151,11 @@ spec:
         {{- if .Values.bigQuery.enabled }}
         - name: gcloud-credentials
           secret:
-            secretName: {{ include "supabase.analytics.fullname" . }}-gcloud
+            {{- if .Values.secret.bigquery.secretRef }}
+            secretName: {{ .Values.secret.bigquery.secretRef }}
+            {{- else }}
+            secretName: {{ include "supabase.secret.bigquery" . }}
+            {{- end }}
         {{- end }}
       {{- end }}
       {{- with .Values.deployment.analytics.nodeSelector }}
