@@ -44,84 +44,44 @@ spec:
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: anonKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: serviceKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
             - name: SUPABASE_PUBLISHABLE_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.apikey.secretRef }}
-                  name: {{ .Values.secret.apikey.secretRef }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "publishableKey" | default "publishableKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.apikey" . }}
-                  key: publishableKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.publishableKey" . }}
             - name: SUPABASE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.apikey.secretRef }}
-                  name: {{ .Values.secret.apikey.secretRef }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "secretKey" | default "secretKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.apikey" . }}
-                  key: secretKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.secretKey" . }}
             - name: ANON_KEY_ASYMMETRIC
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.apikey.secretRef }}
-                  name: {{ .Values.secret.apikey.secretRef }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "anonKeyAsymmetric" | default "anonKeyAsymmetric" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.apikey" . }}
-                  key: anonKeyAsymmetric
-                  {{- end }}
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.anonKeyAsymmetric" . }}
             - name: SERVICE_ROLE_KEY_ASYMMETRIC
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.apikey.secretRef }}
-                  name: {{ .Values.secret.apikey.secretRef }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "serviceRoleKeyAsymmetric" | default "serviceRoleKeyAsymmetric" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.apikey" . }}
-                  key: serviceRoleKeyAsymmetric
-                  {{- end }}
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.serviceRoleKeyAsymmetric" . }}
             {{- if .Values.secret.dashboard }}
             - name: DASHBOARD_USERNAME
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.dashboard.secretRef }}
-                  name: {{ .Values.secret.dashboard.secretRef }}
-                  key: {{ .Values.secret.dashboard.secretRefKey.username | default "username" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.dashboard" . }}
-                  key: username
-                  {{- end }}
+                  name: {{ include "supabase.secret.dashboard.name" . }}
+                  key: {{ include "supabase.secret.dashboard.key.username" . }}
             - name: DASHBOARD_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.dashboard.secretRef }}
-                  name: {{ .Values.secret.dashboard.secretRef }}
-                  key: {{ .Values.secret.dashboard.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.dashboard" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.dashboard.name" . }}
+                  key: {{ include "supabase.secret.dashboard.key.password" . }}
             {{- end }}
           {{- with .Values.deployment.kong.livenessProbe }}
           livenessProbe:

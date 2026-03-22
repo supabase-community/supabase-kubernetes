@@ -67,33 +67,18 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
             - name: DB_PASSWORD_ENC
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password_encoded
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: database
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.database" . }}
             - name: GOTRUE_DB_DATABASE_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
             - name: GOTRUE_DB_DRIVER
@@ -101,44 +86,25 @@ spec:
             - name: GOTRUE_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: secret
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.secret" . }}
             {{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtKeys }}
             - name: GOTRUE_JWT_KEYS
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.apikey.secretRef }}
-                  name: {{ .Values.secret.apikey.secretRef }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.apikey" . }}
-                  {{- end }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "jwtKeys" | default "jwtKeys" }}
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.jwtKeys" . }}
             {{- end }}
             - name: GOTRUE_SMTP_USER
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.smtp.secretRef }}
-                  name: {{ .Values.secret.smtp.secretRef }}
-                  key: {{ .Values.secret.smtp.secretRefKey.username | default "username" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.smtp" . }}
-                  key: username
-                  {{- end }}
+                  name: {{ include "supabase.secret.smtp.name" . }}
+                  key: {{ include "supabase.secret.smtp.key.username" . }}
             - name: GOTRUE_SMTP_PASS
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.smtp.secretRef }}
-                  name: {{ .Values.secret.smtp.secretRef }}
-                  key: {{ .Values.secret.smtp.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.smtp" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.smtp.name" . }}
+                  key: {{ include "supabase.secret.smtp.key.password" . }}
           {{- with .Values.deployment.auth.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

@@ -71,65 +71,36 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: database
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.database" . }}
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: secret
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.secret" . }}
             - name: API_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: secret
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.secret" . }}
             {{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtJwks }}
             - name: API_JWT_JWKS
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.apikey.secretRef }}
-                  name: {{ .Values.secret.apikey.secretRef }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.apikey" . }}
-                  {{- end }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "jwtJwks" | default "jwtJwks" }}
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.jwtJwks" . }}
             {{- end }}
 
             - name: SECRET_KEY_BASE
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.realtime.secretRef }}
-                  name: {{ .Values.secret.realtime.secretRef }}
-                  key: {{ .Values.secret.realtime.secretRefKey.secretKeyBase | default "secretKeyBase" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.realtime" . }}
-                  key: secretKeyBase
-                  {{- end }}
+                  name: {{ include "supabase.secret.realtime.name" . }}
+                  key: {{ include "supabase.secret.realtime.key.secretKeyBase" . }}
 
           {{- with .Values.deployment.realtime.livenessProbe }}
           livenessProbe:

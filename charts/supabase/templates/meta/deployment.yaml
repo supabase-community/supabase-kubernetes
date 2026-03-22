@@ -46,23 +46,13 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: database
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.database" . }}
             - name: PG_META_DB_HOST
               value: $(DB_HOST)
             - name: PG_META_DB_PORT
@@ -78,13 +68,8 @@ spec:
             - name: CRYPTO_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.meta.secretRef }}
-                  name: {{ .Values.secret.meta.secretRef }}
-                  key: {{ .Values.secret.meta.secretRefKey.cryptoKey }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.meta" . }}
-                  key: cryptoKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.meta.name" . }}
+                  key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
 
 
           {{- with .Values.deployment.meta.livenessProbe }}
