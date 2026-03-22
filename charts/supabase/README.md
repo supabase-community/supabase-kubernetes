@@ -146,6 +146,29 @@ secret:
     privateAccessToken: "your-super-secret-and-long-logflare-key-private"
 ```
 
+### BigQuery secret
+
+When using BigQuery as analytics backend, provide a GCP service account JSON key via secret values:
+
+```yaml
+bigQuery:
+  enabled: true
+
+secret:
+  bigquery:
+    gcloudJson: '{"type":"service_account", ...}'
+```
+
+You can also reference an existing Kubernetes Secret:
+
+```yaml
+secret:
+  bigquery:
+    secretRef: my-bigquery-secret
+    secretRefKey:
+      gcloudJson: gcloud.json
+```
+
 ### S3 secret
 
 Supabase storage supports the use of S3 object-storage. To enable S3 for Supabase storage:

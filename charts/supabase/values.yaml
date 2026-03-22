@@ -110,6 +110,19 @@ secret:
     #   publicAccessToken: publicAccessToken
     #   privateAccessToken: privateAccessToken
 
+  ## BigQuery service account credentials
+  ## Used by Logflare when analytics backend is set to BigQuery
+  ##
+  bigquery:
+    gcloudJson: ""
+
+    ## Reference to existing secret
+    # secretRef: ""
+
+    ## Map to actual keys inside secretRef if they differ
+    # secretRefKey:
+    #   gcloudJson: gcloud.json
+
   ## SMTP credentials
   ##
   smtp:
@@ -1039,4 +1052,3 @@ bigQuery:
   enabled: false
   projectId: google-project-id
   projectNumber: google-project-number
-  gcloudJson: ""
