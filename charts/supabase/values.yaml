@@ -62,8 +62,8 @@ secret:
   ## Docs: https://supabase.com/docs/guides/self-hosting/self-hosted-auth-keys
   ##
   apikey:
-    supabasePublishableKey: ""
-    supabaseSecretKey: ""
+    publishableKey: ""
+    secretKey: ""
     anonKeyAsymmetric: ""
     serviceRoleKeyAsymmetric: ""
     jwtKeys: ""
@@ -74,8 +74,8 @@ secret:
 
     ## Map to actual keys inside secretRef if they differ
     # secretRefKey:
-    #   supabasePublishableKey: supabasePublishableKey
-    #   supabaseSecretKey: supabaseSecretKey
+    #   publishableKey: publishableKey
+    #   secretKey: secretKey
     #   anonKeyAsymmetric: anonKeyAsymmetric
     #   serviceRoleKeyAsymmetric: serviceRoleKeyAsymmetric
     #   jwtKeys: jwtKeys
