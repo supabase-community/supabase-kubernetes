@@ -44,23 +44,18 @@ spec:
             - name: MINIO_ROOT_USER
               valueFrom:
                 secretKeyRef:
-                {{- if .Values.secret.minio.secretRef }}
-                  name: {{ .Values.secret.minio.secretRef }}
-                  key: {{ .Values.secret.minio.secretRefKey.user | default "user" }}
-                {{- else }}
-                  name: {{ include "supabase.secret.minio" . }}
-                  key: user
-                {{- end }}
+                  name: {{ include "supabase.secret.minio.name" . }}
+                  key: {{ include "supabase.secret.minio.key.user" . }}
             - name: MINIO_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                {{- if .Values.secret.s3.secretRef }}
-                  name: {{ .Values.secret.s3.secretRef }}
-                  key: {{ .Values.secret.s3.secretRefKey.password | default "password" }}
-                {{- else }}
-                  name: {{ include "supabase.secret.minio" . }}
-                  key: password
-                {{- end }}
+                  {{- if .Values.secret.s3.secretRef }}
+                  name: {{ include "supabase.secret.s3.name" . }}
+                  key: {{ include "supabase.secret.s3.key.password" . }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.minio.name" . }}
+                  key: {{ include "supabase.secret.minio.key.password" . }}
+                  {{- end }}
           {{- with .Values.deployment.minio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

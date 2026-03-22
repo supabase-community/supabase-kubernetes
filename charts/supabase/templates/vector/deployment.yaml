@@ -52,13 +52,8 @@ spec:
             - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.analytics.secretRef }}
-                  name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "publicAccessToken" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.analytics" . }}
-                  key: publicAccessToken
-                  {{- end }}
+                  name: {{ include "supabase.secret.analytics.name" . }}
+                  key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
             {{- end }}
           {{- with .Values.deployment.vector.livenessProbe }}
           livenessProbe:

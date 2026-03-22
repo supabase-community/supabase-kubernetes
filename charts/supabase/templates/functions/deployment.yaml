@@ -62,81 +62,43 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
             - name: DB_PASSWORD_ENC
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password_encoded
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: database
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.database" . }}
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: secret
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.secret" . }}
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: anonKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
             - name: SUPABASE_SERVICE_ROLE_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: serviceKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
             - name: SUPABASE_PUBLISHABLE_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.apikey.secretRef }}
-                  name: {{ .Values.secret.apikey.secretRef }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.apikey" . }}
-                  {{- end }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "publishableKey" | default "publishableKey" }}
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.publishableKey" . }}
             - name: SUPABASE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.apikey.secretRef }}
-                  name: {{ .Values.secret.apikey.secretRef }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.apikey" . }}
-                  {{- end }}
-                  key: {{ index (default (dict) .Values.secret.apikey.secretRefKey) "secretKey" | default "secretKey" }}
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.secretKey" . }}
             - name: SUPABASE_PUBLISHABLE_KEYS
               value: '{"default":"$(SUPABASE_PUBLISHABLE_KEY)"}'
             - name: SUPABASE_SECRET_KEYS

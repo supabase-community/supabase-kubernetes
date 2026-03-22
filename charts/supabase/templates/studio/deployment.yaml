@@ -56,80 +56,45 @@ spec:
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: database
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.database" . }}
 
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
 
             - name: PG_META_CRYPTO_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.meta.secretRef }}
-                  name: {{ .Values.secret.meta.secretRef }}
-                  key: {{ .Values.secret.meta.secretRefKey.cryptoKey | default "cryptoKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.meta" . }}
-                  key: cryptoKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.meta.name" . }}
+                  key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
 
 
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.dashboard.secretRef }}
-                  name: {{ .Values.secret.dashboard.secretRef }}
-                  key: {{ .Values.secret.dashboard.secretRefKey.openAiApiKey | default "openAiApiKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.dashboard" . }}
-                  key: openAiApiKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.dashboard.name" . }}
+                  key: {{ include "supabase.secret.dashboard.key.openAiApiKey" . }}
 
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: anonKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
 
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: serviceKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
 
             - name: AUTH_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: secret
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.secret" . }}
 
             {{- if .Values.deployment.analytics.enabled }}
             - name: LOGFLARE_URL
@@ -137,23 +102,13 @@ spec:
             - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.analytics.secretRef }}
-                  name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "publicAccessToken" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.analytics" . }}
-                  key: publicAccessToken
-                  {{- end }}
+                  name: {{ include "supabase.secret.analytics.name" . }}
+                  key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
             - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.analytics.secretRef }}
-                  name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.privateAccessToken | default "privateAccessToken" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.analytics" . }}
-                  key: privateAccessToken
-                  {{- end }}
+                  name: {{ include "supabase.secret.analytics.name" . }}
+                  key: {{ include "supabase.secret.analytics.key.privateAccessToken" . }}
             {{- end }}
             {{- if .Values.persistence.functions.enabled }}
             - name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER

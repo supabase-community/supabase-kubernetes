@@ -71,43 +71,23 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
             - name: DB_PASSWORD_ENC
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password_encoded
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
             - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.analytics.secretRef }}
-                  name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "publicAccessToken" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.analytics" . }}
-                  key: publicAccessToken
-                  {{- end }}
+                  name: {{ include "supabase.secret.analytics.name" . }}
+                  key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
             - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.analytics.secretRef }}
-                  name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.privateAccessToken | default "privateAccessToken" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.analytics" . }}
-                  key: privateAccessToken
-                  {{- end }}
+                  name: {{ include "supabase.secret.analytics.name" . }}
+                  key: {{ include "supabase.secret.analytics.key.privateAccessToken" . }}
             {{- if .Values.bigQuery.enabled }}
             - name: GOOGLE_PROJECT_ID
               value: {{ .Values.bigQuery.projectId | quote }}
@@ -136,7 +116,7 @@ spec:
             {{- if .Values.bigQuery.enabled }}
             - mountPath: /opt/app/rel/logflare/bin/gcloud.json
               name: gcloud-credentials
-              subPath: {{ .Values.secret.bigquery.secretRefKey.gcloudJson | default "gcloud.json" }}
+              subPath: {{ include "supabase.secret.bigquery.key.gcloudJson" . }}
             {{- end }}
           {{- end }}
           {{- with .Values.deployment.analytics.resources }}
@@ -151,11 +131,7 @@ spec:
         {{- if .Values.bigQuery.enabled }}
         - name: gcloud-credentials
           secret:
-            {{- if .Values.secret.bigquery.secretRef }}
-            secretName: {{ .Values.secret.bigquery.secretRef }}
-            {{- else }}
-            secretName: {{ include "supabase.secret.bigquery" . }}
-            {{- end }}
+            secretName: {{ include "supabase.secret.bigquery.name" . }}
         {{- end }}
       {{- end }}
       {{- with .Values.deployment.analytics.nodeSelector }}
