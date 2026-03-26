@@ -454,7 +454,7 @@ image:
   functions:
     repository: supabase/edge-runtime
     pullPolicy: IfNotPresent
-    tag: "v1.70.3"
+    tag: "v1.71.2"
     pullSecrets: []
 
   imgproxy:
@@ -464,9 +464,9 @@ image:
     pullSecrets: []
 
   kong:
-    repository: kong
+    repository: kong/kong
     pullPolicy: IfNotPresent
-    tag: "2.8.1"
+    tag: "3.9.1"
     pullSecrets: []
 
   meta:
@@ -490,19 +490,19 @@ image:
   rest:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "v14.5"
+    tag: "v14.6"
     pullSecrets: []
 
   storage:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "v1.37.8"
+    tag: "v1.44.2"
     pullSecrets: []
 
   studio:
     repository: supabase/studio
     pullPolicy: IfNotPresent
-    tag: "2026.02.16-sha-26c615c"
+    tag: "2026.03.16-sha-5528817"
     pullSecrets: []
 
   vector:
