@@ -37,7 +37,7 @@ data:
 
     sed -i '/^[[:space:]]*- key:[[:space:]]*$/d' /usr/local/kong/kong.yml
 
-    exec /docker-entrypoint.sh kong docker-start
+    exec /entrypoint.sh kong docker-start
   template.yml: |
     _format_version: '2.1'
     _transform: true
