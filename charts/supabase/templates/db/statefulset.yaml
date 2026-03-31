@@ -56,6 +56,9 @@ spec:
               name: custom-migrations
             - mountPath: /initdb.d
               name: initdb-scripts-data
+      {{- if .Values.deployment.db.extraInitContainers }}
+          {{- toYaml .Values.deployment.db.extraInitContainers | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.db.name" $ }}
           securityContext:
