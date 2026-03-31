@@ -82,6 +82,9 @@ spec:
               done
               /usr/bin/mc mb --ignore-existing supa-minio/$GLOBAL_S3_BUCKET
         {{- end }}
+        {{- if .Values.deployment.storage.extraInitContainers }}
+          {{ .Values.deployment.storage.extraInitContainers | toYaml | nindent 8 }}
+        {{- end }}
       containers:
         - name: {{ include "supabase.storage.name" $ }}
           securityContext:

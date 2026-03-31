@@ -397,6 +397,7 @@ deployment:
     volumeMounts: {}
     volumes: {}
     resources: {}
+    extraInitContainers: []
 
   studio:
     enabled: true
