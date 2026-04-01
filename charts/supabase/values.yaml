@@ -1050,6 +1050,11 @@ migration:
   #   -- Set table owner
   #   alter table app.items owner to :pguser;
 
+## Network Policies
+## When enabled, restricts pod-to-pod communication for defense-in-depth security
+networkPolicies:
+  enabled: false
+
 bigQuery:
   enabled: false
   projectId: google-project-id
