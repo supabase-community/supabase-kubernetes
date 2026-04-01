@@ -31,8 +31,8 @@ spec:
         {{- toYaml .Values.deployment.storage.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
-          image: postgres:15-alpine
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
+          imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
           env:
             - name: DB_HOST
               {{- if .Values.deployment.db.enabled }}
@@ -52,7 +52,7 @@ spec:
             - echo "Database is ready"
         {{- if .Values.deployment.minio.enabled }}
         - name: init-bucket
-          image: cgr.dev/chainguard/minio-client:latest-dev
+          image: "{{ .Values.image.minioClient.repository }}:{{ .Values.image.minioClient.tag }}"
           env:
             - name: MINIO_ROOT_USER
               valueFrom:
@@ -71,7 +71,7 @@ spec:
                   {{- end }}
             - name: GLOBAL_S3_BUCKET
               value: {{ .Values.environment.storage.GLOBAL_S3_BUCKET }}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.image.minioClient.pullPolicy }}
           command:
             - /bin/sh
             - -c

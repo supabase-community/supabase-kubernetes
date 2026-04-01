@@ -30,8 +30,8 @@ spec:
         {{- toYaml .Values.deployment.auth.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
-          image: postgres:15-alpine
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
+          imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
           env:
             - name: DB_HOST
               {{- if .Values.deployment.db.enabled }}

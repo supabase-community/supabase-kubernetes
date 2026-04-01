@@ -513,6 +513,16 @@ image:
     tag: "0.53.0-alpine"
     pullSecrets: []
 
+  initDb:
+    repository: postgres
+    pullPolicy: IfNotPresent
+    tag: "15-alpine"
+
+  minioClient:
+    repository: cgr.dev/chainguard/minio-client
+    pullPolicy: IfNotPresent
+    tag: "latest-dev"
+
 environment:
   analytics:
     LOGFLARE_NODE_HOST: 127.0.0.1

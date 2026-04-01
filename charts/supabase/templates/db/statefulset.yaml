@@ -31,7 +31,7 @@ spec:
       initContainers:
         - name: init-db
           image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.image.db.pullPolicy }}
           command: ["/bin/sh", "-c"]
           args:
             - |
