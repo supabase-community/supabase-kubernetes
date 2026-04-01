@@ -134,7 +134,7 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if or .Values.deployment.studio.volumeMounts .Values.persistence.functions.enabled }}
+          {{- if or .Values.deployment.studio.volumeMounts .Values.persistence.functions.enabled .Values.persistence.snippets.enabled }}
           volumeMounts:
             {{- with .Values.deployment.studio.volumeMounts }}
               {{- toYaml . | nindent 12 }}
@@ -148,7 +148,7 @@ spec:
               mountPath: /app/snippets
             {{- end }}
           {{- end }}
-      {{- if or .Values.deployment.studio.volumes .Values.persistence.functions.enabled }}
+      {{- if or .Values.deployment.studio.volumes .Values.persistence.functions.enabled .Values.persistence.snippets.enabled }}
       volumes:
         {{- with .Values.deployment.studio.volumes }}
           {{- toYaml . | nindent 8 }}
