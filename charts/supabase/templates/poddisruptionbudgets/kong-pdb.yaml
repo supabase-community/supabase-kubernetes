@@ -1,0 +1,21 @@
+{{- if .Values.deployment.kong.enabled -}}
+{{- if (.Values.deployment.kong.podDisruptionBudget).enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "supabase.kong.fullname" . }}-pdb
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.deployment.kong.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.deployment.kong.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.deployment.kong.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.deployment.kong.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.kong.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- end }}

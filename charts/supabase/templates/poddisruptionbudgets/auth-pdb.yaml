@@ -1,0 +1,21 @@
+{{- if .Values.deployment.auth.enabled -}}
+{{- if (.Values.deployment.auth.podDisruptionBudget).enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "supabase.auth.fullname" . }}-pdb
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.deployment.auth.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.deployment.auth.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.deployment.auth.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.deployment.auth.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "supabase.auth.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- end }}
