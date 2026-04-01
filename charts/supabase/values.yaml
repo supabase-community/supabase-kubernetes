@@ -261,7 +261,8 @@ deployment:
     volumeMounts: {}
     volumes: {}
     resources: {}
-    extraInitContainers: []
+    extraInitContainersBefore: []
+    extraInitContainersAfter: []
 
   functions:
     enabled: true
