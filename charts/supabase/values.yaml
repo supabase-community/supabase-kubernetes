@@ -1047,20 +1047,20 @@ networkPolicy:
   db:
     enabled: false
     # example.values.yaml
-    #dbIngressRules:
-    #  - name: allow-supabase-internal
-    #    from:
-    #      podSelector:
-    #        matchLabels:
-    #          app.kubernetes.io/instance: supabase
-    #  - name: allow-analytics-team
-    #    from:
-    #      namespaceSelector:
-    #        matchLabels:
-    #          team: analytics
-    #      podSelector:
-    #        matchLabels:
-    #          role: analyst-tool
+    # dbIngressRules:
+    #   - name: allow-supabase-internal
+    #     from:
+    #       podSelector:
+    #         matchLabels:
+    #           app.kubernetes.io/instance: supabase
+    #   - name: allow-analytics-team
+    #     from:
+    #       namespaceSelector:
+    #         matchLabels:
+    #           team: analytics
+    #       podSelector:
+    #         matchLabels:
+    #           role: analyst-tool
 
 migration:
   # example.sql: |
