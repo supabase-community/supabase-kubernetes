@@ -12,7 +12,7 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    {{- range .Values.networkPolicy.db.dbIngressRules }}
+    {{- range .Values.networkPolicy.db.ingressRules }}
     - from:
         - {{ toYaml .from | indent 10 | trim }}
       ports:
