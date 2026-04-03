@@ -1037,7 +1037,7 @@ networkPolicy:
   db:
     enabled: false
     # example.values.yaml
-    # dbIngressRules:
+    # ingressRules:
     #   - name: allow-supabase-internal
     #     from:
     #       podSelector:
