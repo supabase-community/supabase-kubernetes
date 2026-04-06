@@ -1056,7 +1056,7 @@ migration:
     # scripts: |
     #   echo "--- Starting Manual Migration ---"
     #   aws s3 cp s3://my-bucket/dump.sql /tmp/dump.sql
-    #   psql -h $DB_HOST -U postgres -f /inline/setup.sql  
+    #   psql -h $DB_HOST -U postgres -f /tmp/dump.sql
     #   echo "--- Finished ---"
 
 bigQuery:
