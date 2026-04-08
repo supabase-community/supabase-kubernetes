@@ -41,13 +41,15 @@ spec:
                 PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" -f "$f" -v ON_ERROR_STOP=0
               done
 
-              echo "Setting service role passwords..."
+              echo "Setting service role passwords and grants..."
               PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" -v ON_ERROR_STOP=0 <<EOSQL
               ALTER USER authenticator WITH PASSWORD '$DB_PASSWORD';
               ALTER USER supabase_auth_admin WITH PASSWORD '$DB_PASSWORD';
               ALTER USER supabase_storage_admin WITH PASSWORD '$DB_PASSWORD';
               ALTER USER pgbouncer WITH PASSWORD '$DB_PASSWORD';
-              GRANT supabase_admin TO authenticator;
+              GRANT $DB_USER TO authenticator;
+              GRANT CREATE ON DATABASE $DB_NAME TO supabase_storage_admin;
+              GRANT CREATE ON DATABASE $DB_NAME TO supabase_auth_admin;
               EOSQL
 
               echo "=== External database initialization complete ==="

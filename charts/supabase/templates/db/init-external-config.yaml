@@ -65,7 +65,11 @@ data:
 
   01-auth-schema.sql: |
     -- Auth schema, supabase_auth_admin role, and auth helper functions
-    CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
+    -- Grant membership so current user can SET ROLE
+    GRANT supabase_auth_admin TO CURRENT_USER;
+
+    CREATE SCHEMA IF NOT EXISTS auth;
+    ALTER SCHEMA auth OWNER TO supabase_auth_admin;
     GRANT ALL PRIVILEGES ON SCHEMA auth TO supabase_auth_admin;
     ALTER USER supabase_auth_admin SET search_path = 'auth';
     GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
@@ -89,7 +93,11 @@ data:
 
   02-storage-schema.sql: |
     -- Storage schema and supabase_storage_admin role
-    CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
+    -- Grant membership so current user can SET ROLE
+    GRANT supabase_storage_admin TO CURRENT_USER;
+
+    CREATE SCHEMA IF NOT EXISTS storage;
+    ALTER SCHEMA storage OWNER TO supabase_storage_admin;
     ALTER USER supabase_storage_admin SET search_path = 'storage';
     GRANT USAGE ON SCHEMA storage TO postgres, anon, authenticated, service_role;
     ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
