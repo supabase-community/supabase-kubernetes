@@ -30,10 +30,11 @@ data:
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
     CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
-    -- Compatibility: if the external database was created with a custom master username
-    -- (e.g. supabase_admin instead of postgres), the 'postgres' role won't exist.
-    -- Supabase services and upstream GoTrue/PostgREST migrations reference it in grants.
+    -- Compatibility roles: ensure both 'postgres' and 'supabase_admin' exist regardless
+    -- of which was used as the master username. Supabase services connect as supabase_admin
+    -- and upstream migrations reference postgres in grants.
     DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'postgres') THEN CREATE ROLE postgres NOLOGIN; END IF; END $$;
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'supabase_admin') THEN CREATE USER supabase_admin CREATEDB CREATEROLE LOGIN BYPASSRLS; END IF; END $$;
 
     -- Core API roles
     DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN NOINHERIT; END IF; END $$;
