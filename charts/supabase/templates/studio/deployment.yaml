@@ -54,10 +54,14 @@ spec:
             {{- end }}
 
             - name: POSTGRES_DB
+              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
+              value: {{ .Values.secret.db.database | default "postgres" | quote }}
+              {{- else }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.database" . }}
+              {{- end }}
 
             - name: POSTGRES_PASSWORD
               valueFrom:
