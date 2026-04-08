@@ -64,10 +64,14 @@ spec:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.password" . }}
             - name: DB_NAME
+              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
+              value: {{ .Values.secret.db.database | default "postgres" | quote }}
+              {{- else }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.database" . }}
+              {{- end }}
             - name: PG_META_DB_HOST
               value: $(DB_HOST)
             - name: PG_META_DB_PORT
