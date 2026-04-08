@@ -9,6 +9,8 @@ metadata:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "-5"
     "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data:
   00-initial-schema.sql: |
     -- Supabase initial schema: roles, extensions, schemas, and default grants.
@@ -108,29 +110,7 @@ data:
       END IF;
     END $$;
 
-  04-passwords-and-grants.sql: |
-    -- Set all service role passwords to the master DB password.
-    -- This matches the behavior of the internal Supabase DB 99-roles.sql init script.
-    -- The password is injected via the DB_PASSWORD environment variable in the init Job.
-
-    -- NOTE: This script uses CURRENT_USER's password as the source. The init Job connects
-    -- as the DB master user, so all service roles get the same password. In production,
-    -- consider using unique passwords per role via additional secrets.
-
-    DO $$
-    DECLARE
-      master_pass text;
-    BEGIN
-      -- Get current user's password from pg_shadow (already authenticated)
-      -- We set all service passwords to match for simplicity
-      EXECUTE format('ALTER USER authenticator WITH PASSWORD %L', current_setting('supabase.db_password', true));
-      EXECUTE format('ALTER USER supabase_auth_admin WITH PASSWORD %L', current_setting('supabase.db_password', true));
-      EXECUTE format('ALTER USER supabase_storage_admin WITH PASSWORD %L', current_setting('supabase.db_password', true));
-      EXECUTE format('ALTER USER pgbouncer WITH PASSWORD %L', current_setting('supabase.db_password', true));
-    EXCEPTION WHEN OTHERS THEN
-      RAISE NOTICE 'Could not set role passwords via GUC. Set them manually or pass the password via the init Job environment.';
-    END $$;
-
+  04-grants.sql: |
     -- Dashboard user grants
     DO $$ BEGIN
       IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'dashboard_user') THEN

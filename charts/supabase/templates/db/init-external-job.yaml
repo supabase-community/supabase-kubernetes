@@ -9,6 +9,8 @@ metadata:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "0"
     "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   ttlSecondsAfterFinished: 86400
   backoffLimit: 3
@@ -31,12 +33,23 @@ spec:
                 sleep 2
               done
 
+              CONNSTR="sslmode=require host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME"
+
               echo "Running Supabase init scripts against external database..."
-              export PGOPTIONS="-c supabase.db_password=$DB_PASSWORD"
               for f in /init-scripts/*.sql; do
                 echo "=== Running $(basename $f) ==="
-                PGPASSWORD="$DB_PASSWORD" psql "sslmode=require host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME" -f "$f" -v ON_ERROR_STOP=0
+                PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" -f "$f" -v ON_ERROR_STOP=0
               done
+
+              echo "Setting service role passwords..."
+              PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" -v ON_ERROR_STOP=0 <<EOSQL
+              ALTER USER authenticator WITH PASSWORD '$DB_PASSWORD';
+              ALTER USER supabase_auth_admin WITH PASSWORD '$DB_PASSWORD';
+              ALTER USER supabase_storage_admin WITH PASSWORD '$DB_PASSWORD';
+              ALTER USER pgbouncer WITH PASSWORD '$DB_PASSWORD';
+              GRANT supabase_admin TO authenticator;
+              EOSQL
+
               echo "=== External database initialization complete ==="
           env:
             - name: DB_HOST
@@ -58,7 +71,7 @@ spec:
               value: {{ .Values.environment.auth.DB_PORT | default "5432" | quote }}
               {{- end }}
             - name: DB_USER
-              value: {{ .Values.environment.auth.DB_USER | default "supabase_admin" | quote }}
+              value: {{ .Values.environment.auth.DB_USER | default "postgres" | quote }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
