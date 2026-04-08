@@ -32,9 +32,10 @@ spec:
               done
 
               echo "Running Supabase init scripts against external database..."
+              export PGOPTIONS="-c supabase.db_password=$DB_PASSWORD"
               for f in /init-scripts/*.sql; do
                 echo "=== Running $(basename $f) ==="
-                PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$f" -v ON_ERROR_STOP=0
+                PGPASSWORD="$DB_PASSWORD" psql "sslmode=require host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME" -f "$f" -v ON_ERROR_STOP=0
               done
               echo "=== External database initialization complete ==="
           env:
