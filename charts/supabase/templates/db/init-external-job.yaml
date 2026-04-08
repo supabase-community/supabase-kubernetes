@@ -71,7 +71,14 @@ spec:
               value: {{ .Values.environment.auth.DB_PORT | default "5432" | quote }}
               {{- end }}
             - name: DB_USER
-              value: {{ .Values.environment.auth.DB_USER | default "postgres" | quote }}
+              {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "username") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ index (default (dict) .Values.secret.db.secretRefKey) "username" }}
+              {{- else }}
+              value: "postgres"
+              {{- end }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
