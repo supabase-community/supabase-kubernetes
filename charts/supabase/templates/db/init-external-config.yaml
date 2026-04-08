@@ -28,6 +28,11 @@ data:
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
     CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
+    -- Compatibility: if the external database was created with a custom master username
+    -- (e.g. supabase_admin instead of postgres), the 'postgres' role won't exist.
+    -- Supabase services and upstream GoTrue/PostgREST migrations reference it in grants.
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'postgres') THEN CREATE ROLE postgres NOLOGIN; END IF; END $$;
+
     -- Core API roles
     DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN NOINHERIT; END IF; END $$;
     DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN NOINHERIT; END IF; END $$;
@@ -45,12 +50,12 @@ data:
     GRANT authenticated TO authenticator;
     GRANT service_role TO authenticator;
 
-    -- Public schema grants (omit 'postgres' role which may not exist on managed DB)
-    GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
-    GRANT USAGE ON SCHEMA extensions TO anon, authenticated, service_role;
+    -- Public schema grants
+    GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+    GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
 
     -- API role timeouts
     ALTER ROLE anon SET statement_timeout = '3s';
@@ -84,10 +89,10 @@ data:
     -- Storage schema and supabase_storage_admin role
     CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
     ALTER USER supabase_storage_admin SET search_path = 'storage';
-    GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON TABLES TO anon, authenticated, service_role;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+    GRANT USAGE ON SCHEMA storage TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
     GRANT ALL ON SCHEMA storage TO supabase_storage_admin WITH GRANT OPTION;
 
   03-realtime-schema.sql: |
