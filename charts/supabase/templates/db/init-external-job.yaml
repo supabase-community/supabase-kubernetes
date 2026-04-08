@@ -47,7 +47,9 @@ spec:
               ALTER USER supabase_auth_admin WITH PASSWORD '$DB_PASSWORD';
               ALTER USER supabase_storage_admin WITH PASSWORD '$DB_PASSWORD';
               ALTER USER pgbouncer WITH PASSWORD '$DB_PASSWORD';
+              ALTER USER supabase_admin WITH PASSWORD '$DB_PASSWORD';
               GRANT $DB_USER TO authenticator;
+              GRANT $DB_USER TO supabase_admin;
               GRANT CREATE ON DATABASE $DB_NAME TO supabase_storage_admin;
               GRANT CREATE ON DATABASE $DB_NAME TO supabase_auth_admin;
               EOSQL
