@@ -1,0 +1,83 @@
+{{- if not .Values.deployment.db.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "supabase.fullname" . }}-db-init
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init-external-db
+          image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
+          imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              echo "Waiting for database to be ready..."
+              until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
+                echo "Database not ready, retrying in 2s..."
+                sleep 2
+              done
+
+              echo "Running Supabase init scripts against external database..."
+              for f in /init-scripts/*.sql; do
+                echo "=== Running $(basename $f) ==="
+                PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$f" -v ON_ERROR_STOP=0
+              done
+              echo "=== External database initialization complete ==="
+          env:
+            - name: DB_HOST
+              {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.host" . }}
+              {{- else }}
+              value: {{ .Values.environment.auth.DB_HOST | default "" | quote }}
+              {{- end }}
+            - name: DB_PORT
+              {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.port" . }}
+              {{- else }}
+              value: {{ .Values.environment.auth.DB_PORT | default "5432" | quote }}
+              {{- end }}
+            - name: DB_USER
+              value: {{ .Values.environment.auth.DB_USER | default "supabase_admin" | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
+            - name: DB_NAME
+              {{- if .Values.secret.db.secretRef }}
+              value: {{ .Values.secret.db.database | default "postgres" | quote }}
+              {{- else }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.database" . }}
+              {{- end }}
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /init-scripts
+              readOnly: true
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: {{ include "supabase.fullname" . }}-db-init-external
+{{- end }}

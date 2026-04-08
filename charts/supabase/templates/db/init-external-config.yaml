@@ -1,0 +1,118 @@
+{{- if not .Values.deployment.db.enabled -}}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "supabase.fullname" . }}-db-init-external
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+data:
+  00-initial-schema.sql: |
+    -- Supabase initial schema: roles, extensions, and default grants
+    -- Source: https://github.com/supabase/postgres/blob/develop/migrations/db/init-scripts/00000000000000-initial-schema.sql
+
+    -- Set up realtime publication
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        CREATE PUBLICATION supabase_realtime;
+      END IF;
+    END $$;
+
+    -- Extension namespacing
+    CREATE SCHEMA IF NOT EXISTS extensions;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+    CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
+    -- Auth roles
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN NOINHERIT; END IF; END $$;
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN NOINHERIT; END IF; END $$;
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN NOINHERIT BYPASSRLS; END IF; END $$;
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticator') THEN CREATE USER authenticator NOINHERIT; END IF; END $$;
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'supabase_replication_admin') THEN CREATE USER supabase_replication_admin WITH LOGIN REPLICATION; END IF; END $$;
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'supabase_read_only_user') THEN CREATE ROLE supabase_read_only_user WITH LOGIN BYPASSRLS; END IF; END $$;
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'dashboard_user') THEN CREATE ROLE dashboard_user NOSUPERUSER CREATEDB CREATEROLE REPLICATION; END IF; END $$;
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'pgbouncer') THEN CREATE USER pgbouncer; END IF; END $$;
+
+    GRANT anon TO authenticator;
+    GRANT authenticated TO authenticator;
+    GRANT service_role TO authenticator;
+
+    GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+    GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+
+    ALTER ROLE anon SET statement_timeout = '3s';
+    ALTER ROLE authenticated SET statement_timeout = '8s';
+
+  01-auth-schema.sql: |
+    -- Supabase auth schema and supabase_auth_admin role
+    -- Source: https://github.com/supabase/postgres/blob/develop/migrations/db/init-scripts/00000000000001-auth-schema.sql
+
+    CREATE SCHEMA IF NOT EXISTS auth;
+
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'supabase_auth_admin') THEN CREATE USER supabase_auth_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION; END IF; END $$;
+
+    GRANT ALL PRIVILEGES ON SCHEMA auth TO supabase_auth_admin;
+    ALTER USER supabase_auth_admin SET search_path = 'auth';
+
+    GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
+
+    -- auth.uid(), auth.role(), auth.email() functions used by RLS policies
+    CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
+      SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+    $$ LANGUAGE sql STABLE;
+
+    CREATE OR REPLACE FUNCTION auth.role() RETURNS text AS $$
+      SELECT nullif(current_setting('request.jwt.claim.role', true), '')::text;
+    $$ LANGUAGE sql STABLE;
+
+    CREATE OR REPLACE FUNCTION auth.email() RETURNS text AS $$
+      SELECT nullif(current_setting('request.jwt.claim.email', true), '')::text;
+    $$ LANGUAGE sql STABLE;
+
+  02-storage-schema.sql: |
+    -- Supabase storage schema and supabase_storage_admin role
+    -- Source: https://github.com/supabase/postgres/blob/develop/migrations/db/init-scripts/00000000000002-storage-schema.sql
+
+    CREATE SCHEMA IF NOT EXISTS storage;
+
+    DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'supabase_storage_admin') THEN CREATE USER supabase_storage_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION; END IF; END $$;
+    ALTER USER supabase_storage_admin SET search_path = 'storage';
+
+    GRANT USAGE ON SCHEMA storage TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+    GRANT ALL ON SCHEMA storage TO supabase_storage_admin WITH GRANT OPTION;
+
+  03-realtime-schema.sql: |
+    -- Supabase realtime schema
+    CREATE SCHEMA IF NOT EXISTS _realtime;
+
+  04-post-setup.sql: |
+    -- Supabase post-setup: search paths, dashboard user grants
+    -- Source: https://github.com/supabase/postgres/blob/develop/migrations/db/init-scripts/00000000000003-post-setup.sql
+
+    GRANT ALL ON DATABASE {{ .Values.secret.db.database | default "postgres" }} TO dashboard_user;
+    GRANT ALL ON SCHEMA auth TO dashboard_user;
+    GRANT ALL ON SCHEMA extensions TO dashboard_user;
+    GRANT ALL ON ALL TABLES IN SCHEMA auth TO dashboard_user;
+    GRANT ALL ON ALL TABLES IN SCHEMA extensions TO dashboard_user;
+    GRANT ALL ON ALL SEQUENCES IN SCHEMA auth TO dashboard_user;
+    GRANT ALL ON ALL SEQUENCES IN SCHEMA extensions TO dashboard_user;
+    GRANT ALL ON ALL ROUTINES IN SCHEMA auth TO dashboard_user;
+    GRANT ALL ON ALL ROUTINES IN SCHEMA extensions TO dashboard_user;
+
+    DO $$ BEGIN
+      IF EXISTS (SELECT FROM pg_namespace WHERE nspname = 'storage') THEN
+        GRANT ALL ON SCHEMA storage TO dashboard_user;
+        GRANT ALL ON ALL SEQUENCES IN SCHEMA storage TO dashboard_user;
+        GRANT ALL ON ALL ROUTINES IN SCHEMA storage TO dashboard_user;
+      END IF;
+    END $$;
+{{- end }}
