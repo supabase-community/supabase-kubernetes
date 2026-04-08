@@ -36,13 +36,25 @@ spec:
             - name: DB_HOST
               {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
+              {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.host" . }}
               {{- else }}
               value: {{ .Values.environment.analytics.DB_HOST | quote }}
               {{- end }}
             - name: DB_USER
               value: $(DB_USERNAME)
             - name: DB_PORT
+              {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.port" . }}
+              {{- else }}
               value: {{ .Values.environment.analytics.DB_PORT | quote }}
+              {{- end }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -59,12 +71,19 @@ spec:
           imagePullPolicy: {{ .Values.image.analytics.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.analytics }}
+            {{- if not (and (not $.Values.deployment.db.enabled) $.Values.secret.db.secretRef (or (and (eq $key "DB_HOST") (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) (and (eq $key "DB_PORT") (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")))) }}
             - name: {{ $key }}
               value: {{ $value | quote }}
+            {{- end }}
             {{- end }}
             - name: DB_HOSTNAME
               {{- if .Values.deployment.db.enabled }}
               value: {{ include "supabase.db.fullname" . | quote }}
+              {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.host" . }}
               {{- else }}
               value: {{ .Values.environment.analytics.DB_HOST | quote }}
               {{- end }}

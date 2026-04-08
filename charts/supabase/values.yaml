@@ -93,6 +93,8 @@ secret:
 
     ## Map to actual keys inside secretRef if they differ
     # secretRefKey:
+    #   host: host
+    #   port: port
     #   password: password
     #   database: database
 

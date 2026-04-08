@@ -36,12 +36,27 @@ spec:
           imagePullPolicy: {{ .Values.image.meta.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.meta }}
+            {{- if not (and (not $.Values.deployment.db.enabled) $.Values.secret.db.secretRef (or (and (eq $key "DB_HOST") (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) (and (eq $key "DB_PORT") (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")))) }}
             - name: {{ $key }}
               value: {{ $value | quote }}
+            {{- end }}
             {{- end }}
             {{- if .Values.deployment.db.enabled }}
             - name: DB_HOST
               value: {{ include "supabase.db.fullname" . }}
+            {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.host" . }}
+            {{- end }}
+            {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.port" . }}
             {{- end }}
             - name: DB_PASSWORD
               valueFrom:
