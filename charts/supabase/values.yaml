@@ -88,6 +88,12 @@ secret:
     password: "your-super-secret-and-long-postgres-password"
     database: "postgres"
 
+    ## External database host/port (used when deployment.db.enabled is false).
+    ## Leave empty to fall back to environment.<service>.DB_HOST / DB_PORT.
+    ## Ignored when deployment.db.enabled is true (internal DB service is used).
+    host: ""
+    port: ""
+
     ## Reference to existing secret
     # secretRef: ""
 
