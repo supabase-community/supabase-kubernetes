@@ -33,7 +33,7 @@ spec:
                 sleep 2
               done
 
-              CONNSTR="sslmode=require host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME"
+              CONNSTR="sslmode=${DB_SSL:-prefer} host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME"
 
               echo "Running Supabase init scripts against external database..."
               for f in /init-scripts/*.sql; do
@@ -62,6 +62,8 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.host" . }}
+              {{- else if .Values.secret.db.host }}
+              value: {{ .Values.secret.db.host | quote }}
               {{- else }}
               value: {{ .Values.environment.auth.DB_HOST | default "" | quote }}
               {{- end }}
@@ -71,6 +73,8 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.port" . }}
+              {{- else if .Values.secret.db.port }}
+              value: {{ .Values.secret.db.port | quote }}
               {{- else }}
               value: {{ .Values.environment.auth.DB_PORT | default "5432" | quote }}
               {{- end }}
@@ -89,7 +93,7 @@ spec:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.password" . }}
             - name: DB_NAME
-              {{- if .Values.secret.db.secretRef }}
+              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
               value: {{ .Values.secret.db.database | default "postgres" | quote }}
               {{- else }}
               valueFrom:
@@ -97,6 +101,8 @@ spec:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.database" . }}
               {{- end }}
+            - name: DB_SSL
+              value: {{ .Values.environment.auth.DB_SSL | default "prefer" | quote }}
           volumeMounts:
             - name: init-scripts
               mountPath: /init-scripts

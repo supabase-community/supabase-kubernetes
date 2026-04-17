@@ -42,6 +42,8 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.host" . }}
+              {{- else if .Values.secret.db.host }}
+              value: {{ .Values.secret.db.host | quote }}
               {{- else }}
               value: {{ .Values.environment.storage.DB_HOST | quote }}
               {{- end }}
@@ -51,6 +53,8 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.port" . }}
+              {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
+              value: {{ .Values.secret.db.port | quote }}
               {{- else }}
               value: {{ .Values.environment.storage.DB_PORT | quote }}
               {{- end }}
@@ -105,7 +109,7 @@ spec:
           imagePullPolicy: {{ .Values.image.storage.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.storage }}
-            {{- if and (ne $key "AWS_ACCESS_KEY_ID") (ne $key "AWS_SECRET_ACCESS_KEY") (ne $key "STORAGE_BACKEND") (not (and (not $.Values.deployment.db.enabled) $.Values.secret.db.secretRef (or (and (eq $key "DB_HOST") (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) (and (eq $key "DB_PORT") (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port"))))) }}
+            {{- if and (ne $key "AWS_ACCESS_KEY_ID") (ne $key "AWS_SECRET_ACCESS_KEY") (ne $key "STORAGE_BACKEND") (not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port))))) }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
@@ -154,6 +158,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.host" . }}
+            {{- else if .Values.secret.db.host }}
+            - name: DB_HOST
+              value: {{ .Values.secret.db.host | quote }}
             {{- end }}
             {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
             - name: DB_PORT
@@ -161,6 +168,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.port" . }}
+            {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
+            - name: DB_PORT
+              value: {{ .Values.secret.db.port | quote }}
             {{- end }}
             {{- if .Values.deployment.rest.enabled }}
             - name: POSTGREST_URL
