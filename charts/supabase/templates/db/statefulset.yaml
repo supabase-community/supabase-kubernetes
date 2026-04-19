@@ -29,6 +29,9 @@ spec:
       securityContext:
         {{- toYaml .Values.deployment.db.podSecurityContext | nindent 8 }}
       initContainers:
+      {{- if .Values.deployment.db.extraInitContainersBefore }}
+        {{- toYaml .Values.deployment.db.extraInitContainersBefore | nindent 8 }}
+      {{- end }}
         - name: init-db
           image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.db.pullPolicy }}
@@ -49,15 +52,21 @@ spec:
               echo "Copying user-defined migration scripts..."
               cp /custom-migrations/* /initdb.d/migrations/ || echo "Skip migrations"
               echo "Initialization scripts are ready"
+
+              echo "Copying user-fetched migration scripts..."
+              cp /custom-fetch/* /initdb.d/migrations/ || echo "Skip migrations"
+              echo "Initialization scripts are ready"
           volumeMounts:
             - mountPath: /custom-init-scripts
               name: custom-init-scripts
+            - mountPath: /custom-fetch
+              name: custom-fetch-scripts
             - mountPath: /custom-migrations
               name: custom-migrations
             - mountPath: /initdb.d
               name: initdb-scripts-data
-      {{- if .Values.deployment.db.extraInitContainers }}
-          {{- toYaml .Values.deployment.db.extraInitContainers | nindent 8 }}
+      {{- if .Values.deployment.db.extraInitContainersAfter }}
+        {{- toYaml .Values.deployment.db.extraInitContainersAfter | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ include "supabase.db.name" $ }}
@@ -130,6 +139,8 @@ spec:
         - name: initdb-scripts-data
           emptyDir:
             medium: ""
+        - name: custom-fetch-scripts
+          emptyDir: {}
         - name: custom-init-scripts
           configMap:
             name: {{ include "supabase.db.fullname" . }}-initdb
