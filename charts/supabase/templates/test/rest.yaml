@@ -1,4 +1,4 @@
-{{- if .Values.rest.enabled -}}
+{{- if .Values.deployment.rest.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -20,7 +20,7 @@ spec:
             - -c
             - |
               curl -sfo /dev/null \
-                http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}
+                http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}
               echo "Sevice {{ include "supabase.rest.fullname" . }} is healthy."
       restartPolicy: Never
 {{- end }}

@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,88 +6,88 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.kong.autoscaling.enabled }}
-  replicas: {{ .Values.kong.replicaCount }}
+  {{- if not .Values.autoscaling.kong.enabled }}
+  replicas: {{ .Values.deployment.kong.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.kong.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.kong.podAnnotations }}
+      {{- with .Values.deployment.kong.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "supabase.kong.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.kong.imagePullSecrets }}
+      {{- with .Values.image.kong.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "supabase.kong.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.kong.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.kong.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "supabase.kong.name" $ }}
           securityContext:
-            {{- toYaml .Values.kong.securityContext | nindent 12 }}
-          image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
+            {{- toYaml .Values.deployment.kong.securityContext | nindent 12 }}
+          image: "{{ .Values.image.kong.repository }}:{{ .Values.image.kong.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.kong.pullPolicy }}
           command: ["/bin/bash"]
           args: ["/scripts/wrapper.sh"]
           env:
-            {{- range $key, $value := .Values.kong.environment }}
+            {{- range $key, $value := .Values.environment.kong }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: anonKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: serviceKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
+            - name: SUPABASE_PUBLISHABLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.publishableKey" . }}
+            - name: SUPABASE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.secretKey" . }}
+            - name: ANON_KEY_ASYMMETRIC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.anonKeyAsymmetric" . }}
+            - name: SERVICE_ROLE_KEY_ASYMMETRIC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.apikey.name" . }}
+                  key: {{ include "supabase.secret.apikey.key.serviceRoleKeyAsymmetric" . }}
             {{- if .Values.secret.dashboard }}
             - name: DASHBOARD_USERNAME
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.dashboard.secretRef }}
-                  name: {{ .Values.secret.dashboard.secretRef }}
-                  key: {{ .Values.secret.dashboard.secretRefKey.username | default "username" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.dashboard" . }}
-                  key: username
-                  {{- end }}
+                  name: {{ include "supabase.secret.dashboard.name" . }}
+                  key: {{ include "supabase.secret.dashboard.key.username" . }}
             - name: DASHBOARD_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.dashboard.secretRef }}
-                  name: {{ .Values.secret.dashboard.secretRef }}
-                  key: {{ .Values.secret.dashboard.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.dashboard" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.dashboard.name" . }}
+                  key: {{ include "supabase.secret.dashboard.key.password" . }}
             {{- end }}
-          {{- with .Values.kong.livenessProbe }}
+          {{- with .Values.deployment.kong.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.kong.readinessProbe }}
+          {{- with .Values.deployment.kong.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -95,7 +95,7 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
-          {{- with .Values.kong.resources }}
+          {{- with .Values.deployment.kong.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -105,18 +105,18 @@ spec:
               subPath: template.yml
             - mountPath: /scripts
               name: wrapper
-            {{- with .Values.kong.volumeMounts }}
+            {{- with .Values.deployment.kong.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
-      {{- with .Values.kong.nodeSelector }}
+      {{- with .Values.deployment.kong.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.kong.affinity }}
+      {{- with .Values.deployment.kong.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.kong.tolerations }}
+      {{- with .Values.deployment.kong.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -135,7 +135,7 @@ spec:
             items:
             - key: wrapper.sh
               path: wrapper.sh
-        {{- with .Values.kong.volumes }}
+        {{- with .Values.deployment.kong.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
 {{- end }}

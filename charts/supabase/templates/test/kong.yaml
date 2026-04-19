@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -16,23 +16,13 @@ spec:
             - name: DASHBOARD_USERNAME
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.dashboard.secretRef }}
-                  name: {{ .Values.secret.dashboard.secretRef }}
-                  key: {{ .Values.secret.dashboard.secretRefKey.username | default "username" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.dashboard" . }}
-                  key: username
-                  {{- end }}
+                  name: {{ include "supabase.secret.dashboard.name" . }}
+                  key: {{ include "supabase.secret.dashboard.key.username" . }}
             - name: DASHBOARD_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.dashboard.secretRef }}
-                  name: {{ .Values.secret.dashboard.secretRef }}
-                  key: {{ .Values.secret.dashboard.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.dashboard" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.dashboard.name" . }}
+                  key: {{ include "supabase.secret.dashboard.key.password" . }}
           name: test-kong
           image: kdevup/curljq
           imagePullPolicy: IfNotPresent
@@ -43,7 +33,7 @@ spec:
               echo "Attempting to access dashboard with provided credentials..."
               curl -sL --fail \
                 -o /dev/null \
-                "http://${DASHBOARD_USERNAME}:${DASHBOARD_PASSWORD}@{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}" \
+                "http://${DASHBOARD_USERNAME}:${DASHBOARD_PASSWORD}@{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}" \
                 || ( echo -e "\e[0;31mFailed to get a valid response." && exit 1 )
               echo "Successfully connected."
       restartPolicy: Never

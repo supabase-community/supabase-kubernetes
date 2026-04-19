@@ -21,134 +21,21 @@ secret:
   meta:
     cryptoKey: "your-super-secret-and-long-crypto-key"
 
-db:
-  enabled: true
-  image:
-    tag: 15.8.1.085
-  livenessProbe:
-    exec:
-      command:
-        - pg_isready
-        - -U
-        - postgres
-    initialDelaySeconds: 3
-  persistence:
+persistence:
+  db:
     enabled: false
 
-studio:
-  image:
-    tag: 2025.11.10-sha-5291fe3
-  environment:
-    DEFAULT_ORGANIZATION_NAME: Default Organization
-    DEFAULT_PROJECT_NAME: Default Project
-    SUPABASE_PUBLIC_URL: http://example.com
-    NEXT_PUBLIC_ENABLE_LOGS: true
-
-auth:
-  image:
-    tag: v2.182.1
-  environment:
-    API_EXTERNAL_URL: http://example.com
-    GOTRUE_SITE_URL: http://example.com
-    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-    GOTRUE_MAILER_AUTOCONFIRM: "true"
-    GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
-    GOTRUE_SMTP_HOST: "smtp.example.com"
-    GOTRUE_SMTP_PORT: "587"
-    GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
-
-rest:
-  image:
-    tag: v13.0.7
-
-realtime:
-  image:
-    tag: v2.63.0
-  livenessProbe:
-    httpGet:
-      path: /
-      port: 4000
-    initialDelaySeconds: 3
-
-meta:
-  image:
-    tag: v0.93.1
-
-storage:
-  image:
-    tag: v1.29.0
-  livenessProbe:
-    httpGet:
-      path: /status
-      port: 5000
-    initialDelaySeconds: 3
-  persistence:
+  functions:
     enabled: false
 
-imgproxy:
-  image:
-    tag: v3.8.0
-  environment:
-    IMGPROXY_ENABLE_WEBP_DETECTION: "true"
-  livenessProbe:
-    exec:
-      command:
-        - imgproxy
-        - health
-    initialDelaySeconds: 3
-  persistence:
+  imgproxy:
     enabled: false
 
-kong:
-  image:
-    repository: kong
-    tag: 2.8.1
-  environment:
-    KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
-    KONG_LOG_LEVEL: info
-  ingress:
-    enabled: true
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-    tls: []
-      # - secretName: example-ingress-tls
-      #   hosts:
-      #     - example.com
-    hosts:
-      - host: example.com
-        paths:
-          - path: /
-            pathType: Prefix
+  minio:
+    enabled: false
 
-analytics:
-  image:
-    tag: 1.22.6
-  livenessProbe:
-    httpGet:
-      path: /health
-      port: 4000
-    initialDelaySeconds: 3
+  snippets:
+    enabled: false
 
-vector:
-  image:
-    tag: 0.28.1-alpine
-  livenessProbe:
-    httpGet:
-      path: /health
-      port: 9001
-    initialDelaySeconds: 3
-  ## Vector requires logs from the control plane to function.
-  ## This is normally stored in /var/log/pods
-  ## Modify these values according to your environment.
-  volumeMounts:
-    - name: pod-logs
-      mountPath: /var/log/pods
-  volumes:
-    - name: pod-logs
-      hostPath:
-        path: /var/log/pods
-
-functions:
-  image:
-    tag: v1.68.4
+  storage:
+    enabled: false

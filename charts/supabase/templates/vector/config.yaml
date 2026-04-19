@@ -1,4 +1,4 @@
-{{- if .Values.vector.enabled }}
+{{- if .Values.deployment.vector.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,7 +9,7 @@ data:
   vector.yml: |
     api:
       enabled: true
-      address: 0.0.0.0:{{ .Values.vector.service.port }}
+      address: 0.0.0.0:{{ .Values.service.vector.port }}
 
     sources:
       kubernetes_host:
@@ -53,10 +53,13 @@ data:
               .metadata.request.headers.referer = req.referer
               .metadata.request.headers.user_agent = req.agent
               .metadata.request.headers.cf_connecting_ip = req.client
-              .metadata.request.method = req.method
-              .metadata.request.path = req.path
-              .metadata.request.protocol = req.protocol
               .metadata.response.status_code = req.status
+              url, split_err = split(req.request, " ")
+              if split_err == null {
+                  .metadata.request.method = url[0]
+                  .metadata.request.path = url[1]
+                  .metadata.request.protocol = url[2]
+              }
           }
           if err != null {
             abort
@@ -105,14 +108,20 @@ data:
           parsed, err = parse_regex(.event_message, r'^(?P<time>.*): (?P<msg>.*)$')
           if err == null {
               .event_message = parsed.msg
-              .timestamp = parse_timestamp!(parsed.time, format: "%e/%b/%Y %R %:z")
+              .timestamp = parse_timestamp!(value: parsed.time,format: "%d/%b/%Y:%H:%M:%S %z")
               .metadata.host = .project
           }
+      # Filter out healthcheck logs from Realtime
+      realtime_logs_filtered:
+        type: filter
+        inputs:
+          - router.realtime
+        condition: '!contains(string!(.event_message), "/health")' 
       # Realtime logs are structured so we parse the severity level using regex (ignore time because it has no date)
       realtime_logs:
         type: remap
         inputs:
-          - router.realtime
+          - realtime_logs_filtered
         source: |-
           .metadata.project = del(.project)
           .metadata.external_id = .metadata.project
@@ -158,7 +167,7 @@ data:
           if err != null || parsed == null {
             .metadata.parsed.error_severity = "info"
           }
-          if parsed != null {
+          if parsed.level != null {
           .metadata.parsed.error_severity = parsed.level
           }
           if .metadata.parsed.error_severity == "info" {
@@ -166,7 +175,7 @@ data:
           }
           .metadata.parsed.error_severity = upcase!(.metadata.parsed.error_severity)
 
-    {{- if .Values.analytics.enabled }}
+    {{- if .Values.deployment.analytics.enabled }}
     sinks:
       logflare_auth:
         type: 'http'
@@ -176,10 +185,10 @@ data:
           codec: 'json'
         method: 'post'
         request:
-          retry_max_duration_secs: 10
+          retry_max_duration_secs: 30
           headers:
             x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=gotrue.logs.prod'
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/api/logs?source_name=gotrue.logs.prod'
       logflare_realtime:
         type: 'http'
         inputs:
@@ -188,10 +197,10 @@ data:
           codec: 'json'
         method: 'post'
         request:
-          retry_max_duration_secs: 10
+          retry_max_duration_secs: 30
           headers:
             x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=realtime.logs.prod'
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/api/logs?source_name=realtime.logs.prod'
       logflare_rest:
         type: 'http'
         inputs:
@@ -200,10 +209,10 @@ data:
           codec: 'json'
         method: 'post'
         request:
-          retry_max_duration_secs: 10
+          retry_max_duration_secs: 30
           headers:
             x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgREST.logs.prod'
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/api/logs?source_name=postgREST.logs.prod'
       logflare_db:
         type: 'http'
         inputs:
@@ -212,13 +221,13 @@ data:
           codec: 'json'
         method: 'post'
         request:
-          retry_max_duration_secs: 10
+          retry_max_duration_secs: 30
           headers:
             x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
         # We must route the sink through kong because ingesting logs before logflare is fully initialised will
         # lead to broken queries from studio. This works by the assumption that containers are started in the
         # following order: vector > db > logflare > kong
-        uri: 'http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}/analytics/v1/api/logs?source_name=postgres.logs'
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/api/logs?source_name=postgres.logs'
       logflare_functions:
         type: 'http'
         inputs:
@@ -227,10 +236,10 @@ data:
           codec: 'json'
         method: 'post'
         request:
-          retry_max_duration_secs: 10
+          retry_max_duration_secs: 30
           headers:
             x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=deno-relay-logs'
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/api/logs?source_name=deno-relay-logs'
       logflare_storage:
         type: 'http'
         inputs:
@@ -239,10 +248,10 @@ data:
           codec: 'json'
         method: 'post'
         request:
-          retry_max_duration_secs: 10
+          retry_max_duration_secs: 30
           headers:
             x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=storage.logs.prod.2'
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/api/logs?source_name=storage.logs.prod.2'
       logflare_kong:
         type: 'http'
         inputs:
@@ -252,9 +261,9 @@ data:
           codec: 'json'
         method: 'post'
         request:
-          retry_max_duration_secs: 10
+          retry_max_duration_secs: 30
           headers:
             x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
-        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=cloudflare.logs.prod'
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/api/logs?source_name=cloudflare.logs.prod'
     {{- end }}
 {{- end }}

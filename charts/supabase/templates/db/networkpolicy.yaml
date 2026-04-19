@@ -1,0 +1,29 @@
+{{- if .Values.networkPolicy.db.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "supabase.db.fullname" . }}-access
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "supabase.db.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    {{- range .Values.networkPolicy.db.ingressRules }}
+    - from:
+        - {{ toYaml .from | indent 10 | trim }}
+      ports:
+        - protocol: TCP
+          port: 5432
+    {{- end }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: TCP
+          port: 5432
+{{- end }}

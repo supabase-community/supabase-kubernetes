@@ -1,0 +1,114 @@
+{{- if not .Values.deployment.db.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "supabase.fullname" . }}-db-init
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init-external-db
+          image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
+          imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              echo "Waiting for database to be ready..."
+              until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
+                echo "Database not ready, retrying in 2s..."
+                sleep 2
+              done
+
+              CONNSTR="sslmode=${DB_SSL:-prefer} host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME"
+
+              echo "Running Supabase init scripts against external database..."
+              for f in /init-scripts/*.sql; do
+                echo "=== Running $(basename $f) ==="
+                PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" -f "$f" -v ON_ERROR_STOP=0
+              done
+
+              echo "Setting service role passwords and grants..."
+              PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" -v ON_ERROR_STOP=0 <<EOSQL
+              ALTER USER authenticator WITH PASSWORD '$DB_PASSWORD';
+              ALTER USER supabase_auth_admin WITH PASSWORD '$DB_PASSWORD';
+              ALTER USER supabase_storage_admin WITH PASSWORD '$DB_PASSWORD';
+              ALTER USER pgbouncer WITH PASSWORD '$DB_PASSWORD';
+              ALTER USER supabase_admin WITH PASSWORD '$DB_PASSWORD';
+              GRANT $DB_USER TO authenticator;
+              GRANT $DB_USER TO supabase_admin;
+              GRANT CREATE ON DATABASE $DB_NAME TO supabase_storage_admin;
+              GRANT CREATE ON DATABASE $DB_NAME TO supabase_auth_admin;
+              EOSQL
+
+              echo "=== External database initialization complete ==="
+          env:
+            - name: DB_HOST
+              {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.host" . }}
+              {{- else if .Values.secret.db.host }}
+              value: {{ .Values.secret.db.host | quote }}
+              {{- else }}
+              value: {{ .Values.environment.auth.DB_HOST | default "" | quote }}
+              {{- end }}
+            - name: DB_PORT
+              {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.port" . }}
+              {{- else if .Values.secret.db.port }}
+              value: {{ .Values.secret.db.port | quote }}
+              {{- else }}
+              value: {{ .Values.environment.auth.DB_PORT | default "5432" | quote }}
+              {{- end }}
+            - name: DB_USER
+              {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "username") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ index (default (dict) .Values.secret.db.secretRefKey) "username" }}
+              {{- else }}
+              value: "postgres"
+              {{- end }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
+            - name: DB_NAME
+              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
+              value: {{ .Values.secret.db.database | default "postgres" | quote }}
+              {{- else }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.database" . }}
+              {{- end }}
+            - name: DB_SSL
+              value: {{ .Values.environment.auth.DB_SSL | default "prefer" | quote }}
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /init-scripts
+              readOnly: true
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: {{ include "supabase.fullname" . }}-db-init-external
+{{- end }}

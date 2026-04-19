@@ -1,4 +1,4 @@
-{{- if .Values.studio.enabled -}}
+{{- if .Values.deployment.studio.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,160 +6,127 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.studio.autoscaling.enabled }}
-  replicas: {{ .Values.studio.replicaCount }}
+  {{- if not .Values.autoscaling.studio.enabled }}
+  replicas: {{ .Values.deployment.studio.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.studio.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.studio.podAnnotations }}
+      {{- with .Values.deployment.studio.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "supabase.studio.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.studio.imagePullSecrets }}
+      {{- with .Values.image.studio.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "supabase.studio.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.studio.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.studio.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "supabase.studio.name" $ }}
           securityContext:
-            {{- toYaml .Values.studio.securityContext | nindent 12 }}
-          image: "{{ .Values.studio.image.repository }}:{{ .Values.studio.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.studio.image.pullPolicy }}
+            {{- toYaml .Values.deployment.studio.securityContext | nindent 12 }}
+          image: "{{ .Values.image.studio.repository }}:{{ .Values.image.studio.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.studio.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.studio.environment }}
+            {{- range $key, $value := .Values.environment.studio }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.kong.enabled }}
+            {{- if .Values.deployment.kong.enabled }}
             - name: SUPABASE_URL
-              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.kong.service.port }}
+              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
             {{- end }}
-            {{- if .Values.meta.enabled }}
+            {{- if .Values.deployment.meta.enabled }}
             - name: STUDIO_PG_META_URL
-              value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}
+              value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}
             {{- end }}
 
-            {{- if .Values.db.enabled }}
+            {{- if .Values.deployment.db.enabled }}
             - name: POSTGRES_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
 
             - name: POSTGRES_DB
+              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
+              value: {{ .Values.secret.db.database | default "postgres" | quote }}
+              {{- else }}
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: database
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.database" . }}
+              {{- end }}
 
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.db.secretRef }}
-                  name: {{ .Values.secret.db.secretRef }}
-                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.db" . }}
-                  key: password
-                  {{- end }}
+                  name: {{ include "supabase.secret.db.name" . }}
+                  key: {{ include "supabase.secret.db.key.password" . }}
 
             - name: PG_META_CRYPTO_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.meta.secretRef }}
-                  name: {{ .Values.secret.meta.secretRef }}
-                  key: {{ .Values.secret.meta.secretRefKey.cryptoKey | default "cryptoKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.meta" . }}
-                  key: cryptoKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.meta.name" . }}
+                  key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
 
 
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.dashboard.secretRef }}
-                  name: {{ .Values.secret.dashboard.secretRef }}
-                  key: {{ .Values.secret.dashboard.secretRefKey.openAiApiKey | default "openAiApiKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.dashboard" . }}
-                  key: openAiApiKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.dashboard.name" . }}
+                  key: {{ include "supabase.secret.dashboard.key.openAiApiKey" . }}
 
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: anonKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
 
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: serviceKey
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
 
             - name: AUTH_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.secret | default "secret" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: secret
-                  {{- end }}
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.secret" . }}
 
-            {{- if .Values.analytics.enabled }}
+            {{- if .Values.deployment.analytics.enabled }}
             - name: LOGFLARE_URL
-              value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}
+              value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}
             - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.analytics.secretRef }}
-                  name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.publicAccessToken | default "publicAccessToken" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.analytics" . }}
-                  key: publicAccessToken
-                  {{- end }}
+                  name: {{ include "supabase.secret.analytics.name" . }}
+                  key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
             - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.analytics.secretRef }}
-                  name: {{ .Values.secret.analytics.secretRef }}
-                  key: {{ .Values.secret.analytics.secretRefKey.privateAccessToken | default "privateAccessToken" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.analytics" . }}
-                  key: privateAccessToken
-                  {{- end }}
+                  name: {{ include "supabase.secret.analytics.name" . }}
+                  key: {{ include "supabase.secret.analytics.key.privateAccessToken" . }}
             {{- end }}
-          {{- with .Values.studio.livenessProbe }}
+            {{- if .Values.persistence.functions.enabled }}
+            - name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER
+              value: /home/deno/functions
+            {{- end }}
+            {{- if .Values.persistence.snippets.enabled }}
+            - name: SNIPPETS_MANAGEMENT_FOLDER
+              value: /app/snippets
+            {{- end }}
+          {{- with .Values.deployment.studio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.studio.readinessProbe }}
+          {{- with .Values.deployment.studio.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -167,27 +134,49 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
-          {{- with .Values.studio.resources }}
+          {{- with .Values.deployment.studio.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.studio.volumeMounts }}
+          {{- if or .Values.deployment.studio.volumeMounts .Values.persistence.functions.enabled .Values.persistence.snippets.enabled }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
+            {{- with .Values.deployment.studio.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.persistence.functions.enabled }}
+            - name: functions-storage
+              mountPath: /home/deno/functions
+            {{- end }}
+            {{- if .Values.persistence.snippets.enabled }}
+            - name: snippets-storage
+              mountPath: /app/snippets
+            {{- end }}
           {{- end }}
-      {{- with .Values.studio.volumes }}
+      {{- if or .Values.deployment.studio.volumes .Values.persistence.functions.enabled .Values.persistence.snippets.enabled }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+        {{- with .Values.deployment.studio.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.persistence.functions.enabled }}
+        - name: functions-storage
+          persistentVolumeClaim:
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "functions") }}
+        {{- end }}
+        {{- if .Values.persistence.snippets.enabled }}
+        - name: snippets-storage
+          persistentVolumeClaim:
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "snippets") }}
+        {{- end }}
       {{- end }}
-      {{- with .Values.studio.nodeSelector }}
+      {{- with .Values.deployment.studio.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.studio.affinity }}
+      {{- with .Values.deployment.studio.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.studio.tolerations }}
+      {{- with .Values.deployment.studio.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

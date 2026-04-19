@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -6,9 +6,9 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.kong.service.type }}
+  type: {{ .Values.service.kong.type }}
   ports:
-    - port: {{ .Values.kong.service.port }}
+    - port: {{ .Values.service.kong.port }}
       targetPort: 8000
       protocol: TCP
       name: http

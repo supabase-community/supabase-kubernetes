@@ -1,4 +1,4 @@
-{{- if .Values.auth.enabled -}}
+{{- if .Values.deployment.auth.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -20,7 +20,7 @@ spec:
             - -c
             - |
               curl -sfo /dev/null \
-                http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/health
+                http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/health
               echo "Sevice {{ include "supabase.auth.fullname" . }} is healthy."
       restartPolicy: Never
 {{- end }}

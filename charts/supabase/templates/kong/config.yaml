@@ -1,4 +1,4 @@
-{{- if .Values.kong.enabled -}}
+{{- if .Values.deployment.kong.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -11,17 +11,33 @@ data:
 
     set -euo pipefail
 
+    if [ -n "${SUPABASE_SECRET_KEY:-}" ] && [ -n "${SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+      export LUA_AUTH_EXPR="\$((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or (headers.apikey == '${SUPABASE_SECRET_KEY}' and 'Bearer ${SERVICE_ROLE_KEY_ASYMMETRIC}') or (headers.apikey == '${SUPABASE_PUBLISHABLE_KEY}' and 'Bearer ${ANON_KEY_ASYMMETRIC}') or headers.apikey)"
+      export LUA_RT_WS_EXPR="\$((query_params.apikey == '${SUPABASE_SECRET_KEY}' and '${SERVICE_ROLE_KEY_ASYMMETRIC}') or (query_params.apikey == '${SUPABASE_PUBLISHABLE_KEY}' and '${ANON_KEY_ASYMMETRIC}') or query_params.apikey)"
+    else
+      export LUA_AUTH_EXPR="\$((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+      export LUA_RT_WS_EXPR="\$(query_params.apikey)"
+    fi
+
     echo "Replacing env placeholders of /usr/local/kong/kong.yml"
 
     sed \
     -e "s|\${SUPABASE_ANON_KEY}|${SUPABASE_ANON_KEY}|" \
     -e "s|\${SUPABASE_SERVICE_KEY}|${SUPABASE_SERVICE_KEY}|" \
+    -e "s|\${SUPABASE_PUBLISHABLE_KEY}|${SUPABASE_PUBLISHABLE_KEY:-}|" \
+    -e "s|\${SUPABASE_SECRET_KEY}|${SUPABASE_SECRET_KEY:-}|" \
+    -e "s|\${ANON_KEY_ASYMMETRIC}|${ANON_KEY_ASYMMETRIC:-}|" \
+    -e "s|\${SERVICE_ROLE_KEY_ASYMMETRIC}|${SERVICE_ROLE_KEY_ASYMMETRIC:-}|" \
+    -e "s|\${LUA_AUTH_EXPR}|${LUA_AUTH_EXPR}|" \
+    -e "s|\${LUA_RT_WS_EXPR}|${LUA_RT_WS_EXPR}|" \
     -e "s|\${DASHBOARD_USERNAME}|${DASHBOARD_USERNAME}|" \
     -e "s|\${DASHBOARD_PASSWORD}|${DASHBOARD_PASSWORD}|" \
     /usr/local/kong/template.yml \
     > /usr/local/kong/kong.yml
 
-    exec /docker-entrypoint.sh kong docker-start
+    sed -i '/^[[:space:]]*- key:[[:space:]]*$/d' /usr/local/kong/kong.yml
+
+    exec /entrypoint.sh kong docker-start
   template.yml: |
     _format_version: '2.1'
     _transform: true
@@ -33,9 +49,11 @@ data:
       - username: anon
         keyauth_credentials:
             - key: ${SUPABASE_ANON_KEY}
+            - key: ${SUPABASE_PUBLISHABLE_KEY}
       - username: service_role
         keyauth_credentials:
             - key: ${SUPABASE_SERVICE_KEY}
+            - key: ${SUPABASE_SECRET_KEY}
     acls:
       - consumer: anon
         group: anon
@@ -48,9 +66,9 @@ data:
         password: ${DASHBOARD_PASSWORD}
     {{- end }}
     services:
-    {{- if .Values.auth.enabled }}
+    {{- if .Values.deployment.auth.enabled }}
       - name: auth-v1-open
-        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/verify
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/verify
         routes:
           - name: auth-v1-open
             strip_path: true
@@ -59,7 +77,7 @@ data:
         plugins:
           - name: cors
       - name: auth-v1-open-callback
-        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/callback
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/callback
         routes:
           - name: auth-v1-open-callback
             strip_path: true
@@ -68,7 +86,7 @@ data:
         plugins:
           - name: cors
       - name: auth-v1-open-authorize
-        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/authorize
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/authorize
         routes:
           - name: auth-v1-open-authorize
             strip_path: true
@@ -92,11 +110,28 @@ data:
             strip_path: true
             paths:
             - /sso/saml/metadata
+      - name: auth-v1-open-jwks
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/.well-known/jwks.json
+        routes:
+          - name: auth-v1-open-jwks
+            strip_path: true
+            paths:
+              - /auth/v1/.well-known/jwks.json
+        plugins:
+          - name: cors
+      - name: well-known-oauth
+        _comment: 'Auth: /.well-known/oauth-authorization-server -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/.well-known/oauth-authorization-server'
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/.well-known/oauth-authorization-server
+        routes:
+          - name: well-known-oauth
+            strip_path: true
+            paths:
+              - /.well-known/oauth-authorization-server
         plugins:
           - name: cors
       - name: auth-v1
-        _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/*"
-        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}
+        _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/*"
+        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}
         routes:
           - name: auth-v1-all
             strip_path: true
@@ -107,6 +142,14 @@ data:
           - name: key-auth
             config:
               hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -114,10 +157,10 @@ data:
                 - admin
                 - anon
     {{- end }}
-    {{- if .Values.rest.enabled }}
+    {{- if .Values.deployment.rest.enabled }}
       - name: rest-v1
-        _comment: "PostgREST: /rest/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/*"
-        url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/
+        _comment: "PostgREST: /rest/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/*"
+        url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/
         routes:
           - name: rest-v1-all
             strip_path: true
@@ -127,7 +170,15 @@ data:
           - name: cors
           - name: key-auth
             config:
-              hide_credentials: true
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -135,8 +186,8 @@ data:
                 - admin
                 - anon
       - name: graphql-v1
-        _comment: 'PostgREST: /graphql/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/rpc/graphql'
-        url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/rpc/graphql
+        _comment: 'PostgREST: /graphql/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/rpc/graphql'
+        url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/rpc/graphql
         routes:
           - name: graphql-v1-all
             strip_path: true
@@ -146,12 +197,16 @@ data:
           - name: cors
           - name: key-auth
             config:
-              hide_credentials: true
+              hide_credentials: false
           - name: request-transformer
             config:
               add:
                 headers:
-                  - Content-Profile:graphql_public
+                  - "Content-Profile: graphql_public"
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -159,10 +214,10 @@ data:
                 - admin
                 - anon
     {{- end }}
-    {{- if .Values.realtime.enabled }}
+    {{- if .Values.deployment.realtime.enabled }}
       - name: realtime-v1-ws
-        _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket/*"
-        url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket
+        _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/socket/*"
+        url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/socket
         protocol: ws
         routes:
           - name: realtime-v1-ws
@@ -174,6 +229,14 @@ data:
           - name: key-auth
             config:
               hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "x-api-key:${LUA_RT_WS_EXPR}"
+              replace:
+                querystring:
+                  - "apikey:${LUA_RT_WS_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -181,8 +244,8 @@ data:
                 - admin
                 - anon
       - name: realtime-v1-rest
-        _comment: 'Realtime: /realtime/v1/* -> http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/api/*'
-        url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/api
+        _comment: 'Realtime: /realtime/v1/* -> http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/api/*'
+        url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/api
         protocol: http
         routes:
           - name: realtime-v1-rest
@@ -194,6 +257,14 @@ data:
           - name: key-auth
             config:
               hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
           - name: acl
             config:
               hide_groups_header: true
@@ -201,10 +272,10 @@ data:
                 - admin
                 - anon
     {{- end }}
-    {{- if .Values.storage.enabled }}
+    {{- if .Values.deployment.storage.enabled }}
       - name: storage-v1
-        _comment: "Storage: /storage/v1/* -> http://{{ include "supabase.storage.fullname" . }}:{{ .Values.storage.service.port }}/*"
-        url: http://{{ include "supabase.storage.fullname" . }}:{{ .Values.storage.service.port }}/
+        _comment: "Storage: /storage/v1/* -> http://{{ include "supabase.storage.fullname" . }}:{{ .Values.service.storage.port }}/*"
+        url: http://{{ include "supabase.storage.fullname" . }}:{{ .Values.service.storage.port }}/
         routes:
           - name: storage-v1-all
             strip_path: true
@@ -212,11 +283,28 @@ data:
               - /storage/v1/
         plugins:
           - name: cors
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+              replace:
+                headers:
+                  - "Authorization: ${LUA_AUTH_EXPR}"
+          - name: post-function
+            config:
+              access:
+                - |
+                  local auth = kong.request.get_header("authorization")
+                  if auth == nil or auth == "" or auth:find("^%s*$") then
+                    kong.service.request.clear_header("authorization")
+                  end
     {{- end }}
-    {{- if .Values.functions.enabled }}
+    {{- if .Values.deployment.functions.enabled }}
       - name: functions-v1
-        _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.port }}/*'
-        url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.port }}/
+        _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.service.functions.port }}/*'
+        url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.service.functions.port }}/
+        read_timeout: 150000
         routes:
           - name: functions-v1-all
             strip_path: true
@@ -225,20 +313,29 @@ data:
         plugins:
           - name: cors
     {{- end }}
-    {{- if .Values.analytics.enabled }}
+    
+    {{/*
+    ## Not used - Studio and Vector talk directly to analytics via Docker networking.
+    ## If external access is needed, add routes with key-auth matching Logflare's x-api-key auth.
+    */}}
+    
+    {{/*
+    {{- if .Values.deployment.analytics.enabled }}
       - name: analytics-v1
-        _comment: 'Analytics: /analytics/v1/* -> http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/*'
-        url: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/
+        _comment: 'Analytics: /analytics/v1/* -> http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/*'
+        url: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}/
         routes:
           - name: analytics-v1-all
             strip_path: true
             paths:
               - /analytics/v1/
     {{- end }}
-    {{- if .Values.meta.enabled }}
+    */}}
+    
+    {{- if .Values.deployment.meta.enabled }}
       - name: meta
-        _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}/*"
-        url: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}/
+        _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}/*"
+        url: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}/
         routes:
           - name: meta-all
             strip_path: true
@@ -255,8 +352,8 @@ data:
                 - admin
     {{- end }}
       - name: dashboard
-        _comment: 'Studio: /* -> http://{{ include "supabase.studio.fullname" . }}:{{ .Values.studio.service.port }}/*'
-        url: http://{{ include "supabase.studio.fullname" . }}:{{ .Values.studio.service.port }}/
+        _comment: 'Studio: /* -> http://{{ include "supabase.studio.fullname" . }}:{{ .Values.service.studio.port }}/*'
+        url: http://{{ include "supabase.studio.fullname" . }}:{{ .Values.service.studio.port }}/
         routes:
           - name: dashboard-all
             strip_path: true
