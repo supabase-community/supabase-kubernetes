@@ -39,7 +39,7 @@ data:
 
     exec /entrypoint.sh kong docker-start
   template.yml: |
-    _format_version: '2.1'
+    _format_version: '3.0'
     _transform: true
 
     consumers:
