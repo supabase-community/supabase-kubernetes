@@ -35,93 +35,7 @@ spec:
           image: "{{ .Values.image.studio.repository }}:{{ .Values.image.studio.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.studio.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.environment.studio }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- if .Values.deployment.kong.enabled }}
-            - name: SUPABASE_URL
-              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
-            {{- end }}
-            {{- if .Values.deployment.meta.enabled }}
-            - name: STUDIO_PG_META_URL
-              value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}
-            {{- end }}
-
-            {{- if .Values.deployment.db.enabled }}
-            - name: POSTGRES_HOST
-              value: {{ include "supabase.db.fullname" . }}
-            {{- end }}
-
-            - name: POSTGRES_DB
-              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
-              value: {{ .Values.secret.db.database | default "postgres" | quote }}
-              {{- else }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.database" . }}
-              {{- end }}
-
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.password" . }}
-
-            - name: PG_META_CRYPTO_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.meta.name" . }}
-                  key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
-
-
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.dashboard.name" . }}
-                  key: {{ include "supabase.secret.dashboard.key.openAiApiKey" . }}
-
-            - name: SUPABASE_ANON_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
-
-            - name: SUPABASE_SERVICE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
-
-            - name: AUTH_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.secret" . }}
-
-            {{- if .Values.deployment.analytics.enabled }}
-            - name: LOGFLARE_URL
-              value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}
-            - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.analytics.name" . }}
-                  key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
-            - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.analytics.name" . }}
-                  key: {{ include "supabase.secret.analytics.key.privateAccessToken" . }}
-            {{- end }}
-            {{- if .Values.persistence.functions.enabled }}
-            - name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER
-              value: /home/deno/functions
-            {{- end }}
-            {{- if .Values.persistence.snippets.enabled }}
-            - name: SNIPPETS_MANAGEMENT_FOLDER
-              value: /app/snippets
-            {{- end }}
+            {{- include "supabase.studio.env" . | nindent 12 }}
           {{- with .Values.deployment.studio.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -181,3 +95,95 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}
+
+---
+
+{{- define "supabase.studio.env" -}}
+{{- range $key, $value := .Values.environment.studio }}
+- name: {{ $key }}
+  value: {{ $value | quote }}
+{{- end }}
+{{- if .Values.deployment.kong.enabled }}
+- name: SUPABASE_URL
+  value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
+{{- end }}
+{{- if .Values.deployment.meta.enabled }}
+- name: STUDIO_PG_META_URL
+  value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}
+{{- end }}
+
+{{- if .Values.deployment.db.enabled }}
+- name: POSTGRES_HOST
+  value: {{ include "supabase.db.fullname" . }}
+{{- end }}
+
+- name: POSTGRES_DB
+  {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
+  value: {{ .Values.secret.db.database | default "postgres" | quote }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.database" . }}
+  {{- end }}
+
+- name: POSTGRES_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.password" . }}
+
+- name: PG_META_CRYPTO_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.meta.name" . }}
+      key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
+
+
+- name: OPENAI_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.dashboard.name" . }}
+      key: {{ include "supabase.secret.dashboard.key.openAiApiKey" . }}
+
+- name: SUPABASE_ANON_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.anonKey" . }}
+
+- name: SUPABASE_SERVICE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
+
+- name: AUTH_JWT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.secret" . }}
+
+{{- if .Values.deployment.analytics.enabled }}
+- name: LOGFLARE_URL
+  value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}
+- name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.analytics.name" . }}
+      key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
+- name: LOGFLARE_PRIVATE_ACCESS_TOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.analytics.name" . }}
+      key: {{ include "supabase.secret.analytics.key.privateAccessToken" . }}
+{{- end }}
+{{- if .Values.persistence.functions.enabled }}
+- name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER
+  value: /home/deno/functions
+{{- end }}
+{{- if .Values.persistence.snippets.enabled }}
+- name: SNIPPETS_MANAGEMENT_FOLDER
+  value: /app/snippets
+{{- end }}
+{{- end -}}

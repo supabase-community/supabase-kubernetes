@@ -37,52 +37,7 @@ spec:
           command: ["/bin/bash"]
           args: ["/scripts/kong-entrypoint.sh"]
           env:
-            {{- range $key, $value := .Values.environment.kong }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            - name: SUPABASE_ANON_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
-            - name: SUPABASE_SERVICE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
-            - name: SUPABASE_PUBLISHABLE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.apikey.name" . }}
-                  key: {{ include "supabase.secret.apikey.key.publishableKey" . }}
-            - name: SUPABASE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.apikey.name" . }}
-                  key: {{ include "supabase.secret.apikey.key.secretKey" . }}
-            - name: ANON_KEY_ASYMMETRIC
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.apikey.name" . }}
-                  key: {{ include "supabase.secret.apikey.key.anonKeyAsymmetric" . }}
-            - name: SERVICE_ROLE_KEY_ASYMMETRIC
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.apikey.name" . }}
-                  key: {{ include "supabase.secret.apikey.key.serviceRoleKeyAsymmetric" . }}
-            {{- if .Values.secret.dashboard }}
-            - name: DASHBOARD_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.dashboard.name" . }}
-                  key: {{ include "supabase.secret.dashboard.key.username" . }}
-            - name: DASHBOARD_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.dashboard.name" . }}
-                  key: {{ include "supabase.secret.dashboard.key.password" . }}
-            {{- end }}
+            {{- include "supabase.kong.env" . | nindent 12 }}
           {{- with .Values.deployment.kong.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -139,3 +94,54 @@ spec:
           {{- toYaml . | nindent 8 }}
         {{- end }}
 {{- end }}
+
+---
+
+{{- define "supabase.kong.env" -}}
+{{- range $key, $value := .Values.environment.kong }}
+- name: {{ $key }}
+  value: {{ $value | quote }}
+{{- end }}
+- name: SUPABASE_ANON_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.anonKey" . }}
+- name: SUPABASE_SERVICE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
+- name: SUPABASE_PUBLISHABLE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.apikey.name" . }}
+      key: {{ include "supabase.secret.apikey.key.publishableKey" . }}
+- name: SUPABASE_SECRET_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.apikey.name" . }}
+      key: {{ include "supabase.secret.apikey.key.secretKey" . }}
+- name: ANON_KEY_ASYMMETRIC
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.apikey.name" . }}
+      key: {{ include "supabase.secret.apikey.key.anonKeyAsymmetric" . }}
+- name: SERVICE_ROLE_KEY_ASYMMETRIC
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.apikey.name" . }}
+      key: {{ include "supabase.secret.apikey.key.serviceRoleKeyAsymmetric" . }}
+{{- if .Values.secret.dashboard }}
+- name: DASHBOARD_USERNAME
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.dashboard.name" . }}
+      key: {{ include "supabase.secret.dashboard.key.username" . }}
+- name: DASHBOARD_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.dashboard.name" . }}
+      key: {{ include "supabase.secret.dashboard.key.password" . }}
+{{- end }}
+{{- end -}}

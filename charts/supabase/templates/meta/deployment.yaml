@@ -35,66 +35,7 @@ spec:
           image: "{{ .Values.image.meta.repository }}:{{ .Values.image.meta.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.meta.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.environment.meta }}
-            {{- if not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port)))) }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
-            {{- if .Values.deployment.db.enabled }}
-            - name: DB_HOST
-              value: {{ include "supabase.db.fullname" . }}
-            {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-            {{- else if .Values.secret.db.host }}
-            - name: DB_HOST
-              value: {{ .Values.secret.db.host | quote }}
-            {{- end }}
-            {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.port" . }}
-            {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
-            - name: DB_PORT
-              value: {{ .Values.secret.db.port | quote }}
-            {{- end }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.password" . }}
-            - name: DB_NAME
-              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
-              value: {{ .Values.secret.db.database | default "postgres" | quote }}
-              {{- else }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.database" . }}
-              {{- end }}
-            - name: PG_META_DB_HOST
-              value: $(DB_HOST)
-            - name: PG_META_DB_PORT
-              value: $(DB_PORT)
-            - name: PG_META_DB_NAME
-              value: $(DB_NAME)
-            - name: PG_META_DB_USER
-              value: $(DB_USER)
-            - name: PG_META_DB_PASSWORD
-              value: $(DB_PASSWORD)
-            - name: PG_META_DB_SSL_MODE
-              value: $(DB_SSL)
-            - name: CRYPTO_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.meta.name" . }}
-                  key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
+            {{- include "supabase.meta.env" . | nindent 12 }}
 
 
           {{- with .Values.deployment.meta.livenessProbe }}
@@ -134,3 +75,68 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}
+
+---
+
+{{- define "supabase.meta.env" -}}
+{{- range $key, $value := .Values.environment.meta }}
+{{- if not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port)))) }}
+- name: {{ $key }}
+  value: {{ $value | quote }}
+{{- end }}
+{{- end }}
+{{- if .Values.deployment.db.enabled }}
+- name: DB_HOST
+  value: {{ include "supabase.db.fullname" . }}
+{{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+- name: DB_HOST
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.host" . }}
+{{- else if .Values.secret.db.host }}
+- name: DB_HOST
+  value: {{ .Values.secret.db.host | quote }}
+{{- end }}
+{{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
+- name: DB_PORT
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.port" . }}
+{{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
+- name: DB_PORT
+  value: {{ .Values.secret.db.port | quote }}
+{{- end }}
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.password" . }}
+- name: DB_NAME
+  {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
+  value: {{ .Values.secret.db.database | default "postgres" | quote }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.database" . }}
+  {{- end }}
+- name: PG_META_DB_HOST
+  value: $(DB_HOST)
+- name: PG_META_DB_PORT
+  value: $(DB_PORT)
+- name: PG_META_DB_NAME
+  value: $(DB_NAME)
+- name: PG_META_DB_USER
+  value: $(DB_USER)
+- name: PG_META_DB_PASSWORD
+  value: $(DB_PASSWORD)
+- name: PG_META_DB_SSL_MODE
+  value: $(DB_SSL)
+- name: CRYPTO_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.meta.name" . }}
+      key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
+{{- end -}}

@@ -40,21 +40,7 @@ spec:
           image: "{{ .Values.image.vector.repository }}:{{ .Values.image.vector.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.vector.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.environment.vector }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            - name: VECTOR_SELF_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            {{- if .Values.deployment.analytics.enabled }}
-            - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.analytics.name" . }}
-                  key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
-            {{- end }}
+            {{- include "supabase.vector.env" . | nindent 12 }}
           {{- with .Values.deployment.vector.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -110,3 +96,23 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}
+
+---
+
+{{- define "supabase.vector.env" -}}
+{{- range $key, $value := .Values.environment.vector }}
+- name: {{ $key }}
+  value: {{ $value | quote }}
+{{- end }}
+- name: VECTOR_SELF_NODE_NAME
+  valueFrom:
+    fieldRef:
+      fieldPath: spec.nodeName
+{{- if .Values.deployment.analytics.enabled }}
+- name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.analytics.name" . }}
+      key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
+{{- end }}
+{{- end -}}

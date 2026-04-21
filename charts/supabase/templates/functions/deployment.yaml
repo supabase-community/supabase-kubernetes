@@ -43,72 +43,7 @@ spec:
             {{- toYaml .Values.deployment.functions.envFrom | nindent 12 }}
           {{- end }}
           env:
-            {{- range $key, $value := .Values.environment.functions }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-
-            {{- if .Values.deployment.kong.enabled }}
-            - name: SUPABASE_URL
-              value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
-            {{- end }}
-
-            - name: DB_HOSTNAME
-              {{- if .Values.deployment.db.enabled }}
-              value: {{ include "supabase.db.fullname" . }}
-              {{- else }}
-              value: $(DB_HOST)
-              {{- end }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.password" . }}
-            - name: DB_PASSWORD_ENC
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
-            - name: DB_DATABASE
-              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
-              value: {{ .Values.secret.db.database | default "postgres" | quote }}
-              {{- else }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.database" . }}
-              {{- end }}
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.secret" . }}
-            - name: SUPABASE_ANON_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
-            - name: SUPABASE_SERVICE_ROLE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
-            - name: SUPABASE_PUBLISHABLE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.apikey.name" . }}
-                  key: {{ include "supabase.secret.apikey.key.publishableKey" . }}
-            - name: SUPABASE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.apikey.name" . }}
-                  key: {{ include "supabase.secret.apikey.key.secretKey" . }}
-            - name: SUPABASE_PUBLISHABLE_KEYS
-              value: '{"default":"$(SUPABASE_PUBLISHABLE_KEY)"}'
-            - name: SUPABASE_SECRET_KEYS
-              value: '{"default":"$(SUPABASE_SECRET_KEY)"}'
-            - name: SUPABASE_DB_URL
-              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
+            {{- include "supabase.functions.env" . | nindent 12 }}
           {{- with .Values.deployment.functions.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -166,3 +101,74 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}
+
+---
+
+{{- define "supabase.functions.env" -}}
+{{- range $key, $value := .Values.environment.functions }}
+- name: {{ $key }}
+  value: {{ $value | quote }}
+{{- end }}
+
+{{- if .Values.deployment.kong.enabled }}
+- name: SUPABASE_URL
+  value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
+{{- end }}
+
+- name: DB_HOSTNAME
+  {{- if .Values.deployment.db.enabled }}
+  value: {{ include "supabase.db.fullname" . }}
+  {{- else }}
+  value: $(DB_HOST)
+  {{- end }}
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.password" . }}
+- name: DB_PASSWORD_ENC
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
+- name: DB_DATABASE
+  {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
+  value: {{ .Values.secret.db.database | default "postgres" | quote }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.database" . }}
+  {{- end }}
+- name: JWT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.secret" . }}
+- name: SUPABASE_ANON_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.anonKey" . }}
+- name: SUPABASE_SERVICE_ROLE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
+- name: SUPABASE_PUBLISHABLE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.apikey.name" . }}
+      key: {{ include "supabase.secret.apikey.key.publishableKey" . }}
+- name: SUPABASE_SECRET_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.apikey.name" . }}
+      key: {{ include "supabase.secret.apikey.key.secretKey" . }}
+- name: SUPABASE_PUBLISHABLE_KEYS
+  value: '{"default":"$(SUPABASE_PUBLISHABLE_KEY)"}'
+- name: SUPABASE_SECRET_KEYS
+  value: '{"default":"$(SUPABASE_SECRET_KEY)"}'
+- name: SUPABASE_DB_URL
+  value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
+{{- end -}}

@@ -34,30 +34,7 @@ spec:
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
           env:
-            - name: DB_HOST
-              {{- if .Values.deployment.db.enabled }}
-              value: {{ include "supabase.db.fullname" . | quote }}
-              {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-              {{- else if .Values.secret.db.host }}
-              value: {{ .Values.secret.db.host | quote }}
-              {{- else }}
-              value: {{ .Values.environment.storage.DB_HOST | quote }}
-              {{- end }}
-            - name: DB_PORT
-              {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.port" . }}
-              {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
-              value: {{ .Values.secret.db.port | quote }}
-              {{- else }}
-              value: {{ .Values.environment.storage.DB_PORT | quote }}
-              {{- end }}
+            {{- include "supabase.storage.initDbEnv" . | nindent 12 }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -70,23 +47,7 @@ spec:
         - name: init-bucket
           image: "{{ .Values.image.minioClient.repository }}:{{ .Values.image.minioClient.tag }}"
           env:
-            - name: MINIO_ROOT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.minio.name" . }}
-                  key: {{ include "supabase.secret.minio.key.user" . }}
-            - name: MINIO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.secret.s3.secretRef }}
-                  name: {{ include "supabase.secret.s3.name" . }}
-                  key: {{ include "supabase.secret.s3.key.password" . }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.minio.name" . }}
-                  key: {{ include "supabase.secret.minio.key.password" . }}
-                  {{- end }}
-            - name: GLOBAL_S3_BUCKET
-              value: {{ .Values.environment.storage.GLOBAL_S3_BUCKET }}
+            {{- include "supabase.storage.initBucketEnv" . | nindent 12 }}
           imagePullPolicy: {{ .Values.image.minioClient.pullPolicy }}
           command:
             - /bin/sh
@@ -108,145 +69,7 @@ spec:
           image: "{{ .Values.image.storage.repository }}:{{ .Values.image.storage.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.storage.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.environment.storage }}
-            {{- if and (ne $key "AWS_ACCESS_KEY_ID") (ne $key "AWS_SECRET_ACCESS_KEY") (ne $key "STORAGE_BACKEND") (not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port))))) }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
-            
-            # 2. Now handle STORAGE_BACKEND specifically
-            - name: STORAGE_BACKEND
-              value: {{ if hasKey .Values.environment.storage "STORAGE_BACKEND" -}}
-                {{ index .Values.environment.storage "STORAGE_BACKEND" | quote }}
-              {{- else if .Values.deployment.minio.enabled -}}
-                "s3"
-              {{- else -}}
-                "file"
-              {{- end }}
-
-            {{- if or .Values.secret.s3.secretRef .Values.deployment.minio.enabled }}
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.secret.s3.secretRef }}
-                  name: {{ include "supabase.secret.s3.name" . | quote }}
-                  key: {{ include "supabase.secret.s3.key.keyId" . | quote }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.minio.name" . }}
-                  key: {{ include "supabase.secret.minio.key.user" . }}
-                  {{- end }}
-
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.secret.s3.secretRef }}
-                  name: {{ include "supabase.secret.s3.name" . | quote }}
-                  key: {{ include "supabase.secret.s3.key.accessKey" . | quote }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.minio.name" . }}
-                  key: {{ include "supabase.secret.minio.key.password" . }}
-                  {{- end }}
-            {{- end }}
-
-            {{- if .Values.deployment.db.enabled }}
-            - name: DB_HOST
-              value: {{ include "supabase.db.fullname" . }}
-            {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-            {{- else if .Values.secret.db.host }}
-            - name: DB_HOST
-              value: {{ .Values.secret.db.host | quote }}
-            {{- end }}
-            {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.port" . }}
-            {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
-            - name: DB_PORT
-              value: {{ .Values.secret.db.port | quote }}
-            {{- end }}
-            {{- if .Values.deployment.rest.enabled }}
-            - name: POSTGREST_URL
-              value: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}
-            {{- end }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.password" . }}
-            - name: DB_PASSWORD_ENC
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
-            - name: DB_NAME
-              {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
-              value: {{ .Values.secret.db.database | default "postgres" | quote }}
-              {{- else }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.database" . }}
-              {{- end }}
-            - name: DATABASE_URL
-              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
-            - name: PGRST_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.secret" . }}
-            - name: AUTH_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.secret" . }}
-            {{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtJwks }}
-            - name: JWT_JWKS
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.apikey.name" . }}
-                  key: {{ include "supabase.secret.apikey.key.jwtJwks" . }}
-            {{- end }}
-            - name: ANON_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.anonKey" . }}
-            - name: SERVICE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
-            - name: S3_PROTOCOL_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.s3.name" . }}
-                  key: {{ include "supabase.secret.s3.key.keyId" . }}
-            - name: S3_PROTOCOL_ACCESS_KEY_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.s3.name" . }}
-                  key: {{ include "supabase.secret.s3.key.accessKey" . }}
-            {{- if .Values.deployment.imgproxy.enabled }}
-            - name: IMGPROXY_URL
-              value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.service.imgproxy.port | int }}
-            {{- end }}
-              
-            {{- if .Values.deployment.minio.enabled }}
-            - name: GLOBAL_S3_ENDPOINT
-              value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.service.minio.port }}
-            - name: GLOBAL_S3_PROTOCOl
-              value: http
-            - name: GLOBAL_S3_FORCE_PATH_STYLE
-              value: "true"
-            {{- end }}
+            {{- include "supabase.storage.env" . | nindent 12 }}
           {{- with .Values.deployment.storage.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -294,3 +117,196 @@ spec:
           {{- toYaml . | nindent 8 }}
         {{- end }}
 {{- end }}
+
+---
+
+{{- define "supabase.storage.initDbEnv" -}}
+- name: DB_HOST
+  {{- if .Values.deployment.db.enabled }}
+  value: {{ include "supabase.db.fullname" . | quote }}
+  {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.host" . }}
+  {{- else if .Values.secret.db.host }}
+  value: {{ .Values.secret.db.host | quote }}
+  {{- else }}
+  value: {{ .Values.environment.storage.DB_HOST | quote }}
+  {{- end }}
+- name: DB_PORT
+  {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.port" . }}
+  {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
+  value: {{ .Values.secret.db.port | quote }}
+  {{- else }}
+  value: {{ .Values.environment.storage.DB_PORT | quote }}
+  {{- end }}
+{{- end -}}
+
+---
+
+{{- define "supabase.storage.initBucketEnv" -}}
+- name: MINIO_ROOT_USER
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.minio.name" . }}
+      key: {{ include "supabase.secret.minio.key.user" . }}
+- name: MINIO_ROOT_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      {{- if .Values.secret.s3.secretRef }}
+      name: {{ include "supabase.secret.s3.name" . }}
+      key: {{ include "supabase.secret.s3.key.password" . }}
+      {{- else }}
+      name: {{ include "supabase.secret.minio.name" . }}
+      key: {{ include "supabase.secret.minio.key.password" . }}
+      {{- end }}
+- name: GLOBAL_S3_BUCKET
+  value: {{ .Values.environment.storage.GLOBAL_S3_BUCKET }}
+{{- end -}}
+
+{{- define "supabase.storage.env" -}}
+{{- range $key, $value := .Values.environment.storage }}
+{{- if and (ne $key "AWS_ACCESS_KEY_ID") (ne $key "AWS_SECRET_ACCESS_KEY") (ne $key "STORAGE_BACKEND") (not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port))))) }}
+- name: {{ $key }}
+  value: {{ $value | quote }}
+{{- end }}
+{{- end }}
+
+# 2. Now handle STORAGE_BACKEND specifically
+- name: STORAGE_BACKEND
+  value: {{ if hasKey .Values.environment.storage "STORAGE_BACKEND" -}}
+    {{ index .Values.environment.storage "STORAGE_BACKEND" | quote }}
+  {{- else if .Values.deployment.minio.enabled -}}
+    "s3"
+  {{- else -}}
+    "file"
+  {{- end }}
+
+{{- if or .Values.secret.s3.secretRef .Values.deployment.minio.enabled }}
+- name: AWS_ACCESS_KEY_ID
+  valueFrom:
+    secretKeyRef:
+      {{- if .Values.secret.s3.secretRef }}
+      name: {{ include "supabase.secret.s3.name" . | quote }}
+      key: {{ include "supabase.secret.s3.key.keyId" . | quote }}
+      {{- else }}
+      name: {{ include "supabase.secret.minio.name" . }}
+      key: {{ include "supabase.secret.minio.key.user" . }}
+      {{- end }}
+
+- name: AWS_SECRET_ACCESS_KEY
+  valueFrom:
+    secretKeyRef:
+      {{- if .Values.secret.s3.secretRef }}
+      name: {{ include "supabase.secret.s3.name" . | quote }}
+      key: {{ include "supabase.secret.s3.key.accessKey" . | quote }}
+      {{- else }}
+      name: {{ include "supabase.secret.minio.name" . }}
+      key: {{ include "supabase.secret.minio.key.password" . }}
+      {{- end }}
+{{- end }}
+
+{{- if .Values.deployment.db.enabled }}
+- name: DB_HOST
+  value: {{ include "supabase.db.fullname" . }}
+{{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+- name: DB_HOST
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.host" . }}
+{{- else if .Values.secret.db.host }}
+- name: DB_HOST
+  value: {{ .Values.secret.db.host | quote }}
+{{- end }}
+{{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
+- name: DB_PORT
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.port" . }}
+{{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
+- name: DB_PORT
+  value: {{ .Values.secret.db.port | quote }}
+{{- end }}
+{{- if .Values.deployment.rest.enabled }}
+- name: POSTGREST_URL
+  value: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}
+{{- end }}
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.password" . }}
+- name: DB_PASSWORD_ENC
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
+- name: DB_NAME
+  {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
+  value: {{ .Values.secret.db.database | default "postgres" | quote }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.database" . }}
+  {{- end }}
+- name: DATABASE_URL
+  value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
+- name: PGRST_JWT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.secret" . }}
+- name: AUTH_JWT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.secret" . }}
+{{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtJwks }}
+- name: JWT_JWKS
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.apikey.name" . }}
+      key: {{ include "supabase.secret.apikey.key.jwtJwks" . }}
+{{- end }}
+- name: ANON_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.anonKey" . }}
+- name: SERVICE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.jwt.name" . }}
+      key: {{ include "supabase.secret.jwt.key.serviceKey" . }}
+- name: S3_PROTOCOL_ACCESS_KEY_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.s3.name" . }}
+      key: {{ include "supabase.secret.s3.key.keyId" . }}
+- name: S3_PROTOCOL_ACCESS_KEY_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.s3.name" . }}
+      key: {{ include "supabase.secret.s3.key.accessKey" . }}
+{{- if .Values.deployment.imgproxy.enabled }}
+- name: IMGPROXY_URL
+  value: http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.service.imgproxy.port | int }}
+{{- end }}
+
+{{- if .Values.deployment.minio.enabled }}
+- name: GLOBAL_S3_ENDPOINT
+  value: http://{{ include "supabase.minio.fullname" . }}:{{ default 9000 .Values.service.minio.port }}
+- name: GLOBAL_S3_PROTOCOl
+  value: http
+- name: GLOBAL_S3_FORCE_PATH_STYLE
+  value: "true"
+{{- end }}
+{{- end -}}

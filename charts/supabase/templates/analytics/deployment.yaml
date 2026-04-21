@@ -33,32 +33,7 @@ spec:
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
           env:
-            - name: DB_HOST
-              {{- if .Values.deployment.db.enabled }}
-              value: {{ include "supabase.db.fullname" . | quote }}
-              {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-              {{- else if .Values.secret.db.host }}
-              value: {{ .Values.secret.db.host | quote }}
-              {{- else }}
-              value: {{ .Values.environment.analytics.DB_HOST | quote }}
-              {{- end }}
-            - name: DB_USER
-              value: $(DB_USERNAME)
-            - name: DB_PORT
-              {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.port" . }}
-              {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
-              value: {{ .Values.secret.db.port | quote }}
-              {{- else }}
-              value: {{ .Values.environment.analytics.DB_PORT | quote }}
-              {{- end }}
+            {{- include "supabase.analytics.initDbEnv" . | nindent 12 }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -74,54 +49,7 @@ spec:
           image: "{{ .Values.image.analytics.repository }}:{{ .Values.image.analytics.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.analytics.pullPolicy }}
           env:
-            {{- range $key, $value := .Values.environment.analytics }}
-            {{- if not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port)))) }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
-            - name: DB_HOSTNAME
-              {{- if .Values.deployment.db.enabled }}
-              value: {{ include "supabase.db.fullname" . | quote }}
-              {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-              {{- else if .Values.secret.db.host }}
-              value: {{ .Values.secret.db.host | quote }}
-              {{- else }}
-              value: {{ .Values.environment.analytics.DB_HOST | quote }}
-              {{- end }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.password" . }}
-            - name: DB_PASSWORD_ENC
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
-            - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.analytics.name" . }}
-                  key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
-            - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.analytics.name" . }}
-                  key: {{ include "supabase.secret.analytics.key.privateAccessToken" . }}
-            {{- if .Values.bigQuery.enabled }}
-            - name: GOOGLE_PROJECT_ID
-              value: {{ .Values.bigQuery.projectId | quote }}
-            - name: GOOGLE_PROJECT_NUMBER
-              value: {{ .Values.bigQuery.projectNumber | quote }}
-            {{- else }}
-            - name: POSTGRES_BACKEND_URL
-              value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
-            {{- end }}
+            {{- include "supabase.analytics.env" . | nindent 12 }}
           {{- with .Values.deployment.analytics.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -172,3 +100,87 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}
+
+--- 
+
+{{- define "supabase.analytics.initDbEnv" -}}
+- name: DB_HOST
+  {{- if .Values.deployment.db.enabled }}
+  value: {{ include "supabase.db.fullname" . | quote }}
+  {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.host" . }}
+  {{- else if .Values.secret.db.host }}
+  value: {{ .Values.secret.db.host | quote }}
+  {{- else }}
+  value: {{ .Values.environment.analytics.DB_HOST | quote }}
+  {{- end }}
+- name: DB_USER
+  value: $(DB_USERNAME)
+- name: DB_PORT
+  {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.port" . }}
+  {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
+  value: {{ .Values.secret.db.port | quote }}
+  {{- else }}
+  value: {{ .Values.environment.analytics.DB_PORT | quote }}
+  {{- end }}
+{{- end -}}
+
+---
+
+{{- define "supabase.analytics.env" -}}
+{{- range $key, $value := .Values.environment.analytics }}
+{{- if not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port)))) }}
+- name: {{ $key }}
+  value: {{ $value | quote }}
+{{- end }}
+{{- end }}
+- name: DB_HOSTNAME
+  {{- if .Values.deployment.db.enabled }}
+  value: {{ include "supabase.db.fullname" . | quote }}
+  {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.host" . }}
+  {{- else if .Values.secret.db.host }}
+  value: {{ .Values.secret.db.host | quote }}
+  {{- else }}
+  value: {{ .Values.environment.analytics.DB_HOST | quote }}
+  {{- end }}
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.password" . }}
+- name: DB_PASSWORD_ENC
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" . }}
+      key: {{ include "supabase.secret.db.key.passwordEncoded" . }}
+- name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.analytics.name" . }}
+      key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
+- name: LOGFLARE_PRIVATE_ACCESS_TOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.analytics.name" . }}
+      key: {{ include "supabase.secret.analytics.key.privateAccessToken" . }}
+{{- if .Values.bigQuery.enabled }}
+- name: GOOGLE_PROJECT_ID
+  value: {{ .Values.bigQuery.projectId | quote }}
+- name: GOOGLE_PROJECT_NUMBER
+  value: {{ .Values.bigQuery.projectNumber | quote }}
+{{- else }}
+- name: POSTGRES_BACKEND_URL
+  value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
+{{- end }}
+{{- end -}}
