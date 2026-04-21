@@ -122,7 +122,7 @@ secret:
 
 The secret can be created with kubectl via command-line:
 
-> If you depend on database providers like [StackGres](https://stackgres.io/), [Postgres Operator](https://github.com/zalando/postgres-operator) or self-hosted Postgres instance, fill in the secret above and modify any relevant Postgres attributes such as port or hostname (e.g. `PGPORT`, `DB_HOST`) for any relevant deployments. Refer to [values.yaml](values.yaml) for more details.
+> If you depend on database providers like [StackGres](https://stackgres.io/), [Postgres Operator](https://github.com/zalando/postgres-operator) or self-hosted Postgres instance, configure `secret.db.host`/`secret.db.port` (or map `host`/`port` from `secret.db.secretRef`) and adjust any additional Postgres attributes (e.g. `PGPORT`) as needed. Refer to [values.yaml](values.yaml) for more details.
 
 ### Dashboard secret
 

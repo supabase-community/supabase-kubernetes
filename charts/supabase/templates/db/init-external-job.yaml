@@ -56,28 +56,8 @@ spec:
 
               echo "=== External database initialization complete ==="
           env:
-            - name: DB_HOST
-              {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-              {{- else if .Values.secret.db.host }}
-              value: {{ .Values.secret.db.host | quote }}
-              {{- else }}
-              value: {{ .Values.environment.auth.DB_HOST | default "" | quote }}
-              {{- end }}
-            - name: DB_PORT
-              {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.port" . }}
-              {{- else if .Values.secret.db.port }}
-              value: {{ .Values.secret.db.port | quote }}
-              {{- else }}
-              value: {{ .Values.environment.auth.DB_PORT | default "5432" | quote }}
-              {{- end }}
+            {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST") | nindent 12 }}
+            {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_USER
               {{- if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "username") }}
               valueFrom:

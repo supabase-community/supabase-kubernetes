@@ -36,34 +36,13 @@ spec:
           imagePullPolicy: {{ .Values.image.meta.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.meta }}
-            {{- if not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port)))) }}
+            {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
             {{- end }}
-            {{- if .Values.deployment.db.enabled }}
-            - name: DB_HOST
-              value: {{ include "supabase.db.fullname" . }}
-            {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-            {{- else if .Values.secret.db.host }}
-            - name: DB_HOST
-              value: {{ .Values.secret.db.host | quote }}
-            {{- end }}
-            {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.port" . }}
-            {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
-            - name: DB_PORT
-              value: {{ .Values.secret.db.port | quote }}
-            {{- end }}
+            {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST") | nindent 12 }}
+            {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
