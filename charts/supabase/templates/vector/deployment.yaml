@@ -19,7 +19,7 @@ spec:
       {{- with .Values.deployment.vector.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
-        checksum/config: {{ include (print $.Template.BasePath "/vector/config.yaml") . | sha256sum }}
+        checksum/config: {{ tpl (.Files.Get "files/vector/vector.yml") . | sha256sum }}
       labels:
         {{- include "supabase.vector.selectorLabels" . | nindent 8 }}
     spec:
