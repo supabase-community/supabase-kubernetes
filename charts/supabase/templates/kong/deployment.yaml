@@ -35,7 +35,7 @@ spec:
           image: "{{ .Values.image.kong.repository }}:{{ .Values.image.kong.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.kong.pullPolicy }}
           command: ["/bin/bash"]
-          args: ["/scripts/wrapper.sh"]
+          args: ["/scripts/kong-entrypoint.sh"]
           env:
             {{- range $key, $value := .Values.environment.kong }}
             - name: {{ $key }}
@@ -126,15 +126,15 @@ spec:
             name: {{ include "supabase.kong.fullname" $ }}
             defaultMode: 0777
             items:
-            - key: template.yml
+            - key: kong.yml
               path: template.yml
         - name: wrapper
           configMap:
             name: {{ include "supabase.kong.fullname" $ }}
             defaultMode: 0777
             items:
-            - key: wrapper.sh
-              path: wrapper.sh
+            - key: kong-entrypoint.sh
+              path: kong-entrypoint.sh
         {{- with .Values.deployment.kong.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
