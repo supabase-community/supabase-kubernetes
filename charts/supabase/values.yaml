@@ -89,7 +89,7 @@ secret:
     database: "postgres"
 
     ## External database host/port (used when deployment.db.enabled is false).
-    ## Leave empty to fall back to environment.<service>.DB_HOST / DB_PORT.
+    ## Host and port are required when using an external database.
     ## Ignored when deployment.db.enabled is true (internal DB service is used).
     host: ""
     port: ""
@@ -536,7 +536,6 @@ environment:
     LOGFLARE_NODE_HOST: 127.0.0.1
     DB_USERNAME: supabase_admin
     DB_DATABASE: _supabase
-    DB_PORT: 5432
     DB_DRIVER: postgresql
     DB_SCHEMA: _analytics
     POSTGRES_BACKEND_SCHEMA: _analytics
@@ -546,7 +545,6 @@ environment:
 
   auth:
     DB_USER: supabase_auth_admin
-    DB_PORT: 5432
     DB_DRIVER: postgres
     ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
     DB_SSL: disable
@@ -603,7 +601,6 @@ environment:
 
   functions:
     DB_USERNAME: postgres
-    DB_PORT: 5432
     DB_DRIVER: postgresql
     ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
     DB_SSL: disable
@@ -627,7 +624,6 @@ environment:
 
   meta:
     DB_USER: supabase_admin
-    DB_PORT: 5432
     DB_DRIVER: postgres
     ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
     DB_SSL: disable
@@ -637,7 +633,6 @@ environment:
 
   realtime:
     DB_USER: supabase_admin
-    DB_PORT: 5432
     ## Set to true to enforce TLS connections to Postgres
     DB_SSL: false
     PORT: "4000"
@@ -655,7 +650,6 @@ environment:
 
   rest:
     DB_USER: authenticator
-    DB_PORT: 5432
     DB_DRIVER: postgres
     ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
     DB_SSL: disable
@@ -666,7 +660,6 @@ environment:
 
   storage:
     DB_USER: supabase_storage_admin
-    DB_PORT: 5432
     DB_DRIVER: postgres
     ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
     DB_SSL: disable

@@ -44,8 +44,10 @@ spec:
           {{- end }}
           env:
             {{- range $key, $value := .Values.environment.functions }}
+            {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
             - name: {{ $key }}
               value: {{ $value | quote }}
+            {{- end }}
             {{- end }}
 
             {{- if .Values.deployment.kong.enabled }}
@@ -53,12 +55,8 @@ spec:
               value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
             {{- end }}
 
-            - name: DB_HOSTNAME
-              {{- if .Values.deployment.db.enabled }}
-              value: {{ include "supabase.db.fullname" . }}
-              {{- else }}
-              value: $(DB_HOST)
-              {{- end }}
+            {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOSTNAME") | nindent 12 }}
+            {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

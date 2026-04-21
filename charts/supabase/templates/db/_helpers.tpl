@@ -41,3 +41,45 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.db.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Render a standardized DB host env var.
+Usage: include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST")
+*/}}
+{{- define "supabase.db.hostEnv" -}}
+{{- $root := .root -}}
+- name: {{ .name }}
+  {{- if $root.Values.deployment.db.enabled }}
+  value: {{ include "supabase.db.fullname" $root | quote }}
+  {{- else if and $root.Values.secret.db.secretRef (hasKey (default (dict) $root.Values.secret.db.secretRefKey) "host") }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" $root }}
+      key: {{ include "supabase.secret.db.key.host" $root }}
+  {{- else if $root.Values.secret.db.host }}
+  value: {{ $root.Values.secret.db.host | quote }}
+  {{- else }}
+  value: {{ required "secret.db.host must be set when deployment.db.enabled is false" $root.Values.secret.db.host | quote }}
+  {{- end }}
+{{- end }}
+
+{{/*
+Render a standardized DB port env var.
+Usage: include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT")
+*/}}
+{{- define "supabase.db.portEnv" -}}
+{{- $root := .root -}}
+- name: {{ .name }}
+  {{- if and (not $root.Values.deployment.db.enabled) $root.Values.secret.db.secretRef (hasKey (default (dict) $root.Values.secret.db.secretRefKey) "port") }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.secret.db.name" $root }}
+      key: {{ include "supabase.secret.db.key.port" $root }}
+  {{- else if and (not $root.Values.deployment.db.enabled) $root.Values.secret.db.port }}
+  value: {{ $root.Values.secret.db.port | quote }}
+  {{- else if $root.Values.deployment.db.enabled }}
+  value: {{ $root.Values.service.db.port | quote }}
+  {{- else }}
+  value: {{ required "secret.db.port must be set when deployment.db.enabled is false" $root.Values.secret.db.port | quote }}
+  {{- end }}
+{{- end }}

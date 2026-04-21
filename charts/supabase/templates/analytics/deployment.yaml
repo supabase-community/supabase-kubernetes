@@ -33,32 +33,8 @@ spec:
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
           env:
-            - name: DB_HOST
-              {{- if .Values.deployment.db.enabled }}
-              value: {{ include "supabase.db.fullname" . | quote }}
-              {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-              {{- else if .Values.secret.db.host }}
-              value: {{ .Values.secret.db.host | quote }}
-              {{- else }}
-              value: {{ .Values.environment.analytics.DB_HOST | quote }}
-              {{- end }}
-            - name: DB_USER
-              value: $(DB_USERNAME)
-            - name: DB_PORT
-              {{- if and (not .Values.deployment.db.enabled) .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "port") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.port" . }}
-              {{- else if and (not .Values.deployment.db.enabled) .Values.secret.db.port }}
-              value: {{ .Values.secret.db.port | quote }}
-              {{- else }}
-              value: {{ .Values.environment.analytics.DB_PORT | quote }}
-              {{- end }}
+            {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST") | nindent 12 }}
+            {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -75,24 +51,13 @@ spec:
           imagePullPolicy: {{ .Values.image.analytics.pullPolicy }}
           env:
             {{- range $key, $value := .Values.environment.analytics }}
-            {{- if not (and (not $.Values.deployment.db.enabled) (or (and (eq $key "DB_HOST") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "host")) $.Values.secret.db.host)) (and (eq $key "DB_PORT") (or (and $.Values.secret.db.secretRef (hasKey (default (dict) $.Values.secret.db.secretRefKey) "port")) $.Values.secret.db.port)))) }}
+            {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
             {{- end }}
-            - name: DB_HOSTNAME
-              {{- if .Values.deployment.db.enabled }}
-              value: {{ include "supabase.db.fullname" . | quote }}
-              {{- else if and .Values.secret.db.secretRef (hasKey (default (dict) .Values.secret.db.secretRefKey) "host") }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.db.name" . }}
-                  key: {{ include "supabase.secret.db.key.host" . }}
-              {{- else if .Values.secret.db.host }}
-              value: {{ .Values.secret.db.host | quote }}
-              {{- else }}
-              value: {{ .Values.environment.analytics.DB_HOST | quote }}
-              {{- end }}
+            {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOSTNAME") | nindent 12 }}
+            {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
