@@ -12,6 +12,7 @@ spec:
   selector:
     matchLabels:
       {{- include "supabase.db.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "supabase.db.fullname" . }}
   template:
     metadata:
       {{- with .Values.deployment.db.podAnnotations }}
