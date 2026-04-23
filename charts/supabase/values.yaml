@@ -304,6 +304,10 @@ deployment:
     volumeMounts: {}
     volumes: {}
     resources: {}
+    podDisruptionBudget:
+      enabled: false
+      # minAvailable: 1
+      # maxUnavailable: 1
 
   kong:
     enabled: true
@@ -321,6 +325,10 @@ deployment:
     volumeMounts: {}
     volumes: {}
     resources: {}
+    podDisruptionBudget:
+      enabled: false
+      # minAvailable: 1
+      # maxUnavailable: 1
 
   meta:
     enabled: true
@@ -389,6 +397,10 @@ deployment:
     volumeMounts: {}
     volumes: {}
     resources: {}
+    podDisruptionBudget:
+      enabled: false
+      # minAvailable: 1
+      # maxUnavailable: 1
 
   storage:
     enabled: true
