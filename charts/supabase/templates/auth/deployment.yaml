@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.auth.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.auth.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.auth.enabled }}
   replicas: {{ .Values.deployment.auth.replicaCount }}
@@ -14,20 +19,42 @@ spec:
       {{- include "supabase.auth.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.auth.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.auth.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.auth.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.auth.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.auth "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.auth.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.auth "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.auth.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.auth.podSecurityContext | nindent 8 }}
       {{- with .Values.image.auth.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.auth.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.auth.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.auth.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.auth.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.auth.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.auth.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       initContainers:
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
@@ -45,10 +72,12 @@ spec:
             - echo "Database is ready"
       containers:
         - name: {{ include "supabase.auth.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.auth.securityContext | nindent 12 }}
           image: "{{ .Values.image.auth.repository }}:{{ .Values.image.auth.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.auth.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 9999
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.auth }}
             {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
@@ -107,18 +136,6 @@ spec:
           envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.auth.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.deployment.auth.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          ports:
-            - name: http
-              containerPort: 9999
-              protocol: TCP
           {{- with .Values.deployment.auth.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -127,20 +144,26 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.deployment.auth.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.auth.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.auth.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.auth.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.auth.securityContext | nindent 12 }}
       {{- with .Values.deployment.auth.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.auth.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.auth.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.auth.tolerations }}
-      tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}

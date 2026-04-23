@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.analytics.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.analytics.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.analytics.enabled }}
   replicas: {{ .Values.deployment.analytics.replicaCount }}
@@ -14,20 +19,42 @@ spec:
       {{- include "supabase.analytics.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.analytics.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.analytics.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.analytics.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.analytics.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.analytics "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.analytics.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.analytics "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.analytics.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.analytics.podSecurityContext | nindent 8 }}
       {{- with .Values.image.analytics.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.analytics.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.analytics.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.analytics.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.analytics.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.analytics.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.analytics.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       initContainers:
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
@@ -45,10 +72,11 @@ spec:
             - echo "Database is ready"
       containers:
         - name: {{ include "supabase.analytics.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.analytics.securityContext | nindent 12 }}
           image: "{{ .Values.image.analytics.repository }}:{{ .Values.image.analytics.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.analytics.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.analytics.port }}
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.analytics }}
             {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
@@ -87,17 +115,14 @@ spec:
             - name: POSTGRES_BACKEND_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
             {{- end }}
-          {{- with .Values.deployment.analytics.livenessProbe }}
-          livenessProbe:
+          {{- with .Values.deployment.analytics.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.analytics.readinessProbe }}
-          readinessProbe:
+          {{- with .Values.deployment.analytics.resources }}
+          resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          ports:
-            - containerPort: {{ .Values.service.analytics.port }}
-              protocol: TCP
           {{- if or (.Values.bigQuery.enabled) (.Values.deployment.analytics.volumes) }}
           volumeMounts:
             {{- with .Values.deployment.analytics.volumeMounts }}
@@ -109,10 +134,24 @@ spec:
               subPath: {{ include "supabase.secret.bigquery.key.gcloudJson" . }}
             {{- end }}
           {{- end }}
-          {{- with .Values.deployment.analytics.resources }}
-          resources:
+          {{- with .Values.deployment.analytics.livenessProbe }}
+          livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.deployment.analytics.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.analytics.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.analytics.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.analytics.securityContext | nindent 12 }}
       {{- if or (.Values.bigQuery.enabled) (.Values.deployment.analytics.volumes) }}
       volumes:
         {{- with .Values.deployment.analytics.volumes }}
@@ -123,17 +162,5 @@ spec:
           secret:
             secretName: {{ include "supabase.secret.bigquery.name" . }}
         {{- end }}
-      {{- end }}
-      {{- with .Values.deployment.analytics.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.analytics.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.analytics.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}

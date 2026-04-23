@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.rest.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.rest.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.rest.enabled }}
   replicas: {{ .Values.deployment.rest.replicaCount }}
@@ -14,20 +19,42 @@ spec:
       {{- include "supabase.rest.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.rest.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.rest.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.rest.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.rest.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.rest "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.rest.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.rest "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.rest.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.rest.podSecurityContext | nindent 8 }}
       {{- with .Values.image.rest.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.rest.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.rest.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.rest.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.rest.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.rest.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.rest.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       initContainers:
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
@@ -45,10 +72,12 @@ spec:
             - echo "Database is ready"
       containers:
         - name: {{ include "supabase.rest.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.rest.securityContext | nindent 12 }}
           image: "{{ .Values.image.rest.repository }}:{{ .Values.image.rest.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.rest.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.rest }}
             {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
@@ -94,18 +123,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.jwt.name" . }}
                   key: {{ include "supabase.secret.jwt.key.secret" . }}
-          {{- with .Values.deployment.rest.livenessProbe }}
-          livenessProbe:
+          {{- with .Values.deployment.rest.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.rest.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          ports:
-            - name: http
-              containerPort: 3000
-              protocol: TCP
           {{- with .Values.deployment.rest.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -114,20 +135,26 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.deployment.rest.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.rest.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.rest.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.rest.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.rest.securityContext | nindent 12 }}
       {{- with .Values.deployment.rest.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.rest.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.rest.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.rest.tolerations }}
-      tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}

@@ -224,51 +224,72 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   auth:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   db:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
     extraInitContainers: []
 
   functions:
@@ -276,136 +297,192 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   imgproxy:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   kong:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   meta:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   minio:
     enabled: false
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   realtime:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   rest:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   storage:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
     extraInitContainers: []
 
   studio:
@@ -413,34 +490,48 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
   vector:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    livenessProbe: {}
-    readinessProbe: {}
+    annotations: {}
     podAnnotations: {}
     podSecurityContext:
     securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
     nodeSelector: {}
-    tolerations: []
     affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
     volumeMounts: {}
     volumes: {}
-    resources: {}
 
 image:
   analytics:

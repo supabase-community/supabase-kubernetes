@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.functions.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.functions.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.functions.enabled }}
   replicas: {{ .Values.deployment.functions.replicaCount }}
@@ -14,34 +19,50 @@ spec:
       {{- include "supabase.functions.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.functions.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.functions.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.functions.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.functions.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.functions "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.functions.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.functions "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.functions.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.functions.podSecurityContext | nindent 8 }}
       {{- with .Values.image.functions.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.functions.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.functions.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.functions.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.functions.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.functions.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.functions.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       containers:
-        - args:
+        - name: {{ include "supabase.functions.name" $ }}
+          image: "{{ .Values.image.functions.repository }}:{{ .Values.image.functions.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.functions.pullPolicy }}
+          args:
             - start
             - --main-service
             - /home/deno/functions/main
-          name: {{ include "supabase.functions.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.functions.securityContext | nindent 12 }}
-          image: "{{ .Values.image.functions.repository }}:{{ .Values.image.functions.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.functions.pullPolicy }}
-          {{- if .Values.deployment.functions.envFrom }}
-          envFrom:
-            {{- toYaml .Values.deployment.functions.envFrom | nindent 12 }}
-          {{- end }}
           env:
             {{- range $key, $value := .Values.environment.functions }}
             {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
@@ -107,12 +128,12 @@ spec:
               value: '{"default":"$(SUPABASE_SECRET_KEY)"}'
             - name: SUPABASE_DB_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
-          {{- with .Values.deployment.functions.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12 }}
+          {{- if .Values.deployment.functions.envFrom }}
+          envFrom:
+            {{- toYaml .Values.deployment.functions.envFrom | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.functions.readinessProbe }}
-          readinessProbe:
+          {{- with .Values.deployment.functions.resources }}
+          resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
@@ -130,10 +151,24 @@ spec:
             - mountPath: /home/deno/functions/main/index.ts
               name: functions-main
               subPath: index.ts
-          {{- with .Values.deployment.functions.resources }}
-          resources:
+          {{- with .Values.deployment.functions.livenessProbe }}
+          livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.deployment.functions.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.functions.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.functions.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.functions.securityContext | nindent 12 }}
       volumes:
         {{- with .Values.deployment.functions.volumes }}
           {{- toYaml . | nindent 8 }}
@@ -151,16 +186,4 @@ spec:
         - name: functions-main
           configMap:
             name: {{ include "supabase.functions.fullname" . }}-main
-      {{- with .Values.deployment.functions.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.functions.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.functions.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
 {{- end }}

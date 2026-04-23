@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.realtime.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.realtime.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.realtime.enabled }}
   replicas: {{ .Values.deployment.realtime.replicaCount }}
@@ -14,20 +19,42 @@ spec:
       {{- include "supabase.realtime.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.realtime.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.realtime.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.realtime.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.realtime.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.realtime "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.realtime.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.realtime "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.realtime.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.realtime.podSecurityContext | nindent 8 }}
       {{- with .Values.image.realtime.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.realtime.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.realtime.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.realtime.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.realtime.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.realtime.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.realtime.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       initContainers:
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
@@ -45,12 +72,14 @@ spec:
             - echo "Database is ready"
       containers:
         - name: {{ include "supabase.realtime.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.realtime.securityContext | nindent 12 }}
           image: "{{ .Values.image.realtime.repository }}:{{ .Values.image.realtime.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.realtime.pullPolicy }}
           command: ["/bin/sh"]
           args: ["-c", "/app/bin/migrate && /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)' && /app/bin/server"]
+          ports:
+            - name: http
+              containerPort: 4000
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.realtime }}
             {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
@@ -99,19 +128,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.realtime.name" . }}
                   key: {{ include "supabase.secret.realtime.key.secretKeyBase" . }}
-
-          {{- with .Values.deployment.realtime.livenessProbe }}
-          livenessProbe:
+          {{- with .Values.deployment.realtime.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.realtime.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          ports:
-            - name: http
-              containerPort: 4000
-              protocol: TCP
           {{- with .Values.deployment.realtime.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -120,20 +140,26 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.deployment.realtime.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.realtime.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.realtime.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.realtime.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.realtime.securityContext | nindent 12 }}
       {{- with .Values.deployment.realtime.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.realtime.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.realtime.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.realtime.tolerations }}
-      tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}

@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.storage.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.storage.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.storage.enabled }}
   replicas: {{ .Values.deployment.storage.replicaCount }}
@@ -14,21 +19,42 @@ spec:
       {{- include "supabase.storage.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.storage.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.storage.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.storage.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.storage.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.storage "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.storage.automountServiceAccountToken }}
+      {{- end }}
       restartPolicy: Always
+      {{- if hasKey .Values.deployment.storage "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.storage.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.storage.podSecurityContext | nindent 8 }}
       {{- with .Values.image.storage.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.storage.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.storage.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.storage.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.storage.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.storage.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.storage.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       initContainers:
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
@@ -81,10 +107,12 @@ spec:
         {{- end }}
       containers:
         - name: {{ include "supabase.storage.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.storage.securityContext | nindent 12 }}
           image: "{{ .Values.image.storage.repository }}:{{ .Values.image.storage.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.storage.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.storage }}
             {{- if and (ne $key "AWS_ACCESS_KEY_ID") (ne $key "AWS_SECRET_ACCESS_KEY") (ne $key "STORAGE_BACKEND") (ne $key "DB_HOST") (ne $key "DB_PORT") }}
@@ -204,18 +232,10 @@ spec:
             - name: GLOBAL_S3_FORCE_PATH_STYLE
               value: "true"
             {{- end }}
-          {{- with .Values.deployment.storage.livenessProbe }}
-          livenessProbe:
+          {{- with .Values.deployment.storage.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.storage.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          ports:
-            - name: http
-              containerPort: 5000
-              protocol: TCP
           {{- with .Values.deployment.storage.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -226,18 +246,24 @@ spec:
           {{- end }}
             - mountPath: /var/lib/storage
               name: storage-data
-      {{- with .Values.deployment.storage.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.storage.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.storage.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+          {{- with .Values.deployment.storage.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.storage.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.storage.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.storage.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.storage.securityContext | nindent 12 }}
       volumes:
         - name: storage-data
           {{- if .Values.persistence.storage.enabled }}
