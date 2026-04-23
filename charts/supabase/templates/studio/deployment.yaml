@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.studio.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.studio.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.studio.enabled }}
   replicas: {{ .Values.deployment.studio.replicaCount }}
@@ -14,26 +19,50 @@ spec:
       {{- include "supabase.studio.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.studio.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.studio.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.studio.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.studio.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.studio "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.studio.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.studio "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.studio.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.studio.podSecurityContext | nindent 8 }}
       {{- with .Values.image.studio.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.studio.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.studio.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.studio.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.studio.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.studio.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.studio.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.studio.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.studio.securityContext | nindent 12 }}
           image: "{{ .Values.image.studio.repository }}:{{ .Values.image.studio.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.studio.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.studio }}
             - name: {{ $key }}
@@ -122,18 +151,10 @@ spec:
             - name: SNIPPETS_MANAGEMENT_FOLDER
               value: /app/snippets
             {{- end }}
-          {{- with .Values.deployment.studio.livenessProbe }}
-          livenessProbe:
+          {{- with .Values.deployment.studio.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.studio.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          ports:
-            - name: http
-              containerPort: 3000
-              protocol: TCP
           {{- with .Values.deployment.studio.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -152,6 +173,24 @@ spec:
               mountPath: /app/snippets
             {{- end }}
           {{- end }}
+          {{- with .Values.deployment.studio.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.studio.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.studio.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.studio.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.studio.securityContext | nindent 12 }}
       {{- if or .Values.deployment.studio.volumes .Values.persistence.functions.enabled .Values.persistence.snippets.enabled }}
       volumes:
         {{- with .Values.deployment.studio.volumes }}
@@ -167,17 +206,5 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "snippets") }}
         {{- end }}
-      {{- end }}
-      {{- with .Values.deployment.studio.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.studio.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.studio.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}

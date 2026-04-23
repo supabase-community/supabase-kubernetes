@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.kong.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.kong.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.kong.enabled }}
   replicas: {{ .Values.deployment.kong.replicaCount }}
@@ -14,28 +19,52 @@ spec:
       {{- include "supabase.kong.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.kong.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.kong.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.kong.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.kong.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.kong "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.kong.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.kong "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.kong.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.kong.podSecurityContext | nindent 8 }}
       {{- with .Values.image.kong.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.kong.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.kong.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.kong.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.kong.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.kong.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.kong.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.kong.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.kong.securityContext | nindent 12 }}
           image: "{{ .Values.image.kong.repository }}:{{ .Values.image.kong.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.kong.pullPolicy }}
           command: ["/bin/bash"]
           args: ["/scripts/kong-entrypoint.sh"]
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.kong }}
             - name: {{ $key }}
@@ -83,18 +112,10 @@ spec:
                   name: {{ include "supabase.secret.dashboard.name" . }}
                   key: {{ include "supabase.secret.dashboard.key.password" . }}
             {{- end }}
-          {{- with .Values.deployment.kong.livenessProbe }}
-          livenessProbe:
+          {{- with .Values.deployment.kong.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.kong.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          ports:
-            - name: http
-              containerPort: 8000
-              protocol: TCP
           {{- with .Values.deployment.kong.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -108,18 +129,24 @@ spec:
             {{- with .Values.deployment.kong.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
-      {{- with .Values.deployment.kong.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.kong.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.kong.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+          {{- with .Values.deployment.kong.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.kong.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.kong.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.kong.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.kong.securityContext | nindent 12 }}
       volumes:
         - name: config
           configMap:

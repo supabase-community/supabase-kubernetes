@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "supabase.meta.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.meta.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.meta.enabled }}
   replicas: {{ .Values.deployment.meta.replicaCount }}
@@ -14,26 +19,50 @@ spec:
       {{- include "supabase.meta.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.meta.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.meta.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.meta.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.meta.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.meta "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.meta.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.meta "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.meta.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.meta.podSecurityContext | nindent 8 }}
       {{- with .Values.image.meta.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.meta.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.meta.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.meta.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.meta.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.meta.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.meta.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.meta.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.meta.securityContext | nindent 12 }}
           image: "{{ .Values.image.meta.repository }}:{{ .Values.image.meta.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.meta.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.meta }}
             {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
@@ -74,20 +103,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.meta.name" . }}
                   key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
-
-
-          {{- with .Values.deployment.meta.livenessProbe }}
-          livenessProbe:
+          {{- with .Values.deployment.meta.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.meta.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
           {{- with .Values.deployment.meta.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -96,20 +115,26 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.deployment.meta.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.meta.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.meta.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.meta.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.meta.securityContext | nindent 12 }}
       {{- with .Values.deployment.meta.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.meta.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.meta.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.meta.tolerations }}
-      tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}

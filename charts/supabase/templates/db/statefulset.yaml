@@ -3,8 +3,13 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "supabase.db.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.deployment.db.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.db.enabled }}
   replicas: {{ .Values.deployment.db.replicaCount }}
@@ -15,20 +20,42 @@ spec:
   serviceName: {{ include "supabase.db.fullname" . }}
   template:
     metadata:
+      labels:
+        {{- include "supabase.db.selectorLabels" . | nindent 8 }}
       {{- with .Values.deployment.db.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "supabase.db.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "supabase.db.serviceAccountName" . }}
+      {{- if hasKey .Values.deployment.db "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.deployment.db.automountServiceAccountToken }}
+      {{- end }}
+      restartPolicy: Always
+      {{- if hasKey .Values.deployment.db "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.db.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.deployment.db.podSecurityContext | nindent 8 }}
       {{- with .Values.image.db.pullSecrets}}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "supabase.db.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.deployment.db.podSecurityContext | nindent 8 }}
+      {{- with .Values.deployment.db.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.db.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.db.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.db.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       initContainers:
         - name: init-db
           image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
@@ -62,14 +89,12 @@ spec:
       {{- end }}
       containers:
         - name: {{ include "supabase.db.name" $ }}
-          securityContext:
-            {{- toYaml .Values.deployment.db.securityContext | nindent 12 }}
           image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.db.pullPolicy }}
-          lifecycle:
-            preStop:
-              exec:
-                command: ["/bin/sh", "-c", "pg_ctl -D /var/lib/postgres/data -w -t 60 -m fast stop"]
+          ports:
+            - name: http
+              containerPort: 5432
+              protocol: TCP
           env:
             {{- range $key, $value := .Values.environment.db }}
             - name: {{ $key }}
@@ -100,18 +125,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.jwt.name" . }}
                   key: {{ include "supabase.secret.jwt.key.secret" . }}
-          {{- with .Values.deployment.db.livenessProbe }}
-          livenessProbe:
+          {{- with .Values.deployment.db.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.db.readinessProbe }}
-          readinessProbe:
+          {{- with .Values.deployment.db.resources }}
+          resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          ports:
-            - name: http
-              containerPort: 5432
-              protocol: TCP
           volumeMounts:
             - mountPath: /docker-entrypoint-initdb.d
               name: initdb-scripts-data
@@ -123,10 +144,27 @@ spec:
               name: postgres-volume
               subPath: postgres-data
             {{- end }}
-          {{- with .Values.deployment.db.resources }}
-          resources:
+          {{- with .Values.deployment.db.livenessProbe }}
+          livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.deployment.db.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.db.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "pg_ctl -D /var/lib/postgres/data -w -t 60 -m fast stop"]
+          {{- with .Values.deployment.db.lifecycle }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.deployment.db.securityContext | nindent 12 }}
       volumes:
         - name: initdb-scripts-data
           emptyDir:
@@ -145,16 +183,4 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "db") }}
         {{- end }}
-      {{- with .Values.deployment.db.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.db.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.db.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
 {{- end }}
