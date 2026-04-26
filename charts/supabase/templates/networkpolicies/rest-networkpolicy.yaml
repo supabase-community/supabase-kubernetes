@@ -1,0 +1,36 @@
+{{- if and (.Values.networkPolicies.enabled | default false) .Values.deployment.rest.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "supabase.rest.fullname" . }}-netpol
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "supabase.rest.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            {{- include "supabase.kong.selectorLabels" . | nindent 12 }}
+      ports:
+      - protocol: TCP
+        port: {{ .Values.service.rest.port | default 3000 }}
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+      ports:
+      - protocol: UDP
+        port: 53
+    - to:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 5432
+{{- end }}
