@@ -28,13 +28,9 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "supabase.db.serviceAccountName" . }}
-      {{- if hasKey .Values.deployment.db "automountServiceAccountToken" }}
       automountServiceAccountToken: {{ .Values.deployment.db.automountServiceAccountToken }}
-      {{- end }}
       restartPolicy: Always
-      {{- if hasKey .Values.deployment.db "terminationGracePeriodSeconds" }}
       terminationGracePeriodSeconds: {{ .Values.deployment.db.terminationGracePeriodSeconds }}
-      {{- end }}
       securityContext:
         {{- toYaml .Values.deployment.db.podSecurityContext | nindent 8 }}
       {{- with .Values.image.db.pullSecrets}}

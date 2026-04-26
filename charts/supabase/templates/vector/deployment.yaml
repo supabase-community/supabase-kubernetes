@@ -29,13 +29,9 @@ spec:
         checksum/config: {{ tpl (.Files.Get "files/vector/vector.yml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "supabase.vector.serviceAccountName" . }}
-      {{- if hasKey .Values.deployment.vector "automountServiceAccountToken" }}
       automountServiceAccountToken: {{ .Values.deployment.vector.automountServiceAccountToken }}
-      {{- end }}
       restartPolicy: Always
-      {{- if hasKey .Values.deployment.vector "terminationGracePeriodSeconds" }}
       terminationGracePeriodSeconds: {{ .Values.deployment.vector.terminationGracePeriodSeconds }}
-      {{- end }}
       securityContext:
         {{- toYaml .Values.deployment.vector.podSecurityContext | nindent 8 }}
       {{- with .Values.image.vector.pullSecrets}}

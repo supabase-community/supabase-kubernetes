@@ -27,13 +27,9 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "supabase.minio.serviceAccountName" . }}
-      {{- if hasKey .Values.deployment.minio "automountServiceAccountToken" }}
       automountServiceAccountToken: {{ .Values.deployment.minio.automountServiceAccountToken }}
-      {{- end }}
       restartPolicy: Always
-      {{- if hasKey .Values.deployment.minio "terminationGracePeriodSeconds" }}
       terminationGracePeriodSeconds: {{ .Values.deployment.minio.terminationGracePeriodSeconds }}
-      {{- end }}
       securityContext:
         {{- toYaml .Values.deployment.minio.podSecurityContext | nindent 8 }}
       {{- with .Values.image.minio.pullSecrets}}

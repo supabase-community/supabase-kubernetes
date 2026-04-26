@@ -27,13 +27,9 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "supabase.imgproxy.serviceAccountName" . }}
-      {{- if hasKey .Values.deployment.imgproxy "automountServiceAccountToken" }}
       automountServiceAccountToken: {{ .Values.deployment.imgproxy.automountServiceAccountToken }}
-      {{- end }}
       restartPolicy: Always
-      {{- if hasKey .Values.deployment.imgproxy "terminationGracePeriodSeconds" }}
       terminationGracePeriodSeconds: {{ .Values.deployment.imgproxy.terminationGracePeriodSeconds }}
-      {{- end }}
       securityContext:
         {{- toYaml .Values.deployment.imgproxy.podSecurityContext | nindent 8 }}
       {{- with .Values.image.imgproxy.pullSecrets}}
