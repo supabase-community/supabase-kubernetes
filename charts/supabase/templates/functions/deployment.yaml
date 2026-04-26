@@ -27,13 +27,9 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "supabase.functions.serviceAccountName" . }}
-      {{- if hasKey .Values.deployment.functions "automountServiceAccountToken" }}
       automountServiceAccountToken: {{ .Values.deployment.functions.automountServiceAccountToken }}
-      {{- end }}
       restartPolicy: Always
-      {{- if hasKey .Values.deployment.functions "terminationGracePeriodSeconds" }}
       terminationGracePeriodSeconds: {{ .Values.deployment.functions.terminationGracePeriodSeconds }}
-      {{- end }}
       securityContext:
         {{- toYaml .Values.deployment.functions.podSecurityContext | nindent 8 }}
       {{- with .Values.image.functions.pullSecrets}}
