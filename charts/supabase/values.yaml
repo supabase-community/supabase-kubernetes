@@ -603,7 +603,7 @@ image:
   studio:
     repository: supabase/studio
     pullPolicy: IfNotPresent
-    tag: "2026.04.08-sha-205cbe7"
+    tag: "2026.04.27-sha-4afbe9c"
     pullSecrets: []
 
   vector:
