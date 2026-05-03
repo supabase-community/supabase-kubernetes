@@ -1,0 +1,43 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Function
+metadata:
+  labels:
+    app.kubernetes.io/name: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: hello-fn
+spec:
+  projectRef:
+    name: project-sample
+  functionName: hello
+  source:
+    index.ts: |
+      Deno.serve(() => new Response("Hello from Supabase Function"))
+---
+apiVersion: core.supabase.io/v1alpha1
+kind: Function
+metadata:
+  labels:
+    app.kubernetes.io/name: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: greeter-fn
+spec:
+  projectRef:
+    name: project-sample
+  functionName: greeter
+  source:
+    index.ts: |
+      import { buildGreeting } from "./greeting.ts"
+      Deno.serve((req) => {
+        const url = new URL(req.url)
+        const name = url.searchParams.get("name") ?? "dev"
+        const message = buildGreeting(name)
+        return new Response(
+          JSON.stringify({ ok: true, function: "greeter", message }),
+          { headers: { "content-type": "application/json" } },
+        )
+      })
+    greeting.ts: |
+      export function buildGreeting(name: string): string {
+        const clean = name.trim() || "dev"
+        return `Hello, ${clean}! Welcome to greeter.`
+      }
