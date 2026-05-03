@@ -1480,9 +1480,6 @@ spec:
                           More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                         type: object
                     type: object
-                  verifyJwt:
-                    default: false
-                    type: boolean
                 type: object
               global:
                 description: GlobalSpec defines global configuration shared across

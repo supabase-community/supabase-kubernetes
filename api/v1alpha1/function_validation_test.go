@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
@@ -54,5 +55,17 @@ var _ = Describe("Function Validation", func() {
 		fn := validFunction("sf-valid")
 		Expect(k8sClient.Create(ctx, fn)).To(Succeed())
 		DeferCleanup(func() { _ = k8sClient.Delete(ctx, fn) })
+	})
+
+	It("should default verifyJwt to true", func() {
+		fn := validFunction("sf-default-verifyjwt")
+		fn.Spec.FunctionName = "defaultverify"
+		Expect(k8sClient.Create(ctx, fn)).To(Succeed())
+		DeferCleanup(func() { _ = k8sClient.Delete(ctx, fn) })
+
+		fetched := &platformv1alpha1.Function{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: fn.Name, Namespace: fn.Namespace}, fetched)).To(Succeed())
+		Expect(fetched.Spec.VerifyJWT).NotTo(BeNil())
+		Expect(*fetched.Spec.VerifyJWT).To(BeTrue())
 	})
 })

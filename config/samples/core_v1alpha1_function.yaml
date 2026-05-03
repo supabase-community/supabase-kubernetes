@@ -24,6 +24,7 @@ spec:
   projectRef:
     name: project-sample
   functionName: greeter
+  verifyJwt: false
   source:
     index.ts: |
       import { buildGreeting } from "./greeting.ts"

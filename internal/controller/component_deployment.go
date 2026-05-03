@@ -295,6 +295,11 @@ func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []plat
 		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentFunctions, err)
 	}
 
+	functionsEnvVars, err := FunctionsEnvVars(project, functions)
+	if err != nil {
+		return ComponentWorkloadParams{}, fmt.Errorf("building env vars for %s: %w", componentFunctions, err)
+	}
+
 	params := ComponentWorkloadParams{
 		Component: "functions",
 		Image:     image,
@@ -313,7 +318,7 @@ func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []plat
 				},
 			},
 		}},
-		Env:       FunctionsEnvVars(project),
+		Env:       functionsEnvVars,
 		Resources: functionsSpec.Resources,
 		Probes:    functionsSpec.Probes,
 		Replicas:  functionsSpec.Replicas,
@@ -400,7 +405,30 @@ func functionsMainServiceSource() string {
 	return "import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'\n\n" +
 		"console.log('main function started')\n\n" +
 		"const JWT_SECRET = Deno.env.get('JWT_SECRET')\n" +
-		"const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true'\n\n" +
+		"const SUPABASE_URL = Deno.env.get('SUPABASE_URL')\n" +
+		"const FUNCTIONS_NO_VERIFY_JWT_RAW = Deno.env.get('FUNCTIONS_NO_VERIFY_JWT') ?? '[]'\n\n" +
+		"let FUNCTIONS_NO_VERIFY_JWT: string[] = []\n" +
+		"try {\n" +
+		"  const parsed = JSON.parse(FUNCTIONS_NO_VERIFY_JWT_RAW)\n" +
+		"  if (Array.isArray(parsed)) {\n" +
+		"    FUNCTIONS_NO_VERIFY_JWT = parsed\n" +
+		"  }\n" +
+		"} catch (e) {\n" +
+		"  console.error('Invalid FUNCTIONS_NO_VERIFY_JWT JSON:', e)\n" +
+		"}\n\n" +
+		"function shouldVerifyJWT(functionName: string): boolean {\n" +
+		"  return !FUNCTIONS_NO_VERIFY_JWT.includes(functionName)\n" +
+		"}\n\n" +
+		"let SUPABASE_JWT_KEYS: ReturnType<typeof jose.createRemoteJWKSet> | null = null\n" +
+		"if (SUPABASE_URL) {\n" +
+		"  try {\n" +
+		"    SUPABASE_JWT_KEYS = jose.createRemoteJWKSet(\n" +
+		"      new URL('/auth/v1/.well-known/jwks.json', SUPABASE_URL),\n" +
+		"    )\n" +
+		"  } catch (e) {\n" +
+		"    console.error('Failed to fetch JWKS from SUPABASE_URL:', e)\n" +
+		"  }\n" +
+		"}\n\n" +
 		"function getAuthToken(req: Request) {\n" +
 		"  const authHeader = req.headers.get('authorization')\n" +
 		"  if (!authHeader) {\n" +
@@ -412,39 +440,46 @@ func functionsMainServiceSource() string {
 		"  }\n" +
 		"  return token\n" +
 		"}\n\n" +
-		"async function verifyJWT(jwt: string): Promise<boolean> {\n" +
+		"async function isValidLegacyJWT(jwt: string): Promise<boolean> {\n" +
 		"  if (!JWT_SECRET) {\n" +
+		"    console.error('JWT_SECRET not available for HS256 token verification')\n" +
 		"    return false\n" +
 		"  }\n" +
-		"  const encoder = new TextEncoder()\n" +
+		"  const encoder = new TextEncoder();\n" +
 		"  const secretKey = encoder.encode(JWT_SECRET)\n" +
 		"  try {\n" +
 		"    await jose.jwtVerify(jwt, secretKey)\n" +
-		"  } catch (err) {\n" +
-		"    console.error(err)\n" +
+		"  } catch (e) {\n" +
+		"    console.error('Symmetric Legacy JWT verification error', e);\n" +
 		"    return false\n" +
 		"  }\n" +
 		"  return true\n" +
 		"}\n\n" +
-		"Deno.serve(async (req: Request) => {\n" +
-		"  if (req.method !== 'OPTIONS' && VERIFY_JWT) {\n" +
-		"    try {\n" +
-		"      const token = getAuthToken(req)\n" +
-		"      const isValidJWT = await verifyJWT(token)\n\n" +
-		"      if (!isValidJWT) {\n" +
-		"        return new Response(JSON.stringify({ msg: 'Invalid JWT' }), {\n" +
-		"          status: 401,\n" +
-		"          headers: { 'Content-Type': 'application/json' },\n" +
-		"        })\n" +
-		"      }\n" +
-		"    } catch (e) {\n" +
-		"      console.error(e)\n" +
-		"      return new Response(JSON.stringify({ msg: String(e) }), {\n" +
-		"        status: 401,\n" +
-		"        headers: { 'Content-Type': 'application/json' },\n" +
-		"      })\n" +
-		"    }\n" +
+		"async function isValidJWT(jwt: string): Promise<boolean> {\n" +
+		"  if (!SUPABASE_JWT_KEYS) {\n" +
+		"    console.error('JWKS not available for ES256/RS256 token verification')\n" +
+		"    return false\n" +
 		"  }\n\n" +
+		"  try {\n" +
+		"    await jose.jwtVerify(jwt, SUPABASE_JWT_KEYS)\n" +
+		"  } catch (e) {\n" +
+		"    console.error('Asymmetric JWT verification error', e);\n" +
+		"    return false\n" +
+		"  }\n\n" +
+		"  return true\n" +
+		"}\n\n" +
+		"async function isValidHybridJWT(jwt: string): Promise<boolean> {\n" +
+		"  const { alg: jwtAlgorithm } = jose.decodeProtectedHeader(jwt)\n\n" +
+		"  if (jwtAlgorithm === 'HS256') {\n" +
+		"    console.log(`Legacy token type detected, attempting ${jwtAlgorithm} verification.`)\n" +
+		"    return await isValidLegacyJWT(jwt)\n" +
+		"  }\n\n" +
+		"  if (jwtAlgorithm === 'ES256' || jwtAlgorithm === 'RS256') {\n" +
+		"    return await isValidJWT(jwt)\n" +
+		"  }\n\n" +
+		"  return false\n" +
+		"}\n\n" +
+		"Deno.serve(async (req: Request) => {\n" +
 		"  const url = new URL(req.url)\n" +
 		"  const { pathname } = url\n" +
 		"  const pathParts = pathname.split('/')\n" +
@@ -456,8 +491,27 @@ func functionsMainServiceSource() string {
 		"      headers: { 'Content-Type': 'application/json' },\n" +
 		"    })\n" +
 		"  }\n\n" +
-		"  const servicePath = '/home/deno/functions/' + serviceName\n" +
-		"  console.error('serving the request with ' + servicePath)\n\n" +
+		"  const verifyJWT = shouldVerifyJWT(serviceName)\n\n" +
+		"  if (req.method !== 'OPTIONS' && verifyJWT) {\n" +
+		"    try {\n" +
+		"      const token = getAuthToken(req)\n" +
+		"      const isValidJWT = await isValidHybridJWT(token);\n\n" +
+		"      if (!isValidJWT) {\n" +
+		"        return new Response(JSON.stringify({ msg: 'Invalid JWT' }), {\n" +
+		"          status: 401,\n" +
+		"          headers: { 'Content-Type': 'application/json' },\n" +
+		"        })\n" +
+		"      }\n" +
+		"    } catch (e) {\n" +
+		"      console.error(e)\n" +
+		"      return new Response(JSON.stringify({ msg: e.toString() }), {\n" +
+		"        status: 401,\n" +
+		"        headers: { 'Content-Type': 'application/json' },\n" +
+		"      })\n" +
+		"    }\n" +
+		"  }\n\n" +
+		"  const servicePath = `/home/deno/functions/${serviceName}`\n" +
+		"  console.error(`serving the request with ${servicePath}`)\n\n" +
 		"  const memoryLimitMb = 150\n" +
 		"  const workerTimeoutMs = 1 * 60 * 1000\n" +
 		"  const noModuleCache = false\n" +
@@ -475,7 +529,7 @@ func functionsMainServiceSource() string {
 		"    })\n" +
 		"    return await worker.fetch(req)\n" +
 		"  } catch (e) {\n" +
-		"    const error = { msg: String(e) }\n" +
+		"    const error = { msg: e.toString() }\n" +
 		"    return new Response(JSON.stringify(error), {\n" +
 		"      status: 500,\n" +
 		"      headers: { 'Content-Type': 'application/json' },\n" +

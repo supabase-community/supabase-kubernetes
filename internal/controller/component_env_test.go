@@ -127,21 +127,31 @@ var _ = Describe("Component env builders", func() {
 			Expect(findEnv(StorageEnvVars(project), "DATABASE_URL").Value).To(Equal("postgres://supabase_storage_admin:$(POSTGRES_PASSWORD)@db.example.com:5432/postgres"))
 			Expect(findEnv(StorageEnvVars(project), "POSTGRES_HOST").Value).To(Equal("db.example.com"))
 			Expect(findEnv(MetaEnvVars(project), "CRYPTO_KEY").ValueFrom.SecretKeyRef.Name).To(Equal("main-keys"))
-			Expect(findEnv(FunctionsEnvVars(project), "SUPABASE_PUBLISHABLE_KEYS").ValueFrom.SecretKeyRef.Name).To(Equal("main-jwt"))
+			functionsEnv, err := FunctionsEnvVars(project, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(findEnv(functionsEnv, "SUPABASE_PUBLISHABLE_KEYS").ValueFrom.SecretKeyRef.Name).To(Equal("main-jwt"))
 		})
 
 		It("should trim .svc.cluster.local for node-based components", func() {
 			project := newTestEnvProject()
 			project.Spec.Database.Host = "postgres.db.svc.cluster.local"
 			Expect(findEnv(StorageEnvVars(project), "POSTGRES_HOST").Value).To(Equal("postgres.db"))
-			Expect(findEnv(FunctionsEnvVars(project), "POSTGRES_HOST").Value).To(Equal("postgres.db"))
-			Expect(findEnv(FunctionsEnvVars(project), "SUPABASE_DB_URL").Value).To(Equal("postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"))
+			functionsEnv, err := FunctionsEnvVars(project, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(findEnv(functionsEnv, "POSTGRES_HOST").Value).To(Equal("postgres.db"))
+			Expect(findEnv(functionsEnv, "SUPABASE_DB_URL").Value).To(Equal("postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"))
 		})
 
-		It("should honor functions verifyJwt", func() {
+		It("should set functions no-verify list from Function specs", func() {
 			project := newTestEnvProject()
-			project.Spec.Functions.VerifyJWT = boolP(true)
-			Expect(findEnv(FunctionsEnvVars(project), "VERIFY_JWT").Value).To(Equal("true"))
+			functions := []platformv1alpha1.Function{
+				{Spec: platformv1alpha1.FunctionSpec{FunctionName: "public-fn", VerifyJWT: boolP(false)}},
+				{Spec: platformv1alpha1.FunctionSpec{FunctionName: "private-fn", VerifyJWT: boolP(true)}},
+				{Spec: platformv1alpha1.FunctionSpec{FunctionName: "default-fn"}},
+			}
+			functionsEnv, err := FunctionsEnvVars(project, functions)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(findEnv(functionsEnv, "FUNCTIONS_NO_VERIFY_JWT").Value).To(Equal("[\"public-fn\"]"))
 		})
 	})
 })

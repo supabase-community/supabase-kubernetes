@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -448,16 +449,33 @@ func MetaEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	}
 }
 
-func FunctionsEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
+func functionsNoVerifyJWT(functions []platformv1alpha1.Function) (string, error) {
+	noVerify := make([]string, 0)
+	for i := range functions {
+		if derefBool(functions[i].Spec.VerifyJWT, true) {
+			continue
+		}
+		noVerify = append(noVerify, functions[i].Spec.FunctionName)
+	}
+
+	encoded, err := json.Marshal(noVerify)
+	if err != nil {
+		return "", fmt.Errorf("encoding functions no-verify list: %w", err)
+	}
+
+	return string(encoded), nil
+}
+
+func FunctionsEnvVars(project *platformv1alpha1.Project, functions []platformv1alpha1.Function) ([]corev1.EnvVar, error) {
 	spec := &project.Spec
 	jwtSecret := jwtSecretName(project.Name)
 	dbHost := nodeDNSHost(spec.Database.Host)
 	dbPort := derefInt32(spec.Database.Port, 5432)
 	dbName := derefString(spec.Database.DBName, "postgres")
 
-	verifyJWT := "false"
-	if spec.Functions != nil {
-		verifyJWT = strconv.FormatBool(derefBool(spec.Functions.VerifyJWT, false))
+	functionsNoVerify, err := functionsNoVerifyJWT(functions)
+	if err != nil {
+		return nil, err
 	}
 
 	return []corev1.EnvVar{
@@ -473,6 +491,6 @@ func FunctionsEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		envVar("POSTGRES_PORT", strconv.Itoa(int(dbPort))),
 		envVar("POSTGRES_DB", dbName),
 		envVar("SUPABASE_DB_URL", "postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"),
-		envVar("VERIFY_JWT", verifyJWT),
-	}
+		envVar("FUNCTIONS_NO_VERIFY_JWT", functionsNoVerify),
+	}, nil
 }

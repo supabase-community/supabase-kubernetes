@@ -67,6 +67,9 @@ spec:
                   type: string
                 minProperties: 1
                 type: object
+              verifyJwt:
+                default: true
+                type: boolean
             required:
             - functionName
             - projectRef
