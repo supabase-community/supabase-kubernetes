@@ -125,6 +125,7 @@ var _ = Describe("Project Defaults", func() {
 			Expect(*fetched.Spec.Storage.Bucket).To(Equal("stub"))
 			Expect(*fetched.Spec.Storage.TenantID).To(Equal("stub"))
 			Expect(*fetched.Spec.Storage.Region).To(Equal("local"))
+			Expect(*fetched.Spec.Storage.FileSizeLimit).To(Equal(int32(52428800)))
 		})
 	})
 
@@ -150,8 +151,8 @@ var _ = Describe("Project Defaults", func() {
 			fetched := &platformv1alpha1.Project{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, fetched)).To(Succeed())
 
-			Expect(*fetched.Spec.Studio.DefaultOrganization).To(Equal("Default Organization"))
-			Expect(*fetched.Spec.Studio.DefaultProject).To(Equal("Default Project"))
+			Expect(*fetched.Spec.Studio.Organization).To(Equal("Default Organization"))
+			Expect(*fetched.Spec.Studio.Project).To(Equal("Default Project"))
 		})
 	})
 })

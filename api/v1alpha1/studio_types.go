@@ -5,10 +5,10 @@ type StudioSpec struct {
 	ComponentSpec `json:",inline"`
 	// +kubebuilder:default="Default Organization"
 	// +optional
-	DefaultOrganization *string `json:"defaultOrganization,omitempty"`
+	Organization *string `json:"organization,omitempty"`
 	// +kubebuilder:default="Default Project"
 	// +optional
-	DefaultProject *string `json:"defaultProject,omitempty"`
+	Project *string `json:"project,omitempty"`
 	// +optional
 	AI *StudioAISpec `json:"ai,omitempty"`
 	// +optional
@@ -18,7 +18,7 @@ type StudioSpec struct {
 // StudioAISpec defines AI-related configuration for Studio.
 type StudioAISpec struct {
 	// +optional
-	OpenAIApiKeyRef *SecretKeyRef `json:"openaiApiKeyRef,omitempty"`
+	APIKey *SecretKeyRef `json:"apiKey,omitempty"`
 }
 
 // StudioSnippetsSpec defines storage configuration for SQL snippets.

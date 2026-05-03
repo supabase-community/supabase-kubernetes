@@ -108,8 +108,8 @@ func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 
 	if spec.Studio != nil {
 		envs = append(envs,
-			envVar("DEFAULT_ORGANIZATION_NAME", derefString(spec.Studio.DefaultOrganization, "Default Organization")),
-			envVar("DEFAULT_PROJECT_NAME", derefString(spec.Studio.DefaultProject, "Default Project")),
+			envVar("DEFAULT_ORGANIZATION_NAME", derefString(spec.Studio.Organization, "Default Organization")),
+			envVar("DEFAULT_PROJECT_NAME", derefString(spec.Studio.Project, "Default Project")),
 		)
 	}
 
@@ -124,8 +124,8 @@ func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		envVar("EDGE_FUNCTIONS_MANAGEMENT_FOLDER", "/var/lib/studio/functions"),
 	)
 
-	if spec.Studio != nil && spec.Studio.AI != nil && spec.Studio.AI.OpenAIApiKeyRef != nil {
-		ref := spec.Studio.AI.OpenAIApiKeyRef
+	if spec.Studio != nil && spec.Studio.AI != nil && spec.Studio.AI.APIKey != nil {
+		ref := spec.Studio.AI.APIKey
 		envs = append(envs, envVarFromSecret("OPENAI_API_KEY", ref.Name, ref.Key))
 	}
 
@@ -209,7 +209,10 @@ func AuthEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	if spec.Auth != nil && spec.Auth.OAuth != nil {
 		oauth := spec.Auth.OAuth
 		if oauth.Google != nil {
-			envs = append(envs, envVar("GOTRUE_EXTERNAL_GOOGLE_ENABLED", strconv.FormatBool(derefBool(oauth.Google.Enabled, false))))
+			envs = append(envs,
+				envVar("GOTRUE_EXTERNAL_GOOGLE_ENABLED", strconv.FormatBool(derefBool(oauth.Google.Enabled, false))),
+				envVar("GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI", PublicURL(project)+"/auth/v1/callback"),
+			)
 			if oauth.Google.ClientIDRef != nil {
 				envs = append(envs, envVarFromSecret("GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID", oauth.Google.ClientIDRef.Name, oauth.Google.ClientIDRef.Key))
 			}
@@ -218,7 +221,10 @@ func AuthEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 			}
 		}
 		if oauth.GitHub != nil {
-			envs = append(envs, envVar("GOTRUE_EXTERNAL_GITHUB_ENABLED", strconv.FormatBool(derefBool(oauth.GitHub.Enabled, false))))
+			envs = append(envs,
+				envVar("GOTRUE_EXTERNAL_GITHUB_ENABLED", strconv.FormatBool(derefBool(oauth.GitHub.Enabled, false))),
+				envVar("GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI", PublicURL(project)+"/auth/v1/callback"),
+			)
 			if oauth.GitHub.ClientIDRef != nil {
 				envs = append(envs, envVarFromSecret("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", oauth.GitHub.ClientIDRef.Name, oauth.GitHub.ClientIDRef.Key))
 			}
@@ -227,7 +233,10 @@ func AuthEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 			}
 		}
 		if oauth.Azure != nil {
-			envs = append(envs, envVar("GOTRUE_EXTERNAL_AZURE_ENABLED", strconv.FormatBool(derefBool(oauth.Azure.Enabled, false))))
+			envs = append(envs,
+				envVar("GOTRUE_EXTERNAL_AZURE_ENABLED", strconv.FormatBool(derefBool(oauth.Azure.Enabled, false))),
+				envVar("GOTRUE_EXTERNAL_AZURE_REDIRECT_URI", PublicURL(project)+"/auth/v1/callback"),
+			)
 			if oauth.Azure.ClientIDRef != nil {
 				envs = append(envs, envVarFromSecret("GOTRUE_EXTERNAL_AZURE_CLIENT_ID", oauth.Azure.ClientIDRef.Name, oauth.Azure.ClientIDRef.Key))
 			}
@@ -361,8 +370,10 @@ func StorageEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	dbName := derefString(spec.Database.DBName, "postgres")
 
 	backend := "file"
+	fileSizeLimit := int32(52428800)
 	if spec.Storage != nil {
 		backend = derefString(spec.Storage.Backend, "file")
+		fileSizeLimit = derefInt32(spec.Storage.FileSizeLimit, 52428800)
 	}
 
 	envs := []corev1.EnvVar{
@@ -378,7 +389,7 @@ func StorageEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		{Name: "DATABASE_URL", Value: fmt.Sprintf("postgres://supabase_storage_admin:$(POSTGRES_PASSWORD)@%s:%d/%s", dbHost, dbPort, dbName)},
 		envVar("STORAGE_PUBLIC_URL", StoragePublicURL(project)),
 		envVar("REQUEST_ALLOW_X_FORWARDED_PATH", "true"),
-		envVar("FILE_SIZE_LIMIT", "52428800"),
+		envVar("FILE_SIZE_LIMIT", strconv.Itoa(int(fileSizeLimit))),
 		envVar("FILE_STORAGE_BACKEND_PATH", "/var/lib/storage"),
 		envVar("STORAGE_BACKEND", backend),
 	}
@@ -451,8 +462,11 @@ func FunctionsEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		envVarFromSecret("SUPABASE_SECRET_KEYS", jwtSecret, "secret-keys-json"),
 		envVar("SUPABASE_URL", InternalURL(project)),
 		envVar("SUPABASE_PUBLIC_URL", PublicURL(project)),
-		envVarFromSecret("DB_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
-		{Name: "SUPABASE_DB_URL", Value: fmt.Sprintf("postgresql://supabase_functions_admin:$(DB_PASSWORD)@%s:%d/%s?sslmode=disable", dbHost, dbPort, dbName)},
+		envVarFromSecret("POSTGRES_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
+		envVar("POSTGRES_HOST", dbHost),
+		envVar("POSTGRES_PORT", strconv.Itoa(int(dbPort))),
+		envVar("POSTGRES_DB", dbName),
+		envVar("SUPABASE_DB_URL", "postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"),
 		envVar("VERIFY_JWT", verifyJWT),
 	}
 }
