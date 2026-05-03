@@ -87,6 +87,19 @@ var _ = Describe("Component env builders", func() {
 			Expect(findEnv(envs, "GOTRUE_JWT_SECRET").ValueFrom.SecretKeyRef.Name).To(Equal("main-jwt"))
 		})
 
+		It("should include OAuth redirect URIs when providers are configured", func() {
+			project := newTestEnvProject()
+			project.Spec.Auth.OAuth = &platformv1alpha1.AuthOAuthSpec{
+				Google: &platformv1alpha1.OAuthProviderSpec{},
+				GitHub: &platformv1alpha1.OAuthProviderSpec{},
+				Azure:  &platformv1alpha1.OAuthProviderSpec{},
+			}
+			envs := AuthEnvVars(project)
+			Expect(findEnv(envs, "GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI").Value).To(Equal("http://api.example.com/auth/v1/callback"))
+			Expect(findEnv(envs, "GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI").Value).To(Equal("http://api.example.com/auth/v1/callback"))
+			Expect(findEnv(envs, "GOTRUE_EXTERNAL_AZURE_REDIRECT_URI").Value).To(Equal("http://api.example.com/auth/v1/callback"))
+		})
+
 		It("should include SMTP vars when configured", func() {
 			project := newTestEnvProject()
 			project.Spec.Auth.Email = &platformv1alpha1.AuthEmailSpec{SMTP: &platformv1alpha1.AuthSmtpSpec{AdminEmail: "admin@example.com", Host: "smtp.example.com", Port: 587, UserRef: platformv1alpha1.SecretKeyRef{Name: "smtp", Key: "user"}, PassRef: platformv1alpha1.SecretKeyRef{Name: "smtp", Key: "pass"}}}
@@ -111,7 +124,8 @@ var _ = Describe("Component env builders", func() {
 			project := newTestEnvProject()
 			project.Spec.Database.Host = "postgres.db.svc.cluster.local"
 			Expect(findEnv(StorageEnvVars(project), "POSTGRES_HOST").Value).To(Equal("postgres.db"))
-			Expect(findEnv(FunctionsEnvVars(project), "SUPABASE_DB_URL").Value).To(ContainSubstring("@postgres.db:5432/"))
+			Expect(findEnv(FunctionsEnvVars(project), "POSTGRES_HOST").Value).To(Equal("postgres.db"))
+			Expect(findEnv(FunctionsEnvVars(project), "SUPABASE_DB_URL").Value).To(Equal("postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"))
 		})
 
 		It("should honor functions verifyJwt", func() {

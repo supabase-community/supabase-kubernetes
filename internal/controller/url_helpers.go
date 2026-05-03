@@ -50,7 +50,7 @@ func supabaseInternalURL(project *platformv1alpha1.Project) string {
 }
 
 func storagePublicURL(project *platformv1alpha1.Project) string {
-	return fmt.Sprintf("%s/storage/v1", supabasePublicURL(project))
+	return supabasePublicURL(project)
 }
 
 // PublicURL returns the public-facing base URL for the project.

@@ -3284,6 +3284,11 @@ spec:
                         - resources
                         type: object
                     type: object
+                  fileSizeLimit:
+                    default: 52428800
+                    format: int32
+                    minimum: 1
+                    type: integer
                   image:
                     minLength: 1
                     type: string
@@ -3885,7 +3890,7 @@ spec:
                     description: StudioAISpec defines AI-related configuration for
                       Studio.
                     properties:
-                      openaiApiKeyRef:
+                      apiKey:
                         description: SecretKeyRef is a reference to a specific key
                           in a Kubernetes Secret.
                         properties:
@@ -3900,17 +3905,14 @@ spec:
                         - name
                         type: object
                     type: object
-                  defaultOrganization:
-                    default: Default Organization
-                    type: string
-                  defaultProject:
-                    default: Default Project
-                    type: string
                   enabled:
                     default: true
                     type: boolean
                   image:
                     minLength: 1
+                    type: string
+                  organization:
+                    default: Default Organization
                     type: string
                   probes:
                     description: ComponentProbes defines custom probe overrides for
@@ -4385,6 +4387,9 @@ spec:
                             type: integer
                         type: object
                     type: object
+                  project:
+                    default: Default Project
+                    type: string
                   replicas:
                     default: 1
                     format: int32

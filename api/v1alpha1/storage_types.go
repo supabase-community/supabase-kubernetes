@@ -16,6 +16,10 @@ type StorageSpec struct {
 	// +kubebuilder:default="local"
 	// +optional
 	Region *string `json:"region,omitempty"`
+	// +kubebuilder:default=52428800
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	FileSizeLimit *int32 `json:"fileSizeLimit,omitempty"`
 	// +optional
 	File *StorageFileSpec `json:"file,omitempty"`
 	// +optional
