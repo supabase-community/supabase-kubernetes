@@ -29,9 +29,10 @@ type ComponentSpec struct {
 	// +kubebuilder:default=true
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
-	Image string `json:"image"`
+	// +optional
+	// When set, this image overrides the version catalog for this component.
+	Image string `json:"image,omitempty"`
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
 	// +optional

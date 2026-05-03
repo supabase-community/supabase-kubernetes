@@ -6,30 +6,21 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: project-sample
 spec:
+  version: "2026.04.27"
+
   global:
     siteUrl: "https://supabase.example.com"
+    jwtExpirySeconds: 1800
+
   http:
     protocol: "http"
     hostname: "supabase.local"
     gatewayRef:
       name: "gw"
       namespace: "envoy-gateway-system"
+
   database:
     host: "postgres.db.svc.cluster.local"
     passwordRef:
       name: supabase-db-credentials
       key: password
-  studio:
-    image: "supabase/studio:2026.04.27-sha-5f60601"
-  auth:
-    image: "supabase/gotrue:v2.186.0"
-  rest:
-    image: "postgrest/postgrest:v14.8"
-  realtime:
-    image: "supabase/realtime:v2.76.5"
-  storage:
-    image: "supabase/storage-api:v1.48.26"
-  meta:
-    image: "supabase/postgres-meta:v0.96.3"
-  functions:
-    image: "supabase/edge-runtime:v1.71.2"

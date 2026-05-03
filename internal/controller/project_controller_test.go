@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +40,8 @@ func validProject(name string) *platformv1alpha1.Project {
 	return &platformv1alpha1.Project{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
 		Spec: platformv1alpha1.ProjectSpec{
-			Global: platformv1alpha1.GlobalSpec{SiteURL: "https://test.example.com"},
+			Version: "2026.04.27",
+			Global:  platformv1alpha1.GlobalSpec{SiteURL: "https://test.example.com"},
 			HTTP: platformv1alpha1.HTTPSpec{
 				Protocol: "https",
 				Hostname: "test.example.com",
@@ -56,6 +58,25 @@ func validProject(name string) *platformv1alpha1.Project {
 			Storage:   &platformv1alpha1.StorageSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/storage-api:test"}},
 			Meta:      &platformv1alpha1.MetaSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/postgres-meta:test"}},
 			Functions: &platformv1alpha1.FunctionsSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/edge-runtime:test"}},
+		},
+	}
+}
+
+func minimalProject(name string) *platformv1alpha1.Project {
+	return &platformv1alpha1.Project{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
+		Spec: platformv1alpha1.ProjectSpec{
+			Version: "2026.04.27",
+			Global:  platformv1alpha1.GlobalSpec{SiteURL: "https://test.example.com"},
+			HTTP: platformv1alpha1.HTTPSpec{
+				Protocol: "http",
+				Hostname: "test.example.com",
+				GatewayRef: platformv1alpha1.ExistingGatewayRef{
+					Name:      "gw",
+					Namespace: "envoy-gateway-system",
+				},
+			},
+			Database: platformv1alpha1.DatabaseSpec{Host: "postgres.test.svc", PasswordRef: platformv1alpha1.SecretKeyRef{Name: "test-db-secret", Key: "password"}},
 		},
 	}
 }
@@ -153,6 +174,45 @@ var _ = Describe("Project Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			_, err = hex.DecodeString(string(keysSecret.Data["crypto-key"]))
 			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("When creating a minimal Project", func() {
+		const projectName = "minimal-project"
+		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
+
+		BeforeEach(func() {
+			Expect(k8sClient.Create(ctx, minimalProject(projectName))).To(Succeed())
+			Eventually(func(g Gomega) {
+				created := &platformv1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			}, timeout, interval).Should(Succeed())
+		})
+
+		AfterEach(func() {
+			project := &platformv1alpha1.Project{}
+			if err := k8sClient.Get(ctx, projectKey, project); err == nil {
+				Expect(k8sClient.Delete(ctx, project)).To(Succeed())
+			}
+		})
+
+		It("should create default component workloads", func() {
+			for _, name := range []string{"auth", "rest", "realtime", "meta", "functions"} {
+				deployment := &appsv1.Deployment{}
+				key := types.NamespacedName{Name: fmt.Sprintf("%s-%s", projectName, name), Namespace: "default"}
+				Eventually(func() error {
+					return k8sClient.Get(ctx, key, deployment)
+				}, timeout, interval).Should(Succeed())
+			}
+
+			for _, name := range []string{"studio", "storage"} {
+				statefulSet := &appsv1.StatefulSet{}
+				key := types.NamespacedName{Name: fmt.Sprintf("%s-%s", projectName, name), Namespace: "default"}
+				Eventually(func() error {
+					return k8sClient.Get(ctx, key, statefulSet)
+				}, timeout, interval).Should(Succeed())
+			}
 		})
 	})
 

@@ -79,6 +79,7 @@ func TestBuildExternalURL(t *testing.T) {
 func TestInternalURLUsesProjectHTTP(t *testing.T) {
 	project := &platformv1alpha1.Project{
 		Spec: platformv1alpha1.ProjectSpec{
+			Version: "2026.04.27",
 			HTTP: platformv1alpha1.HTTPSpec{
 				Protocol: "https",
 				Hostname: "api.example.com",

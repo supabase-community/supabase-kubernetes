@@ -86,6 +86,10 @@ func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	spec := &project.Spec
 	jwtSecret := jwtSecretName(name)
 	keysSecret := keysSecretName(name)
+	studioSpec := &platformv1alpha1.StudioSpec{}
+	if spec.Studio != nil {
+		studioSpec = spec.Studio
+	}
 
 	dbPort := derefInt32(spec.Database.Port, 5432)
 	dbName := derefString(spec.Database.DBName, "postgres")
@@ -110,12 +114,10 @@ func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		)
 	}
 
-	if spec.Studio != nil {
-		envs = append(envs,
-			envVar("DEFAULT_ORGANIZATION_NAME", derefString(spec.Studio.Organization, "Default Organization")),
-			envVar("DEFAULT_PROJECT_NAME", derefString(spec.Studio.Project, "Default Project")),
-		)
-	}
+	envs = append(envs,
+		envVar("DEFAULT_ORGANIZATION_NAME", derefString(studioSpec.Organization, "Default Organization")),
+		envVar("DEFAULT_PROJECT_NAME", derefString(studioSpec.Project, "Default Project")),
+	)
 
 	envs = append(envs,
 		envVar("SUPABASE_URL", InternalURL(project)),
@@ -128,8 +130,8 @@ func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		envVar("EDGE_FUNCTIONS_MANAGEMENT_FOLDER", "/var/lib/studio/functions"),
 	)
 
-	if spec.Studio != nil && spec.Studio.AI != nil && spec.Studio.AI.APIKey != nil {
-		ref := spec.Studio.AI.APIKey
+	if studioSpec.AI != nil && studioSpec.AI.APIKey != nil {
+		ref := studioSpec.AI.APIKey
 		envs = append(envs, envVarFromSecret("OPENAI_API_KEY", ref.Name, ref.Key))
 	}
 

@@ -112,15 +112,25 @@ func BuildStatefulSet(project *platformv1alpha1.Project, params ComponentWorkloa
 	}
 }
 
-func StudioWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadParams {
+func StudioWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+	studioSpec := &platformv1alpha1.StudioSpec{}
+	if project.Spec.Studio != nil {
+		studioSpec = project.Spec.Studio
+	}
+
+	image, err := resolveComponentImage(project, componentStudio, studioSpec.Image)
+	if err != nil {
+		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentStudio, err)
+	}
+
 	params := ComponentWorkloadParams{
 		Component:      "studio",
-		Image:          project.Spec.Studio.Image,
+		Image:          image,
 		Port:           3000,
 		Env:            StudioEnvVars(project),
-		Resources:      project.Spec.Studio.Resources,
-		Probes:         project.Spec.Studio.Probes,
-		Replicas:       project.Spec.Studio.Replicas,
+		Resources:      studioSpec.Resources,
+		Probes:         studioSpec.Probes,
+		Replicas:       studioSpec.Replicas,
 		UseStatefulSet: true,
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "snippets", MountPath: "/var/lib/studio/snippets"},
@@ -135,8 +145,8 @@ func StudioWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadPa
 			},
 		}},
 	}
-	if project.Spec.Studio.Snippets != nil && project.Spec.Studio.Snippets.VolumeClaimTemplate != nil {
-		tpl := project.Spec.Studio.Snippets.VolumeClaimTemplate
+	if studioSpec.Snippets != nil && studioSpec.Snippets.VolumeClaimTemplate != nil {
+		tpl := studioSpec.Snippets.VolumeClaimTemplate
 		pvc := corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{Name: "snippets"},
 			Spec: corev1.PersistentVolumeClaimSpec{
@@ -155,7 +165,7 @@ func StudioWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadPa
 			},
 		}}
 	}
-	return params
+	return params, nil
 }
 
 func attachStudioFunctions(params *ComponentWorkloadParams, functions []platformv1alpha1.Function) {
@@ -191,25 +201,62 @@ func attachStudioFunctions(params *ComponentWorkloadParams, functions []platform
 	}
 }
 
-func AuthWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadParams {
-	return ComponentWorkloadParams{Component: "auth", Image: project.Spec.Auth.Image, Port: 9999, Env: AuthEnvVars(project), Resources: project.Spec.Auth.Resources, Probes: project.Spec.Auth.Probes, Replicas: project.Spec.Auth.Replicas}
+func AuthWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+	authSpec := &platformv1alpha1.AuthSpec{}
+	if project.Spec.Auth != nil {
+		authSpec = project.Spec.Auth
+	}
+
+	image, err := resolveComponentImage(project, componentAuth, authSpec.Image)
+	if err != nil {
+		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentAuth, err)
+	}
+	return ComponentWorkloadParams{Component: "auth", Image: image, Port: 9999, Env: AuthEnvVars(project), Resources: authSpec.Resources, Probes: authSpec.Probes, Replicas: authSpec.Replicas}, nil
 }
 
-func RestWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadParams {
-	return ComponentWorkloadParams{Component: "rest", Image: project.Spec.Rest.Image, Port: 3000, Env: RestEnvVars(project), Resources: project.Spec.Rest.Resources, Probes: project.Spec.Rest.Probes, Replicas: project.Spec.Rest.Replicas}
+func RestWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+	restSpec := &platformv1alpha1.RestSpec{}
+	if project.Spec.Rest != nil {
+		restSpec = project.Spec.Rest
+	}
+
+	image, err := resolveComponentImage(project, componentRest, restSpec.Image)
+	if err != nil {
+		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentRest, err)
+	}
+	return ComponentWorkloadParams{Component: "rest", Image: image, Port: 3000, Env: RestEnvVars(project), Resources: restSpec.Resources, Probes: restSpec.Probes, Replicas: restSpec.Replicas}, nil
 }
 
-func RealtimeWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadParams {
-	return ComponentWorkloadParams{Component: "realtime", Image: project.Spec.Realtime.Image, Port: 4000, Env: RealtimeEnvVars(project), Resources: project.Spec.Realtime.Resources, Probes: project.Spec.Realtime.Probes, Replicas: project.Spec.Realtime.Replicas}
+func RealtimeWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+	realtimeSpec := &platformv1alpha1.RealtimeSpec{}
+	if project.Spec.Realtime != nil {
+		realtimeSpec = project.Spec.Realtime
+	}
+
+	image, err := resolveComponentImage(project, componentRealtime, realtimeSpec.Image)
+	if err != nil {
+		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentRealtime, err)
+	}
+	return ComponentWorkloadParams{Component: "realtime", Image: image, Port: 4000, Env: RealtimeEnvVars(project), Resources: realtimeSpec.Resources, Probes: realtimeSpec.Probes, Replicas: realtimeSpec.Replicas}, nil
 }
 
-func StorageWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadParams {
-	params := ComponentWorkloadParams{Component: "storage", Image: project.Spec.Storage.Image, Port: 5000, Env: StorageEnvVars(project), Resources: project.Spec.Storage.Resources, Probes: project.Spec.Storage.Probes, Replicas: project.Spec.Storage.Replicas}
-	if derefString(project.Spec.Storage.Backend, "file") == "file" {
+func StorageWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+	storageSpec := &platformv1alpha1.StorageSpec{}
+	if project.Spec.Storage != nil {
+		storageSpec = project.Spec.Storage
+	}
+
+	image, err := resolveComponentImage(project, componentStorage, storageSpec.Image)
+	if err != nil {
+		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentStorage, err)
+	}
+
+	params := ComponentWorkloadParams{Component: "storage", Image: image, Port: 5000, Env: StorageEnvVars(project), Resources: storageSpec.Resources, Probes: storageSpec.Probes, Replicas: storageSpec.Replicas}
+	if derefString(storageSpec.Backend, "file") == "file" {
 		params.UseStatefulSet = true
 		params.VolumeMounts = []corev1.VolumeMount{{Name: "storage-data", MountPath: "/var/lib/storage"}}
-		if project.Spec.Storage.File != nil && project.Spec.Storage.File.VolumeClaimTemplate != nil {
-			tpl := project.Spec.Storage.File.VolumeClaimTemplate
+		if storageSpec.File != nil && storageSpec.File.VolumeClaimTemplate != nil {
+			tpl := storageSpec.File.VolumeClaimTemplate
 			params.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{{
 				ObjectMeta: metav1.ObjectMeta{Name: "storage-data"},
 				Spec:       corev1.PersistentVolumeClaimSpec{AccessModes: tpl.AccessModes, StorageClassName: tpl.StorageClassName, Resources: tpl.Resources},
@@ -221,17 +268,36 @@ func StorageWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadP
 			}}
 		}
 	}
-	return params
+	return params, nil
 }
 
-func MetaWorkloadParams(project *platformv1alpha1.Project) ComponentWorkloadParams {
-	return ComponentWorkloadParams{Component: "meta", Image: project.Spec.Meta.Image, Port: 8080, Env: MetaEnvVars(project), Resources: project.Spec.Meta.Resources, Probes: project.Spec.Meta.Probes, Replicas: project.Spec.Meta.Replicas}
+func MetaWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+	metaSpec := &platformv1alpha1.MetaSpec{}
+	if project.Spec.Meta != nil {
+		metaSpec = project.Spec.Meta
+	}
+
+	image, err := resolveComponentImage(project, componentMeta, metaSpec.Image)
+	if err != nil {
+		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentMeta, err)
+	}
+	return ComponentWorkloadParams{Component: "meta", Image: image, Port: 8080, Env: MetaEnvVars(project), Resources: metaSpec.Resources, Probes: metaSpec.Probes, Replicas: metaSpec.Replicas}, nil
 }
 
-func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []platformv1alpha1.Function) ComponentWorkloadParams {
+func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []platformv1alpha1.Function) (ComponentWorkloadParams, error) {
+	functionsSpec := &platformv1alpha1.FunctionsSpec{}
+	if project.Spec.Functions != nil {
+		functionsSpec = project.Spec.Functions
+	}
+
+	image, err := resolveComponentImage(project, componentFunctions, functionsSpec.Image)
+	if err != nil {
+		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentFunctions, err)
+	}
+
 	params := ComponentWorkloadParams{
 		Component: "functions",
-		Image:     project.Spec.Functions.Image,
+		Image:     image,
 		Port:      9000,
 		Args:      []string{"start", "--main-service", "/home/deno/functions/main"},
 		VolumeMounts: []corev1.VolumeMount{{
@@ -248,9 +314,9 @@ func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []plat
 			},
 		}},
 		Env:       FunctionsEnvVars(project),
-		Resources: project.Spec.Functions.Resources,
-		Probes:    project.Spec.Functions.Probes,
-		Replicas:  project.Spec.Functions.Replicas,
+		Resources: functionsSpec.Resources,
+		Probes:    functionsSpec.Probes,
+		Replicas:  functionsSpec.Replicas,
 	}
 
 	for i := range functions {
@@ -284,7 +350,7 @@ func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []plat
 		}
 	}
 
-	return params
+	return params, nil
 }
 
 func functionsCodeConfigMapName(projectName string) string {
@@ -509,7 +575,8 @@ type componentDef struct {
 // EnsureAllComponents ensures all enabled Supabase components are deployed.
 func (r *ProjectReconciler) EnsureAllComponents(ctx context.Context, project *platformv1alpha1.Project) error {
 	functions := []platformv1alpha1.Function{}
-	if project.Spec.Functions != nil {
+	functionsEnabled := project.Spec.Functions == nil || derefBool(project.Spec.Functions.Enabled, true)
+	if functionsEnabled {
 		if err := r.ensureFunctionsCodeConfigMap(ctx, project); err != nil {
 			return err
 		}
@@ -527,29 +594,48 @@ func (r *ProjectReconciler) EnsureAllComponents(ctx context.Context, project *pl
 	}
 
 	components := []componentDef{}
-	if project.Spec.Studio != nil {
-		studioParams := StudioWorkloadParams(project)
-		attachStudioFunctions(&studioParams, functions)
-		components = append(components, componentDef{enabled: derefBool(project.Spec.Studio.Enabled, true), params: studioParams, svcParams: ComponentServiceParams{Component: "studio", Port: 3000}})
+	studioParams, err := StudioWorkloadParams(project)
+	if err != nil {
+		return err
 	}
-	if project.Spec.Auth != nil {
-		components = append(components, componentDef{enabled: derefBool(project.Spec.Auth.Enabled, true), params: AuthWorkloadParams(project), svcParams: ComponentServiceParams{Component: "auth", Port: 9999}})
+	attachStudioFunctions(&studioParams, functions)
+	components = append(components, componentDef{enabled: project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true), params: studioParams, svcParams: ComponentServiceParams{Component: "studio", Port: 3000}})
+
+	authParams, err := AuthWorkloadParams(project)
+	if err != nil {
+		return err
 	}
-	if project.Spec.Rest != nil {
-		components = append(components, componentDef{enabled: derefBool(project.Spec.Rest.Enabled, true), params: RestWorkloadParams(project), svcParams: ComponentServiceParams{Component: "rest", Port: 3000}})
+	components = append(components, componentDef{enabled: project.Spec.Auth == nil || derefBool(project.Spec.Auth.Enabled, true), params: authParams, svcParams: ComponentServiceParams{Component: "auth", Port: 9999}})
+
+	restParams, err := RestWorkloadParams(project)
+	if err != nil {
+		return err
 	}
-	if project.Spec.Realtime != nil {
-		components = append(components, componentDef{enabled: derefBool(project.Spec.Realtime.Enabled, true), params: RealtimeWorkloadParams(project), svcParams: ComponentServiceParams{Component: "realtime", Port: 4000}})
+	components = append(components, componentDef{enabled: project.Spec.Rest == nil || derefBool(project.Spec.Rest.Enabled, true), params: restParams, svcParams: ComponentServiceParams{Component: "rest", Port: 3000}})
+
+	realtimeParams, err := RealtimeWorkloadParams(project)
+	if err != nil {
+		return err
 	}
-	if project.Spec.Storage != nil {
-		components = append(components, componentDef{enabled: derefBool(project.Spec.Storage.Enabled, true), params: StorageWorkloadParams(project), svcParams: ComponentServiceParams{Component: "storage", Port: 5000}})
+	components = append(components, componentDef{enabled: project.Spec.Realtime == nil || derefBool(project.Spec.Realtime.Enabled, true), params: realtimeParams, svcParams: ComponentServiceParams{Component: "realtime", Port: 4000}})
+
+	storageParams, err := StorageWorkloadParams(project)
+	if err != nil {
+		return err
 	}
-	if project.Spec.Meta != nil {
-		components = append(components, componentDef{enabled: derefBool(project.Spec.Meta.Enabled, true), params: MetaWorkloadParams(project), svcParams: ComponentServiceParams{Component: "meta", Port: 8080}})
+	components = append(components, componentDef{enabled: project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true), params: storageParams, svcParams: ComponentServiceParams{Component: "storage", Port: 5000}})
+
+	metaParams, err := MetaWorkloadParams(project)
+	if err != nil {
+		return err
 	}
-	if project.Spec.Functions != nil {
-		components = append(components, componentDef{enabled: derefBool(project.Spec.Functions.Enabled, true), params: FunctionsWorkloadParams(project, functions), svcParams: ComponentServiceParams{Component: "functions", Port: 9000}})
+	components = append(components, componentDef{enabled: project.Spec.Meta == nil || derefBool(project.Spec.Meta.Enabled, true), params: metaParams, svcParams: ComponentServiceParams{Component: "meta", Port: 8080}})
+
+	functionsParams, err := FunctionsWorkloadParams(project, functions)
+	if err != nil {
+		return err
 	}
+	components = append(components, componentDef{enabled: functionsEnabled, params: functionsParams, svcParams: ComponentServiceParams{Component: "functions", Port: 9000}})
 
 	for _, comp := range components {
 		if !comp.enabled {

@@ -42,7 +42,8 @@ func newTestEnvProject() *platformv1alpha1.Project {
 	return &platformv1alpha1.Project{
 		ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "default"},
 		Spec: platformv1alpha1.ProjectSpec{
-			Global: platformv1alpha1.GlobalSpec{SiteURL: "https://app.example.com", JWTExpirySeconds: int32P(3600)},
+			Version: "2026.04.27",
+			Global:  platformv1alpha1.GlobalSpec{SiteURL: "https://app.example.com", JWTExpirySeconds: int32P(3600)},
 			HTTP: platformv1alpha1.HTTPSpec{
 				Protocol: "http",
 				Hostname: "api.example.com",

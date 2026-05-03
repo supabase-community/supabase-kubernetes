@@ -20,15 +20,15 @@ func buildHTTPRoute(project *platformv1alpha1.Project) *gatewayv1.HTTPRoute {
 	parentNamespace := gatewayv1.Namespace(project.Spec.HTTP.GatewayRef.Namespace)
 
 	defs := []routeDefinition{
-		{pathPrefix: "/realtime/v1/api", rewritePrefix: strPtr("/api"), backendName: componentServiceName(project.Name, "realtime"), backendPort: 4000, componentEnabled: project.Spec.Realtime != nil && derefBool(project.Spec.Realtime.Enabled, true)},
-		{pathPrefix: "/auth/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "auth"), backendPort: 9999, componentEnabled: project.Spec.Auth != nil && derefBool(project.Spec.Auth.Enabled, true)},
-		{pathPrefix: "/rest/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "rest"), backendPort: 3000, componentEnabled: project.Spec.Rest != nil && derefBool(project.Spec.Rest.Enabled, true)},
-		{pathPrefix: "/graphql/v1", rewritePrefix: strPtr("/rpc/graphql"), backendName: componentServiceName(project.Name, "rest"), backendPort: 3000, componentEnabled: project.Spec.Rest != nil && derefBool(project.Spec.Rest.Enabled, true)},
-		{pathPrefix: "/realtime/v1", rewritePrefix: strPtr("/socket"), backendName: componentServiceName(project.Name, "realtime"), backendPort: 4000, componentEnabled: project.Spec.Realtime != nil && derefBool(project.Spec.Realtime.Enabled, true)},
-		{pathPrefix: "/storage/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "storage"), backendPort: 5000, componentEnabled: project.Spec.Storage != nil && derefBool(project.Spec.Storage.Enabled, true)},
-		{pathPrefix: "/functions/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "functions"), backendPort: 9000, componentEnabled: project.Spec.Functions != nil && derefBool(project.Spec.Functions.Enabled, true)},
-		{pathPrefix: "/pg", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "meta"), backendPort: 8080, componentEnabled: project.Spec.Meta != nil && derefBool(project.Spec.Meta.Enabled, true)},
-		{pathPrefix: "/", rewritePrefix: nil, backendName: componentServiceName(project.Name, "studio"), backendPort: 3000, componentEnabled: project.Spec.Studio != nil && derefBool(project.Spec.Studio.Enabled, true)},
+		{pathPrefix: "/realtime/v1/api", rewritePrefix: strPtr("/api"), backendName: componentServiceName(project.Name, "realtime"), backendPort: 4000, componentEnabled: project.Spec.Realtime == nil || derefBool(project.Spec.Realtime.Enabled, true)},
+		{pathPrefix: "/auth/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "auth"), backendPort: 9999, componentEnabled: project.Spec.Auth == nil || derefBool(project.Spec.Auth.Enabled, true)},
+		{pathPrefix: "/rest/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "rest"), backendPort: 3000, componentEnabled: project.Spec.Rest == nil || derefBool(project.Spec.Rest.Enabled, true)},
+		{pathPrefix: "/graphql/v1", rewritePrefix: strPtr("/rpc/graphql"), backendName: componentServiceName(project.Name, "rest"), backendPort: 3000, componentEnabled: project.Spec.Rest == nil || derefBool(project.Spec.Rest.Enabled, true)},
+		{pathPrefix: "/realtime/v1", rewritePrefix: strPtr("/socket"), backendName: componentServiceName(project.Name, "realtime"), backendPort: 4000, componentEnabled: project.Spec.Realtime == nil || derefBool(project.Spec.Realtime.Enabled, true)},
+		{pathPrefix: "/storage/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "storage"), backendPort: 5000, componentEnabled: project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true)},
+		{pathPrefix: "/functions/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "functions"), backendPort: 9000, componentEnabled: project.Spec.Functions == nil || derefBool(project.Spec.Functions.Enabled, true)},
+		{pathPrefix: "/pg", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "meta"), backendPort: 8080, componentEnabled: project.Spec.Meta == nil || derefBool(project.Spec.Meta.Enabled, true)},
+		{pathPrefix: "/", rewritePrefix: nil, backendName: componentServiceName(project.Name, "studio"), backendPort: 3000, componentEnabled: project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)},
 	}
 
 	rules := make([]gatewayv1.HTTPRouteRule, 0, len(defs))
