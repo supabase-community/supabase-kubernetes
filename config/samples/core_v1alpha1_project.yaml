@@ -23,62 +23,6 @@ spec:
     image: "supabase/studio:2026.04.27-sha-5f60601"
   auth:
     image: "supabase/gotrue:v2.186.0"
-    saml:
-      enabled: true
-    sms:
-      provider: twilio
-      template: "Your code {{ .Code }}"
-      twilio:
-        accountSidRef:
-          name: supabase-db-credentials
-          key: password
-        authTokenRef:
-          name: supabase-db-credentials
-          key: password
-        messageServiceSidRef:
-          name: supabase-db-credentials
-          key: password
-
-    # disableSignup: true
-    # oauth:
-    #   azure:
-    #     enabled: true
-    #     clientIdRef:
-    #       name: supabase-db-credentials
-    #       key: password
-    #     clientSecretRef:
-    #       name: supabase-db-credentials
-    #       key: password
-    #   google:
-    #     enabled: true
-    #     clientIdRef:
-    #       name: supabase-db-credentials
-    #       key: password
-    #     clientSecretRef:
-    #       name: supabase-db-credentials
-    #       key: password
-    #   github:
-    #     enabled: true
-    #     clientIdRef:
-    #       name: supabase-db-credentials
-    #       key: password
-    #     clientSecretRef:
-    #       name: supabase-db-credentials
-    #       key: password
-
-    # email:
-    #   enableSignup: false
-    #   smtp:
-    #     adminEmail: luiz@admin.com
-    #     host: smtp.google.com
-    #     passRef:
-    #       name: supabase-db-credentials
-    #       key: password
-    #     port: 576
-    #     userRef:
-    #       name: supabase-db-credentials
-    #       key: password
-
   rest:
     image: "postgrest/postgrest:v14.8"
   realtime:
