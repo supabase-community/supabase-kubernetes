@@ -8,6 +8,14 @@ import (
 
 var _ = Describe("Project Validation", func() {
 	Context("required fields", func() {
+		It("should reject CR missing spec.version", func() {
+			project := minimalValidProject("test-val-no-version")
+			project.Spec.Version = ""
+			err := k8sClient.Create(ctx, project)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
 		It("should reject CR missing spec.global.siteUrl", func() {
 			project := minimalValidProject("test-val-no-siteurl")
 			project.Spec.Global.SiteURL = ""
@@ -74,6 +82,19 @@ var _ = Describe("Project Validation", func() {
 
 		It("should accept a minimal valid spec", func() {
 			project := minimalValidProject("test-val-valid")
+			Expect(k8sClient.Create(ctx, project)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
+		})
+
+		It("should accept spec without component image overrides", func() {
+			project := minimalValidProject("test-val-no-image-overrides")
+			project.Spec.Studio.Image = ""
+			project.Spec.Auth.Image = ""
+			project.Spec.Rest.Image = ""
+			project.Spec.Realtime.Image = ""
+			project.Spec.Storage.Image = ""
+			project.Spec.Meta.Image = ""
+			project.Spec.Functions.Image = ""
 			Expect(k8sClient.Create(ctx, project)).To(Succeed())
 			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
 		})

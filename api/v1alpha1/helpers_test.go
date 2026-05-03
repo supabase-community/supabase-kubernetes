@@ -13,6 +13,7 @@ func minimalValidProject(name string) *platformv1alpha1.Project {
 			Namespace: "default",
 		},
 		Spec: platformv1alpha1.ProjectSpec{
+			Version: "2026.04.27",
 			Global: platformv1alpha1.GlobalSpec{
 				SiteURL: "https://app.example.com",
 			},

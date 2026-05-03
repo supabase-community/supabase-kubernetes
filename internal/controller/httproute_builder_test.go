@@ -12,7 +12,8 @@ func TestBuildHTTPRoute_UsesProjectGatewayRef(t *testing.T) {
 	project := &platformv1alpha1.Project{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-project", Namespace: "app"},
 		Spec: platformv1alpha1.ProjectSpec{
-			Global: platformv1alpha1.GlobalSpec{SiteURL: "https://app.example.com"},
+			Version: "2026.04.27",
+			Global:  platformv1alpha1.GlobalSpec{SiteURL: "https://app.example.com"},
 			HTTP: platformv1alpha1.HTTPSpec{
 				Protocol: "https",
 				Hostname: "api.example.com",

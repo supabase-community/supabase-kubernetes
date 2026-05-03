@@ -23,6 +23,9 @@ import (
 // ProjectSpec defines the desired state of a Supabase deployment.
 type ProjectSpec struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Version string `json:"version"`
+	// +kubebuilder:validation:Required
 	Global GlobalSpec `json:"global"`
 	// +kubebuilder:validation:Required
 	HTTP HTTPSpec `json:"http"`
