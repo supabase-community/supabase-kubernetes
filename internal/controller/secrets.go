@@ -20,7 +20,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -352,5 +354,20 @@ func GenerateStorageS3SecretData() (SecretData, error) {
 	return SecretData{
 		"access-key-id":     []byte(accessKeyID),
 		"secret-access-key": []byte(secretAccessKey),
+	}, nil
+}
+
+// GenerateSAMLPrivateKeySecretData generates a SAML private key in base64-encoded PKCS#1 DER format.
+func GenerateSAMLPrivateKeySecretData() (SecretData, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, fmt.Errorf("generating SAML RSA private key: %w", err)
+	}
+
+	der := x509.MarshalPKCS1PrivateKey(privateKey)
+	encoded := base64.StdEncoding.EncodeToString(der)
+
+	return SecretData{
+		"private-key": []byte(encoded),
 	}, nil
 }

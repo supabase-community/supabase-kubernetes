@@ -126,8 +126,8 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 // secretDefinitions returns the list of secrets that must exist for a Project.
-func (r *ProjectReconciler) secretDefinitions() []secretDefinition {
-	return []secretDefinition{
+func (r *ProjectReconciler) secretDefinitions(project *platformv1alpha1.Project) []secretDefinition {
+	defs := []secretDefinition{
 		{
 			suffix: "jwt",
 			generator: func() (SecretData, error) {
@@ -138,11 +138,22 @@ func (r *ProjectReconciler) secretDefinitions() []secretDefinition {
 		{suffix: "keys", generator: func() (SecretData, error) { return GenerateKeysSecretData() }},
 		{suffix: "storage-s3-protocol", generator: func() (SecretData, error) { return GenerateStorageS3SecretData() }},
 	}
+
+	if project.Spec.Auth != nil && project.Spec.Auth.SAML != nil && derefBool(project.Spec.Auth.SAML.Enabled, false) {
+		defs = append(defs, secretDefinition{
+			suffix: "saml",
+			generator: func() (SecretData, error) {
+				return GenerateSAMLPrivateKeySecretData()
+			},
+		})
+	}
+
+	return defs
 }
 
 // ensureAllSecrets iterates over all secret definitions and ensures each one exists with all required keys.
 func (r *ProjectReconciler) ensureAllSecrets(ctx context.Context, project *platformv1alpha1.Project) error {
-	for _, def := range r.secretDefinitions() {
+	for _, def := range r.secretDefinitions(project) {
 		secretName := fmt.Sprintf("%s-%s", project.Name, def.suffix)
 		if err := r.ensureSecret(ctx, project, secretName, def.generator); err != nil {
 			return fmt.Errorf("ensuring secret %q: %w", secretName, err)

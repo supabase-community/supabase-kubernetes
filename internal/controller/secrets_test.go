@@ -19,6 +19,7 @@ package controller
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -225,6 +226,19 @@ var _ = Describe("Secret Generation", func() {
 			Expect(data).To(HaveKey("secret-access-key"))
 			Expect(data["access-key-id"]).To(HaveLen(20))
 			Expect(data["secret-access-key"]).To(HaveLen(40))
+		})
+	})
+
+	Describe("GenerateSAMLPrivateKeySecretData", func() {
+		It("should generate a base64-encoded PKCS#1 DER RSA private key", func() {
+			data, err := GenerateSAMLPrivateKeySecretData()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(data).To(HaveKey("private-key"))
+
+			der, err := base64.StdEncoding.DecodeString(string(data["private-key"]))
+			Expect(err).NotTo(HaveOccurred())
+			_, err = x509.ParsePKCS1PrivateKey(der)
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })

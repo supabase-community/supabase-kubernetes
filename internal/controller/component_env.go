@@ -73,6 +73,10 @@ func storageS3ProtocolSecretName(projectName string) string {
 	return projectName + "-storage-s3-protocol"
 }
 
+func samlSecretName(projectName string) string {
+	return projectName + "-saml"
+}
+
 func componentServiceName(projectName, component string) string {
 	return projectName + "-" + component
 }
@@ -283,15 +287,15 @@ func AuthEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 
 	if spec.Auth != nil && spec.Auth.SAML != nil {
 		saml := spec.Auth.SAML
-		envs = append(envs, envVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(derefBool(saml.Enabled, false))))
-		if saml.PrivateKeyRef != nil {
-			envs = append(envs, envVarFromSecret("GOTRUE_SAML_PRIVATE_KEY", saml.PrivateKeyRef.Name, saml.PrivateKeyRef.Key))
+		enabled := derefBool(saml.Enabled, false)
+		envs = append(envs, envVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(enabled)))
+		if enabled {
+			envs = append(envs, envVarFromSecret("GOTRUE_SAML_PRIVATE_KEY", samlSecretName(project.Name), "private-key"))
 		}
 		envs = append(envs,
 			envVar("GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS", strconv.FormatBool(derefBool(saml.AllowEncryptedAssertions, false))),
 			envVar("GOTRUE_SAML_RELAY_STATE_VALIDITY_PERIOD", derefString(saml.RelayStateValidityPeriod, "2m0s")),
 			envVar("GOTRUE_SAML_RATE_LIMIT_ASSERTION", strconv.Itoa(int(derefInt32(saml.RateLimitAssertion, 15)))),
-			envVar("GOTRUE_SAML_EXTERNAL_URL", PublicURL(project)+"/auth/v1"),
 		)
 	}
 

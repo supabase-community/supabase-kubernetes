@@ -815,20 +815,6 @@ spec:
                       enabled:
                         default: false
                         type: boolean
-                      privateKeyRef:
-                        description: SecretKeyRef is a reference to a specific key
-                          in a Kubernetes Secret.
-                        properties:
-                          key:
-                            minLength: 1
-                            type: string
-                          name:
-                            minLength: 1
-                            type: string
-                        required:
-                        - key
-                        - name
-                        type: object
                       rateLimitAssertion:
                         default: 15
                         format: int32

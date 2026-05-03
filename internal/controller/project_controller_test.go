@@ -132,6 +132,20 @@ var _ = Describe("Project Controller", func() {
 			Expect(*route.Spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("envoy-gateway-system")))
 		})
 
+		It("should create a SAML secret when SAML is enabled", func() {
+			samlProject := validProject("saml-project")
+			samlProject.Spec.Auth.SAML = &platformv1alpha1.AuthSamlSpec{Enabled: boolP(true)}
+			Expect(k8sClient.Create(ctx, samlProject)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, samlProject) })
+
+			samlSecretKey := types.NamespacedName{Name: "saml-project-saml", Namespace: "default"}
+			Eventually(func(g Gomega) {
+				secret := &corev1.Secret{}
+				g.Expect(k8sClient.Get(ctx, samlSecretKey, secret)).To(Succeed())
+				g.Expect(secret.Data).To(HaveKey("private-key"))
+			}, timeout, interval).Should(Succeed())
+		})
+
 		It("should generate expected shared keys secret format", func() {
 			keysSecret := &corev1.Secret{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-keys", projectName), Namespace: "default"}, keysSecret)).To(Succeed())
