@@ -1498,43 +1498,6 @@ spec:
                 required:
                 - image
                 type: object
-              gateway:
-                description: GatewaySpec defines the Gateway API configuration for
-                  routing traffic.
-                properties:
-                  gatewayClassName:
-                    minLength: 1
-                    type: string
-                  host:
-                    minLength: 1
-                    type: string
-                  listeners:
-                    items:
-                      description: GatewayListenerSpec defines a single Gateway listener.
-                      properties:
-                        name:
-                          minLength: 1
-                          type: string
-                        port:
-                          format: int32
-                          maximum: 65535
-                          minimum: 1
-                          type: integer
-                        protocol:
-                          minLength: 1
-                          type: string
-                      required:
-                      - name
-                      - port
-                      - protocol
-                      type: object
-                    minItems: 1
-                    type: array
-                required:
-                - gatewayClassName
-                - host
-                - listeners
-                type: object
               global:
                 description: GlobalSpec defines global configuration shared across
                   all Supabase components.
@@ -1553,6 +1516,41 @@ spec:
                     type: string
                 required:
                 - siteUrl
+                type: object
+              http:
+                description: HTTPSpec defines public HTTP access settings for a Project.
+                properties:
+                  gatewayRef:
+                    description: ExistingGatewayRef references an existing Gateway
+                      API Gateway resource.
+                    properties:
+                      name:
+                        minLength: 1
+                        type: string
+                      namespace:
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  hostname:
+                    minLength: 1
+                    type: string
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                  protocol:
+                    enum:
+                    - http
+                    - https
+                    type: string
+                required:
+                - gatewayRef
+                - hostname
+                - protocol
                 type: object
               meta:
                 description: MetaSpec defines the configuration for the Supabase Postgres
@@ -4504,8 +4502,8 @@ spec:
                 type: object
             required:
             - database
-            - gateway
             - global
+            - http
             type: object
           status:
             description: ProjectStatus defines the observed state of a Supabase deployment.

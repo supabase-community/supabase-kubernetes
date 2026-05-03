@@ -116,6 +116,7 @@ func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	envs = append(envs,
 		envVar("SUPABASE_URL", InternalURL(project)),
 		envVar("SUPABASE_PUBLIC_URL", PublicURL(project)),
+		envVar("ENABLED_FEATURES_LOGS_ALL", "false"),
 		envVarFromSecret("SUPABASE_ANON_KEY", jwtSecret, "anon-key"),
 		envVarFromSecret("SUPABASE_SERVICE_KEY", jwtSecret, "service-key"),
 		envVarFromSecret("AUTH_JWT_SECRET", jwtSecret, "jwt-secret"),

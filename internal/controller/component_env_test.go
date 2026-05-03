@@ -43,10 +43,14 @@ func newTestEnvProject() *platformv1alpha1.Project {
 		ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "default"},
 		Spec: platformv1alpha1.ProjectSpec{
 			Global: platformv1alpha1.GlobalSpec{SiteURL: "https://app.example.com", JWTExpirySeconds: int32P(3600)},
-			Gateway: platformv1alpha1.GatewaySpec{
-				GatewayClassName: "envoy",
-				Host:             "api.example.com",
-				Listeners:        []platformv1alpha1.GatewayListenerSpec{{Name: "http", Protocol: "HTTP", Port: 80}},
+			HTTP: platformv1alpha1.HTTPSpec{
+				Protocol: "http",
+				Hostname: "api.example.com",
+				Port:     int32P(80),
+				GatewayRef: platformv1alpha1.ExistingGatewayRef{
+					Name:      "gw",
+					Namespace: "envoy-gateway-system",
+				},
 			},
 			Database: platformv1alpha1.DatabaseSpec{
 				Host:        "db.example.com",

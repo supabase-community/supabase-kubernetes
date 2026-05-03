@@ -66,9 +66,8 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways/status,verbs=get
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
 
@@ -83,11 +82,6 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, nil
 		}
 		logger.Error(err, "Failed to get Project")
-		return ctrl.Result{}, err
-	}
-
-	if err := r.reconcileGateway(ctx, project); err != nil {
-		logger.Error(err, "Failed to reconcile Gateway")
 		return ctrl.Result{}, err
 	}
 
@@ -110,6 +104,15 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 	r.setCondition(project, "ComponentsReady", metav1.ConditionTrue, "AllComponentsReady", "All enabled components are deployed")
+
+	if err := r.reconcileHTTPRoute(ctx, project); err != nil {
+		logger.Error(err, "Failed to reconcile HTTPRoute")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "HTTPRouteNotReady", err.Error())
+		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after HTTPRoute failure")
+		}
+		return ctrl.Result{}, err
+	}
 
 	r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionTrue, "AllSecretsReady", "All generated secrets are present and complete")
 	r.setCondition(project, ConditionTypeReady, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
@@ -275,9 +278,8 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&platformv1alpha1.Function{}).
-		Owns(&gatewayv1.Gateway{}).
 		Owns(&gatewayv1.HTTPRoute{}).
+		Owns(&platformv1alpha1.Function{}).
 		Named("project").
 		Complete(r)
 }

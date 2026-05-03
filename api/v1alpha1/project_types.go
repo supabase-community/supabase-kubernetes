@@ -25,7 +25,7 @@ type ProjectSpec struct {
 	// +kubebuilder:validation:Required
 	Global GlobalSpec `json:"global"`
 	// +kubebuilder:validation:Required
-	Gateway GatewaySpec `json:"gateway"`
+	HTTP HTTPSpec `json:"http"`
 	// +kubebuilder:validation:Required
 	Database DatabaseSpec `json:"database"`
 	// +optional

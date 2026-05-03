@@ -8,21 +8,19 @@ import (
 
 func TestEffectiveProtocol(t *testing.T) {
 	tests := []struct {
-		name      string
-		listeners []platformv1alpha1.GatewayListenerSpec
-		want      string
+		name string
+		http platformv1alpha1.HTTPSpec
+		want string
 	}{
-		{name: "single HTTP listener", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "http", Protocol: "HTTP", Port: 80}}, want: "http"},
-		{name: "single HTTPS listener", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "https", Protocol: "HTTPS", Port: 443}}, want: "https"},
-		{name: "TLS listener", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "tls", Protocol: "TLS", Port: 8443}}, want: "https"},
-		{name: "mixed HTTP and HTTPS prefers HTTPS", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "http", Protocol: "HTTP", Port: 80}, {Name: "https", Protocol: "HTTPS", Port: 443}}, want: "https"},
-		{name: "empty listeners defaults to http", listeners: []platformv1alpha1.GatewayListenerSpec{}, want: "http"},
-		{name: "case insensitive protocol", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "secure", Protocol: "https", Port: 443}}, want: "https"},
+		{name: "http protocol", http: platformv1alpha1.HTTPSpec{Protocol: "http", Hostname: "api.example.com"}, want: "http"},
+		{name: "https protocol", http: platformv1alpha1.HTTPSpec{Protocol: "https", Hostname: "api.example.com"}, want: "https"},
+		{name: "case insensitive protocol", http: platformv1alpha1.HTTPSpec{Protocol: "HTTPS", Hostname: "api.example.com"}, want: "https"},
+		{name: "invalid protocol defaults to http", http: platformv1alpha1.HTTPSpec{Protocol: "tcp", Hostname: "api.example.com"}, want: "http"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := effectiveProtocol(tt.listeners)
+			got := effectiveProtocol(tt.http)
 			if got != tt.want {
 				t.Errorf("effectiveProtocol() = %q, want %q", got, tt.want)
 			}
@@ -31,20 +29,24 @@ func TestEffectiveProtocol(t *testing.T) {
 }
 
 func TestEffectivePort(t *testing.T) {
-	listeners := []platformv1alpha1.GatewayListenerSpec{{Name: "http", Protocol: "HTTP", Port: 8080}, {Name: "https", Protocol: "HTTPS", Port: 8443}}
+	httpPort := int32(8080)
+	httpsPort := int32(8443)
 
 	tests := []struct {
 		name   string
+		http   platformv1alpha1.HTTPSpec
 		scheme string
 		want   int32
 	}{
-		{"http scheme", "http", 8080},
-		{"https scheme", "https", 8443},
+		{name: "http with explicit port", http: platformv1alpha1.HTTPSpec{Protocol: "http", Hostname: "api.example.com", Port: &httpPort}, scheme: "http", want: 8080},
+		{name: "https with explicit port", http: platformv1alpha1.HTTPSpec{Protocol: "https", Hostname: "api.example.com", Port: &httpsPort}, scheme: "https", want: 8443},
+		{name: "http default port", http: platformv1alpha1.HTTPSpec{Protocol: "http", Hostname: "api.example.com"}, scheme: "http", want: 80},
+		{name: "https default port", http: platformv1alpha1.HTTPSpec{Protocol: "https", Hostname: "api.example.com"}, scheme: "https", want: 443},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := effectivePort(listeners, tt.scheme)
+			got := effectivePort(tt.http, tt.scheme)
 			if got != tt.want {
 				t.Errorf("effectivePort() = %d, want %d", got, tt.want)
 			}
@@ -54,24 +56,43 @@ func TestEffectivePort(t *testing.T) {
 
 func TestBuildExternalURL(t *testing.T) {
 	tests := []struct {
-		name      string
-		host      string
-		listeners []platformv1alpha1.GatewayListenerSpec
-		want      string
+		name string
+		http platformv1alpha1.HTTPSpec
+		want string
 	}{
-		{name: "HTTP standard port omitted", host: "api.example.com", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "http", Protocol: "HTTP", Port: 80}}, want: "http://api.example.com"},
-		{name: "HTTPS standard port omitted", host: "api.example.com", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "https", Protocol: "HTTPS", Port: 443}}, want: "https://api.example.com"},
-		{name: "HTTP non-standard port included", host: "api.example.com", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "http", Protocol: "HTTP", Port: 8080}}, want: "http://api.example.com:8080"},
-		{name: "HTTPS non-standard port included", host: "api.example.com", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "https", Protocol: "HTTPS", Port: 8443}}, want: "https://api.example.com:8443"},
-		{name: "mixed prefers HTTPS with standard port", host: "api.example.com", listeners: []platformv1alpha1.GatewayListenerSpec{{Name: "http", Protocol: "HTTP", Port: 80}, {Name: "https", Protocol: "HTTPS", Port: 443}}, want: "https://api.example.com"},
+		{name: "http standard port omitted", http: platformv1alpha1.HTTPSpec{Protocol: "http", Hostname: "api.example.com"}, want: "http://api.example.com"},
+		{name: "https standard port omitted", http: platformv1alpha1.HTTPSpec{Protocol: "https", Hostname: "api.example.com"}, want: "https://api.example.com"},
+		{name: "http non-standard port included", http: platformv1alpha1.HTTPSpec{Protocol: "http", Hostname: "api.example.com", Port: int32Ptr(8080)}, want: "http://api.example.com:8080"},
+		{name: "https non-standard port included", http: platformv1alpha1.HTTPSpec{Protocol: "https", Hostname: "api.example.com", Port: int32Ptr(8443)}, want: "https://api.example.com:8443"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildExternalURL(tt.host, tt.listeners)
+			got := buildExternalURL(tt.http)
 			if got != tt.want {
 				t.Errorf("buildExternalURL() = %q, want %q", got, tt.want)
 			}
 		})
 	}
 }
+
+func TestInternalURLUsesProjectHTTP(t *testing.T) {
+	project := &platformv1alpha1.Project{
+		Spec: platformv1alpha1.ProjectSpec{
+			HTTP: platformv1alpha1.HTTPSpec{
+				Protocol: "https",
+				Hostname: "api.example.com",
+				GatewayRef: platformv1alpha1.ExistingGatewayRef{
+					Name:      "gw",
+					Namespace: "envoy-gateway-system",
+				},
+			},
+		},
+	}
+
+	if got := InternalURL(project); got != "https://gw.envoy-gateway-system.svc.cluster.local" {
+		t.Fatalf("InternalURL() = %q, want %q", got, "https://gw.envoy-gateway-system.svc.cluster.local")
+	}
+}
+
+func int32Ptr(v int32) *int32 { return &v }
