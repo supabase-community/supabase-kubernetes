@@ -159,11 +159,6 @@ func (in *AuthSamlSpec) DeepCopyInto(out *AuthSamlSpec) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.PrivateKeyRef != nil {
-		in, out := &in.PrivateKeyRef, &out.PrivateKeyRef
-		*out = new(SecretKeyRef)
-		**out = **in
-	}
 	if in.AllowEncryptedAssertions != nil {
 		in, out := &in.AllowEncryptedAssertions, &out.AllowEncryptedAssertions
 		*out = new(bool)

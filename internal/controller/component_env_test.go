@@ -106,6 +106,15 @@ var _ = Describe("Component env builders", func() {
 			envs := AuthEnvVars(project)
 			Expect(findEnv(envs, "GOTRUE_SMTP_HOST").Value).To(Equal("smtp.example.com"))
 		})
+
+		It("should include generated SAML private key env when SAML is enabled", func() {
+			project := newTestEnvProject()
+			project.Spec.Auth.SAML = &platformv1alpha1.AuthSamlSpec{Enabled: boolP(true)}
+			envs := AuthEnvVars(project)
+			Expect(findEnv(envs, "GOTRUE_SAML_PRIVATE_KEY")).NotTo(BeNil())
+			Expect(findEnv(envs, "GOTRUE_SAML_PRIVATE_KEY").ValueFrom.SecretKeyRef.Name).To(Equal("main-saml"))
+			Expect(findEnv(envs, "GOTRUE_SAML_PRIVATE_KEY").ValueFrom.SecretKeyRef.Key).To(Equal("private-key"))
+		})
 	})
 
 	Describe("Remaining env builders", func() {

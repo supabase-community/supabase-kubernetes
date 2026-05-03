@@ -138,8 +138,6 @@ type AuthSamlSpec struct {
 	// +kubebuilder:default=false
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// +optional
-	PrivateKeyRef *SecretKeyRef `json:"privateKeyRef,omitempty"`
 	// +kubebuilder:default=false
 	// +optional
 	AllowEncryptedAssertions *bool `json:"allowEncryptedAssertions,omitempty"`
