@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
@@ -39,10 +40,13 @@ func validProject(name string) *platformv1alpha1.Project {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
 		Spec: platformv1alpha1.ProjectSpec{
 			Global: platformv1alpha1.GlobalSpec{SiteURL: "https://test.example.com"},
-			Gateway: platformv1alpha1.GatewaySpec{
-				GatewayClassName: "test-class",
-				Host:             "test.example.com",
-				Listeners:        []platformv1alpha1.GatewayListenerSpec{{Name: "http", Protocol: "HTTP", Port: 80}},
+			HTTP: platformv1alpha1.HTTPSpec{
+				Protocol: "https",
+				Hostname: "test.example.com",
+				GatewayRef: platformv1alpha1.ExistingGatewayRef{
+					Name:      "gw",
+					Namespace: "envoy-gateway-system",
+				},
 			},
 			Database:  platformv1alpha1.DatabaseSpec{Host: "postgres.test.svc", PasswordRef: platformv1alpha1.SecretKeyRef{Name: "test-db-secret", Key: "password"}},
 			Studio:    &platformv1alpha1.StudioSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/studio:test"}},
@@ -114,6 +118,18 @@ var _ = Describe("Project Controller", func() {
 			Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
 			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeSecretsReady)).To(BeTrue())
 			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+		})
+
+		It("should create HTTPRoute for the configured gatewayRef", func() {
+			route := &gatewayv1.HTTPRoute{}
+			routeKey := types.NamespacedName{Name: projectName + "-gateway", Namespace: "default"}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, routeKey, route)
+			}, timeout, interval).Should(Succeed())
+			Expect(route.Spec.ParentRefs).To(HaveLen(1))
+			Expect(route.Spec.ParentRefs[0].Name).To(Equal(gatewayv1.ObjectName("gw")))
+			Expect(route.Spec.ParentRefs[0].Namespace).NotTo(BeNil())
+			Expect(*route.Spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("envoy-gateway-system")))
 		})
 
 		It("should generate expected shared keys secret format", func() {

@@ -12,44 +12,41 @@ const (
 	httpsScheme = "https"
 )
 
-func effectiveProtocol(listeners []platformv1alpha1.GatewayListenerSpec) string {
-	for _, l := range listeners {
-		if strings.EqualFold(l.Protocol, "HTTPS") || strings.EqualFold(l.Protocol, "TLS") {
-			return httpsScheme
-		}
+func effectiveProtocol(httpSpec platformv1alpha1.HTTPSpec) string {
+	if strings.EqualFold(httpSpec.Protocol, httpsScheme) {
+		return httpsScheme
 	}
 	return httpScheme
 }
 
-func effectivePort(listeners []platformv1alpha1.GatewayListenerSpec, scheme string) int32 {
-	for _, l := range listeners {
-		proto := strings.ToLower(l.Protocol)
-		if scheme == httpsScheme && (proto == "https" || proto == "tls") {
-			return l.Port
-		}
-		if scheme == httpScheme && proto == "http" {
-			return l.Port
-		}
+func effectivePort(httpSpec platformv1alpha1.HTTPSpec, scheme string) int32 {
+	if httpSpec.Port != nil {
+		return *httpSpec.Port
 	}
-	return 0
+	if scheme == httpsScheme {
+		return 443
+	}
+	return 80
 }
 
-func buildExternalURL(host string, listeners []platformv1alpha1.GatewayListenerSpec) string {
-	scheme := effectiveProtocol(listeners)
-	port := effectivePort(listeners, scheme)
+func buildExternalURL(httpSpec platformv1alpha1.HTTPSpec) string {
+	scheme := effectiveProtocol(httpSpec)
+	port := effectivePort(httpSpec, scheme)
 
-	if (scheme == httpScheme && port == 80) || (scheme == httpsScheme && port == 443) || port == 0 {
-		return fmt.Sprintf("%s://%s", scheme, host)
+	if (scheme == httpScheme && port == 80) || (scheme == httpsScheme && port == 443) {
+		return fmt.Sprintf("%s://%s", scheme, httpSpec.Hostname)
 	}
-	return fmt.Sprintf("%s://%s:%d", scheme, host, port)
+	return fmt.Sprintf("%s://%s:%d", scheme, httpSpec.Hostname, port)
 }
 
 func supabasePublicURL(project *platformv1alpha1.Project) string {
-	return buildExternalURL(project.Spec.Gateway.Host, project.Spec.Gateway.Listeners)
+	return buildExternalURL(project.Spec.HTTP)
 }
 
 func supabaseInternalURL(project *platformv1alpha1.Project) string {
-	return fmt.Sprintf("http://%s-gateway.%s.svc.cluster.local", project.Name, project.Namespace)
+	internalHTTPSpec := project.Spec.HTTP
+	internalHTTPSpec.Hostname = fmt.Sprintf("%s.%s.svc.cluster.local", project.Spec.HTTP.GatewayRef.Name, project.Spec.HTTP.GatewayRef.Namespace)
+	return buildExternalURL(internalHTTPSpec)
 }
 
 func storagePublicURL(project *platformv1alpha1.Project) string {

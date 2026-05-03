@@ -4,8 +4,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 var _ = Describe("Project Validation", func() {
@@ -18,25 +16,41 @@ var _ = Describe("Project Validation", func() {
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.gateway.gatewayClassName", func() {
-			project := minimalValidProject("test-val-no-gwclass")
-			project.Spec.Gateway.GatewayClassName = ""
+		It("should reject CR missing spec.http.protocol", func() {
+			project := minimalValidProject("test-val-no-http-protocol")
+			project.Spec.HTTP.Protocol = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.gateway.host", func() {
-			project := minimalValidProject("test-val-no-gwhost")
-			project.Spec.Gateway.Host = ""
+		It("should reject CR missing spec.http.hostname", func() {
+			project := minimalValidProject("test-val-no-http-hostname")
+			project.Spec.HTTP.Hostname = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR with empty spec.gateway.listeners", func() {
-			project := minimalValidProject("test-val-no-listeners")
-			project.Spec.Gateway.Listeners = []platformv1alpha1.GatewayListenerSpec{}
+		It("should reject CR with invalid spec.http.protocol", func() {
+			project := minimalValidProject("test-val-invalid-http-protocol")
+			project.Spec.HTTP.Protocol = "tcp"
+			err := k8sClient.Create(ctx, project)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		It("should reject CR missing spec.http.gatewayRef.name", func() {
+			project := minimalValidProject("test-val-no-http-gateway-name")
+			project.Spec.HTTP.GatewayRef.Name = ""
+			err := k8sClient.Create(ctx, project)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		It("should reject CR missing spec.http.gatewayRef.namespace", func() {
+			project := minimalValidProject("test-val-no-http-gateway-namespace")
+			project.Spec.HTTP.GatewayRef.Namespace = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
