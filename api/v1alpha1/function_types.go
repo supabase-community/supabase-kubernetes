@@ -38,6 +38,9 @@ type FunctionSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinProperties=1
 	Source map[string]string `json:"source"`
+	// +kubebuilder:default=true
+	// +optional
+	VerifyJWT *bool `json:"verifyJwt,omitempty"`
 }
 
 // FunctionStatus defines the observed state of Function.

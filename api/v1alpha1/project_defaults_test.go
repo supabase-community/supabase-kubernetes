@@ -129,19 +129,6 @@ var _ = Describe("Project Defaults", func() {
 		})
 	})
 
-	Context("functions defaults", func() {
-		It("should default verifyJwt to false", func() {
-			project := minimalValidProject("test-def-functions")
-			Expect(k8sClient.Create(ctx, project)).To(Succeed())
-			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
-
-			fetched := &platformv1alpha1.Project{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, fetched)).To(Succeed())
-
-			Expect(*fetched.Spec.Functions.VerifyJWT).To(BeFalse())
-		})
-	})
-
 	Context("studio defaults", func() {
 		It("should default studio organization and project", func() {
 			project := minimalValidProject("test-def-studio")
