@@ -1155,21 +1155,30 @@ networkPolicy:
     #           role: analyst-tool
 
 migration:
-  # example.sql: |
-  #   \set pguser `echo "$POSTGRES_USER"`
+  config:
+    scripts:
+      # example.sql: |
+      #   \set pguser `echo "$POSTGRES_USER"`
 
-  #   -- Create schema
-  #   create schema if not exists app;
-  #   alter schema app owner to :pguser;
+      #   -- Create schema
+      #   create schema if not exists app;
+      #   alter schema app owner to :pguser;
 
-  #   -- Create example table
-  #   create table if not exists app.items (
-  #     id   serial primary key,
-  #     name text not null
-  #   );
+      #   -- Create example table
+      #   create table if not exists app.items (
+      #     id   serial primary key,
+      #     name text not null
+      #   );
 
-  #   -- Set table owner
-  #   alter table app.items owner to :pguser;
+      #   -- Set table owner
+      #   alter table app.items owner to :pguser;
+  job:
+    enabled: false
+    # scripts: |
+    #   echo "--- Starting Manual Migration ---"
+    #   aws s3 cp s3://my-bucket/dump.sql /tmp/dump.sql
+    #   psql -h $DB_HOST -U postgres -f /tmp/dump.sql
+    #   echo "--- Finished ---"
 
 bigQuery:
   enabled: false
