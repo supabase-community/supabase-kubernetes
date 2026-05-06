@@ -17,9 +17,11 @@ limitations under the License.
 package controller
 
 import (
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -30,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
@@ -136,6 +139,19 @@ var _ = Describe("Project Controller", func() {
 			}
 		})
 
+		It("should include .htpasswd in the dashboard secret", func() {
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-dashboard", Namespace: "default"}, secret)).To(Succeed())
+			Expect(secret.Data).To(HaveKey(".htpasswd"))
+
+			username := string(secret.Data["username"])
+			password := string(secret.Data["password"])
+			hash := sha1.Sum([]byte(password))
+			expected := fmt.Sprintf("%s:{SHA}%s", username, base64.StdEncoding.EncodeToString(hash[:]))
+			Expect(string(secret.Data[".htpasswd"])).To(Equal(expected))
+			Expect(strings.HasPrefix(string(secret.Data[".htpasswd"]), "supabase:{SHA}")).To(BeTrue())
+		})
+
 		It("should set owner references on generated secrets", func() {
 			secret := &corev1.Secret{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-jwt", projectName), Namespace: "default"}, secret)).To(Succeed())
@@ -185,6 +201,29 @@ var _ = Describe("Project Controller", func() {
 			Expect(studioRoute.Spec.ParentRefs[0].Name).To(Equal(gatewayv1.ObjectName("gw")))
 			Expect(studioRoute.Spec.ParentRefs[0].Namespace).NotTo(BeNil())
 			Expect(*studioRoute.Spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("envoy-gateway-system")))
+
+			sp := &unstructured.Unstructured{}
+			sp.SetAPIVersion("gateway.envoyproxy.io/v1alpha1")
+			sp.SetKind("SecurityPolicy")
+			spKey := types.NamespacedName{Name: projectName + "-studio-basic-auth", Namespace: "default"}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, spKey, sp)
+			}, timeout, interval).Should(Succeed())
+
+			spec, ok := sp.Object["spec"].(map[string]any)
+			Expect(ok).To(BeTrue())
+			targetRefs, ok := spec["targetRefs"].([]any)
+			Expect(ok).To(BeTrue())
+			Expect(targetRefs).To(HaveLen(1))
+			tr, ok := targetRefs[0].(map[string]any)
+			Expect(ok).To(BeTrue())
+			Expect(tr["name"]).To(Equal(projectName + "-gateway-studio"))
+
+			basicAuth, ok := spec["basicAuth"].(map[string]any)
+			Expect(ok).To(BeTrue())
+			users, ok := basicAuth["users"].(map[string]any)
+			Expect(ok).To(BeTrue())
+			Expect(users["name"]).To(Equal(projectName + "-dashboard"))
 		})
 
 		It("should create a SAML secret when SAML is enabled", func() {
@@ -333,6 +372,14 @@ var _ = Describe("Project Controller", func() {
 			apiRoute := &gatewayv1.HTTPRoute{}
 			apiRouteKey := types.NamespacedName{Name: projectName + "-gateway-api", Namespace: "default"}
 			Expect(k8sClient.Get(ctx, apiRouteKey, apiRoute)).To(Succeed())
+
+			sp := &unstructured.Unstructured{}
+			sp.SetAPIVersion("gateway.envoyproxy.io/v1alpha1")
+			sp.SetKind("SecurityPolicy")
+			spKey := types.NamespacedName{Name: projectName + "-studio-basic-auth", Namespace: "default"}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, spKey, sp)
+			}, timeout, interval).ShouldNot(Succeed())
 		})
 
 		It("should not create api HTTPRoute when all API components are disabled", func() {
