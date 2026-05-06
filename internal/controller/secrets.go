@@ -347,8 +347,8 @@ func GenerateKeysSecretData() (SecretData, error) {
 	return combined, nil
 }
 
-// GenerateStorageS3SecretData generates the data for the Storage S3 protocol secret.
-func GenerateStorageS3SecretData() (SecretData, error) {
+// GenerateStorageSecretData generates the data for the Storage secret.
+func GenerateStorageSecretData() (SecretData, error) {
 	accessKeyID, err := GenerateRandomAlphanumeric(20)
 	if err != nil {
 		return nil, fmt.Errorf("generating storage access-key-id: %w", err)

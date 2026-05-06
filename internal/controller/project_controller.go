@@ -116,6 +116,16 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	if err := r.deleteStorageSecretIfDisabled(ctx, project); err != nil {
+		logger.Error(err, "Failed to delete storage secret")
+		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "StorageSecretDeletionFailed", err.Error())
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Storage secret deletion failed")
+		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after storage secret deletion failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	if err := r.EnsureAllComponents(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure components")
 		r.setCondition(project, "ComponentsReady", metav1.ConditionFalse, "ComponentsFailed", err.Error())
@@ -156,12 +166,17 @@ func (r *ProjectReconciler) secretDefinitions(project *platformv1alpha1.Project)
 			},
 		},
 		{suffix: "keys", generator: func() (SecretData, error) { return GenerateKeysSecretData() }},
-		{suffix: "storage-s3-protocol", generator: func() (SecretData, error) { return GenerateStorageS3SecretData() }},
+		{suffix: "storage", generator: func() (SecretData, error) { return GenerateStorageSecretData() }},
 	}
 
 	studioEnabled := project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)
 	if studioEnabled {
 		defs = append(defs, secretDefinition{suffix: "studio", generator: func() (SecretData, error) { return GenerateStudioSecretData() }})
+	}
+
+	storageEnabled := project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true)
+	if storageEnabled {
+		defs = append(defs, secretDefinition{suffix: "storage", generator: func() (SecretData, error) { return GenerateStorageSecretData() }})
 	}
 
 	if project.Spec.Auth != nil && project.Spec.Auth.SAML != nil && derefBool(project.Spec.Auth.SAML.Enabled, false) {
@@ -339,6 +354,31 @@ func (r *ProjectReconciler) deleteStudioSecretIfDisabled(ctx context.Context, pr
 	}
 
 	log.FromContext(ctx).Info("Deleted studio secret because studio is disabled")
+	return nil
+}
+
+// deleteStorageSecretIfDisabled removes the storage secret when the storage
+// component is disabled.
+func (r *ProjectReconciler) deleteStorageSecretIfDisabled(ctx context.Context, project *platformv1alpha1.Project) error {
+	storageEnabled := project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true)
+	if storageEnabled {
+		return nil
+	}
+
+	secretName := fmt.Sprintf("%s-storage", project.Name)
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: project.Namespace}, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("getting storage secret for deletion: %w", err)
+	}
+
+	if err := r.Delete(ctx, secret); err != nil {
+		return fmt.Errorf("deleting storage secret: %w", err)
+	}
+
+	log.FromContext(ctx).Info("Deleted storage secret because storage is disabled")
 	return nil
 }
 

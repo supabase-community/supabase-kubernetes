@@ -70,8 +70,8 @@ func nodeDNSHost(host string) string {
 
 func jwtSecretName(projectName string) string  { return projectName + "-jwt" }
 func keysSecretName(projectName string) string { return projectName + "-keys" }
-func storageS3ProtocolSecretName(projectName string) string {
-	return projectName + "-storage-s3-protocol"
+func storageSecretName(projectName string) string {
+	return projectName + "-storage"
 }
 
 func samlSecretName(projectName string) string {
@@ -371,7 +371,7 @@ func RealtimeEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 func StorageEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	spec := &project.Spec
 	jwtSecret := jwtSecretName(project.Name)
-	s3Secret := storageS3ProtocolSecretName(project.Name)
+	s3Secret := storageSecretName(project.Name)
 	dbHost := nodeDNSHost(spec.Database.Host)
 	dbPort := derefInt32(spec.Database.Port, 5432)
 	dbName := derefString(spec.Database.DBName, "postgres")
