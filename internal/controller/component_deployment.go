@@ -23,6 +23,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -620,6 +621,35 @@ func (r *ProjectReconciler) EnsureComponent(ctx context.Context, project *platfo
 	return nil
 }
 
+func (r *ProjectReconciler) DeleteComponent(ctx context.Context, project *platformv1alpha1.Project, params ComponentWorkloadParams, svcParams ComponentServiceParams) error {
+	logger := log.FromContext(ctx).WithValues("component", params.Component)
+
+	svcName := componentServiceName(project.Name, svcParams.Component)
+	svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: svcName, Namespace: project.Namespace}}
+	if err := r.Delete(ctx, svc); err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("deleting Service for %s: %w", params.Component, err)
+	}
+	logger.Info("Deleted Service", "name", svcName)
+
+	if params.UseStatefulSet {
+		stsName := componentServiceName(project.Name, params.Component)
+		sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: stsName, Namespace: project.Namespace}}
+		if err := r.Delete(ctx, sts); err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("deleting StatefulSet for %s: %w", params.Component, err)
+		}
+		logger.Info("Deleted StatefulSet", "name", stsName)
+		return nil
+	}
+
+	deployName := componentServiceName(project.Name, params.Component)
+	deploy := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: deployName, Namespace: project.Namespace}}
+	if err := r.Delete(ctx, deploy); err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("deleting Deployment for %s: %w", params.Component, err)
+	}
+	logger.Info("Deleted Deployment", "name", deployName)
+	return nil
+}
+
 type componentDef struct {
 	enabled   bool
 	params    ComponentWorkloadParams
@@ -644,6 +674,12 @@ func (r *ProjectReconciler) EnsureAllComponents(ctx context.Context, project *pl
 			if err := r.ensureFunctionCodeConfigMapForProject(ctx, &functions[i]); err != nil {
 				return err
 			}
+		}
+	} else {
+		cmName := functionsCodeConfigMapName(project.Name)
+		cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: project.Namespace}}
+		if err := r.Delete(ctx, cm); err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("deleting functions code ConfigMap: %w", err)
 		}
 	}
 
@@ -693,6 +729,9 @@ func (r *ProjectReconciler) EnsureAllComponents(ctx context.Context, project *pl
 
 	for _, comp := range components {
 		if !comp.enabled {
+			if err := r.DeleteComponent(ctx, project, comp.params, comp.svcParams); err != nil {
+				return err
+			}
 			continue
 		}
 		if err := r.EnsureComponent(ctx, project, comp.params, comp.svcParams); err != nil {
