@@ -360,4 +360,68 @@ var _ = Describe("Project Controller", func() {
 			}, timeout, interval).ShouldNot(Succeed())
 		})
 	})
+
+	Context("When disabling previously enabled components", func() {
+		const projectName = "disable-components-project"
+		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
+
+		It("should delete component workloads when disabled", func() {
+			project := validProject(projectName)
+			Expect(k8sClient.Create(ctx, project)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
+
+			// Wait for project to be ready and components created
+			Eventually(func(g Gomega) {
+				created := &platformv1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			}, timeout, interval).Should(Succeed())
+
+			// Verify studio StatefulSet and auth Deployment exist
+			studioSts := &appsv1.StatefulSet{}
+			studioStsKey := types.NamespacedName{Name: projectName + "-studio", Namespace: "default"}
+			Expect(k8sClient.Get(ctx, studioStsKey, studioSts)).To(Succeed())
+
+			authDeploy := &appsv1.Deployment{}
+			authDeployKey := types.NamespacedName{Name: projectName + "-auth", Namespace: "default"}
+			Expect(k8sClient.Get(ctx, authDeployKey, authDeploy)).To(Succeed())
+
+			// Verify services exist
+			studioSvc := &corev1.Service{}
+			studioSvcKey := types.NamespacedName{Name: projectName + "-studio", Namespace: "default"}
+			Expect(k8sClient.Get(ctx, studioSvcKey, studioSvc)).To(Succeed())
+
+			authSvc := &corev1.Service{}
+			authSvcKey := types.NamespacedName{Name: projectName + "-auth", Namespace: "default"}
+			Expect(k8sClient.Get(ctx, authSvcKey, authSvc)).To(Succeed())
+
+			// Disable studio and auth
+			updated := &platformv1alpha1.Project{}
+			Expect(k8sClient.Get(ctx, projectKey, updated)).To(Succeed())
+			f := false
+			updated.Spec.Studio.Enabled = &f
+			updated.Spec.Auth.Enabled = &f
+			Expect(k8sClient.Update(ctx, updated)).To(Succeed())
+
+			// Wait for studio StatefulSet to be deleted
+			Eventually(func() error {
+				return k8sClient.Get(ctx, studioStsKey, studioSts)
+			}, timeout, interval).ShouldNot(Succeed())
+
+			// Wait for auth Deployment to be deleted
+			Eventually(func() error {
+				return k8sClient.Get(ctx, authDeployKey, authDeploy)
+			}, timeout, interval).ShouldNot(Succeed())
+
+			// Wait for studio Service to be deleted
+			Eventually(func() error {
+				return k8sClient.Get(ctx, studioSvcKey, studioSvc)
+			}, timeout, interval).ShouldNot(Succeed())
+
+			// Wait for auth Service to be deleted
+			Eventually(func() error {
+				return k8sClient.Get(ctx, authSvcKey, authSvc)
+			}, timeout, interval).ShouldNot(Succeed())
+		})
+	})
 })

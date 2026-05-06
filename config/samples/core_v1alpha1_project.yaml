@@ -33,9 +33,3 @@ spec:
     passwordRef:
       name: supabase-db-credentials
       key: password
-
-  studio:
-    enabled: false
-
-  meta:
-    enabled: false
