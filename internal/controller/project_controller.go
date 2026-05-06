@@ -96,12 +96,22 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureDashboardHtpasswd(ctx, project); err != nil {
-		logger.Error(err, "Failed to ensure dashboard htpasswd")
-		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "DashboardHtpasswdFailed", err.Error())
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Dashboard htpasswd backfill failed")
+	if err := r.ensureStudioHtpasswd(ctx, project); err != nil {
+		logger.Error(err, "Failed to ensure studio htpasswd")
+		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "StudioHtpasswdFailed", err.Error())
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Studio htpasswd backfill failed")
 		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after dashboard htpasswd failure")
+			logger.Error(statusErr, "Failed to update status after studio htpasswd failure")
+		}
+		return ctrl.Result{}, err
+	}
+
+	if err := r.deleteStudioSecretIfDisabled(ctx, project); err != nil {
+		logger.Error(err, "Failed to delete studio secret")
+		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "StudioSecretDeletionFailed", err.Error())
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Studio secret deletion failed")
+		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after studio secret deletion failure")
 		}
 		return ctrl.Result{}, err
 	}
@@ -145,9 +155,13 @@ func (r *ProjectReconciler) secretDefinitions(project *platformv1alpha1.Project)
 				return GenerateJWTSecretData(time.Now(), DefaultJWTExpiry)
 			},
 		},
-		{suffix: "dashboard", generator: func() (SecretData, error) { return GenerateDashboardSecretData() }},
 		{suffix: "keys", generator: func() (SecretData, error) { return GenerateKeysSecretData() }},
 		{suffix: "storage-s3-protocol", generator: func() (SecretData, error) { return GenerateStorageS3SecretData() }},
+	}
+
+	studioEnabled := project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)
+	if studioEnabled {
+		defs = append(defs, secretDefinition{suffix: "studio", generator: func() (SecretData, error) { return GenerateStudioSecretData() }})
 	}
 
 	if project.Spec.Auth != nil && project.Spec.Auth.SAML != nil && derefBool(project.Spec.Auth.SAML.Enabled, false) {
@@ -266,13 +280,18 @@ func (r *ProjectReconciler) setCondition(
 	})
 }
 
-// ensureDashboardHtpasswd backfills the .htpasswd key into the dashboard secret
+// ensureStudioHtpasswd backfills the .htpasswd key into the studio secret
 // for existing secrets that were created before the key was added.
-func (r *ProjectReconciler) ensureDashboardHtpasswd(ctx context.Context, project *platformv1alpha1.Project) error {
-	secretName := fmt.Sprintf("%s-dashboard", project.Name)
+func (r *ProjectReconciler) ensureStudioHtpasswd(ctx context.Context, project *platformv1alpha1.Project) error {
+	studioEnabled := project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)
+	if !studioEnabled {
+		return nil
+	}
+
+	secretName := fmt.Sprintf("%s-studio", project.Name)
 	secret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: project.Namespace}, secret); err != nil {
-		return fmt.Errorf("getting dashboard secret: %w", err)
+		return fmt.Errorf("getting studio secret: %w", err)
 	}
 
 	if _, ok := secret.Data[".htpasswd"]; ok {
@@ -282,7 +301,7 @@ func (r *ProjectReconciler) ensureDashboardHtpasswd(ctx context.Context, project
 	username := string(secret.Data["username"])
 	password := string(secret.Data["password"])
 	if username == "" || password == "" {
-		return fmt.Errorf("dashboard secret missing username or password")
+		return fmt.Errorf("studio secret missing username or password")
 	}
 
 	if secret.Data == nil {
@@ -291,10 +310,35 @@ func (r *ProjectReconciler) ensureDashboardHtpasswd(ctx context.Context, project
 	secret.Data[".htpasswd"] = []byte(htpasswdLine(username, password))
 
 	if err := r.Update(ctx, secret); err != nil {
-		return fmt.Errorf("patching dashboard secret with .htpasswd: %w", err)
+		return fmt.Errorf("patching studio secret with .htpasswd: %w", err)
 	}
 
-	log.FromContext(ctx).Info("Patched .htpasswd into dashboard secret")
+	log.FromContext(ctx).Info("Patched .htpasswd into studio secret")
+	return nil
+}
+
+// deleteStudioSecretIfDisabled removes the studio secret when the studio
+// component is disabled.
+func (r *ProjectReconciler) deleteStudioSecretIfDisabled(ctx context.Context, project *platformv1alpha1.Project) error {
+	studioEnabled := project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)
+	if studioEnabled {
+		return nil
+	}
+
+	secretName := fmt.Sprintf("%s-studio", project.Name)
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: project.Namespace}, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("getting studio secret for deletion: %w", err)
+	}
+
+	if err := r.Delete(ctx, secret); err != nil {
+		return fmt.Errorf("deleting studio secret: %w", err)
+	}
+
+	log.FromContext(ctx).Info("Deleted studio secret because studio is disabled")
 	return nil
 }
 

@@ -180,9 +180,9 @@ var _ = Describe("Secret Generation", func() {
 		})
 	})
 
-	Describe("GenerateDashboardSecretData", func() {
+	Describe("GenerateStudioSecretData", func() {
 		It("should contain username and password keys", func() {
-			data, err := GenerateDashboardSecretData()
+			data, err := GenerateStudioSecretData()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(data).To(HaveKey("username"))
 			Expect(data).To(HaveKey("password"))

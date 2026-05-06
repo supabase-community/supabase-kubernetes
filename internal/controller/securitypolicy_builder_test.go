@@ -52,6 +52,6 @@ var _ = Describe("buildStudioBasicAuthSecurityPolicy", func() {
 		Expect(ok).To(BeTrue())
 		users, ok := basicAuth["users"].(map[string]any)
 		Expect(ok).To(BeTrue())
-		Expect(users["name"]).To(Equal("my-project-dashboard"))
+		Expect(users["name"]).To(Equal("my-project-studio"))
 	})
 })

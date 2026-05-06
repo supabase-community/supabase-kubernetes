@@ -133,15 +133,15 @@ var _ = Describe("Project Controller", func() {
 		})
 
 		It("should create generated secrets", func() {
-			for _, suffix := range []string{"jwt", "dashboard", "keys", "storage-s3-protocol"} {
+			for _, suffix := range []string{"jwt", "studio", "keys", "storage-s3-protocol"} {
 				secret := &corev1.Secret{}
 				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", projectName, suffix), Namespace: "default"}, secret)).To(Succeed())
 			}
 		})
 
-		It("should include .htpasswd in the dashboard secret", func() {
+		It("should include .htpasswd in the studio secret", func() {
 			secret := &corev1.Secret{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-dashboard", Namespace: "default"}, secret)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-studio", Namespace: "default"}, secret)).To(Succeed())
 			Expect(secret.Data).To(HaveKey(".htpasswd"))
 
 			username := string(secret.Data["username"])
@@ -223,7 +223,7 @@ var _ = Describe("Project Controller", func() {
 			Expect(ok).To(BeTrue())
 			users, ok := basicAuth["users"].(map[string]any)
 			Expect(ok).To(BeTrue())
-			Expect(users["name"]).To(Equal(projectName + "-dashboard"))
+			Expect(users["name"]).To(Equal(projectName + "-studio"))
 		})
 
 		It("should create a SAML secret when SAML is enabled", func() {
@@ -468,6 +468,36 @@ var _ = Describe("Project Controller", func() {
 			// Wait for auth Service to be deleted
 			Eventually(func() error {
 				return k8sClient.Get(ctx, authSvcKey, authSvc)
+			}, timeout, interval).ShouldNot(Succeed())
+		})
+
+		It("should delete studio secret when studio is disabled", func() {
+			project := validProject(projectName)
+			Expect(k8sClient.Create(ctx, project)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
+
+			// Wait for project to be ready
+			Eventually(func(g Gomega) {
+				created := &platformv1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			}, timeout, interval).Should(Succeed())
+
+			// Verify studio secret exists
+			studioSecret := &corev1.Secret{}
+			studioSecretKey := types.NamespacedName{Name: projectName + "-studio", Namespace: "default"}
+			Expect(k8sClient.Get(ctx, studioSecretKey, studioSecret)).To(Succeed())
+
+			// Disable studio
+			updated := &platformv1alpha1.Project{}
+			Expect(k8sClient.Get(ctx, projectKey, updated)).To(Succeed())
+			f := false
+			updated.Spec.Studio.Enabled = &f
+			Expect(k8sClient.Update(ctx, updated)).To(Succeed())
+
+			// Wait for studio secret to be deleted
+			Eventually(func() error {
+				return k8sClient.Get(ctx, studioSecretKey, studioSecret)
 			}, timeout, interval).ShouldNot(Succeed())
 		})
 	})
