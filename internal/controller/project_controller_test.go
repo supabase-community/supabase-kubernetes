@@ -306,4 +306,58 @@ var _ = Describe("Project Controller", func() {
 			}, timeout, interval).Should(Succeed())
 		})
 	})
+
+	Context("When creating a Project with disabled components", func() {
+		const projectName = "disabled-components-project"
+		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
+
+		It("should not create studio HTTPRoute when studio is disabled", func() {
+			project := validProject(projectName)
+			f := false
+			project.Spec.Studio.Enabled = &f
+			Expect(k8sClient.Create(ctx, project)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
+
+			Eventually(func(g Gomega) {
+				created := &platformv1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			}, timeout, interval).Should(Succeed())
+
+			studioRoute := &gatewayv1.HTTPRoute{}
+			studioRouteKey := types.NamespacedName{Name: projectName + "-gateway-studio", Namespace: "default"}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, studioRouteKey, studioRoute)
+			}, timeout, interval).ShouldNot(Succeed())
+
+			apiRoute := &gatewayv1.HTTPRoute{}
+			apiRouteKey := types.NamespacedName{Name: projectName + "-gateway-api", Namespace: "default"}
+			Expect(k8sClient.Get(ctx, apiRouteKey, apiRoute)).To(Succeed())
+		})
+
+		It("should not create api HTTPRoute when all API components are disabled", func() {
+			project := minimalProject(projectName)
+			f := false
+			project.Spec.Auth = &platformv1alpha1.AuthSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Enabled: &f}}
+			project.Spec.Rest = &platformv1alpha1.RestSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Enabled: &f}}
+			project.Spec.Realtime = &platformv1alpha1.RealtimeSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Enabled: &f}}
+			project.Spec.Storage = &platformv1alpha1.StorageSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Enabled: &f}}
+			project.Spec.Meta = &platformv1alpha1.MetaSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Enabled: &f}}
+			project.Spec.Functions = &platformv1alpha1.FunctionsSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Enabled: &f}}
+			Expect(k8sClient.Create(ctx, project)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
+
+			Eventually(func(g Gomega) {
+				created := &platformv1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			}, timeout, interval).Should(Succeed())
+
+			apiRoute := &gatewayv1.HTTPRoute{}
+			apiRouteKey := types.NamespacedName{Name: projectName + "-gateway-api", Namespace: "default"}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, apiRouteKey, apiRoute)
+			}, timeout, interval).ShouldNot(Succeed())
+		})
+	})
 })
