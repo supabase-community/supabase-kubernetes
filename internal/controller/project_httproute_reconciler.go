@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -15,11 +16,13 @@ import (
 func (r *ProjectReconciler) reconcileHTTPRoute(ctx context.Context, project *platformv1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 
-	if err := r.reconcileSingleHTTPRoute(ctx, project, buildAPIHTTPRoute, "api"); err != nil {
+	apiRoute := buildAPIHTTPRoute(project)
+	if err := r.reconcileSingleHTTPRoute(ctx, project, apiRoute, "api"); err != nil {
 		return err
 	}
 
-	if err := r.reconcileSingleHTTPRoute(ctx, project, buildStudioHTTPRoute, "studio"); err != nil {
+	studioRoute := buildStudioHTTPRoute(project)
+	if err := r.reconcileSingleHTTPRoute(ctx, project, studioRoute, "studio"); err != nil {
 		return err
 	}
 
@@ -30,26 +33,36 @@ func (r *ProjectReconciler) reconcileHTTPRoute(ctx context.Context, project *pla
 func (r *ProjectReconciler) reconcileSingleHTTPRoute(
 	ctx context.Context,
 	project *platformv1alpha1.Project,
-	builder func(*platformv1alpha1.Project) *gatewayv1.HTTPRoute,
+	desired *gatewayv1.HTTPRoute,
 	routeType string,
 ) error {
 	logger := log.FromContext(ctx)
 
-	desired := builder(project)
 	if err := controllerutil.SetControllerReference(project, desired, r.Scheme); err != nil {
 		return fmt.Errorf("setting owner reference on %s HTTPRoute: %w", routeType, err)
 	}
 
 	existing := &gatewayv1.HTTPRoute{}
 	err := r.Get(ctx, client.ObjectKeyFromObject(desired), existing)
-	if client.IgnoreNotFound(err) != nil {
-		return fmt.Errorf("fetching %s HTTPRoute: %w", routeType, err)
-	}
-
 	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("fetching %s HTTPRoute: %w", routeType, err)
+		}
+		// Not found
+		if len(desired.Spec.Rules) == 0 {
+			return nil
+		}
 		logger.Info("Creating HTTPRoute", "name", desired.Name, "type", routeType)
 		if createErr := r.Create(ctx, desired); createErr != nil {
 			return fmt.Errorf("creating %s HTTPRoute: %w", routeType, createErr)
+		}
+		return nil
+	}
+
+	if len(desired.Spec.Rules) == 0 {
+		logger.Info("Deleting HTTPRoute", "name", desired.Name, "type", routeType)
+		if deleteErr := r.Delete(ctx, existing); deleteErr != nil {
+			return fmt.Errorf("deleting %s HTTPRoute: %w", routeType, deleteErr)
 		}
 		return nil
 	}
