@@ -24,41 +24,73 @@ var _ = Describe("Project Validation", func() {
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.http.protocol", func() {
-			project := minimalValidProject("test-val-no-http-protocol")
-			project.Spec.HTTP.Protocol = ""
+		It("should reject CR missing spec.http.api.protocol", func() {
+			project := minimalValidProject("test-val-no-http-api-protocol")
+			project.Spec.HTTP.API.Protocol = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.http.hostname", func() {
-			project := minimalValidProject("test-val-no-http-hostname")
-			project.Spec.HTTP.Hostname = ""
+		It("should reject CR missing spec.http.api.hostname", func() {
+			project := minimalValidProject("test-val-no-http-api-hostname")
+			project.Spec.HTTP.API.Hostname = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR with invalid spec.http.protocol", func() {
-			project := minimalValidProject("test-val-invalid-http-protocol")
-			project.Spec.HTTP.Protocol = "tcp"
+		It("should reject CR with invalid spec.http.api.protocol", func() {
+			project := minimalValidProject("test-val-invalid-http-api-protocol")
+			project.Spec.HTTP.API.Protocol = "tcp"
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.http.gatewayRef.name", func() {
-			project := minimalValidProject("test-val-no-http-gateway-name")
-			project.Spec.HTTP.GatewayRef.Name = ""
+		It("should reject CR missing spec.http.studio.protocol", func() {
+			project := minimalValidProject("test-val-no-http-studio-protocol")
+			project.Spec.HTTP.Studio.Protocol = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.http.gatewayRef.namespace", func() {
-			project := minimalValidProject("test-val-no-http-gateway-namespace")
-			project.Spec.HTTP.GatewayRef.Namespace = ""
+		It("should reject CR missing spec.http.studio.hostname", func() {
+			project := minimalValidProject("test-val-no-http-studio-hostname")
+			project.Spec.HTTP.Studio.Hostname = ""
+			err := k8sClient.Create(ctx, project)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		It("should reject CR missing spec.gateway.api.name", func() {
+			project := minimalValidProject("test-val-no-gateway-api-name")
+			project.Spec.Gateway.API.Name = ""
+			err := k8sClient.Create(ctx, project)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		It("should reject CR missing spec.gateway.api.namespace", func() {
+			project := minimalValidProject("test-val-no-gateway-api-namespace")
+			project.Spec.Gateway.API.Namespace = ""
+			err := k8sClient.Create(ctx, project)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		It("should reject CR missing spec.gateway.studio.name", func() {
+			project := minimalValidProject("test-val-no-gateway-studio-name")
+			project.Spec.Gateway.Studio.Name = ""
+			err := k8sClient.Create(ctx, project)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		It("should reject CR missing spec.gateway.studio.namespace", func() {
+			project := minimalValidProject("test-val-no-gateway-studio-namespace")
+			project.Spec.Gateway.Studio.Namespace = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())

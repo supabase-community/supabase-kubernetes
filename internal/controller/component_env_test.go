@@ -45,10 +45,22 @@ func newTestEnvProject() *platformv1alpha1.Project {
 			Version: "2026.04.27",
 			Global:  platformv1alpha1.GlobalSpec{SiteURL: "https://app.example.com", JWTExpirySeconds: int32P(3600)},
 			HTTP: platformv1alpha1.HTTPSpec{
-				Protocol: "http",
-				Hostname: "api.example.com",
-				Port:     int32P(80),
-				GatewayRef: platformv1alpha1.ExistingGatewayRef{
+				API: platformv1alpha1.HTTPConfig{
+					Protocol: "http",
+					Hostname: "api.example.com",
+					Port:     int32P(80),
+				},
+				Studio: platformv1alpha1.HTTPConfig{
+					Protocol: "https",
+					Hostname: "studio.example.com",
+				},
+			},
+			Gateway: platformv1alpha1.GatewaySpec{
+				API: platformv1alpha1.ExistingGatewayRef{
+					Name:      "gw",
+					Namespace: "envoy-gateway-system",
+				},
+				Studio: platformv1alpha1.ExistingGatewayRef{
 					Name:      "gw",
 					Namespace: "envoy-gateway-system",
 				},

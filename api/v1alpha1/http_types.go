@@ -10,8 +10,8 @@ type ExistingGatewayRef struct {
 	Namespace string `json:"namespace"`
 }
 
-// HTTPSpec defines public HTTP access settings for a Project.
-type HTTPSpec struct {
+// HTTPConfig defines public HTTP access settings for a single endpoint.
+type HTTPConfig struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=http;https
 	Protocol string `json:"protocol"`
@@ -22,6 +22,20 @@ type HTTPSpec struct {
 	// +kubebuilder:validation:Maximum=65535
 	// +optional
 	Port *int32 `json:"port,omitempty"`
+}
+
+// HTTPSpec defines public HTTP access settings for a Project.
+type HTTPSpec struct {
 	// +kubebuilder:validation:Required
-	GatewayRef ExistingGatewayRef `json:"gatewayRef"`
+	API HTTPConfig `json:"api"`
+	// +kubebuilder:validation:Required
+	Studio HTTPConfig `json:"studio"`
+}
+
+// GatewaySpec defines the Gateway API Gateway references for API and Studio.
+type GatewaySpec struct {
+	// +kubebuilder:validation:Required
+	API ExistingGatewayRef `json:"api"`
+	// +kubebuilder:validation:Required
+	Studio ExistingGatewayRef `json:"studio"`
 }
