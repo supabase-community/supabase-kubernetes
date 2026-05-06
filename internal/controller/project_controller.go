@@ -68,6 +68,7 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes/status,verbs=get
+// +kubebuilder:rbac:groups=gateway.envoyproxy.io,resources=securitypolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
 
@@ -91,6 +92,16 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Generated secrets are not ready")
 		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after secret failure")
+		}
+		return ctrl.Result{}, err
+	}
+
+	if err := r.ensureDashboardHtpasswd(ctx, project); err != nil {
+		logger.Error(err, "Failed to ensure dashboard htpasswd")
+		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "DashboardHtpasswdFailed", err.Error())
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Dashboard htpasswd backfill failed")
+		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after dashboard htpasswd failure")
 		}
 		return ctrl.Result{}, err
 	}
@@ -253,6 +264,38 @@ func (r *ProjectReconciler) setCondition(
 		Reason:             reason,
 		Message:            message,
 	})
+}
+
+// ensureDashboardHtpasswd backfills the .htpasswd key into the dashboard secret
+// for existing secrets that were created before the key was added.
+func (r *ProjectReconciler) ensureDashboardHtpasswd(ctx context.Context, project *platformv1alpha1.Project) error {
+	secretName := fmt.Sprintf("%s-dashboard", project.Name)
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: project.Namespace}, secret); err != nil {
+		return fmt.Errorf("getting dashboard secret: %w", err)
+	}
+
+	if _, ok := secret.Data[".htpasswd"]; ok {
+		return nil
+	}
+
+	username := string(secret.Data["username"])
+	password := string(secret.Data["password"])
+	if username == "" || password == "" {
+		return fmt.Errorf("dashboard secret missing username or password")
+	}
+
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
+	secret.Data[".htpasswd"] = []byte(htpasswdLine(username, password))
+
+	if err := r.Update(ctx, secret); err != nil {
+		return fmt.Errorf("patching dashboard secret with .htpasswd: %w", err)
+	}
+
+	log.FromContext(ctx).Info("Patched .htpasswd into dashboard secret")
+	return nil
 }
 
 // keysOf returns the keys of a map as a string slice (for logging).

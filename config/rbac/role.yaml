@@ -71,6 +71,18 @@ rules:
   - patch
   - update
 - apiGroups:
+  - gateway.envoyproxy.io
+  resources:
+  - securitypolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - gateway.networking.k8s.io
   resources:
   - httproutes

@@ -58,8 +58,13 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		CRDInstallOptions:     envtest.CRDInstallOptions{Paths: []string{filepath.Join("..", "..", "hack", "gateway-api-crds")}},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDInstallOptions: envtest.CRDInstallOptions{
+			Paths: []string{
+				filepath.Join("..", "..", "hack", "gateway-api-crds"),
+				filepath.Join("..", "..", "hack", "envoy-gateway-crds"),
+			},
+		},
 		ErrorIfCRDPathMissing: true,
 	}
 	if getFirstFoundEnvTestBinaryDir() != "" {

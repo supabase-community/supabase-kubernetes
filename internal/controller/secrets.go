@@ -21,6 +21,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
@@ -284,6 +285,12 @@ func GenerateJWTSecretData(now time.Time, jwtExpiry time.Duration) (SecretData, 
 	}, nil
 }
 
+// htpasswdLine generates an htpasswd line using SHA1 (format supported by Envoy Gateway).
+func htpasswdLine(username, password string) string {
+	hash := sha1.Sum([]byte(password))
+	return fmt.Sprintf("%s:{SHA}%s", username, base64.StdEncoding.EncodeToString(hash[:]))
+}
+
 // GenerateDashboardSecretData generates the data for the Dashboard secret.
 func GenerateDashboardSecretData() (SecretData, error) {
 	password, err := GenerateRandomAlphanumeric(32)
@@ -292,8 +299,9 @@ func GenerateDashboardSecretData() (SecretData, error) {
 	}
 
 	return SecretData{
-		"username": []byte("supabase"),
-		"password": []byte(password),
+		"username":  []byte("supabase"),
+		"password":  []byte(password),
+		".htpasswd": []byte(htpasswdLine("supabase", password)),
 	}, nil
 }
 
