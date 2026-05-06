@@ -135,7 +135,7 @@ var _ = Describe("Component env builders", func() {
 			project := newTestEnvProject()
 			Expect(findEnv(RestEnvVars(project), "PGRST_JWT_SECRET").ValueFrom.SecretKeyRef.Key).To(Equal("jwt-jwks"))
 			Expect(findEnv(RealtimeEnvVars(project), "SECRET_KEY_BASE").ValueFrom.SecretKeyRef.Name).To(Equal("main-keys"))
-			Expect(findEnv(StorageEnvVars(project), "S3_PROTOCOL_ACCESS_KEY_ID").ValueFrom.SecretKeyRef.Name).To(Equal("main-storage-s3-protocol"))
+			Expect(findEnv(StorageEnvVars(project), "S3_PROTOCOL_ACCESS_KEY_ID").ValueFrom.SecretKeyRef.Name).To(Equal("main-storage"))
 			Expect(findEnv(StorageEnvVars(project), "DATABASE_URL").Value).To(Equal("postgres://supabase_storage_admin:$(POSTGRES_PASSWORD)@db.example.com:5432/postgres"))
 			Expect(findEnv(StorageEnvVars(project), "POSTGRES_HOST").Value).To(Equal("db.example.com"))
 			Expect(findEnv(MetaEnvVars(project), "CRYPTO_KEY").ValueFrom.SecretKeyRef.Name).To(Equal("main-keys"))

@@ -218,9 +218,9 @@ var _ = Describe("Secret Generation", func() {
 		})
 	})
 
-	Describe("GenerateStorageS3SecretData", func() {
+	Describe("GenerateStorageSecretData", func() {
 		It("should contain access-key-id and secret-access-key", func() {
-			data, err := GenerateStorageS3SecretData()
+			data, err := GenerateStorageSecretData()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(data).To(HaveKey("access-key-id"))
 			Expect(data).To(HaveKey("secret-access-key"))

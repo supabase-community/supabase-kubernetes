@@ -133,7 +133,7 @@ var _ = Describe("Project Controller", func() {
 		})
 
 		It("should create generated secrets", func() {
-			for _, suffix := range []string{"jwt", "studio", "keys", "storage-s3-protocol"} {
+			for _, suffix := range []string{"jwt", "studio", "keys", "storage"} {
 				secret := &corev1.Secret{}
 				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", projectName, suffix), Namespace: "default"}, secret)).To(Succeed())
 			}
