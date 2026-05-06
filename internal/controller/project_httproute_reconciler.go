@@ -71,23 +71,23 @@ func (r *ProjectReconciler) reconcileStudioBasicAuth(ctx context.Context, projec
 		return fmt.Errorf("setting owner reference on studio SecurityPolicy: %w", err)
 	}
 
-	// Read the dashboard secret so we can stamp its resourceVersion onto the
+	// Read the studio secret so we can stamp its resourceVersion onto the
 	// SecurityPolicy. This forces Envoy Gateway to re-sync whenever the secret
 	// is deleted and recreated (or otherwise changed).
-	dashboardSecret := &corev1.Secret{}
+	studioSecret := &corev1.Secret{}
 	secretKey := types.NamespacedName{
-		Name:      project.Name + "-dashboard",
+		Name:      project.Name + "-studio",
 		Namespace: project.Namespace,
 	}
-	if err := r.Get(ctx, secretKey, dashboardSecret); err != nil {
-		return fmt.Errorf("getting dashboard secret for SecurityPolicy annotation: %w", err)
+	if err := r.Get(ctx, secretKey, studioSecret); err != nil {
+		return fmt.Errorf("getting studio secret for SecurityPolicy annotation: %w", err)
 	}
 
 	annotations := desired.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-	annotations["supabase.io/dashboard-secret-version"] = dashboardSecret.ResourceVersion
+	annotations["supabase.io/studio-secret-version"] = studioSecret.ResourceVersion
 	desired.SetAnnotations(annotations)
 
 	if err := r.Get(ctx, key, existing); err != nil {
@@ -111,8 +111,8 @@ func (r *ProjectReconciler) reconcileStudioBasicAuth(ctx context.Context, projec
 	if existingAnnotations == nil {
 		existingAnnotations = make(map[string]string)
 	}
-	if existingAnnotations["supabase.io/dashboard-secret-version"] != annotations["supabase.io/dashboard-secret-version"] {
-		existingAnnotations["supabase.io/dashboard-secret-version"] = annotations["supabase.io/dashboard-secret-version"]
+	if existingAnnotations["supabase.io/studio-secret-version"] != annotations["supabase.io/studio-secret-version"] {
+		existingAnnotations["supabase.io/studio-secret-version"] = annotations["supabase.io/studio-secret-version"]
 		existing.SetAnnotations(existingAnnotations)
 		needsUpdate = true
 	}

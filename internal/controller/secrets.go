@@ -291,11 +291,11 @@ func htpasswdLine(username, password string) string {
 	return fmt.Sprintf("%s:{SHA}%s", username, base64.StdEncoding.EncodeToString(hash[:]))
 }
 
-// GenerateDashboardSecretData generates the data for the Dashboard secret.
-func GenerateDashboardSecretData() (SecretData, error) {
+// GenerateStudioSecretData generates the data for the Studio secret.
+func GenerateStudioSecretData() (SecretData, error) {
 	password, err := GenerateRandomAlphanumeric(32)
 	if err != nil {
-		return nil, fmt.Errorf("generating dashboard password: %w", err)
+		return nil, fmt.Errorf("generating studio password: %w", err)
 	}
 
 	return SecretData{

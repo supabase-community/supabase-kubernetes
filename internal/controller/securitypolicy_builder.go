@@ -34,7 +34,7 @@ func buildStudioBasicAuthSecurityPolicy(project *platformv1alpha1.Project) *unst
 		},
 		"basicAuth": map[string]any{
 			"users": map[string]any{
-				"name": project.Name + "-dashboard",
+				"name": project.Name + "-studio",
 			},
 		},
 	}
