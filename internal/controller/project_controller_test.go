@@ -43,9 +43,21 @@ func validProject(name string) *platformv1alpha1.Project {
 			Version: "2026.04.27",
 			Global:  platformv1alpha1.GlobalSpec{SiteURL: "https://test.example.com"},
 			HTTP: platformv1alpha1.HTTPSpec{
-				Protocol: "https",
-				Hostname: "test.example.com",
-				GatewayRef: platformv1alpha1.ExistingGatewayRef{
+				API: platformv1alpha1.HTTPConfig{
+					Protocol: "https",
+					Hostname: "test.example.com",
+				},
+				Studio: platformv1alpha1.HTTPConfig{
+					Protocol: "https",
+					Hostname: "studio.example.com",
+				},
+			},
+			Gateway: platformv1alpha1.GatewaySpec{
+				API: platformv1alpha1.ExistingGatewayRef{
+					Name:      "gw",
+					Namespace: "envoy-gateway-system",
+				},
+				Studio: platformv1alpha1.ExistingGatewayRef{
 					Name:      "gw",
 					Namespace: "envoy-gateway-system",
 				},
@@ -69,9 +81,21 @@ func minimalProject(name string) *platformv1alpha1.Project {
 			Version: "2026.04.27",
 			Global:  platformv1alpha1.GlobalSpec{SiteURL: "https://test.example.com"},
 			HTTP: platformv1alpha1.HTTPSpec{
-				Protocol: "http",
-				Hostname: "test.example.com",
-				GatewayRef: platformv1alpha1.ExistingGatewayRef{
+				API: platformv1alpha1.HTTPConfig{
+					Protocol: "http",
+					Hostname: "test.example.com",
+				},
+				Studio: platformv1alpha1.HTTPConfig{
+					Protocol: "http",
+					Hostname: "studio.example.com",
+				},
+			},
+			Gateway: platformv1alpha1.GatewaySpec{
+				API: platformv1alpha1.ExistingGatewayRef{
+					Name:      "gw",
+					Namespace: "envoy-gateway-system",
+				},
+				Studio: platformv1alpha1.ExistingGatewayRef{
 					Name:      "gw",
 					Namespace: "envoy-gateway-system",
 				},
@@ -141,16 +165,26 @@ var _ = Describe("Project Controller", func() {
 			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 		})
 
-		It("should create HTTPRoute for the configured gatewayRef", func() {
-			route := &gatewayv1.HTTPRoute{}
-			routeKey := types.NamespacedName{Name: projectName + "-gateway", Namespace: "default"}
+		It("should create HTTPRoutes for the configured gateways", func() {
+			apiRoute := &gatewayv1.HTTPRoute{}
+			apiRouteKey := types.NamespacedName{Name: projectName + "-gateway-api", Namespace: "default"}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, routeKey, route)
+				return k8sClient.Get(ctx, apiRouteKey, apiRoute)
 			}, timeout, interval).Should(Succeed())
-			Expect(route.Spec.ParentRefs).To(HaveLen(1))
-			Expect(route.Spec.ParentRefs[0].Name).To(Equal(gatewayv1.ObjectName("gw")))
-			Expect(route.Spec.ParentRefs[0].Namespace).NotTo(BeNil())
-			Expect(*route.Spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("envoy-gateway-system")))
+			Expect(apiRoute.Spec.ParentRefs).To(HaveLen(1))
+			Expect(apiRoute.Spec.ParentRefs[0].Name).To(Equal(gatewayv1.ObjectName("gw")))
+			Expect(apiRoute.Spec.ParentRefs[0].Namespace).NotTo(BeNil())
+			Expect(*apiRoute.Spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("envoy-gateway-system")))
+
+			studioRoute := &gatewayv1.HTTPRoute{}
+			studioRouteKey := types.NamespacedName{Name: projectName + "-gateway-studio", Namespace: "default"}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, studioRouteKey, studioRoute)
+			}, timeout, interval).Should(Succeed())
+			Expect(studioRoute.Spec.ParentRefs).To(HaveLen(1))
+			Expect(studioRoute.Spec.ParentRefs[0].Name).To(Equal(gatewayv1.ObjectName("gw")))
+			Expect(studioRoute.Spec.ParentRefs[0].Namespace).NotTo(BeNil())
+			Expect(*studioRoute.Spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("envoy-gateway-system")))
 		})
 
 		It("should create a SAML secret when SAML is enabled", func() {

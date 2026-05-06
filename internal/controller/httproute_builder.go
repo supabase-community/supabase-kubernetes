@@ -15,9 +15,9 @@ type routeDefinition struct {
 	componentEnabled bool
 }
 
-func buildHTTPRoute(project *platformv1alpha1.Project) *gatewayv1.HTTPRoute {
-	hostname := gatewayv1.Hostname(project.Spec.HTTP.Hostname)
-	parentNamespace := gatewayv1.Namespace(project.Spec.HTTP.GatewayRef.Namespace)
+func buildAPIHTTPRoute(project *platformv1alpha1.Project) *gatewayv1.HTTPRoute {
+	hostname := gatewayv1.Hostname(project.Spec.HTTP.API.Hostname)
+	parentNamespace := gatewayv1.Namespace(project.Spec.Gateway.API.Namespace)
 
 	defs := []routeDefinition{
 		{pathPrefix: "/realtime/v1/api", rewritePrefix: strPtr("/api"), backendName: componentServiceName(project.Name, "realtime"), backendPort: 4000, componentEnabled: project.Spec.Realtime == nil || derefBool(project.Spec.Realtime.Enabled, true)},
@@ -28,6 +28,45 @@ func buildHTTPRoute(project *platformv1alpha1.Project) *gatewayv1.HTTPRoute {
 		{pathPrefix: "/storage/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "storage"), backendPort: 5000, componentEnabled: project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true)},
 		{pathPrefix: "/functions/v1", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "functions"), backendPort: 9000, componentEnabled: project.Spec.Functions == nil || derefBool(project.Spec.Functions.Enabled, true)},
 		{pathPrefix: "/pg", rewritePrefix: strPtr("/"), backendName: componentServiceName(project.Name, "meta"), backendPort: 8080, componentEnabled: project.Spec.Meta == nil || derefBool(project.Spec.Meta.Enabled, true)},
+	}
+
+	rules := make([]gatewayv1.HTTPRouteRule, 0, len(defs))
+	for _, def := range defs {
+		if !def.componentEnabled {
+			continue
+		}
+		rules = append(rules, buildHTTPRouteRule(def))
+	}
+
+	return &gatewayv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      apiHTTPRouteName(project),
+			Namespace: project.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/name":       "supabase",
+				"app.kubernetes.io/instance":   project.Name,
+				"app.kubernetes.io/managed-by": "supabase-operator",
+				"app.kubernetes.io/component":  "gateway-api",
+			},
+		},
+		Spec: gatewayv1.HTTPRouteSpec{
+			CommonRouteSpec: gatewayv1.CommonRouteSpec{
+				ParentRefs: []gatewayv1.ParentReference{{
+					Name:      gatewayv1.ObjectName(project.Spec.Gateway.API.Name),
+					Namespace: &parentNamespace,
+				}},
+			},
+			Hostnames: []gatewayv1.Hostname{hostname},
+			Rules:     rules,
+		},
+	}
+}
+
+func buildStudioHTTPRoute(project *platformv1alpha1.Project) *gatewayv1.HTTPRoute {
+	hostname := gatewayv1.Hostname(project.Spec.HTTP.Studio.Hostname)
+	parentNamespace := gatewayv1.Namespace(project.Spec.Gateway.Studio.Namespace)
+
+	defs := []routeDefinition{
 		{pathPrefix: "/", rewritePrefix: nil, backendName: componentServiceName(project.Name, "studio"), backendPort: 3000, componentEnabled: project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)},
 	}
 
@@ -41,19 +80,19 @@ func buildHTTPRoute(project *platformv1alpha1.Project) *gatewayv1.HTTPRoute {
 
 	return &gatewayv1.HTTPRoute{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      httpRouteName(project),
+			Name:      studioHTTPRouteName(project),
 			Namespace: project.Namespace,
 			Labels: map[string]string{
 				"app.kubernetes.io/name":       "supabase",
 				"app.kubernetes.io/instance":   project.Name,
 				"app.kubernetes.io/managed-by": "supabase-operator",
-				"app.kubernetes.io/component":  "gateway",
+				"app.kubernetes.io/component":  "gateway-studio",
 			},
 		},
 		Spec: gatewayv1.HTTPRouteSpec{
 			CommonRouteSpec: gatewayv1.CommonRouteSpec{
 				ParentRefs: []gatewayv1.ParentReference{{
-					Name:      gatewayv1.ObjectName(project.Spec.HTTP.GatewayRef.Name),
+					Name:      gatewayv1.ObjectName(project.Spec.Gateway.Studio.Name),
 					Namespace: &parentNamespace,
 				}},
 			},
@@ -103,6 +142,10 @@ func strPtr(v string) *string {
 	return &v
 }
 
-func httpRouteName(project *platformv1alpha1.Project) string {
-	return project.Name + "-gateway"
+func apiHTTPRouteName(project *platformv1alpha1.Project) string {
+	return project.Name + "-gateway-api"
+}
+
+func studioHTTPRouteName(project *platformv1alpha1.Project) string {
+	return project.Name + "-gateway-studio"
 }

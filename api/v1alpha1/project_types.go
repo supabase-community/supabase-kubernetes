@@ -30,6 +30,8 @@ type ProjectSpec struct {
 	// +kubebuilder:validation:Required
 	HTTP HTTPSpec `json:"http"`
 	// +kubebuilder:validation:Required
+	Gateway GatewaySpec `json:"gateway"`
+	// +kubebuilder:validation:Required
 	Database DatabaseSpec `json:"database"`
 	// +optional
 	Studio *StudioSpec `json:"studio,omitempty"`

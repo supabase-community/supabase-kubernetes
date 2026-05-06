@@ -1481,6 +1481,42 @@ spec:
                         type: object
                     type: object
                 type: object
+              gateway:
+                description: GatewaySpec defines the Gateway API Gateway references
+                  for API and Studio.
+                properties:
+                  api:
+                    description: ExistingGatewayRef references an existing Gateway
+                      API Gateway resource.
+                    properties:
+                      name:
+                        minLength: 1
+                        type: string
+                      namespace:
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  studio:
+                    description: ExistingGatewayRef references an existing Gateway
+                      API Gateway resource.
+                    properties:
+                      name:
+                        minLength: 1
+                        type: string
+                      namespace:
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                required:
+                - api
+                - studio
+                type: object
               global:
                 description: GlobalSpec defines global configuration shared across
                   all Supabase components.
@@ -1503,37 +1539,51 @@ spec:
               http:
                 description: HTTPSpec defines public HTTP access settings for a Project.
                 properties:
-                  gatewayRef:
-                    description: ExistingGatewayRef references an existing Gateway
-                      API Gateway resource.
+                  api:
+                    description: HTTPConfig defines public HTTP access settings for
+                      a single endpoint.
                     properties:
-                      name:
+                      hostname:
                         minLength: 1
                         type: string
-                      namespace:
-                        minLength: 1
+                      port:
+                        format: int32
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                      protocol:
+                        enum:
+                        - http
+                        - https
                         type: string
                     required:
-                    - name
-                    - namespace
+                    - hostname
+                    - protocol
                     type: object
-                  hostname:
-                    minLength: 1
-                    type: string
-                  port:
-                    format: int32
-                    maximum: 65535
-                    minimum: 1
-                    type: integer
-                  protocol:
-                    enum:
-                    - http
-                    - https
-                    type: string
+                  studio:
+                    description: HTTPConfig defines public HTTP access settings for
+                      a single endpoint.
+                    properties:
+                      hostname:
+                        minLength: 1
+                        type: string
+                      port:
+                        format: int32
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                      protocol:
+                        enum:
+                        - http
+                        - https
+                        type: string
+                    required:
+                    - hostname
+                    - protocol
+                    type: object
                 required:
-                - gatewayRef
-                - hostname
-                - protocol
+                - api
+                - studio
                 type: object
               meta:
                 description: MetaSpec defines the configuration for the Supabase Postgres
@@ -4493,6 +4543,7 @@ spec:
                 type: string
             required:
             - database
+            - gateway
             - global
             - http
             - version

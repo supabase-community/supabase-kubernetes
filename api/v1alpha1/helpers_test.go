@@ -18,9 +18,21 @@ func minimalValidProject(name string) *platformv1alpha1.Project {
 				SiteURL: "https://app.example.com",
 			},
 			HTTP: platformv1alpha1.HTTPSpec{
-				Protocol: "https",
-				Hostname: "api.example.com",
-				GatewayRef: platformv1alpha1.ExistingGatewayRef{
+				API: platformv1alpha1.HTTPConfig{
+					Protocol: "https",
+					Hostname: "api.example.com",
+				},
+				Studio: platformv1alpha1.HTTPConfig{
+					Protocol: "https",
+					Hostname: "studio.example.com",
+				},
+			},
+			Gateway: platformv1alpha1.GatewaySpec{
+				API: platformv1alpha1.ExistingGatewayRef{
+					Name:      "gw",
+					Namespace: "envoy-gateway-system",
+				},
+				Studio: platformv1alpha1.ExistingGatewayRef{
 					Name:      "gw",
 					Namespace: "envoy-gateway-system",
 				},

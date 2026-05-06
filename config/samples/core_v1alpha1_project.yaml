@@ -13,9 +13,18 @@ spec:
     jwtExpirySeconds: 1800
 
   http:
-    protocol: "http"
-    hostname: "supabase.local"
-    gatewayRef:
+    api:
+      protocol: "https"
+      hostname: "api.supabase.local"
+    studio:
+      protocol: "https"
+      hostname: "studio.supabase.local"
+
+  gateway:
+    api:
+      name: "gw"
+      namespace: "envoy-gateway-system"
+    studio:
       name: "gw"
       namespace: "envoy-gateway-system"
 

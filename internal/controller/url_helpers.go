@@ -12,16 +12,16 @@ const (
 	httpsScheme = "https"
 )
 
-func effectiveProtocol(httpSpec platformv1alpha1.HTTPSpec) string {
-	if strings.EqualFold(httpSpec.Protocol, httpsScheme) {
+func effectiveProtocol(httpConfig platformv1alpha1.HTTPConfig) string {
+	if strings.EqualFold(httpConfig.Protocol, httpsScheme) {
 		return httpsScheme
 	}
 	return httpScheme
 }
 
-func effectivePort(httpSpec platformv1alpha1.HTTPSpec, scheme string) int32 {
-	if httpSpec.Port != nil {
-		return *httpSpec.Port
+func effectivePort(httpConfig platformv1alpha1.HTTPConfig, scheme string) int32 {
+	if httpConfig.Port != nil {
+		return *httpConfig.Port
 	}
 	if scheme == httpsScheme {
 		return 443
@@ -29,24 +29,24 @@ func effectivePort(httpSpec platformv1alpha1.HTTPSpec, scheme string) int32 {
 	return 80
 }
 
-func buildExternalURL(httpSpec platformv1alpha1.HTTPSpec) string {
-	scheme := effectiveProtocol(httpSpec)
-	port := effectivePort(httpSpec, scheme)
+func buildExternalURL(httpConfig platformv1alpha1.HTTPConfig) string {
+	scheme := effectiveProtocol(httpConfig)
+	port := effectivePort(httpConfig, scheme)
 
 	if (scheme == httpScheme && port == 80) || (scheme == httpsScheme && port == 443) {
-		return fmt.Sprintf("%s://%s", scheme, httpSpec.Hostname)
+		return fmt.Sprintf("%s://%s", scheme, httpConfig.Hostname)
 	}
-	return fmt.Sprintf("%s://%s:%d", scheme, httpSpec.Hostname, port)
+	return fmt.Sprintf("%s://%s:%d", scheme, httpConfig.Hostname, port)
 }
 
 func supabasePublicURL(project *platformv1alpha1.Project) string {
-	return buildExternalURL(project.Spec.HTTP)
+	return buildExternalURL(project.Spec.HTTP.API)
 }
 
 func supabaseInternalURL(project *platformv1alpha1.Project) string {
-	internalHTTPSpec := project.Spec.HTTP
-	internalHTTPSpec.Hostname = fmt.Sprintf("%s.%s.svc.cluster.local", project.Spec.HTTP.GatewayRef.Name, project.Spec.HTTP.GatewayRef.Namespace)
-	return buildExternalURL(internalHTTPSpec)
+	internalHTTPConfig := project.Spec.HTTP.API
+	internalHTTPConfig.Hostname = fmt.Sprintf("%s.%s.svc.cluster.local", project.Spec.Gateway.API.Name, project.Spec.Gateway.API.Namespace)
+	return buildExternalURL(internalHTTPConfig)
 }
 
 func storagePublicURL(project *platformv1alpha1.Project) string {
