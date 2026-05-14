@@ -66,6 +66,8 @@ test: manifests generate fmt vet setup-envtest ## Run tests.
 # CertManager is installed by default; skip with:
 # - CERT_MANAGER_INSTALL_SKIP=true
 KIND_CLUSTER ?= supabase-operator-test-e2e
+KIND_CLUSTER_DEV ?= supabase-operator-dev
+ENVOY_GATEWAY_VERSION ?= v1.7.3
 
 .PHONY: setup-test-e2e
 setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
@@ -89,6 +91,37 @@ test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expect
 .PHONY: cleanup-test-e2e
 cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER)
+
+##@ Local Development
+
+.PHONY: kind-up
+kind-up: ## Create a local Kind cluster with Envoy Gateway and a simple Postgres database.
+	@command -v $(KIND) >/dev/null 2>&1 || { \
+		echo "Kind is not installed. Please install Kind manually."; \
+		exit 1; \
+	}
+	@case "$$($(KIND) get clusters)" in \
+		*"$(KIND_CLUSTER_DEV)"*) \
+			echo "Kind cluster '$(KIND_CLUSTER_DEV)' already exists. Skipping creation." ;; \
+		*) \
+			echo "Creating Kind cluster '$(KIND_CLUSTER_DEV)'..."; \
+			$(KIND) create cluster --name $(KIND_CLUSTER_DEV) ;; \
+	esac
+	@echo "Installing Envoy Gateway $(ENVOY_GATEWAY_VERSION)..."
+	$(KUBECTL) apply --server-side -f https://github.com/envoyproxy/gateway/releases/download/$(ENVOY_GATEWAY_VERSION)/install.yaml
+	@echo "Waiting for Envoy Gateway to be ready..."
+	$(KUBECTL) wait --for=condition=Available deployment/envoy-gateway -n envoy-gateway-system --timeout=120s || true
+	@echo "Creating GatewayClass and Gateways..."
+	$(KUBECTL) apply -k hack/kind-envoy/
+	@echo "Installing simple Postgres database..."
+	$(KUBECTL) apply -k hack/kind-db/
+	@echo "Waiting for Postgres to be ready..."
+	$(KUBECTL) rollout status statefulset/postgres -n supabase-postgres --timeout=120s || true
+	@echo "Kind cluster '$(KIND_CLUSTER_DEV)' is ready."
+
+.PHONY: kind-down
+kind-down: ## Tear down the local Kind development cluster.
+	@$(KIND) delete cluster --name $(KIND_CLUSTER_DEV)
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter

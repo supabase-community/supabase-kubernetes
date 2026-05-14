@@ -1,0 +1,14 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: envoy-gw-public
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: envoy-gateway-class
+  listeners:
+    - name: http-public
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
