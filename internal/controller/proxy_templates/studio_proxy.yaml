@@ -37,12 +37,14 @@ static_resources:
       address:
         socket_address:
           address: 0.0.0.0
-          port_value: 8080
+          port_value: 80
       filter_chains:
         - filters:
             - name: envoy.filters.network.http_connection_manager
               typed_config:
-                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                '@type': >-
+                  type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+
                 stat_prefix: ingress_http
                 normalize_path: true
                 merge_slashes: true
@@ -53,7 +55,9 @@ static_resources:
                 access_log:
                   - name: envoy.access_loggers.stdout
                     typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                      '@type': >-
+                        type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+
                       log_format:
                         text_format_source:
                           inline_string: "%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT% - - [%START_TIME(%d/%b/%Y:%H:%M:%S %z)%] \"%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\" %RESPONSE_CODE% %BYTES_SENT% \"%REQ(REFERER)%\" \"%REQ(USER-AGENT)%\"\n"
@@ -120,23 +124,31 @@ static_resources:
                 http_filters:
                   - name: envoy.filters.http.cors
                     typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+                      '@type': >-
+                        type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+
 
                   - name: envoy.filters.http.basic_auth
                     typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuth
+                      '@type': >-
+                        type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuth
+
                       users:
                         inline_string: "${DASHBOARD_BASIC_AUTH}"
 
                   - name: envoy.filters.http.router
                     typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                      '@type': >-
+                        type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
 
 overload_manager:
   resource_monitors:
     - name: envoy.resource_monitors.global_downstream_max_connections
       typed_config:
-        "@type": type.googleapis.com/envoy.extensions.resource_monitors.downstream_connections.v3.DownstreamConnectionsConfig
+        '@type': >-
+          type.googleapis.com/envoy.extensions.resource_monitors.downstream_connections.v3.DownstreamConnectionsConfig
+
         max_active_downstream_connections: 30000
 
 admin:
