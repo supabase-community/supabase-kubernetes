@@ -22,14 +22,14 @@ spec:
 
   gateway:
     api:
-      name: "gw"
+      name: "envoy-gw-private"
       namespace: "envoy-gateway-system"
     studio:
-      name: "gw"
+      name: "envoy-gw-public"
       namespace: "envoy-gateway-system"
 
   database:
-    host: "postgres.db.svc.cluster.local"
+    host: "postgres.supabase-postgres.svc.cluster.local"
     passwordRef:
       name: supabase-db-credentials
       key: password
