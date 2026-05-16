@@ -1507,6 +1507,9 @@ spec:
                     description: HTTPConfig defines public HTTP access settings for
                       a single endpoint.
                     properties:
+                      enabled:
+                        default: true
+                        type: boolean
                       hostname:
                         minLength: 1
                         type: string
@@ -1603,6 +1606,9 @@ spec:
                     description: HTTPConfig defines public HTTP access settings for
                       a single endpoint.
                     properties:
+                      enabled:
+                        default: true
+                        type: boolean
                       hostname:
                         minLength: 1
                         type: string

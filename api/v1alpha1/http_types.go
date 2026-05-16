@@ -25,6 +25,9 @@ type HTTPConfig struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 	// +optional
 	Image string `json:"image,omitempty"`
+	// +kubebuilder:default=true
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // HTTPSpec defines public HTTP access settings for a Project.

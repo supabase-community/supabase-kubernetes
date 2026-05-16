@@ -14,17 +14,35 @@ import (
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
+func apiComponentsActive(project *platformv1alpha1.Project) bool {
+	auth := project.Spec.Auth == nil || derefBool(project.Spec.Auth.Enabled, true)
+	rest := project.Spec.Rest == nil || derefBool(project.Spec.Rest.Enabled, true)
+	realtime := project.Spec.Realtime == nil || derefBool(project.Spec.Realtime.Enabled, true)
+	storage := project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true)
+	functions := project.Spec.Functions == nil || derefBool(project.Spec.Functions.Enabled, true)
+	meta := project.Spec.Meta == nil || derefBool(project.Spec.Meta.Enabled, true)
+	return auth || rest || realtime || storage || functions || meta
+}
+
 func (r *ProjectReconciler) reconcileProxy(ctx context.Context, project *platformv1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 
-	// API proxy is always created
-	if err := r.reconcileProxyEndpoint(ctx, project, proxyAPIComponent); err != nil {
-		return err
+	// API proxy
+	apiProxyEnabled := derefBool(project.Spec.HTTP.API.Enabled, true)
+	if apiProxyEnabled && apiComponentsActive(project) {
+		if err := r.reconcileProxyEndpoint(ctx, project, proxyAPIComponent); err != nil {
+			return err
+		}
+	} else {
+		if err := r.deleteProxyEndpoint(ctx, project, proxyAPIComponent); err != nil {
+			return err
+		}
 	}
 
-	// Studio proxy is created if studio is enabled
+	// Studio proxy
+	studioProxyEnabled := derefBool(project.Spec.HTTP.Studio.Enabled, true)
 	studioEnabled := project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)
-	if studioEnabled {
+	if studioProxyEnabled && studioEnabled {
 		if err := r.reconcileProxyEndpoint(ctx, project, proxyStudioComponent); err != nil {
 			return err
 		}
