@@ -256,6 +256,30 @@ var _ = Describe("Project Controller", func() {
 			}, timeout, interval).Should(Succeed())
 		})
 
+		It("should trigger a rollout of dependent components when JWT secret is rotated", func() {
+			jwtKey := types.NamespacedName{Name: fmt.Sprintf("%s-jwt", projectName), Namespace: "default"}
+			authDeployKey := types.NamespacedName{Name: fmt.Sprintf("%s-auth", projectName), Namespace: "default"}
+
+			// Capture old hash and generation
+			oldDeploy := &appsv1.Deployment{}
+			Expect(k8sClient.Get(ctx, authDeployKey, oldDeploy)).To(Succeed())
+			oldHash := oldDeploy.Spec.Template.Annotations["supabase.io/secret-hash"]
+			oldGeneration := oldDeploy.Generation
+
+			// Delete JWT secret to force regeneration
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, jwtKey, secret)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+
+			// Wait for the auth deployment to be updated with a new hash
+			Eventually(func(g Gomega) {
+				updated := &appsv1.Deployment{}
+				g.Expect(k8sClient.Get(ctx, authDeployKey, updated)).To(Succeed())
+				g.Expect(updated.Spec.Template.Annotations["supabase.io/secret-hash"]).NotTo(Equal(oldHash))
+				g.Expect(updated.Generation).To(BeNumerically(">", oldGeneration))
+			}, timeout, interval).Should(Succeed())
+		})
+
 		It("should patch a missing key back into shared keys secret", func() {
 			metaKey := types.NamespacedName{Name: fmt.Sprintf("%s-keys", projectName), Namespace: "default"}
 			secret := &corev1.Secret{}

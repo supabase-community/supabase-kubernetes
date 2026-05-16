@@ -18,7 +18,10 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"maps"
 	"sort"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -26,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -559,6 +563,49 @@ func (r *ProjectReconciler) ensureFunctionsCodeConfigMap(ctx context.Context, pr
 	return nil
 }
 
+func computeSecretHash(secret *corev1.Secret) string {
+	keys := make([]string, 0, len(secret.Data))
+	for k := range secret.Data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	h := sha256.New()
+	for _, k := range keys {
+		h.Write([]byte(k))
+		h.Write(secret.Data[k])
+	}
+	return hex.EncodeToString(h.Sum(nil))[:16]
+}
+
+func (r *ProjectReconciler) computeEnvSecretHash(ctx context.Context, namespace string, envs []corev1.EnvVar) (string, error) {
+	h := sha256.New()
+	for _, e := range envs {
+		if e.ValueFrom == nil || e.ValueFrom.SecretKeyRef == nil {
+			continue
+		}
+		ref := e.ValueFrom.SecretKeyRef
+		secret := &corev1.Secret{}
+		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: namespace}, secret); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return "", err
+		}
+		h.Write([]byte(ref.Name))
+		h.Write([]byte(ref.Key))
+		h.Write([]byte(computeSecretHash(secret)))
+	}
+	return hex.EncodeToString(h.Sum(nil))[:16], nil
+}
+
+func mergeAnnotations(existing, additional map[string]string) map[string]string {
+	if existing == nil {
+		existing = make(map[string]string)
+	}
+	maps.Copy(existing, additional)
+	return existing
+}
+
 // EnsureComponent creates or updates the workload (Deployment or StatefulSet) and Service.
 func (r *ProjectReconciler) EnsureComponent(ctx context.Context, project *platformv1alpha1.Project, params ComponentWorkloadParams, svcParams ComponentServiceParams) error {
 	logger := log.FromContext(ctx).WithValues("component", params.Component)
@@ -580,8 +627,16 @@ func (r *ProjectReconciler) EnsureComponent(ctx context.Context, project *platfo
 	}
 	logger.Info("Ensured Service", "result", result)
 
+	hash, err := r.computeEnvSecretHash(ctx, project.Namespace, params.Env)
+	if err != nil {
+		return fmt.Errorf("computing secret hash for %s: %w", params.Component, err)
+	}
+
 	if params.UseStatefulSet {
 		desired := BuildStatefulSet(project, params)
+		desired.Spec.Template.Annotations = mergeAnnotations(desired.Spec.Template.Annotations, map[string]string{
+			"supabase.io/secret-hash": hash,
+		})
 		sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: desired.Name, Namespace: desired.Namespace}}
 		result, err := ctrl.CreateOrUpdate(ctx, r.Client, sts, func() error {
 			if err := controllerutil.SetControllerReference(project, sts, r.Scheme); err != nil {
@@ -603,6 +658,9 @@ func (r *ProjectReconciler) EnsureComponent(ctx context.Context, project *platfo
 	}
 
 	desired := BuildDeployment(project, params)
+	desired.Spec.Template.Annotations = mergeAnnotations(desired.Spec.Template.Annotations, map[string]string{
+		"supabase.io/secret-hash": hash,
+	})
 	deploy := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: desired.Name, Namespace: desired.Namespace}}
 	result, err = ctrl.CreateOrUpdate(ctx, r.Client, deploy, func() error {
 		if err := controllerutil.SetControllerReference(project, deploy, r.Scheme); err != nil {
