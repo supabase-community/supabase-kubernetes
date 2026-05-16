@@ -1481,42 +1481,6 @@ spec:
                         type: object
                     type: object
                 type: object
-              gateway:
-                description: GatewaySpec defines the Gateway API Gateway references
-                  for API and Studio.
-                properties:
-                  api:
-                    description: ExistingGatewayRef references an existing Gateway
-                      API Gateway resource.
-                    properties:
-                      name:
-                        minLength: 1
-                        type: string
-                      namespace:
-                        minLength: 1
-                        type: string
-                    required:
-                    - name
-                    - namespace
-                    type: object
-                  studio:
-                    description: ExistingGatewayRef references an existing Gateway
-                      API Gateway resource.
-                    properties:
-                      name:
-                        minLength: 1
-                        type: string
-                      namespace:
-                        minLength: 1
-                        type: string
-                    required:
-                    - name
-                    - namespace
-                    type: object
-                required:
-                - api
-                - studio
-                type: object
               global:
                 description: GlobalSpec defines global configuration shared across
                   all Supabase components.
@@ -4543,7 +4507,6 @@ spec:
                 type: string
             required:
             - database
-            - gateway
             - global
             - http
             - version

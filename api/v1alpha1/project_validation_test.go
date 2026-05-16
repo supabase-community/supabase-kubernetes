@@ -64,38 +64,6 @@ var _ = Describe("Project Validation", func() {
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.gateway.api.name", func() {
-			project := minimalValidProject("test-val-no-gateway-api-name")
-			project.Spec.Gateway.API.Name = ""
-			err := k8sClient.Create(ctx, project)
-			Expect(err).To(HaveOccurred())
-			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
-		})
-
-		It("should reject CR missing spec.gateway.api.namespace", func() {
-			project := minimalValidProject("test-val-no-gateway-api-namespace")
-			project.Spec.Gateway.API.Namespace = ""
-			err := k8sClient.Create(ctx, project)
-			Expect(err).To(HaveOccurred())
-			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
-		})
-
-		It("should reject CR missing spec.gateway.studio.name", func() {
-			project := minimalValidProject("test-val-no-gateway-studio-name")
-			project.Spec.Gateway.Studio.Name = ""
-			err := k8sClient.Create(ctx, project)
-			Expect(err).To(HaveOccurred())
-			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
-		})
-
-		It("should reject CR missing spec.gateway.studio.namespace", func() {
-			project := minimalValidProject("test-val-no-gateway-studio-namespace")
-			project.Spec.Gateway.Studio.Namespace = ""
-			err := k8sClient.Create(ctx, project)
-			Expect(err).To(HaveOccurred())
-			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
-		})
-
 		It("should reject CR missing spec.database.host", func() {
 			project := minimalValidProject("test-val-no-dbhost")
 			project.Spec.Database.Host = ""

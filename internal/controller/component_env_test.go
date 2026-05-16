@@ -55,16 +55,7 @@ func newTestEnvProject() *platformv1alpha1.Project {
 					Hostname: "studio.example.com",
 				},
 			},
-			Gateway: platformv1alpha1.GatewaySpec{
-				API: platformv1alpha1.ExistingGatewayRef{
-					Name:      "gw",
-					Namespace: "envoy-gateway-system",
-				},
-				Studio: platformv1alpha1.ExistingGatewayRef{
-					Name:      "gw",
-					Namespace: "envoy-gateway-system",
-				},
-			},
+
 			Database: platformv1alpha1.DatabaseSpec{
 				Host:        "db.example.com",
 				Port:        int32P(5432),
