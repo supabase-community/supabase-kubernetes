@@ -8,6 +8,7 @@ const (
 	componentStorage   = "storage"
 	componentMeta      = "meta"
 	componentFunctions = "functions"
+	componentProxy     = "proxy"
 )
 
 var projectVersionCatalog = map[string]map[string]string{
@@ -19,5 +20,6 @@ var projectVersionCatalog = map[string]map[string]string{
 		componentStorage:   "supabase/storage-api:v1.48.26",
 		componentMeta:      "supabase/postgres-meta:v0.96.3",
 		componentFunctions: "supabase/edge-runtime:v1.71.2",
+		componentProxy:     "envoyproxy/envoy:v1.37.2",
 	},
 }

@@ -132,6 +132,15 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	r.setCondition(project, "ComponentsReady", metav1.ConditionTrue, "AllComponentsReady", "All enabled components are deployed")
 
+	if err := r.reconcileProxy(ctx, project); err != nil {
+		logger.Error(err, "Failed to reconcile proxy")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "ProxyNotReady", err.Error())
+		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after proxy failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionTrue, "AllSecretsReady", "All generated secrets are present and complete")
 	r.setCondition(project, ConditionTypeReady, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
 	if err := r.Status().Update(ctx, project); err != nil {
@@ -400,6 +409,7 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&platformv1alpha1.Project{}).
 		Watches(&platformv1alpha1.Function{}, functionToProject).
 		Owns(&corev1.Secret{}).
+		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.StatefulSet{}).
