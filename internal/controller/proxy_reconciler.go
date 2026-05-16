@@ -144,7 +144,14 @@ func (r *ProjectReconciler) reconcileProxyEndpoint(ctx context.Context, project 
 	}
 
 	// Reconcile Deployment
+	hash, err := r.computeEnvSecretHash(ctx, project.Namespace, envVars)
+	if err != nil {
+		return fmt.Errorf("computing secret hash for proxy %s: %w", proxyType, err)
+	}
 	deploy := buildProxyDeployment(project, proxyType, image, &replicas, resources, envVars)
+	deploy.Spec.Template.Annotations = mergeAnnotations(deploy.Spec.Template.Annotations, map[string]string{
+		"supabase.io/secret-hash": hash,
+	})
 	if err := controllerutil.SetControllerReference(project, deploy, r.Scheme); err != nil {
 		return fmt.Errorf("setting owner reference on proxy Deployment: %w", err)
 	}
