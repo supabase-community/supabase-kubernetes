@@ -91,18 +91,6 @@ static_resources:
                                 key: X-Forwarded-Prefix
                                 value: /api/mcp
                               append_action: ADD_IF_ABSENT
-                          typed_per_filter_config:
-                            envoy.filters.http.rbac:
-                              "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBACPerRoute
-                              rbac:
-                                rules:
-                                  action: DENY
-                                  policies:
-                                    deny_all:
-                                      permissions:
-                                        - any: true
-                                      principals:
-                                        - any: true
 
                         - match:
                             prefix: /mcp
@@ -115,18 +103,6 @@ static_resources:
                                 key: X-Forwarded-Prefix
                                 value: /mcp
                               append_action: ADD_IF_ABSENT
-                          typed_per_filter_config:
-                            envoy.filters.http.rbac:
-                              "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBACPerRoute
-                              rbac:
-                                rules:
-                                  action: DENY
-                                  policies:
-                                    deny_all:
-                                      permissions:
-                                        - any: true
-                                      principals:
-                                        - any: true
 
                         - match:
                             prefix: /
@@ -140,18 +116,6 @@ static_resources:
                                 key: X-Forwarded-Prefix
                                 value: /
                               append_action: ADD_IF_ABSENT
-                          typed_per_filter_config:
-                            envoy.filters.http.rbac:
-                              "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBACPerRoute
-                              rbac:
-                                rules:
-                                  action: ALLOW
-                                  policies:
-                                    allow_all:
-                                      permissions:
-                                        - any: true
-                                      principals:
-                                        - any: true
 
                 http_filters:
                   - name: envoy.filters.http.cors
