@@ -43,12 +43,6 @@ func supabasePublicURL(project *platformv1alpha1.Project) string {
 	return buildExternalURL(project.Spec.HTTP.API)
 }
 
-func supabaseInternalURL(project *platformv1alpha1.Project) string {
-	internalHTTPConfig := project.Spec.HTTP.API
-	internalHTTPConfig.Hostname = fmt.Sprintf("%s.%s.svc.cluster.local", project.Spec.Gateway.API.Name, project.Spec.Gateway.API.Namespace)
-	return buildExternalURL(internalHTTPConfig)
-}
-
 func storagePublicURL(project *platformv1alpha1.Project) string {
 	return supabasePublicURL(project)
 }
@@ -59,8 +53,9 @@ func PublicURL(project *platformv1alpha1.Project) string {
 }
 
 // InternalURL returns the cluster-internal URL for the project.
+// Deprecated: without a gateway, the public URL is used as the internal URL.
 func InternalURL(project *platformv1alpha1.Project) string {
-	return supabaseInternalURL(project)
+	return supabasePublicURL(project)
 }
 
 // StoragePublicURL returns the public URL for the storage API.

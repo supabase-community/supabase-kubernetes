@@ -67,8 +67,6 @@ test: manifests generate fmt vet setup-envtest ## Run tests.
 # - CERT_MANAGER_INSTALL_SKIP=true
 KIND_CLUSTER ?= supabase-operator-test-e2e
 KIND_CLUSTER_DEV ?= supabase-operator-dev
-ENVOY_GATEWAY_VERSION ?= v1.7.3
-
 .PHONY: setup-test-e2e
 setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 	@command -v $(KIND) >/dev/null 2>&1 || { \
@@ -95,7 +93,7 @@ cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 ##@ Local Development
 
 .PHONY: kind-up
-kind-up: ## Create a local Kind cluster with Envoy Gateway and a simple Postgres database.
+kind-up: ## Create a local Kind cluster with a simple Postgres database.
 	@command -v $(KIND) >/dev/null 2>&1 || { \
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
@@ -107,12 +105,6 @@ kind-up: ## Create a local Kind cluster with Envoy Gateway and a simple Postgres
 			echo "Creating Kind cluster '$(KIND_CLUSTER_DEV)'..."; \
 			$(KIND) create cluster --name $(KIND_CLUSTER_DEV) ;; \
 	esac
-	@echo "Installing Envoy Gateway $(ENVOY_GATEWAY_VERSION)..."
-	$(KUBECTL) apply --server-side -f https://github.com/envoyproxy/gateway/releases/download/$(ENVOY_GATEWAY_VERSION)/install.yaml
-	@echo "Waiting for Envoy Gateway to be ready..."
-	$(KUBECTL) wait --for=condition=Available deployment/envoy-gateway -n envoy-gateway-system --timeout=120s || true
-	@echo "Creating GatewayClass and Gateways..."
-	$(KUBECTL) apply -k hack/kind-envoy/
 	@echo "Installing simple Postgres database..."
 	$(KUBECTL) apply -k hack/kind-db/
 	@echo "Waiting for Postgres to be ready..."

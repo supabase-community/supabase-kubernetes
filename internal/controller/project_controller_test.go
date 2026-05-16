@@ -32,9 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
@@ -53,16 +51,6 @@ func validProject(name string) *platformv1alpha1.Project {
 				Studio: platformv1alpha1.HTTPConfig{
 					Protocol: "https",
 					Hostname: "studio.example.com",
-				},
-			},
-			Gateway: platformv1alpha1.GatewaySpec{
-				API: platformv1alpha1.ExistingGatewayRef{
-					Name:      "gw",
-					Namespace: "envoy-gateway-system",
-				},
-				Studio: platformv1alpha1.ExistingGatewayRef{
-					Name:      "gw",
-					Namespace: "envoy-gateway-system",
 				},
 			},
 			Database:  platformv1alpha1.DatabaseSpec{Host: "postgres.test.svc", PasswordRef: platformv1alpha1.SecretKeyRef{Name: "test-db-secret", Key: "password"}},
@@ -91,16 +79,6 @@ func minimalProject(name string) *platformv1alpha1.Project {
 				Studio: platformv1alpha1.HTTPConfig{
 					Protocol: "http",
 					Hostname: "studio.example.com",
-				},
-			},
-			Gateway: platformv1alpha1.GatewaySpec{
-				API: platformv1alpha1.ExistingGatewayRef{
-					Name:      "gw",
-					Namespace: "envoy-gateway-system",
-				},
-				Studio: platformv1alpha1.ExistingGatewayRef{
-					Name:      "gw",
-					Namespace: "envoy-gateway-system",
 				},
 			},
 			Database: platformv1alpha1.DatabaseSpec{Host: "postgres.test.svc", PasswordRef: platformv1alpha1.SecretKeyRef{Name: "test-db-secret", Key: "password"}},
@@ -179,51 +157,6 @@ var _ = Describe("Project Controller", func() {
 			Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
 			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeSecretsReady)).To(BeTrue())
 			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeReady)).To(BeTrue())
-		})
-
-		It("should create HTTPRoutes for the configured gateways", func() {
-			apiRoute := &gatewayv1.HTTPRoute{}
-			apiRouteKey := types.NamespacedName{Name: projectName + "-gateway-api", Namespace: "default"}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, apiRouteKey, apiRoute)
-			}, timeout, interval).Should(Succeed())
-			Expect(apiRoute.Spec.ParentRefs).To(HaveLen(1))
-			Expect(apiRoute.Spec.ParentRefs[0].Name).To(Equal(gatewayv1.ObjectName("gw")))
-			Expect(apiRoute.Spec.ParentRefs[0].Namespace).NotTo(BeNil())
-			Expect(*apiRoute.Spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("envoy-gateway-system")))
-
-			studioRoute := &gatewayv1.HTTPRoute{}
-			studioRouteKey := types.NamespacedName{Name: projectName + "-gateway-studio", Namespace: "default"}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, studioRouteKey, studioRoute)
-			}, timeout, interval).Should(Succeed())
-			Expect(studioRoute.Spec.ParentRefs).To(HaveLen(1))
-			Expect(studioRoute.Spec.ParentRefs[0].Name).To(Equal(gatewayv1.ObjectName("gw")))
-			Expect(studioRoute.Spec.ParentRefs[0].Namespace).NotTo(BeNil())
-			Expect(*studioRoute.Spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("envoy-gateway-system")))
-
-			sp := &unstructured.Unstructured{}
-			sp.SetAPIVersion("gateway.envoyproxy.io/v1alpha1")
-			sp.SetKind("SecurityPolicy")
-			spKey := types.NamespacedName{Name: projectName + "-studio-basic-auth", Namespace: "default"}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, spKey, sp)
-			}, timeout, interval).Should(Succeed())
-
-			spec, ok := sp.Object["spec"].(map[string]any)
-			Expect(ok).To(BeTrue())
-			targetRefs, ok := spec["targetRefs"].([]any)
-			Expect(ok).To(BeTrue())
-			Expect(targetRefs).To(HaveLen(1))
-			tr, ok := targetRefs[0].(map[string]any)
-			Expect(ok).To(BeTrue())
-			Expect(tr["name"]).To(Equal(projectName + "-gateway-studio"))
-
-			basicAuth, ok := spec["basicAuth"].(map[string]any)
-			Expect(ok).To(BeTrue())
-			users, ok := basicAuth["users"].(map[string]any)
-			Expect(ok).To(BeTrue())
-			Expect(users["name"]).To(Equal(projectName + "-studio"))
 		})
 
 		It("should create a SAML secret when SAML is enabled", func() {
@@ -350,39 +283,7 @@ var _ = Describe("Project Controller", func() {
 		const projectName = "disabled-components-project"
 		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
 
-		It("should not create studio HTTPRoute when studio is disabled", func() {
-			project := validProject(projectName)
-			f := false
-			project.Spec.Studio.Enabled = &f
-			Expect(k8sClient.Create(ctx, project)).To(Succeed())
-			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
-
-			Eventually(func(g Gomega) {
-				created := &platformv1alpha1.Project{}
-				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
-			}, timeout, interval).Should(Succeed())
-
-			studioRoute := &gatewayv1.HTTPRoute{}
-			studioRouteKey := types.NamespacedName{Name: projectName + "-gateway-studio", Namespace: "default"}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, studioRouteKey, studioRoute)
-			}, timeout, interval).ShouldNot(Succeed())
-
-			apiRoute := &gatewayv1.HTTPRoute{}
-			apiRouteKey := types.NamespacedName{Name: projectName + "-gateway-api", Namespace: "default"}
-			Expect(k8sClient.Get(ctx, apiRouteKey, apiRoute)).To(Succeed())
-
-			sp := &unstructured.Unstructured{}
-			sp.SetAPIVersion("gateway.envoyproxy.io/v1alpha1")
-			sp.SetKind("SecurityPolicy")
-			spKey := types.NamespacedName{Name: projectName + "-studio-basic-auth", Namespace: "default"}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, spKey, sp)
-			}, timeout, interval).ShouldNot(Succeed())
-		})
-
-		It("should not create api HTTPRoute when all API components are disabled", func() {
+		It("should not create component workloads when all API components are disabled", func() {
 			project := minimalProject(projectName)
 			f := false
 			project.Spec.Auth = &platformv1alpha1.AuthSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Enabled: &f}}
@@ -400,11 +301,6 @@ var _ = Describe("Project Controller", func() {
 				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
-			apiRoute := &gatewayv1.HTTPRoute{}
-			apiRouteKey := types.NamespacedName{Name: projectName + "-gateway-api", Namespace: "default"}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, apiRouteKey, apiRoute)
-			}, timeout, interval).ShouldNot(Succeed())
 		})
 	})
 

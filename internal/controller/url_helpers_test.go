@@ -76,7 +76,7 @@ func TestBuildExternalURL(t *testing.T) {
 	}
 }
 
-func TestInternalURLUsesProjectGateway(t *testing.T) {
+func TestInternalURLUsesPublicURL(t *testing.T) {
 	project := &platformv1alpha1.Project{
 		Spec: platformv1alpha1.ProjectSpec{
 			Version: "2026.04.27",
@@ -86,17 +86,11 @@ func TestInternalURLUsesProjectGateway(t *testing.T) {
 					Hostname: "api.example.com",
 				},
 			},
-			Gateway: platformv1alpha1.GatewaySpec{
-				API: platformv1alpha1.ExistingGatewayRef{
-					Name:      "gw",
-					Namespace: "envoy-gateway-system",
-				},
-			},
 		},
 	}
 
-	if got := InternalURL(project); got != "https://gw.envoy-gateway-system.svc.cluster.local" {
-		t.Fatalf("InternalURL() = %q, want %q", got, "https://gw.envoy-gateway-system.svc.cluster.local")
+	if got := InternalURL(project); got != "https://api.example.com" {
+		t.Fatalf("InternalURL() = %q, want %q", got, "https://api.example.com")
 	}
 }
 

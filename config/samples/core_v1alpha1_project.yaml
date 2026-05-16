@@ -20,14 +20,6 @@ spec:
       protocol: "https"
       hostname: "studio.supabase.local"
 
-  gateway:
-    api:
-      name: "envoy-gw-private"
-      namespace: "envoy-gateway-system"
-    studio:
-      name: "envoy-gw-public"
-      namespace: "envoy-gateway-system"
-
   database:
     host: "postgres.supabase-postgres.svc.cluster.local"
     passwordRef:
