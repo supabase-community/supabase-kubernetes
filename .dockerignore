@@ -9,3 +9,6 @@
 # Re-include Go module files
 !go.mod
 !go.sum
+
+# Re-include embedded proxy templates
+!internal/controller/proxy_templates/*.yaml
