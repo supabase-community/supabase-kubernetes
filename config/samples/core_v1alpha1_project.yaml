@@ -14,11 +14,13 @@ spec:
 
   http:
     api:
-      protocol: "https"
+      protocol: "http"
       hostname: "api.supabase.local"
+      serviceType: ClusterIP
     studio:
-      protocol: "https"
+      protocol: "http"
       hostname: "studio.supabase.local"
+      serviceType: ClusterIP
 
   database:
     host: "postgres.supabase-postgres.svc.cluster.local"
