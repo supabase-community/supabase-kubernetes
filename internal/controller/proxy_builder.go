@@ -88,7 +88,7 @@ func buildInitScript(proxyType string) string {
 		vars = append(vars, "STUDIO_ADDRESS", "DASHBOARD_BASIC_AUTH")
 	}
 
-	var sedArgs []string
+	sedArgs := make([]string, 0, len(vars))
 	for _, v := range vars {
 		sedArgs = append(sedArgs, fmt.Sprintf(`-e "s|\${%s}|${%s}|g"`, v, v))
 	}
