@@ -360,7 +360,7 @@ func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []plat
 }
 
 func functionsCodeConfigMapName(projectName string) string {
-	return projectName + "-functions-code"
+	return projectName + "-function-main"
 }
 
 func listProjectFunctions(functions []platformv1alpha1.Function, projectName string) []platformv1alpha1.Function {
