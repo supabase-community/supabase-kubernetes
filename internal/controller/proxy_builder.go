@@ -16,7 +16,7 @@ import (
 const (
 	proxyAPIComponent    = "proxy-api"
 	proxyStudioComponent = "proxy-studio"
-	proxyPort            = int32(8080)
+	proxyPort            = int32(80)
 	proxyConfigFile      = "envoy.yaml"
 	proxyConfigMountPath = "/etc/envoy"
 	proxyTemplatePath    = "/templates"
