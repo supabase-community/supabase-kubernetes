@@ -24,6 +24,34 @@ func apiComponentsActive(project *platformv1alpha1.Project) bool {
 	return auth || rest || realtime || storage || functions || meta
 }
 
+func buildProxyEnvVars(project *platformv1alpha1.Project, proxyType string) []corev1.EnvVar {
+	name := project.Name
+	ns := project.Namespace
+	jwtSecret := jwtSecretName(name)
+
+	if proxyType == proxyAPIComponent {
+		return []corev1.EnvVar{
+			envVar("AUTH_ADDRESS", serviceHost(name, ns, "auth")),
+			envVar("REST_ADDRESS", serviceHost(name, ns, "rest")),
+			envVar("REALTIME_ADDRESS", serviceHost(name, ns, "realtime")),
+			envVar("STORAGE_ADDRESS", serviceHost(name, ns, "storage")),
+			envVar("FUNCTIONS_ADDRESS", serviceHost(name, ns, "functions")),
+			envVar("META_ADDRESS", serviceHost(name, ns, "meta")),
+			envVarFromSecret("ANON_KEY", jwtSecret, "anon-key"),
+			envVarFromSecret("ANON_KEY_ASYMMETRIC", jwtSecret, "anon-key-asymmetric"),
+			envVarFromSecret("SERVICE_ROLE_KEY", jwtSecret, "service-key"),
+			envVarFromSecret("SERVICE_ROLE_KEY_ASYMMETRIC", jwtSecret, "service-key-asymmetric"),
+			envVarFromSecret("SUPABASE_PUBLISHABLE_KEY", jwtSecret, "publishable-key"),
+			envVarFromSecret("SUPABASE_SECRET_KEY", jwtSecret, "secret-key"),
+		}
+	}
+
+	return []corev1.EnvVar{
+		envVar("STUDIO_ADDRESS", serviceHost(name, ns, "studio")),
+		envVarFromSecret("DASHBOARD_BASIC_AUTH", name+"-studio", ".htpasswd"),
+	}
+}
+
 func (r *ProjectReconciler) reconcileProxy(ctx context.Context, project *platformv1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 
@@ -91,11 +119,10 @@ func (r *ProjectReconciler) reconcileProxyEndpoint(ctx context.Context, project 
 		}
 	}
 
+	envVars := buildProxyEnvVars(project, proxyType)
+
 	// Reconcile ConfigMap
-	cm, err := buildProxyConfigMap(project, proxyType)
-	if err != nil {
-		return fmt.Errorf("building proxy ConfigMap: %w", err)
-	}
+	cm := buildProxyConfigMap(project, proxyType)
 	if err := controllerutil.SetControllerReference(project, cm, r.Scheme); err != nil {
 		return fmt.Errorf("setting owner reference on proxy ConfigMap: %w", err)
 	}
@@ -117,7 +144,7 @@ func (r *ProjectReconciler) reconcileProxyEndpoint(ctx context.Context, project 
 	}
 
 	// Reconcile Deployment
-	deploy := buildProxyDeployment(project, proxyType, image, &replicas, resources)
+	deploy := buildProxyDeployment(project, proxyType, image, &replicas, resources, envVars)
 	if err := controllerutil.SetControllerReference(project, deploy, r.Scheme); err != nil {
 		return fmt.Errorf("setting owner reference on proxy Deployment: %w", err)
 	}
