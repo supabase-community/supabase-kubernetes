@@ -1,0 +1,51 @@
+{{- $components := list
+  (dict "name" "analytics" "kind" "Deployment" "fullname" "supabase.analytics.fullname" "deployment" .Values.deployment.analytics "autoscaling" .Values.autoscaling.analytics)
+  (dict "name" "auth" "kind" "Deployment" "fullname" "supabase.auth.fullname" "deployment" .Values.deployment.auth "autoscaling" .Values.autoscaling.auth)
+  (dict "name" "db" "kind" "StatefulSet" "fullname" "supabase.db.fullname" "deployment" .Values.deployment.db "autoscaling" .Values.autoscaling.db)
+  (dict "name" "functions" "kind" "Deployment" "fullname" "supabase.functions.fullname" "deployment" .Values.deployment.functions "autoscaling" .Values.autoscaling.functions)
+  (dict "name" "imgproxy" "kind" "Deployment" "fullname" "supabase.imgproxy.fullname" "deployment" .Values.deployment.imgproxy "autoscaling" .Values.autoscaling.imgproxy)
+  (dict "name" "kong" "kind" "Deployment" "fullname" "supabase.kong.fullname" "deployment" .Values.deployment.kong "autoscaling" .Values.autoscaling.kong)
+  (dict "name" "meta" "kind" "Deployment" "fullname" "supabase.meta.fullname" "deployment" .Values.deployment.meta "autoscaling" .Values.autoscaling.meta)
+  (dict "name" "minio" "kind" "Deployment" "fullname" "supabase.minio.fullname" "deployment" .Values.deployment.minio "autoscaling" .Values.autoscaling.minio)
+  (dict "name" "realtime" "kind" "Deployment" "fullname" "supabase.realtime.fullname" "deployment" .Values.deployment.realtime "autoscaling" .Values.autoscaling.realtime)
+  (dict "name" "rest" "kind" "Deployment" "fullname" "supabase.rest.fullname" "deployment" .Values.deployment.rest "autoscaling" .Values.autoscaling.rest)
+  (dict "name" "storage" "kind" "Deployment" "fullname" "supabase.storage.fullname" "deployment" .Values.deployment.storage "autoscaling" .Values.autoscaling.storage)
+  (dict "name" "studio" "kind" "Deployment" "fullname" "supabase.studio.fullname" "deployment" .Values.deployment.studio "autoscaling" .Values.autoscaling.studio)
+  (dict "name" "vector" "kind" "Deployment" "fullname" "supabase.vector.fullname" "deployment" .Values.deployment.vector "autoscaling" .Values.autoscaling.vector)
+}}
+{{- range $component := $components }}
+{{- if and $component.deployment.enabled $component.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include $component.fullname $ }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "supabase.labels" $ | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: {{ $component.kind }}
+    name: {{ include $component.fullname $ }}
+  minReplicas: {{ $component.autoscaling.minReplicas }}
+  maxReplicas: {{ $component.autoscaling.maxReplicas }}
+  metrics:
+    {{- with $component.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+    {{- with $component.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+{{- end }}
+{{- end }}
