@@ -169,6 +169,25 @@ secret:
       gcloudJson: gcloud.json
 ```
 
+### Autoscaling
+
+Autoscaling is disabled by default. To enable it for a component, set `autoscaling.<component>.enabled=true` and configure CPU and/or memory requests for that component. Kubernetes HPA utilization metrics require metrics-server and container `resources.requests`.
+
+```yaml
+deployment:
+  auth:
+    resources:
+      requests:
+        cpu: 100m
+
+autoscaling:
+  auth:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+```
+
 ### S3 secret
 
 Supabase storage supports the use of S3 object-storage. To enable S3 for Supabase storage:
