@@ -713,6 +713,9 @@ environment:
     KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
     KONG_LOG_LEVEL: warn
 
+    # Please see: https://github.com/supabase-community/supabase-kubernetes/issues/187
+    KONG_NGINX_WORKER_PROCESSES: "2"
+
   meta:
     DB_USER: supabase_admin
     DB_DRIVER: postgres
