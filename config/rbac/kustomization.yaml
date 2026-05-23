@@ -22,6 +22,12 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the supabase-operator itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- databasemigration_admin_role.yaml
+- databasemigration_editor_role.yaml
+- databasemigration_viewer_role.yaml
+- singledatabase_admin_role.yaml
+- singledatabase_editor_role.yaml
+- singledatabase_viewer_role.yaml
 - externaldatabase_admin_role.yaml
 - externaldatabase_editor_role.yaml
 - externaldatabase_viewer_role.yaml

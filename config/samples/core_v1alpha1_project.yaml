@@ -23,5 +23,5 @@ spec:
       serviceType: ClusterIP
 
   databaseRef:
-    kind: ExternalDatabase
-    name: externaldatabase-sample
+    kind: SingleDatabase
+    name: singledatabase-sample

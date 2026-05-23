@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	corev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
@@ -76,6 +77,9 @@ var _ = BeforeSuite(func() {
 	err = platformv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = corev1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
@@ -91,6 +95,10 @@ var _ = BeforeSuite(func() {
 	err = (&ProjectReconciler{Client: k8sManager.GetClient(), Scheme: k8sManager.GetScheme()}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 	err = (&FunctionReconciler{Client: k8sManager.GetClient(), Scheme: k8sManager.GetScheme()}).SetupWithManager(k8sManager)
+	Expect(err).NotTo(HaveOccurred())
+	err = (&SingleDatabaseReconciler{Client: k8sManager.GetClient(), Scheme: k8sManager.GetScheme()}).SetupWithManager(k8sManager)
+	Expect(err).NotTo(HaveOccurred())
+	err = (&DatabaseMigrationReconciler{Client: k8sManager.GetClient(), Scheme: k8sManager.GetScheme()}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	go func() {

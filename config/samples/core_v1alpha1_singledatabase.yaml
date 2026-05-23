@@ -1,0 +1,49 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: SingleDatabase
+metadata:
+  labels:
+    app.kubernetes.io/name: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: singledatabase-sample
+spec:
+  image: "supabase/postgres:17.6.1.084"
+  # defaults to 10Gi if omitted
+  # storage:
+  #   accessModes:
+  #     - ReadWriteOnce
+  #   resources:
+  #     requests:
+  #       storage: 20Gi
+  # pvcDeletionPolicy: Retain
+  # probes:
+  #   startup:
+  #     exec:
+  #       command: ["pg_isready", "-U", "postgres"]
+  #     periodSeconds: 10
+  #     failureThreshold: 30
+  #   readiness:
+  #     exec:
+  #       command: ["pg_isready", "-U", "postgres"]
+  #     periodSeconds: 10
+  #   liveness:
+  #     exec:
+  #       command: ["pg_isready", "-U", "postgres"]
+  #     periodSeconds: 20
+  # nodeSelector:
+  #   kubernetes.io/os: linux
+  # tolerations:
+  #   - key: "dedicated"
+  #     operator: "Equal"
+  #     value: "postgres"
+  #     effect: "NoSchedule"
+  # podAnnotations:
+  #   prometheus.io/scrape: "true"
+  # podLabels:
+  #   tier: database
+  # imagePullPolicy: IfNotPresent
+  # terminationGracePeriodSeconds: 120
+  # podSecurityContext:
+  #   runAsNonRoot: true
+  #   runAsUser: 999
+  # containerSecurityContext:
+  #   allowPrivilegeEscalation: false

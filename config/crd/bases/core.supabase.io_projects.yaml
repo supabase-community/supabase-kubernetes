@@ -902,7 +902,7 @@ spec:
                   kind:
                     enum:
                     - ExternalDatabase
-                    - SimpleDatabase
+                    - SingleDatabase
                     type: string
                   name:
                     minLength: 1

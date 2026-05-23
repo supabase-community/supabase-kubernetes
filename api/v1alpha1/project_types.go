@@ -23,7 +23,7 @@ import (
 // DatabaseRef references a database resource.
 type DatabaseRef struct {
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=ExternalDatabase;SimpleDatabase
+	// +kubebuilder:validation:Enum=ExternalDatabase;SingleDatabase
 	Kind string `json:"kind"`
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1

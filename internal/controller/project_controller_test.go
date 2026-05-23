@@ -31,6 +31,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -43,6 +44,23 @@ func testExternalDatabase(name string) *platformv1alpha1.ExternalDatabase {
 		Spec: platformv1alpha1.ExternalDatabaseSpec{
 			Host:        "postgres.test.svc",
 			PasswordRef: platformv1alpha1.SecretKeyRef{Name: "test-db-secret", Key: "password"},
+		},
+	}
+}
+
+func testSingleDatabase(name string) *platformv1alpha1.SingleDatabase {
+	return &platformv1alpha1.SingleDatabase{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
+		Spec: platformv1alpha1.SingleDatabaseSpec{
+			Image: "supabase/postgres:17.6.1.084",
+			Storage: platformv1alpha1.VolumeClaimTemplateSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("1Gi"),
+					},
+				},
+			},
 		},
 	}
 }
@@ -471,6 +489,40 @@ var _ = Describe("Project Controller", func() {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, studioSecretKey, studioSecret)
 			}, timeout, interval).ShouldNot(Succeed())
+		})
+	})
+
+	Context("When creating a Project with SingleDatabase", func() {
+		const projectName = "single-db-project"
+		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
+
+		BeforeEach(func() {
+			Expect(k8sClient.Create(ctx, testSingleDatabase("test-single-db"))).To(Succeed())
+			project := validProject(projectName)
+			project.Spec.DatabaseRef = platformv1alpha1.DatabaseRef{Kind: "SingleDatabase", Name: "test-single-db"}
+			Expect(k8sClient.Create(ctx, project)).To(Succeed())
+			Eventually(func(g Gomega) {
+				created := &platformv1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			}, timeout, interval).Should(Succeed())
+		})
+
+		AfterEach(func() {
+			project := &platformv1alpha1.Project{}
+			if err := k8sClient.Get(ctx, projectKey, project); err == nil {
+				Expect(k8sClient.Delete(ctx, project)).To(Succeed())
+			}
+			singleDB := &platformv1alpha1.SingleDatabase{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db", Namespace: "default"}, singleDB); err == nil {
+				Expect(k8sClient.Delete(ctx, singleDB)).To(Succeed())
+			}
+		})
+
+		It("should reconcile successfully with SingleDatabase reference", func() {
+			project := &platformv1alpha1.Project{}
+			Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
+			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 		})
 	})
 })

@@ -78,6 +78,8 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=externaldatabases,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=externaldatabases/status,verbs=get
+// +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get
 
 // Reconcile handles the reconciliation loop for Project resources.
 func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -419,6 +421,24 @@ func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *pla
 			DBName:      derefString(extDB.Spec.DBName, "postgres"),
 			PasswordRef: extDB.Spec.PasswordRef,
 		}, nil
+	case "SingleDatabase":
+		singleDB := &platformv1alpha1.SingleDatabase{}
+		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, singleDB); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, fmt.Errorf("SingleDatabase %q not found", ref.Name)
+			}
+			return nil, fmt.Errorf("getting SingleDatabase %q: %w", ref.Name, err)
+		}
+		if !meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady) {
+			return nil, fmt.Errorf("SingleDatabase %q is not ready", ref.Name)
+		}
+		svcHost := fmt.Sprintf("%s.%s.svc.cluster.local", singleDB.Status.ServiceName, project.Namespace)
+		return &ResolvedDatabase{
+			Host:        svcHost,
+			Port:        5432,
+			DBName:      "postgres",
+			PasswordRef: platformv1alpha1.SecretKeyRef{Name: singleDB.Status.SecretName, Key: "password"},
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported database kind %q", ref.Kind)
 	}
@@ -477,10 +497,37 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return requests
 	})
 
+	singleDatabaseToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		singleDB, ok := obj.(*platformv1alpha1.SingleDatabase)
+		if !ok {
+			return nil
+		}
+
+		projectList := &platformv1alpha1.ProjectList{}
+		if err := r.List(ctx, projectList, client.InNamespace(singleDB.Namespace)); err != nil {
+			return nil
+		}
+
+		var requests []reconcile.Request
+		for i := range projectList.Items {
+			if projectList.Items[i].Spec.DatabaseRef.Kind == "SingleDatabase" &&
+				projectList.Items[i].Spec.DatabaseRef.Name == singleDB.Name {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      projectList.Items[i].Name,
+						Namespace: projectList.Items[i].Namespace,
+					},
+				})
+			}
+		}
+		return requests
+	})
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.Project{}).
 		Watches(&platformv1alpha1.Function{}, functionToProject).
 		Watches(&platformv1alpha1.ExternalDatabase{}, externalDatabaseToProject).
+		Watches(&platformv1alpha1.SingleDatabase{}, singleDatabaseToProject).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
