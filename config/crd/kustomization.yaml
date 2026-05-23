@@ -4,6 +4,7 @@
 resources:
 - bases/core.supabase.io_projects.yaml
 - bases/core.supabase.io_functions.yaml
+- bases/core.supabase.io_externaldatabases.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

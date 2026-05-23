@@ -896,39 +896,20 @@ spec:
                     - provider
                     type: object
                 type: object
-              database:
-                description: DatabaseSpec defines connection details for the external
-                  PostgreSQL database.
+              databaseRef:
+                description: DatabaseRef references a database resource.
                 properties:
-                  dbName:
-                    default: postgres
+                  kind:
+                    enum:
+                    - ExternalDatabase
+                    - SimpleDatabase
                     type: string
-                  host:
+                  name:
                     minLength: 1
                     type: string
-                  passwordRef:
-                    description: SecretKeyRef is a reference to a specific key in
-                      a Kubernetes Secret.
-                    properties:
-                      key:
-                        minLength: 1
-                        type: string
-                      name:
-                        minLength: 1
-                        type: string
-                    required:
-                    - key
-                    - name
-                    type: object
-                  port:
-                    default: 5432
-                    format: int32
-                    maximum: 65535
-                    minimum: 1
-                    type: integer
                 required:
-                - host
-                - passwordRef
+                - kind
+                - name
                 type: object
               functions:
                 description: FunctionsSpec defines the configuration for the Supabase
@@ -4662,7 +4643,7 @@ spec:
                 minLength: 1
                 type: string
             required:
-            - database
+            - databaseRef
             - global
             - http
             - version

@@ -1,0 +1,12 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: ExternalDatabase
+metadata:
+  labels:
+    app.kubernetes.io/name: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: externaldatabase-sample
+spec:
+  host: "postgres.supabase-postgres.svc.cluster.local"
+  passwordRef:
+    name: supabase-db-credentials
+    key: password

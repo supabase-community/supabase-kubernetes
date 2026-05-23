@@ -22,8 +22,6 @@ spec:
       hostname: "studio.supabase.local"
       serviceType: ClusterIP
 
-  database:
-    host: "postgres.supabase-postgres.svc.cluster.local"
-    passwordRef:
-      name: supabase-db-credentials
-      key: password
+  databaseRef:
+    kind: ExternalDatabase
+    name: externaldatabase-sample

@@ -82,7 +82,7 @@ func componentServiceName(projectName, component string) string {
 	return projectName + "-" + component
 }
 
-func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
+func StudioEnvVars(project *platformv1alpha1.Project, db *ResolvedDatabase) []corev1.EnvVar {
 	name := project.Name
 	spec := &project.Spec
 	jwtSecret := jwtSecretName(name)
@@ -92,16 +92,16 @@ func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		studioSpec = spec.Studio
 	}
 
-	dbPort := derefInt32(spec.Database.Port, 5432)
-	dbName := derefString(spec.Database.DBName, "postgres")
+	dbPort := db.Port
+	dbName := db.DBName
 
 	envs := []corev1.EnvVar{
 		envVar("HOSTNAME", "0.0.0.0"),
 		envVar("STUDIO_PG_META_URL", fmt.Sprintf("http://%s-meta:8080", name)),
-		envVar("POSTGRES_HOST", spec.Database.Host),
+		envVar("POSTGRES_HOST", db.Host),
 		envVar("POSTGRES_PORT", strconv.Itoa(int(dbPort))),
 		envVar("POSTGRES_DB", dbName),
-		envVarFromSecret("POSTGRES_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
+		envVarFromSecret("POSTGRES_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		envVarFromSecret("PG_META_CRYPTO_KEY", keysSecret, "crypto-key"),
 	}
 
@@ -140,13 +140,13 @@ func StudioEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 }
 
 // nolint:gocyclo
-func AuthEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
+func AuthEnvVars(project *platformv1alpha1.Project, db *ResolvedDatabase) []corev1.EnvVar {
 	name := project.Name
 	spec := &project.Spec
 	jwtSecret := jwtSecretName(name)
 
-	dbPort := derefInt32(spec.Database.Port, 5432)
-	dbName := derefString(spec.Database.DBName, "postgres")
+	dbPort := db.Port
+	dbName := db.DBName
 	jwtExpiry := derefInt32(spec.Global.JWTExpirySeconds, 3600)
 
 	envs := []corev1.EnvVar{
@@ -154,8 +154,8 @@ func AuthEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		envVar("GOTRUE_API_PORT", "9999"),
 		envVar("API_EXTERNAL_URL", PublicURL(project)),
 		envVar("GOTRUE_DB_DRIVER", "postgres"),
-		envVarFromSecret("DB_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
-		{Name: "GOTRUE_DB_DATABASE_URL", Value: fmt.Sprintf("postgresql://supabase_auth_admin:$(DB_PASSWORD)@%s:%d/%s?sslmode=disable", spec.Database.Host, dbPort, dbName)},
+		envVarFromSecret("DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
+		{Name: "GOTRUE_DB_DATABASE_URL", Value: fmt.Sprintf("postgresql://supabase_auth_admin:$(DB_PASSWORD)@%s:%d/%s?sslmode=disable", db.Host, dbPort, dbName)},
 		envVar("GOTRUE_SITE_URL", spec.Global.SiteURL),
 		envVar("GOTRUE_JWT_ADMIN_ROLES", "service_role"),
 		envVar("GOTRUE_JWT_AUD", "authenticated"),
@@ -305,16 +305,16 @@ func AuthEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	return envs
 }
 
-func RestEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
+func RestEnvVars(project *platformv1alpha1.Project, db *ResolvedDatabase) []corev1.EnvVar {
 	spec := &project.Spec
 	jwtSecret := jwtSecretName(project.Name)
-	dbPort := derefInt32(spec.Database.Port, 5432)
-	dbName := derefString(spec.Database.DBName, "postgres")
+	dbPort := db.Port
+	dbName := db.DBName
 	jwtExpiry := derefInt32(spec.Global.JWTExpirySeconds, 3600)
 
 	envs := []corev1.EnvVar{
-		envVarFromSecret("DB_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
-		{Name: "PGRST_DB_URI", Value: fmt.Sprintf("postgresql://authenticator:$(DB_PASSWORD)@%s:%d/%s?sslmode=disable", spec.Database.Host, dbPort, dbName)},
+		envVarFromSecret("DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
+		{Name: "PGRST_DB_URI", Value: fmt.Sprintf("postgresql://authenticator:$(DB_PASSWORD)@%s:%d/%s?sslmode=disable", db.Host, dbPort, dbName)},
 	}
 
 	if spec.Rest != nil && spec.Rest.DBSchemas != nil {
@@ -338,20 +338,19 @@ func RestEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	return envs
 }
 
-func RealtimeEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
-	spec := &project.Spec
+func RealtimeEnvVars(project *platformv1alpha1.Project, db *ResolvedDatabase) []corev1.EnvVar {
 	jwtSecret := jwtSecretName(project.Name)
 	keysSecret := keysSecretName(project.Name)
-	dbPort := derefInt32(spec.Database.Port, 5432)
-	dbName := derefString(spec.Database.DBName, "postgres")
+	dbPort := db.Port
+	dbName := db.DBName
 
 	return []corev1.EnvVar{
 		envVar("PORT", "4000"),
-		envVar("DB_HOST", spec.Database.Host),
+		envVar("DB_HOST", db.Host),
 		envVar("DB_PORT", strconv.Itoa(int(dbPort))),
 		envVar("DB_NAME", dbName),
 		envVar("DB_USER", "supabase_admin"),
-		envVarFromSecret("DB_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
+		envVarFromSecret("DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		envVar("DB_AFTER_CONNECT_QUERY", "SET search_path TO _realtime"),
 		envVar("DB_ENC_KEY", "supabaserealtime"),
 		envVarFromSecret("API_JWT_SECRET", jwtSecret, "jwt-secret"),
@@ -368,13 +367,13 @@ func RealtimeEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	}
 }
 
-func StorageEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
+func StorageEnvVars(project *platformv1alpha1.Project, db *ResolvedDatabase) []corev1.EnvVar {
 	spec := &project.Spec
 	jwtSecret := jwtSecretName(project.Name)
 	s3Secret := storageSecretName(project.Name)
-	dbHost := nodeDNSHost(spec.Database.Host)
-	dbPort := derefInt32(spec.Database.Port, 5432)
-	dbName := derefString(spec.Database.DBName, "postgres")
+	dbHost := nodeDNSHost(db.Host)
+	dbPort := db.Port
+	dbName := db.DBName
 
 	backend := "file"
 	fileSizeLimit := int32(52428800)
@@ -387,7 +386,7 @@ func StorageEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 		envVar("POSTGRES_HOST", dbHost),
 		envVar("POSTGRES_PORT", strconv.Itoa(int(dbPort))),
 		envVar("POSTGRES_DB", dbName),
-		envVarFromSecret("POSTGRES_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
+		envVarFromSecret("POSTGRES_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		envVarFromSecret("ANON_KEY", jwtSecret, "anon-key"),
 		envVarFromSecret("SERVICE_KEY", jwtSecret, "service-key"),
 		envVarFromSecret("AUTH_JWT_SECRET", jwtSecret, "jwt-secret"),
@@ -432,19 +431,18 @@ func StorageEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
 	return envs
 }
 
-func MetaEnvVars(project *platformv1alpha1.Project) []corev1.EnvVar {
-	spec := &project.Spec
+func MetaEnvVars(project *platformv1alpha1.Project, db *ResolvedDatabase) []corev1.EnvVar {
 	keysSecret := keysSecretName(project.Name)
-	dbPort := derefInt32(spec.Database.Port, 5432)
-	dbName := derefString(spec.Database.DBName, "postgres")
+	dbPort := db.Port
+	dbName := db.DBName
 
 	return []corev1.EnvVar{
 		envVar("PG_META_PORT", "8080"),
-		envVar("PG_META_DB_HOST", spec.Database.Host),
+		envVar("PG_META_DB_HOST", db.Host),
 		envVar("PG_META_DB_PORT", strconv.Itoa(int(dbPort))),
 		envVar("PG_META_DB_NAME", dbName),
 		envVar("PG_META_DB_USER", "supabase_admin"),
-		envVarFromSecret("PG_META_DB_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
+		envVarFromSecret("PG_META_DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		envVarFromSecret("CRYPTO_KEY", keysSecret, "crypto-key"),
 	}
 }
@@ -466,12 +464,11 @@ func functionsNoVerifyJWT(functions []platformv1alpha1.Function) (string, error)
 	return string(encoded), nil
 }
 
-func FunctionsEnvVars(project *platformv1alpha1.Project, functions []platformv1alpha1.Function) ([]corev1.EnvVar, error) {
-	spec := &project.Spec
+func FunctionsEnvVars(project *platformv1alpha1.Project, functions []platformv1alpha1.Function, db *ResolvedDatabase) ([]corev1.EnvVar, error) {
 	jwtSecret := jwtSecretName(project.Name)
-	dbHost := nodeDNSHost(spec.Database.Host)
-	dbPort := derefInt32(spec.Database.Port, 5432)
-	dbName := derefString(spec.Database.DBName, "postgres")
+	dbHost := nodeDNSHost(db.Host)
+	dbPort := db.Port
+	dbName := db.DBName
 
 	functionsNoVerify, err := functionsNoVerifyJWT(functions)
 	if err != nil {
@@ -486,7 +483,7 @@ func FunctionsEnvVars(project *platformv1alpha1.Project, functions []platformv1a
 		envVarFromSecret("SUPABASE_SECRET_KEYS", jwtSecret, "secret-keys-json"),
 		envVar("SUPABASE_URL", InternalURL(project)),
 		envVar("SUPABASE_PUBLIC_URL", PublicURL(project)),
-		envVarFromSecret("POSTGRES_PASSWORD", spec.Database.PasswordRef.Name, spec.Database.PasswordRef.Key),
+		envVarFromSecret("POSTGRES_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		envVar("POSTGRES_HOST", dbHost),
 		envVar("POSTGRES_PORT", strconv.Itoa(int(dbPort))),
 		envVar("POSTGRES_DB", dbName),

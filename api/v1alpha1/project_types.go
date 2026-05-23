@@ -20,6 +20,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// DatabaseRef references a database resource.
+type DatabaseRef struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=ExternalDatabase;SimpleDatabase
+	Kind string `json:"kind"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+}
+
 // ProjectSpec defines the desired state of a Supabase deployment.
 type ProjectSpec struct {
 	// +kubebuilder:validation:Required
@@ -30,7 +40,7 @@ type ProjectSpec struct {
 	// +kubebuilder:validation:Required
 	HTTP HTTPSpec `json:"http"`
 	// +kubebuilder:validation:Required
-	Database DatabaseSpec `json:"database"`
+	DatabaseRef DatabaseRef `json:"databaseRef"`
 	// +optional
 	Studio *StudioSpec `json:"studio,omitempty"`
 	// +optional

@@ -2,4 +2,5 @@
 resources:
 - core_v1alpha1_project.yaml
 - core_v1alpha1_function.yaml
+- core_v1alpha1_externaldatabase.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

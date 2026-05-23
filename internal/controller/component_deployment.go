@@ -117,7 +117,7 @@ func BuildStatefulSet(project *platformv1alpha1.Project, params ComponentWorkloa
 	}
 }
 
-func StudioWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+func StudioWorkloadParams(project *platformv1alpha1.Project, db *ResolvedDatabase) (ComponentWorkloadParams, error) {
 	studioSpec := &platformv1alpha1.StudioSpec{}
 	if project.Spec.Studio != nil {
 		studioSpec = project.Spec.Studio
@@ -132,7 +132,7 @@ func StudioWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadP
 		Component:      "studio",
 		Image:          image,
 		Port:           3000,
-		Env:            StudioEnvVars(project),
+		Env:            StudioEnvVars(project, db),
 		Resources:      studioSpec.Resources,
 		Probes:         studioSpec.Probes,
 		Replicas:       studioSpec.Replicas,
@@ -206,7 +206,7 @@ func attachStudioFunctions(params *ComponentWorkloadParams, functions []platform
 	}
 }
 
-func AuthWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+func AuthWorkloadParams(project *platformv1alpha1.Project, db *ResolvedDatabase) (ComponentWorkloadParams, error) {
 	authSpec := &platformv1alpha1.AuthSpec{}
 	if project.Spec.Auth != nil {
 		authSpec = project.Spec.Auth
@@ -216,10 +216,10 @@ func AuthWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadPar
 	if err != nil {
 		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentAuth, err)
 	}
-	return ComponentWorkloadParams{Component: "auth", Image: image, Port: 9999, Env: AuthEnvVars(project), Resources: authSpec.Resources, Probes: authSpec.Probes, Replicas: authSpec.Replicas}, nil
+	return ComponentWorkloadParams{Component: "auth", Image: image, Port: 9999, Env: AuthEnvVars(project, db), Resources: authSpec.Resources, Probes: authSpec.Probes, Replicas: authSpec.Replicas}, nil
 }
 
-func RestWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+func RestWorkloadParams(project *platformv1alpha1.Project, db *ResolvedDatabase) (ComponentWorkloadParams, error) {
 	restSpec := &platformv1alpha1.RestSpec{}
 	if project.Spec.Rest != nil {
 		restSpec = project.Spec.Rest
@@ -229,10 +229,10 @@ func RestWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadPar
 	if err != nil {
 		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentRest, err)
 	}
-	return ComponentWorkloadParams{Component: "rest", Image: image, Port: 3000, Env: RestEnvVars(project), Resources: restSpec.Resources, Probes: restSpec.Probes, Replicas: restSpec.Replicas}, nil
+	return ComponentWorkloadParams{Component: "rest", Image: image, Port: 3000, Env: RestEnvVars(project, db), Resources: restSpec.Resources, Probes: restSpec.Probes, Replicas: restSpec.Replicas}, nil
 }
 
-func RealtimeWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+func RealtimeWorkloadParams(project *platformv1alpha1.Project, db *ResolvedDatabase) (ComponentWorkloadParams, error) {
 	realtimeSpec := &platformv1alpha1.RealtimeSpec{}
 	if project.Spec.Realtime != nil {
 		realtimeSpec = project.Spec.Realtime
@@ -242,10 +242,10 @@ func RealtimeWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloa
 	if err != nil {
 		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentRealtime, err)
 	}
-	return ComponentWorkloadParams{Component: "realtime", Image: image, Port: 4000, Env: RealtimeEnvVars(project), Resources: realtimeSpec.Resources, Probes: realtimeSpec.Probes, Replicas: realtimeSpec.Replicas}, nil
+	return ComponentWorkloadParams{Component: "realtime", Image: image, Port: 4000, Env: RealtimeEnvVars(project, db), Resources: realtimeSpec.Resources, Probes: realtimeSpec.Probes, Replicas: realtimeSpec.Replicas}, nil
 }
 
-func StorageWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+func StorageWorkloadParams(project *platformv1alpha1.Project, db *ResolvedDatabase) (ComponentWorkloadParams, error) {
 	storageSpec := &platformv1alpha1.StorageSpec{}
 	if project.Spec.Storage != nil {
 		storageSpec = project.Spec.Storage
@@ -256,7 +256,7 @@ func StorageWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkload
 		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentStorage, err)
 	}
 
-	params := ComponentWorkloadParams{Component: "storage", Image: image, Port: 5000, Env: StorageEnvVars(project), Resources: storageSpec.Resources, Probes: storageSpec.Probes, Replicas: storageSpec.Replicas}
+	params := ComponentWorkloadParams{Component: "storage", Image: image, Port: 5000, Env: StorageEnvVars(project, db), Resources: storageSpec.Resources, Probes: storageSpec.Probes, Replicas: storageSpec.Replicas}
 	if derefString(storageSpec.Backend, "file") == "file" {
 		params.UseStatefulSet = true
 		params.VolumeMounts = []corev1.VolumeMount{{Name: "storage-data", MountPath: "/var/lib/storage"}}
@@ -276,7 +276,7 @@ func StorageWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkload
 	return params, nil
 }
 
-func MetaWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadParams, error) {
+func MetaWorkloadParams(project *platformv1alpha1.Project, db *ResolvedDatabase) (ComponentWorkloadParams, error) {
 	metaSpec := &platformv1alpha1.MetaSpec{}
 	if project.Spec.Meta != nil {
 		metaSpec = project.Spec.Meta
@@ -286,10 +286,10 @@ func MetaWorkloadParams(project *platformv1alpha1.Project) (ComponentWorkloadPar
 	if err != nil {
 		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentMeta, err)
 	}
-	return ComponentWorkloadParams{Component: "meta", Image: image, Port: 8080, Env: MetaEnvVars(project), Resources: metaSpec.Resources, Probes: metaSpec.Probes, Replicas: metaSpec.Replicas}, nil
+	return ComponentWorkloadParams{Component: "meta", Image: image, Port: 8080, Env: MetaEnvVars(project, db), Resources: metaSpec.Resources, Probes: metaSpec.Probes, Replicas: metaSpec.Replicas}, nil
 }
 
-func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []platformv1alpha1.Function) (ComponentWorkloadParams, error) {
+func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []platformv1alpha1.Function, db *ResolvedDatabase) (ComponentWorkloadParams, error) {
 	functionsSpec := &platformv1alpha1.FunctionsSpec{}
 	if project.Spec.Functions != nil {
 		functionsSpec = project.Spec.Functions
@@ -300,7 +300,7 @@ func FunctionsWorkloadParams(project *platformv1alpha1.Project, functions []plat
 		return ComponentWorkloadParams{}, fmt.Errorf("resolving image for %s: %w", componentFunctions, err)
 	}
 
-	functionsEnvVars, err := FunctionsEnvVars(project, functions)
+	functionsEnvVars, err := FunctionsEnvVars(project, functions, db)
 	if err != nil {
 		return ComponentWorkloadParams{}, fmt.Errorf("building env vars for %s: %w", componentFunctions, err)
 	}
@@ -715,7 +715,7 @@ type componentDef struct {
 }
 
 // EnsureAllComponents ensures all enabled Supabase components are deployed.
-func (r *ProjectReconciler) EnsureAllComponents(ctx context.Context, project *platformv1alpha1.Project) error {
+func (r *ProjectReconciler) EnsureAllComponents(ctx context.Context, project *platformv1alpha1.Project, db *ResolvedDatabase) error {
 	functions := []platformv1alpha1.Function{}
 	functionsEnabled := project.Spec.Functions == nil || derefBool(project.Spec.Functions.Enabled, true)
 	if functionsEnabled {
@@ -742,44 +742,44 @@ func (r *ProjectReconciler) EnsureAllComponents(ctx context.Context, project *pl
 	}
 
 	components := []componentDef{}
-	studioParams, err := StudioWorkloadParams(project)
+	studioParams, err := StudioWorkloadParams(project, db)
 	if err != nil {
 		return err
 	}
 	attachStudioFunctions(&studioParams, functions)
 	components = append(components, componentDef{enabled: project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true), params: studioParams, svcParams: ComponentServiceParams{Component: "studio", Port: 3000}})
 
-	authParams, err := AuthWorkloadParams(project)
+	authParams, err := AuthWorkloadParams(project, db)
 	if err != nil {
 		return err
 	}
 	components = append(components, componentDef{enabled: project.Spec.Auth == nil || derefBool(project.Spec.Auth.Enabled, true), params: authParams, svcParams: ComponentServiceParams{Component: "auth", Port: 9999}})
 
-	restParams, err := RestWorkloadParams(project)
+	restParams, err := RestWorkloadParams(project, db)
 	if err != nil {
 		return err
 	}
 	components = append(components, componentDef{enabled: project.Spec.Rest == nil || derefBool(project.Spec.Rest.Enabled, true), params: restParams, svcParams: ComponentServiceParams{Component: "rest", Port: 3000}})
 
-	realtimeParams, err := RealtimeWorkloadParams(project)
+	realtimeParams, err := RealtimeWorkloadParams(project, db)
 	if err != nil {
 		return err
 	}
 	components = append(components, componentDef{enabled: project.Spec.Realtime == nil || derefBool(project.Spec.Realtime.Enabled, true), params: realtimeParams, svcParams: ComponentServiceParams{Component: "realtime", Port: 4000}})
 
-	storageParams, err := StorageWorkloadParams(project)
+	storageParams, err := StorageWorkloadParams(project, db)
 	if err != nil {
 		return err
 	}
 	components = append(components, componentDef{enabled: project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true), params: storageParams, svcParams: ComponentServiceParams{Component: "storage", Port: 5000}})
 
-	metaParams, err := MetaWorkloadParams(project)
+	metaParams, err := MetaWorkloadParams(project, db)
 	if err != nil {
 		return err
 	}
 	components = append(components, componentDef{enabled: project.Spec.Meta == nil || derefBool(project.Spec.Meta.Enabled, true), params: metaParams, svcParams: ComponentServiceParams{Component: "meta", Port: 8080}})
 
-	functionsParams, err := FunctionsWorkloadParams(project, functions)
+	functionsParams, err := FunctionsWorkloadParams(project, functions, db)
 	if err != nil {
 		return err
 	}

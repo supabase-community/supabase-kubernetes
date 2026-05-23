@@ -22,9 +22,14 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the supabase-operator itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- externaldatabase_admin_role.yaml
+- externaldatabase_editor_role.yaml
+- externaldatabase_viewer_role.yaml
 - function_admin_role.yaml
 - function_editor_role.yaml
 - function_viewer_role.yaml
 - project_admin_role.yaml
 - project_editor_role.yaml
 - project_viewer_role.yaml
+
+

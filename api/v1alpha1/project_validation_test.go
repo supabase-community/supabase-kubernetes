@@ -64,17 +64,25 @@ var _ = Describe("Project Validation", func() {
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.database.host", func() {
-			project := minimalValidProject("test-val-no-dbhost")
-			project.Spec.Database.Host = ""
+		It("should reject CR missing spec.databaseRef.kind", func() {
+			project := minimalValidProject("test-val-no-dbref-kind")
+			project.Spec.DatabaseRef.Kind = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		It("should reject CR missing spec.database.passwordRef.name", func() {
-			project := minimalValidProject("test-val-no-pwref-name")
-			project.Spec.Database.PasswordRef.Name = ""
+		It("should reject CR with invalid spec.databaseRef.kind", func() {
+			project := minimalValidProject("test-val-invalid-dbref-kind")
+			project.Spec.DatabaseRef.Kind = "UnknownDatabase"
+			err := k8sClient.Create(ctx, project)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		It("should reject CR missing spec.databaseRef.name", func() {
+			project := minimalValidProject("test-val-no-dbref-name")
+			project.Spec.DatabaseRef.Name = ""
 			err := k8sClient.Create(ctx, project)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)).To(BeTrue())

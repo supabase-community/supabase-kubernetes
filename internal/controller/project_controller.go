@@ -42,9 +42,18 @@ import (
 const (
 	DefaultJWTExpiry = 24 * time.Hour * 365 * 10
 
-	ConditionTypeSecretsReady = "SecretsReady"
-	ConditionTypeReady        = "Ready"
+	ConditionTypeSecretsReady  = "SecretsReady"
+	ConditionTypeReady         = "Ready"
+	ConditionTypeDatabaseReady = "DatabaseReady"
 )
+
+// ResolvedDatabase holds the resolved connection parameters for a Project's database.
+type ResolvedDatabase struct {
+	Host        string
+	Port        int32
+	DBName      string
+	PasswordRef platformv1alpha1.SecretKeyRef
+}
 
 type secretDefinition struct {
 	suffix    string
@@ -67,6 +76,8 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
+// +kubebuilder:rbac:groups=core.supabase.io,resources=externaldatabases,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core.supabase.io,resources=externaldatabases/status,verbs=get
 
 // Reconcile handles the reconciliation loop for Project resources.
 func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -122,7 +133,19 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if err := r.EnsureAllComponents(ctx, project); err != nil {
+	db, err := r.resolveDatabaseRef(ctx, project)
+	if err != nil {
+		logger.Error(err, "Failed to resolve database reference")
+		r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "DatabaseResolutionFailed", err.Error())
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "DatabaseNotReady", "Database reference could not be resolved")
+		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after database resolution failure")
+		}
+		return ctrl.Result{}, err
+	}
+	r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionTrue, "DatabaseResolved", "Database reference resolved successfully")
+
+	if err := r.EnsureAllComponents(ctx, project, db); err != nil {
 		logger.Error(err, "Failed to ensure components")
 		r.setCondition(project, "ComponentsReady", metav1.ConditionFalse, "ComponentsFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
@@ -378,6 +401,29 @@ func (r *ProjectReconciler) deleteStorageSecretIfDisabled(ctx context.Context, p
 	return nil
 }
 
+func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *platformv1alpha1.Project) (*ResolvedDatabase, error) {
+	ref := project.Spec.DatabaseRef
+
+	switch ref.Kind {
+	case "ExternalDatabase":
+		extDB := &platformv1alpha1.ExternalDatabase{}
+		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, extDB); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, fmt.Errorf("ExternalDatabase %q not found", ref.Name)
+			}
+			return nil, fmt.Errorf("getting ExternalDatabase %q: %w", ref.Name, err)
+		}
+		return &ResolvedDatabase{
+			Host:        extDB.Spec.Host,
+			Port:        derefInt32(extDB.Spec.Port, 5432),
+			DBName:      derefString(extDB.Spec.DBName, "postgres"),
+			PasswordRef: extDB.Spec.PasswordRef,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported database kind %q", ref.Kind)
+	}
+}
+
 // keysOf returns the keys of a map as a string slice (for logging).
 func keysOf(m map[string][]byte) []string {
 	keys := make([]string, 0, len(m))
@@ -405,9 +451,36 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		}}
 	})
 
+	externalDatabaseToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		extDB, ok := obj.(*platformv1alpha1.ExternalDatabase)
+		if !ok {
+			return nil
+		}
+
+		projectList := &platformv1alpha1.ProjectList{}
+		if err := r.List(ctx, projectList, client.InNamespace(extDB.Namespace)); err != nil {
+			return nil
+		}
+
+		var requests []reconcile.Request
+		for i := range projectList.Items {
+			if projectList.Items[i].Spec.DatabaseRef.Kind == "ExternalDatabase" &&
+				projectList.Items[i].Spec.DatabaseRef.Name == extDB.Name {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      projectList.Items[i].Name,
+						Namespace: projectList.Items[i].Namespace,
+					},
+				})
+			}
+		}
+		return requests
+	})
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.Project{}).
 		Watches(&platformv1alpha1.Function{}, functionToProject).
+		Watches(&platformv1alpha1.ExternalDatabase{}, externalDatabaseToProject).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).

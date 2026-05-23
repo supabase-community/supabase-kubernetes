@@ -23,22 +23,6 @@ var _ = Describe("Project Defaults", func() {
 		})
 	})
 
-	Context("database defaults", func() {
-		It("should default port to 5432 and dbName to postgres", func() {
-			project := minimalValidProject("test-def-db")
-			Expect(k8sClient.Create(ctx, project)).To(Succeed())
-			DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
-
-			fetched := &platformv1alpha1.Project{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, fetched)).To(Succeed())
-
-			Expect(fetched.Spec.Database.Port).NotTo(BeNil())
-			Expect(*fetched.Spec.Database.Port).To(Equal(int32(5432)))
-			Expect(fetched.Spec.Database.DBName).NotTo(BeNil())
-			Expect(*fetched.Spec.Database.DBName).To(Equal("postgres"))
-		})
-	})
-
 	Context("component defaults", func() {
 		It("should default enabled=true and replicas=1 for all components", func() {
 			project := minimalValidProject("test-def-components")

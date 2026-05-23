@@ -35,7 +35,6 @@ func findEnv(envs []corev1.EnvVar, name string) *corev1.EnvVar {
 }
 
 func int32P(i int32) *int32 { return &i }
-func strP(s string) *string { return &s }
 func boolP(b bool) *bool    { return &b }
 
 func newTestEnvProject() *platformv1alpha1.Project {
@@ -55,28 +54,31 @@ func newTestEnvProject() *platformv1alpha1.Project {
 					Hostname: "studio.example.com",
 				},
 			},
-
-			Database: platformv1alpha1.DatabaseSpec{
-				Host:        "db.example.com",
-				Port:        int32P(5432),
-				DBName:      strP("postgres"),
-				PasswordRef: platformv1alpha1.SecretKeyRef{Name: "db-secret", Key: "password"},
-			},
-			Studio:    &platformv1alpha1.StudioSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/studio:latest"}},
-			Auth:      &platformv1alpha1.AuthSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/gotrue:latest"}},
-			Rest:      &platformv1alpha1.RestSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "postgrest/postgrest:latest"}},
-			Realtime:  &platformv1alpha1.RealtimeSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/realtime:latest"}},
-			Storage:   &platformv1alpha1.StorageSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/storage-api:latest"}},
-			Meta:      &platformv1alpha1.MetaSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/postgres-meta:latest"}},
-			Functions: &platformv1alpha1.FunctionsSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/edge-runtime:latest"}},
+			DatabaseRef: platformv1alpha1.DatabaseRef{Kind: "ExternalDatabase", Name: "test-db"},
+			Studio:      &platformv1alpha1.StudioSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/studio:latest"}},
+			Auth:        &platformv1alpha1.AuthSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/gotrue:latest"}},
+			Rest:        &platformv1alpha1.RestSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "postgrest/postgrest:latest"}},
+			Realtime:    &platformv1alpha1.RealtimeSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/realtime:latest"}},
+			Storage:     &platformv1alpha1.StorageSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/storage-api:latest"}},
+			Meta:        &platformv1alpha1.MetaSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/postgres-meta:latest"}},
+			Functions:   &platformv1alpha1.FunctionsSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/edge-runtime:latest"}},
 		},
+	}
+}
+
+func newTestResolvedDatabase() *ResolvedDatabase {
+	return &ResolvedDatabase{
+		Host:        "db.example.com",
+		Port:        5432,
+		DBName:      "postgres",
+		PasswordRef: platformv1alpha1.SecretKeyRef{Name: "db-secret", Key: "password"},
 	}
 }
 
 var _ = Describe("Component env builders", func() {
 	Describe("StudioEnvVars", func() {
 		It("should include base env vars and key secret refs", func() {
-			envs := StudioEnvVars(newTestEnvProject())
+			envs := StudioEnvVars(newTestEnvProject(), newTestResolvedDatabase())
 			Expect(findEnv(envs, "HOSTNAME").Value).To(Equal("0.0.0.0"))
 			Expect(findEnv(envs, "PG_META_CRYPTO_KEY").ValueFrom.SecretKeyRef.Name).To(Equal("main-keys"))
 			Expect(findEnv(envs, "AUTH_JWT_SECRET").ValueFrom.SecretKeyRef.Name).To(Equal("main-jwt"))
@@ -85,7 +87,7 @@ var _ = Describe("Component env builders", func() {
 
 	Describe("AuthEnvVars", func() {
 		It("should include core GOTRUE env vars", func() {
-			envs := AuthEnvVars(newTestEnvProject())
+			envs := AuthEnvVars(newTestEnvProject(), newTestResolvedDatabase())
 			Expect(findEnv(envs, "GOTRUE_API_HOST").Value).To(Equal("0.0.0.0"))
 			Expect(findEnv(envs, "GOTRUE_DB_DATABASE_URL").Value).To(ContainSubstring("$(DB_PASSWORD)"))
 			Expect(findEnv(envs, "GOTRUE_JWT_SECRET").ValueFrom.SecretKeyRef.Name).To(Equal("main-jwt"))
@@ -98,7 +100,7 @@ var _ = Describe("Component env builders", func() {
 				GitHub: &platformv1alpha1.OAuthProviderSpec{},
 				Azure:  &platformv1alpha1.OAuthProviderSpec{},
 			}
-			envs := AuthEnvVars(project)
+			envs := AuthEnvVars(project, newTestResolvedDatabase())
 			Expect(findEnv(envs, "GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI").Value).To(Equal("http://api.example.com/auth/v1/callback"))
 			Expect(findEnv(envs, "GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI").Value).To(Equal("http://api.example.com/auth/v1/callback"))
 			Expect(findEnv(envs, "GOTRUE_EXTERNAL_AZURE_REDIRECT_URI").Value).To(Equal("http://api.example.com/auth/v1/callback"))
@@ -107,14 +109,14 @@ var _ = Describe("Component env builders", func() {
 		It("should include SMTP vars when configured", func() {
 			project := newTestEnvProject()
 			project.Spec.Auth.Email = &platformv1alpha1.AuthEmailSpec{SMTP: &platformv1alpha1.AuthSmtpSpec{AdminEmail: "admin@example.com", Host: "smtp.example.com", Port: 587, UserRef: platformv1alpha1.SecretKeyRef{Name: "smtp", Key: "user"}, PassRef: platformv1alpha1.SecretKeyRef{Name: "smtp", Key: "pass"}}}
-			envs := AuthEnvVars(project)
+			envs := AuthEnvVars(project, newTestResolvedDatabase())
 			Expect(findEnv(envs, "GOTRUE_SMTP_HOST").Value).To(Equal("smtp.example.com"))
 		})
 
 		It("should include generated SAML private key env when SAML is enabled", func() {
 			project := newTestEnvProject()
 			project.Spec.Auth.SAML = &platformv1alpha1.AuthSamlSpec{Enabled: boolP(true)}
-			envs := AuthEnvVars(project)
+			envs := AuthEnvVars(project, newTestResolvedDatabase())
 			Expect(findEnv(envs, "GOTRUE_SAML_PRIVATE_KEY")).NotTo(BeNil())
 			Expect(findEnv(envs, "GOTRUE_SAML_PRIVATE_KEY").ValueFrom.SecretKeyRef.Name).To(Equal("main-saml"))
 			Expect(findEnv(envs, "GOTRUE_SAML_PRIVATE_KEY").ValueFrom.SecretKeyRef.Key).To(Equal("private-key"))
@@ -124,22 +126,24 @@ var _ = Describe("Component env builders", func() {
 	Describe("Remaining env builders", func() {
 		It("should include expected secret refs", func() {
 			project := newTestEnvProject()
-			Expect(findEnv(RestEnvVars(project), "PGRST_JWT_SECRET").ValueFrom.SecretKeyRef.Key).To(Equal("jwt-jwks"))
-			Expect(findEnv(RealtimeEnvVars(project), "SECRET_KEY_BASE").ValueFrom.SecretKeyRef.Name).To(Equal("main-keys"))
-			Expect(findEnv(StorageEnvVars(project), "S3_PROTOCOL_ACCESS_KEY_ID").ValueFrom.SecretKeyRef.Name).To(Equal("main-storage"))
-			Expect(findEnv(StorageEnvVars(project), "DATABASE_URL").Value).To(Equal("postgres://supabase_storage_admin:$(POSTGRES_PASSWORD)@db.example.com:5432/postgres"))
-			Expect(findEnv(StorageEnvVars(project), "POSTGRES_HOST").Value).To(Equal("db.example.com"))
-			Expect(findEnv(MetaEnvVars(project), "CRYPTO_KEY").ValueFrom.SecretKeyRef.Name).To(Equal("main-keys"))
-			functionsEnv, err := FunctionsEnvVars(project, nil)
+			db := newTestResolvedDatabase()
+			Expect(findEnv(RestEnvVars(project, db), "PGRST_JWT_SECRET").ValueFrom.SecretKeyRef.Key).To(Equal("jwt-jwks"))
+			Expect(findEnv(RealtimeEnvVars(project, db), "SECRET_KEY_BASE").ValueFrom.SecretKeyRef.Name).To(Equal("main-keys"))
+			Expect(findEnv(StorageEnvVars(project, db), "S3_PROTOCOL_ACCESS_KEY_ID").ValueFrom.SecretKeyRef.Name).To(Equal("main-storage"))
+			Expect(findEnv(StorageEnvVars(project, db), "DATABASE_URL").Value).To(Equal("postgres://supabase_storage_admin:$(POSTGRES_PASSWORD)@db.example.com:5432/postgres"))
+			Expect(findEnv(StorageEnvVars(project, db), "POSTGRES_HOST").Value).To(Equal("db.example.com"))
+			Expect(findEnv(MetaEnvVars(project, db), "CRYPTO_KEY").ValueFrom.SecretKeyRef.Name).To(Equal("main-keys"))
+			functionsEnv, err := FunctionsEnvVars(project, nil, db)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(findEnv(functionsEnv, "SUPABASE_PUBLISHABLE_KEYS").ValueFrom.SecretKeyRef.Name).To(Equal("main-jwt"))
 		})
 
 		It("should trim .svc.cluster.local for node-based components", func() {
 			project := newTestEnvProject()
-			project.Spec.Database.Host = "postgres.db.svc.cluster.local"
-			Expect(findEnv(StorageEnvVars(project), "POSTGRES_HOST").Value).To(Equal("postgres.db"))
-			functionsEnv, err := FunctionsEnvVars(project, nil)
+			db := newTestResolvedDatabase()
+			db.Host = "postgres.db.svc.cluster.local"
+			Expect(findEnv(StorageEnvVars(project, db), "POSTGRES_HOST").Value).To(Equal("postgres.db"))
+			functionsEnv, err := FunctionsEnvVars(project, nil, db)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(findEnv(functionsEnv, "POSTGRES_HOST").Value).To(Equal("postgres.db"))
 			Expect(findEnv(functionsEnv, "SUPABASE_DB_URL").Value).To(Equal("postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"))
@@ -152,7 +156,7 @@ var _ = Describe("Component env builders", func() {
 				{Spec: platformv1alpha1.FunctionSpec{FunctionName: "private-fn", VerifyJWT: boolP(true)}},
 				{Spec: platformv1alpha1.FunctionSpec{FunctionName: "default-fn"}},
 			}
-			functionsEnv, err := FunctionsEnvVars(project, functions)
+			functionsEnv, err := FunctionsEnvVars(project, functions, newTestResolvedDatabase())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(findEnv(functionsEnv, "FUNCTIONS_NO_VERIFY_JWT").Value).To(Equal("[\"public-fn\"]"))
 		})

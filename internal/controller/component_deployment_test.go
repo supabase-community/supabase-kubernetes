@@ -10,6 +10,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 var _ = Describe("Component workloads", func() {
@@ -17,6 +19,13 @@ var _ = Describe("Component workloads", func() {
 	const interval = 250 * time.Millisecond
 
 	It("should create services and workloads for enabled components", func() {
+		Expect(k8sClient.Create(ctx, testExternalDatabase("test-db"))).To(Succeed())
+		DeferCleanup(func() {
+			extDB := &platformv1alpha1.ExternalDatabase{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-db", Namespace: "default"}, extDB); err == nil {
+				_ = k8sClient.Delete(ctx, extDB)
+			}
+		})
 		project := validProject("components-project")
 		Expect(k8sClient.Create(ctx, project)).To(Succeed())
 		DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })
@@ -40,6 +49,13 @@ var _ = Describe("Component workloads", func() {
 	})
 
 	It("should not create deployment for disabled auth component", func() {
+		Expect(k8sClient.Create(ctx, testExternalDatabase("test-db"))).To(Succeed())
+		DeferCleanup(func() {
+			extDB := &platformv1alpha1.ExternalDatabase{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-db", Namespace: "default"}, extDB); err == nil {
+				_ = k8sClient.Delete(ctx, extDB)
+			}
+		})
 		project := validProject("disabled-project")
 		f := false
 		project.Spec.Auth.Enabled = &f
@@ -53,6 +69,13 @@ var _ = Describe("Component workloads", func() {
 	})
 
 	It("should mount Function sources into studio and functions pods", func() {
+		Expect(k8sClient.Create(ctx, testExternalDatabase("test-db"))).To(Succeed())
+		DeferCleanup(func() {
+			extDB := &platformv1alpha1.ExternalDatabase{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-db", Namespace: "default"}, extDB); err == nil {
+				_ = k8sClient.Delete(ctx, extDB)
+			}
+		})
 		project := validProject("functions-mounts")
 		Expect(k8sClient.Create(ctx, project)).To(Succeed())
 		DeferCleanup(func() { _ = k8sClient.Delete(ctx, project) })

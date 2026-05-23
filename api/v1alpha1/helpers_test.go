@@ -27,12 +27,9 @@ func minimalValidProject(name string) *platformv1alpha1.Project {
 					Hostname: "studio.example.com",
 				},
 			},
-			Database: platformv1alpha1.DatabaseSpec{
-				Host: "postgres.db.svc",
-				PasswordRef: platformv1alpha1.SecretKeyRef{
-					Name: "db-secret",
-					Key:  "password",
-				},
+			DatabaseRef: platformv1alpha1.DatabaseRef{
+				Kind: "ExternalDatabase",
+				Name: "test-db",
 			},
 			Studio:    &platformv1alpha1.StudioSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/studio:latest"}},
 			Auth:      &platformv1alpha1.AuthSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/gotrue:latest"}},
