@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/name: supabase-operator
     app.kubernetes.io/managed-by: kustomize
-  name: project-sample
+  name: supabase
 spec:
   version: "2026.04.27"
 
@@ -24,4 +24,4 @@ spec:
 
   databaseRef:
     kind: SingleDatabase
-    name: singledatabase-sample
+    name: supabase

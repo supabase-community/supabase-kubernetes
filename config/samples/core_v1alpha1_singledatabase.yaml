@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/name: supabase-operator
     app.kubernetes.io/managed-by: kustomize
-  name: singledatabase-sample
+  name: supabase
 spec:
   image: "supabase/postgres:17.6.1.084"
   # defaults to 10Gi if omitted

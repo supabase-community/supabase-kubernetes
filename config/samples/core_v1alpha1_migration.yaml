@@ -4,12 +4,12 @@ metadata:
   labels:
     app.kubernetes.io/name: supabase-operator
     app.kubernetes.io/managed-by: kustomize
-  name: migration-sample
+  name: supabase
 spec:
   image: supabase/postgres:17.6.1.084
   databaseRef:
     kind: SingleDatabase
-    name: singledatabase-sample
+    name: supabase
   migrations:
     - name: "97-_supabase"
       sql: |
