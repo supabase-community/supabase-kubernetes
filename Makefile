@@ -93,7 +93,7 @@ cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 ##@ Local Development
 
 .PHONY: kind-up
-kind-up: ## Create a local Kind cluster with a simple Postgres database.
+kind-up: ## Create a local Kind cluster for development.
 	@command -v $(KIND) >/dev/null 2>&1 || { \
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
@@ -105,10 +105,6 @@ kind-up: ## Create a local Kind cluster with a simple Postgres database.
 			echo "Creating Kind cluster '$(KIND_CLUSTER_DEV)'..."; \
 			$(KIND) create cluster --name $(KIND_CLUSTER_DEV) ;; \
 	esac
-	@echo "Installing simple Postgres database..."
-	$(KUBECTL) apply -k hack/kind-db/
-	@echo "Waiting for Postgres to be ready..."
-	$(KUBECTL) rollout status statefulset/postgres -n supabase-postgres --timeout=120s || true
 	@echo "Kind cluster '$(KIND_CLUSTER_DEV)' is ready."
 
 .PHONY: kind-down
