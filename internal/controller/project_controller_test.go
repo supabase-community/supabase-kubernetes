@@ -38,16 +38,6 @@ import (
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
-func testExternalDatabase(name string) *platformv1alpha1.ExternalDatabase {
-	return &platformv1alpha1.ExternalDatabase{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
-		Spec: platformv1alpha1.ExternalDatabaseSpec{
-			Host:        "postgres.test.svc",
-			PasswordRef: platformv1alpha1.SecretKeyRef{Name: "test-db-secret", Key: "password"},
-		},
-	}
-}
-
 func testSingleDatabase(name string) *platformv1alpha1.SingleDatabase {
 	return &platformv1alpha1.SingleDatabase{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
@@ -81,7 +71,7 @@ func validProject(name string) *platformv1alpha1.Project {
 					Hostname: "studio.example.com",
 				},
 			},
-			DatabaseRef: platformv1alpha1.DatabaseRef{Kind: "ExternalDatabase", Name: "test-db"},
+			DatabaseRef: platformv1alpha1.DatabaseRef{Kind: "SingleDatabase", Name: "test-db"},
 			Studio:      &platformv1alpha1.StudioSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/studio:test"}},
 			Auth:        &platformv1alpha1.AuthSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/gotrue:test"}},
 			Rest:        &platformv1alpha1.RestSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "postgrest/postgrest:test"}},
@@ -109,7 +99,7 @@ func minimalProject(name string) *platformv1alpha1.Project {
 					Hostname: "studio.example.com",
 				},
 			},
-			DatabaseRef: platformv1alpha1.DatabaseRef{Kind: "ExternalDatabase", Name: "test-db"},
+			DatabaseRef: platformv1alpha1.DatabaseRef{Kind: "SingleDatabase", Name: "test-db"},
 		},
 	}
 }
@@ -123,7 +113,7 @@ var _ = Describe("Project Controller", func() {
 		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
 
 		BeforeEach(func() {
-			Expect(k8sClient.Create(ctx, testExternalDatabase("test-db"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, testSingleDatabase("test-db"))).To(Succeed())
 			Expect(k8sClient.Create(ctx, validProject(projectName))).To(Succeed())
 			Eventually(func(g Gomega) {
 				created := &platformv1alpha1.Project{}
@@ -137,7 +127,7 @@ var _ = Describe("Project Controller", func() {
 			if err := k8sClient.Get(ctx, projectKey, project); err == nil {
 				Expect(k8sClient.Delete(ctx, project)).To(Succeed())
 			}
-			extDB := &platformv1alpha1.ExternalDatabase{}
+			extDB := &platformv1alpha1.SingleDatabase{}
 			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-db", Namespace: "default"}, extDB); err == nil {
 				Expect(k8sClient.Delete(ctx, extDB)).To(Succeed())
 			}
@@ -221,7 +211,7 @@ var _ = Describe("Project Controller", func() {
 		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
 
 		BeforeEach(func() {
-			Expect(k8sClient.Create(ctx, testExternalDatabase("test-db"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, testSingleDatabase("test-db"))).To(Succeed())
 			Expect(k8sClient.Create(ctx, minimalProject(projectName))).To(Succeed())
 			Eventually(func(g Gomega) {
 				created := &platformv1alpha1.Project{}
@@ -235,7 +225,7 @@ var _ = Describe("Project Controller", func() {
 			if err := k8sClient.Get(ctx, projectKey, project); err == nil {
 				Expect(k8sClient.Delete(ctx, project)).To(Succeed())
 			}
-			extDB := &platformv1alpha1.ExternalDatabase{}
+			extDB := &platformv1alpha1.SingleDatabase{}
 			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-db", Namespace: "default"}, extDB); err == nil {
 				Expect(k8sClient.Delete(ctx, extDB)).To(Succeed())
 			}
@@ -265,7 +255,7 @@ var _ = Describe("Project Controller", func() {
 		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
 
 		BeforeEach(func() {
-			Expect(k8sClient.Create(ctx, testExternalDatabase("test-db"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, testSingleDatabase("test-db"))).To(Succeed())
 			Expect(k8sClient.Create(ctx, validProject(projectName))).To(Succeed())
 			Eventually(func(g Gomega) {
 				created := &platformv1alpha1.Project{}
@@ -279,7 +269,7 @@ var _ = Describe("Project Controller", func() {
 			if err := k8sClient.Get(ctx, projectKey, project); err == nil {
 				Expect(k8sClient.Delete(ctx, project)).To(Succeed())
 			}
-			extDB := &platformv1alpha1.ExternalDatabase{}
+			extDB := &platformv1alpha1.SingleDatabase{}
 			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-db", Namespace: "default"}, extDB); err == nil {
 				Expect(k8sClient.Delete(ctx, extDB)).To(Succeed())
 			}
@@ -352,9 +342,9 @@ var _ = Describe("Project Controller", func() {
 
 		It("should not create component workloads when all API components are disabled", func() {
 			dbName := "disabled-components-db"
-			Expect(k8sClient.Create(ctx, testExternalDatabase(dbName))).To(Succeed())
+			Expect(k8sClient.Create(ctx, testSingleDatabase(dbName))).To(Succeed())
 			DeferCleanup(func() {
-				extDB := &platformv1alpha1.ExternalDatabase{}
+				extDB := &platformv1alpha1.SingleDatabase{}
 				if err := k8sClient.Get(ctx, types.NamespacedName{Name: dbName, Namespace: "default"}, extDB); err == nil {
 					_ = k8sClient.Delete(ctx, extDB)
 				}
@@ -386,9 +376,9 @@ var _ = Describe("Project Controller", func() {
 
 		It("should delete component workloads when disabled", func() {
 			dbName := "disable-components-db"
-			Expect(k8sClient.Create(ctx, testExternalDatabase(dbName))).To(Succeed())
+			Expect(k8sClient.Create(ctx, testSingleDatabase(dbName))).To(Succeed())
 			DeferCleanup(func() {
-				extDB := &platformv1alpha1.ExternalDatabase{}
+				extDB := &platformv1alpha1.SingleDatabase{}
 				if err := k8sClient.Get(ctx, types.NamespacedName{Name: dbName, Namespace: "default"}, extDB); err == nil {
 					_ = k8sClient.Delete(ctx, extDB)
 				}
@@ -454,9 +444,9 @@ var _ = Describe("Project Controller", func() {
 
 		It("should delete studio secret when studio is disabled", func() {
 			dbName := "disable-studio-db"
-			Expect(k8sClient.Create(ctx, testExternalDatabase(dbName))).To(Succeed())
+			Expect(k8sClient.Create(ctx, testSingleDatabase(dbName))).To(Succeed())
 			DeferCleanup(func() {
-				extDB := &platformv1alpha1.ExternalDatabase{}
+				extDB := &platformv1alpha1.SingleDatabase{}
 				if err := k8sClient.Get(ctx, types.NamespacedName{Name: dbName, Namespace: "default"}, extDB); err == nil {
 					_ = k8sClient.Delete(ctx, extDB)
 				}

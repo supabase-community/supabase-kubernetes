@@ -58,7 +58,6 @@ rules:
   - core.supabase.io
   resources:
   - databasemigrations
-  - externaldatabases
   - functions
   - projects
   - singledatabases
@@ -74,7 +73,6 @@ rules:
   - core.supabase.io
   resources:
   - databasemigrations/finalizers
-  - externaldatabases/finalizers
   - functions/finalizers
   - projects/finalizers
   - singledatabases/finalizers
@@ -84,7 +82,6 @@ rules:
   - core.supabase.io
   resources:
   - databasemigrations/status
-  - externaldatabases/status
   - functions/status
   - projects/status
   - singledatabases/status

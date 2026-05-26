@@ -28,9 +28,6 @@ resources:
 - singledatabase_admin_role.yaml
 - singledatabase_editor_role.yaml
 - singledatabase_viewer_role.yaml
-- externaldatabase_admin_role.yaml
-- externaldatabase_editor_role.yaml
-- externaldatabase_viewer_role.yaml
 - function_admin_role.yaml
 - function_editor_role.yaml
 - function_viewer_role.yaml

@@ -40,7 +40,6 @@ const (
 	databaseMigrationComponent = "migration"
 	migrationDBUser            = "supabase_admin"
 	kindSingleDatabase         = "SingleDatabase"
-	kindExternalDatabase       = "ExternalDatabase"
 )
 
 // DatabaseMigrationReconciler reconciles a DatabaseMigration object
@@ -64,7 +63,6 @@ type ResolvedMigrationDatabase struct {
 // +kubebuilder:rbac:groups=core.supabase.io,resources=databasemigrations/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=databasemigrations/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get
-// +kubebuilder:rbac:groups=core.supabase.io,resources=externaldatabases,verbs=get
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
@@ -267,23 +265,6 @@ func (r *DatabaseMigrationReconciler) resolveDatabaseRef(ctx context.Context, mi
 			User:       migrationDBUser,
 			SecretName: singleDB.Status.SecretName,
 			SecretKey:  "password",
-			Image:      migration.Spec.Image,
-		}, nil
-	case kindExternalDatabase:
-		extDB := &platformv1alpha1.ExternalDatabase{}
-		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: migration.Namespace}, extDB); err != nil {
-			if apierrors.IsNotFound(err) {
-				return nil, fmt.Errorf("ExternalDatabase %q not found", ref.Name)
-			}
-			return nil, fmt.Errorf("getting ExternalDatabase %q: %w", ref.Name, err)
-		}
-		return &ResolvedMigrationDatabase{
-			Host:       extDB.Spec.Host,
-			Port:       derefInt32(extDB.Spec.Port, 5432),
-			DBName:     derefString(extDB.Spec.DBName, "postgres"),
-			User:       migrationDBUser,
-			SecretName: extDB.Spec.PasswordRef.Name,
-			SecretKey:  extDB.Spec.PasswordRef.Key,
 			Image:      migration.Spec.Image,
 		}, nil
 	default:

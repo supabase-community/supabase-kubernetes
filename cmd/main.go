@@ -192,13 +192,6 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "Function")
 		os.Exit(1)
 	}
-	if err := (&controller.ExternalDatabaseReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "ExternalDatabase")
-		os.Exit(1)
-	}
 	if err := (&controller.SingleDatabaseReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

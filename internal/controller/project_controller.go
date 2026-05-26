@@ -76,8 +76,6 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
-// +kubebuilder:rbac:groups=core.supabase.io,resources=externaldatabases,verbs=get;list;watch
-// +kubebuilder:rbac:groups=core.supabase.io,resources=externaldatabases/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get
 
@@ -407,20 +405,6 @@ func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *pla
 	ref := project.Spec.DatabaseRef
 
 	switch ref.Kind {
-	case "ExternalDatabase":
-		extDB := &platformv1alpha1.ExternalDatabase{}
-		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, extDB); err != nil {
-			if apierrors.IsNotFound(err) {
-				return nil, fmt.Errorf("ExternalDatabase %q not found", ref.Name)
-			}
-			return nil, fmt.Errorf("getting ExternalDatabase %q: %w", ref.Name, err)
-		}
-		return &ResolvedDatabase{
-			Host:        extDB.Spec.Host,
-			Port:        derefInt32(extDB.Spec.Port, 5432),
-			DBName:      derefString(extDB.Spec.DBName, "postgres"),
-			PasswordRef: extDB.Spec.PasswordRef,
-		}, nil
 	case "SingleDatabase":
 		singleDB := &platformv1alpha1.SingleDatabase{}
 		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, singleDB); err != nil {
@@ -471,32 +455,6 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		}}
 	})
 
-	externalDatabaseToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		extDB, ok := obj.(*platformv1alpha1.ExternalDatabase)
-		if !ok {
-			return nil
-		}
-
-		projectList := &platformv1alpha1.ProjectList{}
-		if err := r.List(ctx, projectList, client.InNamespace(extDB.Namespace)); err != nil {
-			return nil
-		}
-
-		var requests []reconcile.Request
-		for i := range projectList.Items {
-			if projectList.Items[i].Spec.DatabaseRef.Kind == "ExternalDatabase" &&
-				projectList.Items[i].Spec.DatabaseRef.Name == extDB.Name {
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      projectList.Items[i].Name,
-						Namespace: projectList.Items[i].Namespace,
-					},
-				})
-			}
-		}
-		return requests
-	})
-
 	singleDatabaseToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 		singleDB, ok := obj.(*platformv1alpha1.SingleDatabase)
 		if !ok {
@@ -526,7 +484,6 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.Project{}).
 		Watches(&platformv1alpha1.Function{}, functionToProject).
-		Watches(&platformv1alpha1.ExternalDatabase{}, externalDatabaseToProject).
 		Watches(&platformv1alpha1.SingleDatabase{}, singleDatabaseToProject).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.ConfigMap{}).

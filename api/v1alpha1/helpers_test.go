@@ -28,7 +28,7 @@ func minimalValidProject(name string) *platformv1alpha1.Project {
 				},
 			},
 			DatabaseRef: platformv1alpha1.DatabaseRef{
-				Kind: "ExternalDatabase",
+				Kind: "SingleDatabase",
 				Name: "test-db",
 			},
 			Studio:    &platformv1alpha1.StudioSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/studio:latest"}},

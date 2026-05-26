@@ -54,7 +54,7 @@ func newTestEnvProject() *platformv1alpha1.Project {
 					Hostname: "studio.example.com",
 				},
 			},
-			DatabaseRef: platformv1alpha1.DatabaseRef{Kind: "ExternalDatabase", Name: "test-db"},
+			DatabaseRef: platformv1alpha1.DatabaseRef{Kind: "SingleDatabase", Name: "test-db"},
 			Studio:      &platformv1alpha1.StudioSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/studio:latest"}},
 			Auth:        &platformv1alpha1.AuthSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "supabase/gotrue:latest"}},
 			Rest:        &platformv1alpha1.RestSpec{ComponentSpec: platformv1alpha1.ComponentSpec{Image: "postgrest/postgrest:latest"}},

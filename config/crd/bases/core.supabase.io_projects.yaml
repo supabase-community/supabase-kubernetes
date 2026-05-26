@@ -901,7 +901,6 @@ spec:
                 properties:
                   kind:
                     enum:
-                    - ExternalDatabase
                     - SingleDatabase
                     type: string
                   name:
