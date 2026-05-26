@@ -33,9 +33,9 @@ type MigrationEntry struct {
 	SQL string `json:"sql"`
 }
 
-// DatabaseMigrationSpec defines the desired state of DatabaseMigration.
+// MigrationSpec defines the desired state of Migration.
 // +kubebuilder:validation:XValidation:rule="size(self.migrations) >= size(oldSelf.migrations)",message="migrations cannot be removed"
-type DatabaseMigrationSpec struct {
+type MigrationSpec struct {
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 	// Image to use for migration jobs (must contain psql).
@@ -65,12 +65,12 @@ type MigrationStepStatus struct {
 	JobName string `json:"jobName,omitempty"`
 }
 
-// DatabaseMigrationStatus defines the observed state of DatabaseMigration.
-type DatabaseMigrationStatus struct {
+// MigrationStatus defines the observed state of Migration.
+type MigrationStatus struct {
 	// MigrationStatuses tracks the status of each individual migration step.
 	// +optional
 	MigrationStatuses []MigrationStepStatus `json:"migrationStatuses,omitempty"`
-	// conditions represent the current state of the DatabaseMigration resource.
+	// conditions represent the current state of the Migration resource.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
@@ -79,36 +79,37 @@ type DatabaseMigrationStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:path=migrations,scope=Namespaced
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Applied",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].message`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// DatabaseMigration is the Schema for the databasemigrations API.
-type DatabaseMigration struct {
+// Migration is the Schema for the migrations API.
+type Migration struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// metadata is a standard object metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	// spec defines the desired state of DatabaseMigration
+	// spec defines the desired state of Migration
 	// +required
-	Spec DatabaseMigrationSpec `json:"spec"`
+	Spec MigrationSpec `json:"spec"`
 
-	// status defines the observed state of DatabaseMigration
+	// status defines the observed state of Migration
 	// +optional
-	Status DatabaseMigrationStatus `json:"status,omitzero"`
+	Status MigrationStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
 
-// DatabaseMigrationList contains a list of DatabaseMigration
-type DatabaseMigrationList struct {
+// MigrationList contains a list of Migration
+type MigrationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitzero"`
-	Items           []DatabaseMigration `json:"items"`
+	Items           []Migration `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&DatabaseMigration{}, &DatabaseMigrationList{})
+	SchemeBuilder.Register(&Migration{}, &MigrationList{})
 }

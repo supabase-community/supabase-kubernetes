@@ -37,13 +37,13 @@ import (
 )
 
 const (
-	databaseMigrationComponent = "migration"
-	migrationDBUser            = "supabase_admin"
-	kindSingleDatabase         = "SingleDatabase"
+	migrationComponent = "migration"
+	migrationDBUser    = "supabase_admin"
+	kindSingleDatabase = "SingleDatabase"
 )
 
-// DatabaseMigrationReconciler reconciles a DatabaseMigration object
-type DatabaseMigrationReconciler struct {
+// MigrationReconciler reconciles a Migration object
+type MigrationReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -59,24 +59,24 @@ type ResolvedMigrationDatabase struct {
 	Image      string
 }
 
-// +kubebuilder:rbac:groups=core.supabase.io,resources=databasemigrations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core.supabase.io,resources=databasemigrations/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=core.supabase.io,resources=databasemigrations/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=migrations/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core.supabase.io,resources=migrations/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 
-// Reconcile handles the reconciliation loop for DatabaseMigration resources.
-func (r *DatabaseMigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// Reconcile handles the reconciliation loop for Migration resources.
+func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	migration := &platformv1alpha1.DatabaseMigration{}
+	migration := &platformv1alpha1.Migration{}
 	if err := r.Get(ctx, req.NamespacedName, migration); err != nil {
 		if client.IgnoreNotFound(err) == nil {
 			return ctrl.Result{}, nil
 		}
-		logger.Error(err, "Failed to get DatabaseMigration")
+		logger.Error(err, "Failed to get Migration")
 		return ctrl.Result{}, err
 	}
 
@@ -186,9 +186,9 @@ func (r *DatabaseMigrationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 // updateStatus re-fetches the resource and applies the current status with retry on conflict.
-func (r *DatabaseMigrationReconciler) updateStatus(ctx context.Context, migration *platformv1alpha1.DatabaseMigration) error {
+func (r *MigrationReconciler) updateStatus(ctx context.Context, migration *platformv1alpha1.Migration) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		latest := &platformv1alpha1.DatabaseMigration{}
+		latest := &platformv1alpha1.Migration{}
 		if err := r.Get(ctx, types.NamespacedName{Name: migration.Name, Namespace: migration.Namespace}, latest); err != nil {
 			return err
 		}
@@ -197,7 +197,7 @@ func (r *DatabaseMigrationReconciler) updateStatus(ctx context.Context, migratio
 	})
 }
 
-func (r *DatabaseMigrationReconciler) cleanupResources(ctx context.Context, migration *platformv1alpha1.DatabaseMigration) {
+func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *platformv1alpha1.Migration) {
 	logger := log.FromContext(ctx)
 	propagation := metav1.DeletePropagationBackground
 
@@ -227,7 +227,7 @@ func (r *DatabaseMigrationReconciler) cleanupResources(ctx context.Context, migr
 
 }
 
-func (r *DatabaseMigrationReconciler) ensureStatusSlice(migration *platformv1alpha1.DatabaseMigration) {
+func (r *MigrationReconciler) ensureStatusSlice(migration *platformv1alpha1.Migration) {
 	desired := len(migration.Spec.Migrations)
 	current := len(migration.Status.MigrationStatuses)
 
@@ -243,7 +243,7 @@ func (r *DatabaseMigrationReconciler) ensureStatusSlice(migration *platformv1alp
 	}
 }
 
-func (r *DatabaseMigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *platformv1alpha1.DatabaseMigration) (*ResolvedMigrationDatabase, error) {
+func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *platformv1alpha1.Migration) (*ResolvedMigrationDatabase, error) {
 	ref := migration.Spec.DatabaseRef
 
 	switch ref.Kind {
@@ -272,15 +272,15 @@ func (r *DatabaseMigrationReconciler) resolveDatabaseRef(ctx context.Context, mi
 	}
 }
 
-func (r *DatabaseMigrationReconciler) configMapName(migrationName string, index int) string {
+func (r *MigrationReconciler) configMapName(migrationName string, index int) string {
 	return fmt.Sprintf("%s-%d-sql", migrationName, index)
 }
 
-func (r *DatabaseMigrationReconciler) jobName(migrationName string, index int) string {
+func (r *MigrationReconciler) jobName(migrationName string, index int) string {
 	return fmt.Sprintf("%s-%d", migrationName, index)
 }
 
-func (r *DatabaseMigrationReconciler) ensureConfigMap(ctx context.Context, migration *platformv1alpha1.DatabaseMigration, entry platformv1alpha1.MigrationEntry, name string) error {
+func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *platformv1alpha1.Migration, entry platformv1alpha1.MigrationEntry, name string) error {
 	cm := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: migration.Namespace}, cm)
 	if err == nil {
@@ -309,7 +309,7 @@ func (r *DatabaseMigrationReconciler) ensureConfigMap(ctx context.Context, migra
 	return r.Create(ctx, cm)
 }
 
-func (r *DatabaseMigrationReconciler) buildJob(migration *platformv1alpha1.DatabaseMigration, db *ResolvedMigrationDatabase, index int) *batchv1.Job {
+func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db *ResolvedMigrationDatabase, index int) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 	entry := migration.Spec.Migrations[index]
@@ -356,7 +356,7 @@ echo "Migration $MIGRATION_NAME applied successfully"
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
-							Name:    databaseMigrationComponent,
+							Name:    migrationComponent,
 							Image:   db.Image,
 							Command: []string{"/bin/sh", "-c"},
 							Args:    []string{script},
@@ -397,8 +397,8 @@ echo "Migration $MIGRATION_NAME applied successfully"
 	}
 }
 
-func (r *DatabaseMigrationReconciler) setCondition(
-	migration *platformv1alpha1.DatabaseMigration,
+func (r *MigrationReconciler) setCondition(
+	migration *platformv1alpha1.Migration,
 	status metav1.ConditionStatus,
 	reason string,
 	message string,
@@ -413,11 +413,11 @@ func (r *DatabaseMigrationReconciler) setCondition(
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *DatabaseMigrationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *MigrationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&platformv1alpha1.DatabaseMigration{}).
+		For(&platformv1alpha1.Migration{}).
 		Owns(&batchv1.Job{}).
 		Owns(&corev1.ConfigMap{}).
-		Named("databasemigration").
+		Named("migration").
 		Complete(r)
 }

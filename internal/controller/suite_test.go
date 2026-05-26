@@ -97,7 +97,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	err = (&SingleDatabaseReconciler{Client: k8sManager.GetClient(), Scheme: k8sManager.GetScheme()}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
-	err = (&DatabaseMigrationReconciler{Client: k8sManager.GetClient(), Scheme: k8sManager.GetScheme()}).SetupWithManager(k8sManager)
+	err = (&MigrationReconciler{Client: k8sManager.GetClient(), Scheme: k8sManager.GetScheme()}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	go func() {

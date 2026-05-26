@@ -1,10 +1,10 @@
 apiVersion: core.supabase.io/v1alpha1
-kind: DatabaseMigration
+kind: Migration
 metadata:
   labels:
     app.kubernetes.io/name: supabase-operator
     app.kubernetes.io/managed-by: kustomize
-  name: databasemigration-sample
+  name: migration-sample
 spec:
   image: supabase/postgres:17.6.1.084
   databaseRef:

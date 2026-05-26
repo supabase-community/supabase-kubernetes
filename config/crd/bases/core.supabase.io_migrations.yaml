@@ -4,14 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.1
-  name: databasemigrations.core.supabase.io
+  name: migrations.core.supabase.io
 spec:
   group: core.supabase.io
   names:
-    kind: DatabaseMigration
-    listKind: DatabaseMigrationList
-    plural: databasemigrations
-    singular: databasemigration
+    kind: Migration
+    listKind: MigrationList
+    plural: migrations
+    singular: migration
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -27,7 +27,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: DatabaseMigration is the Schema for the databasemigrations API.
+        description: Migration is the Schema for the migrations API.
         properties:
           apiVersion:
             description: |-
@@ -47,7 +47,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of DatabaseMigration
+            description: spec defines the desired state of Migration
             properties:
               databaseRef:
                 description: DatabaseRef references a database resource.
@@ -104,10 +104,10 @@ spec:
             - message: migrations cannot be removed
               rule: size(self.migrations) >= size(oldSelf.migrations)
           status:
-            description: status defines the observed state of DatabaseMigration
+            description: status defines the observed state of Migration
             properties:
               conditions:
-                description: conditions represent the current state of the DatabaseMigration
+                description: conditions represent the current state of the Migration
                   resource.
                 items:
                   description: Condition contains details for one aspect of the current

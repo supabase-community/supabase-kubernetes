@@ -42,7 +42,7 @@ resources:
   controller: true
   domain: supabase.io
   group: core
-  kind: DatabaseMigration
+  kind: Migration
   path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
   version: v1alpha1
 version: "3"

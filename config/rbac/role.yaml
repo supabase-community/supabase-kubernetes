@@ -57,8 +57,8 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
-  - databasemigrations
   - functions
+  - migrations
   - projects
   - singledatabases
   verbs:
@@ -72,8 +72,8 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
-  - databasemigrations/finalizers
   - functions/finalizers
+  - migrations/finalizers
   - projects/finalizers
   - singledatabases/finalizers
   verbs:
@@ -81,8 +81,8 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
-  - databasemigrations/status
   - functions/status
+  - migrations/status
   - projects/status
   - singledatabases/status
   verbs:

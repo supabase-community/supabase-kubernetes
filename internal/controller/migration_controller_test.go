@@ -34,7 +34,7 @@ import (
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
-var _ = Describe("DatabaseMigration Controller", func() {
+var _ = Describe("Migration Controller", func() {
 	Context("When reconciling sequential migrations", func() {
 		const singleDBName = "test-seq-migration-db"
 		const migrationName = "test-seq-migration"
@@ -80,7 +80,7 @@ var _ = Describe("DatabaseMigration Controller", func() {
 
 		AfterEach(func() {
 			// Clean up migration first (which owns the jobs)
-			migration := &platformv1alpha1.DatabaseMigration{}
+			migration := &platformv1alpha1.Migration{}
 			err := k8sClient.Get(ctx, migrationNamespacedName, migration)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, migration)).To(Succeed())
@@ -111,13 +111,13 @@ var _ = Describe("DatabaseMigration Controller", func() {
 				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
-			By("Creating the DatabaseMigration resource with multiple migrations")
-			migration := &platformv1alpha1.DatabaseMigration{
+			By("Creating the Migration resource with multiple migrations")
+			migration := &platformv1alpha1.Migration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      migrationName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.DatabaseMigrationSpec{
+				Spec: platformv1alpha1.MigrationSpec{
 					DatabaseRef: platformv1alpha1.DatabaseRef{
 						Kind: "SingleDatabase",
 						Name: singleDBName,
@@ -150,7 +150,7 @@ var _ = Describe("DatabaseMigration Controller", func() {
 
 			By("Verifying the first job has correct owner reference")
 			Expect(firstJob.OwnerReferences).To(HaveLen(1))
-			Expect(firstJob.OwnerReferences[0].Kind).To(Equal("DatabaseMigration"))
+			Expect(firstJob.OwnerReferences[0].Kind).To(Equal("Migration"))
 			Expect(firstJob.OwnerReferences[0].Name).To(Equal(migrationName))
 
 			By("Verifying the job uses supabase_admin user")
@@ -260,7 +260,7 @@ var _ = Describe("DatabaseMigration Controller", func() {
 		})
 
 		AfterEach(func() {
-			migration := &platformv1alpha1.DatabaseMigration{}
+			migration := &platformv1alpha1.Migration{}
 			err := k8sClient.Get(ctx, migrationNamespacedName, migration)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, migration)).To(Succeed())
@@ -290,13 +290,13 @@ var _ = Describe("DatabaseMigration Controller", func() {
 				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
-			By("Creating the DatabaseMigration resource with two migrations")
-			migration := &platformv1alpha1.DatabaseMigration{
+			By("Creating the Migration resource with two migrations")
+			migration := &platformv1alpha1.Migration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      migrationName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.DatabaseMigrationSpec{
+				Spec: platformv1alpha1.MigrationSpec{
 					DatabaseRef: platformv1alpha1.DatabaseRef{
 						Kind: "SingleDatabase",
 						Name: singleDBName,

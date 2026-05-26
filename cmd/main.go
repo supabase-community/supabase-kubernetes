@@ -199,11 +199,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "SingleDatabase")
 		os.Exit(1)
 	}
-	if err := (&controller.DatabaseMigrationReconciler{
+	if err := (&controller.MigrationReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DatabaseMigration")
+		setupLog.Error(err, "unable to create controller", "controller", "Migration")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
