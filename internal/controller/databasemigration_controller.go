@@ -176,10 +176,7 @@ func (r *DatabaseMigrationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// All migrations applied - clean up Jobs and ConfigMaps
-	if err := r.cleanupResources(ctx, migration); err != nil {
-		logger.Error(err, "Failed to clean up migration resources")
-		// Don't fail the reconciliation for cleanup errors
-	}
+	r.cleanupResources(ctx, migration)
 
 	r.setCondition(migration, metav1.ConditionTrue, "AllMigrationsApplied", fmt.Sprintf("All %d migrations applied successfully", appliedCount))
 	if err := r.updateStatus(ctx, migration); err != nil {
@@ -202,7 +199,7 @@ func (r *DatabaseMigrationReconciler) updateStatus(ctx context.Context, migratio
 	})
 }
 
-func (r *DatabaseMigrationReconciler) cleanupResources(ctx context.Context, migration *platformv1alpha1.DatabaseMigration) error {
+func (r *DatabaseMigrationReconciler) cleanupResources(ctx context.Context, migration *platformv1alpha1.DatabaseMigration) {
 	logger := log.FromContext(ctx)
 	propagation := metav1.DeletePropagationBackground
 
@@ -230,7 +227,6 @@ func (r *DatabaseMigrationReconciler) cleanupResources(ctx context.Context, migr
 		}
 	}
 
-	return nil
 }
 
 func (r *DatabaseMigrationReconciler) ensureStatusSlice(migration *platformv1alpha1.DatabaseMigration) {

@@ -78,7 +78,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.validate(singleDB); err != nil {
 		logger.Error(err, "SingleDatabase validation failed")
-		r.setCondition(singleDB, ConditionTypeReady, metav1.ConditionFalse, "ValidationFailed", err.Error())
+		r.setCondition(singleDB, metav1.ConditionFalse, "ValidationFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after validation failure")
 		}
@@ -87,7 +87,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if _, err := r.ensureSecret(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase secret")
-		r.setCondition(singleDB, ConditionTypeReady, metav1.ConditionFalse, "SecretFailed", err.Error())
+		r.setCondition(singleDB, metav1.ConditionFalse, "SecretFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after secret failure")
 		}
@@ -96,7 +96,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensurePVC(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase pvc")
-		r.setCondition(singleDB, ConditionTypeReady, metav1.ConditionFalse, "PVCFailed", err.Error())
+		r.setCondition(singleDB, metav1.ConditionFalse, "PVCFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after pvc failure")
 		}
@@ -105,7 +105,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureService(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase service")
-		r.setCondition(singleDB, ConditionTypeReady, metav1.ConditionFalse, "ServiceFailed", err.Error())
+		r.setCondition(singleDB, metav1.ConditionFalse, "ServiceFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after service failure")
 		}
@@ -114,7 +114,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureStatefulSet(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase statefulset")
-		r.setCondition(singleDB, ConditionTypeReady, metav1.ConditionFalse, "StatefulSetFailed", err.Error())
+		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after statefulset failure")
 		}
@@ -124,7 +124,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	singleDB.Status.ServiceName = r.serviceName(singleDB.Name)
 	singleDB.Status.SecretName = r.secretName(singleDB.Name)
 	r.populateStatus(ctx, singleDB)
-	r.setCondition(singleDB, ConditionTypeReady, metav1.ConditionTrue, "AllResourcesReady", "Secret, Service and StatefulSet are ready")
+	r.setCondition(singleDB, metav1.ConditionTrue, "AllResourcesReady", "Secret, Service and StatefulSet are ready")
 	if err := r.Status().Update(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to update SingleDatabase status")
 		return ctrl.Result{}, err
@@ -699,13 +699,12 @@ func (r *SingleDatabaseReconciler) envFromSecret(name, secretName, key string) c
 
 func (r *SingleDatabaseReconciler) setCondition(
 	singleDB *platformv1alpha1.SingleDatabase,
-	conditionType string,
 	status metav1.ConditionStatus,
 	reason string,
 	message string,
 ) {
 	meta.SetStatusCondition(&singleDB.Status.Conditions, metav1.Condition{
-		Type:               conditionType,
+		Type:               ConditionTypeReady,
 		Status:             status,
 		ObservedGeneration: singleDB.Generation,
 		Reason:             reason,
