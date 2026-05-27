@@ -18,7 +18,9 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -88,100 +90,87 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	// Ensure migrationStatuses slice is initialized for all entries
-	r.ensureStatusSlice(migration)
+	batchHash := calculateBatchHash(migration.Spec.Migrations)
 
-	// Process migrations sequentially
-	totalMigrations := len(migration.Spec.Migrations)
-	appliedCount := 0
+	// If already applied with the same hash, nothing to do
+	if migration.Status.AppliedHash == batchHash {
+		r.setCondition(migration, metav1.ConditionTrue, "AllMigrationsApplied", "Migration batch already applied")
+		if err := r.updateStatus(ctx, migration); err != nil {
+			logger.Error(err, "Failed to update status")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
 
-	for i, entry := range migration.Spec.Migrations {
-		stepStatus := &migration.Status.MigrationStatuses[i]
+	// Ensure ConfigMap exists
+	configMapName := r.configMapName(migration.Name)
+	if err := r.ensureConfigMap(ctx, migration, configMapName, batchHash); err != nil {
+		logger.Error(err, "Failed to ensure ConfigMap for migration", "configmap", configMapName)
+		r.setCondition(migration, metav1.ConditionFalse, "ConfigMapFailed", fmt.Sprintf("Failed to create ConfigMap: %s", err.Error()))
+		_ = r.updateStatus(ctx, migration)
+		return ctrl.Result{}, err
+	}
 
-		// Already applied, continue to next
-		if stepStatus.Applied {
-			appliedCount++
-			continue
+	// Check if job exists
+	jobName := r.jobName(migration.Name)
+	job := &batchv1.Job{}
+	err = r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: migration.Namespace}, job)
+
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			logger.Error(err, "Failed to get migration job", "job", jobName)
+			return ctrl.Result{}, err
 		}
 
-		// Ensure ConfigMap exists for this migration step
-		configMapName := r.configMapName(migration.Name, i)
-		if err := r.ensureConfigMap(ctx, migration, entry, configMapName); err != nil {
-			logger.Error(err, "Failed to ensure ConfigMap for migration", "configmap", configMapName)
-			r.setCondition(migration, metav1.ConditionFalse, "ConfigMapFailed", fmt.Sprintf("Failed to create ConfigMap for migration %q: %s", entry.Name, err.Error()))
+		// Job does not exist, create it
+		logger.Info("Creating migration job", "job", jobName, "hash", batchHash)
+		job = r.buildJob(migration, db, batchHash)
+		if err := controllerutil.SetControllerReference(migration, job, r.Scheme); err != nil {
+			return ctrl.Result{}, fmt.Errorf("setting owner reference on job: %w", err)
+		}
+		if err := r.Create(ctx, job); err != nil {
+			logger.Error(err, "Failed to create migration job", "job", jobName)
+			r.setCondition(migration, metav1.ConditionFalse, "JobCreationFailed", fmt.Sprintf("Failed to create job: %s", err.Error()))
 			_ = r.updateStatus(ctx, migration)
 			return ctrl.Result{}, err
 		}
 
-		// Check if job exists for this migration step
-		jobName := r.jobName(migration.Name, i)
-		job := &batchv1.Job{}
-		err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: migration.Namespace}, job)
-
-		if err != nil {
-			if !apierrors.IsNotFound(err) {
-				logger.Error(err, "Failed to get migration job", "job", jobName)
-				return ctrl.Result{}, err
-			}
-
-			// Job does not exist, create it
-			logger.Info("Creating migration job", "job", jobName, "migration", entry.Name, "index", i)
-			job = r.buildJob(migration, db, i)
-			if err := controllerutil.SetControllerReference(migration, job, r.Scheme); err != nil {
-				return ctrl.Result{}, fmt.Errorf("setting owner reference on job: %w", err)
-			}
-			if err := r.Create(ctx, job); err != nil {
-				logger.Error(err, "Failed to create migration job", "job", jobName)
-				r.setCondition(migration, metav1.ConditionFalse, "JobCreationFailed", fmt.Sprintf("Failed to create job for migration %q: %s", entry.Name, err.Error()))
-				_ = r.updateStatus(ctx, migration)
-				return ctrl.Result{}, err
-			}
-
-			stepStatus.JobName = jobName
-			r.setCondition(migration, metav1.ConditionFalse, "Migrating", fmt.Sprintf("Running migration %d/%d: %s", i+1, totalMigrations, entry.Name))
-			_ = r.updateStatus(ctx, migration)
-			// Stop processing, wait for job to complete (requeue via Owns)
-			return ctrl.Result{}, nil
-		}
-
-		// Job exists, check its status
-		if job.Status.Succeeded > 0 {
-			logger.Info("Migration step completed successfully", "job", jobName, "migration", entry.Name)
-			stepStatus.Applied = true
-			now := metav1.Now()
-			stepStatus.AppliedAt = &now
-			stepStatus.JobName = jobName
-			appliedCount++
-			// Continue to next migration
-			continue
-		}
-
-		if job.Status.Failed > 0 {
-			logger.Info("Migration step failed", "job", jobName, "migration", entry.Name)
-			stepStatus.JobName = jobName
-			r.setCondition(migration, metav1.ConditionFalse, "MigrationFailed", fmt.Sprintf("Migration %d/%d failed: %s", i+1, totalMigrations, entry.Name))
-			_ = r.updateStatus(ctx, migration)
-			// Stop processing, do not continue with subsequent migrations
-			return ctrl.Result{}, fmt.Errorf("migration job %s failed for step %q", jobName, entry.Name)
-		}
-
-		// Job is still running
-		stepStatus.JobName = jobName
-		r.setCondition(migration, metav1.ConditionFalse, "Migrating", fmt.Sprintf("Running migration %d/%d: %s", i+1, totalMigrations, entry.Name))
+		r.setCondition(migration, metav1.ConditionFalse, "Migrating", "Running migration batch")
 		_ = r.updateStatus(ctx, migration)
 		// Stop processing, wait for job to complete (requeue via Owns)
 		return ctrl.Result{}, nil
 	}
 
-	// All migrations applied - clean up Jobs and ConfigMaps
-	r.cleanupResources(ctx, migration)
-
-	r.setCondition(migration, metav1.ConditionTrue, "AllMigrationsApplied", fmt.Sprintf("All %d migrations applied successfully", appliedCount))
-	if err := r.updateStatus(ctx, migration); err != nil {
-		logger.Error(err, "Failed to update status after all migrations applied")
-		return ctrl.Result{}, err
+	// Job exists, check its status
+	if job.Status.Succeeded > 0 {
+		logger.Info("Migration batch completed successfully", "job", jobName, "hash", batchHash)
+		migration.Status.AppliedHash = batchHash
+		now := metav1.Now()
+		migration.Status.AppliedAt = &now
+		r.setCondition(migration, metav1.ConditionTrue, "AllMigrationsApplied", "All migrations applied successfully")
+		if err := r.updateStatus(ctx, migration); err != nil {
+			logger.Error(err, "Failed to update status after success")
+			return ctrl.Result{}, err
+		}
+		// Clean up resources on success
+		r.cleanupResources(ctx, migration)
+		return ctrl.Result{}, nil
 	}
 
+	if job.Status.Failed > 0 {
+		logger.Info("Migration batch failed", "job", jobName, "hash", batchHash)
+		r.setCondition(migration, metav1.ConditionFalse, "MigrationFailed", "Migration batch failed")
+		if err := r.updateStatus(ctx, migration); err != nil {
+			logger.Error(err, "Failed to update status after failure")
+			return ctrl.Result{}, err
+		}
+		// Do not clean up on failure so the Job logs are available for debugging
+		return ctrl.Result{}, fmt.Errorf("migration job %s failed", jobName)
+	}
+
+	// Job is still running
+	r.setCondition(migration, metav1.ConditionFalse, "Migrating", "Running migration batch")
+	_ = r.updateStatus(ctx, migration)
 	return ctrl.Result{}, nil
 }
 
@@ -201,45 +190,26 @@ func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *p
 	logger := log.FromContext(ctx)
 	propagation := metav1.DeletePropagationBackground
 
-	for i := range migration.Spec.Migrations {
-		// Delete Job
-		jobName := r.jobName(migration.Name, i)
-		job := &batchv1.Job{}
-		if err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: migration.Namespace}, job); err == nil {
-			if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagation}); err != nil && !apierrors.IsNotFound(err) {
-				logger.Error(err, "Failed to delete migration job", "job", jobName)
-			} else {
-				logger.Info("Deleted migration job", "job", jobName)
-			}
-		}
-
-		// Delete ConfigMap
-		cmName := r.configMapName(migration.Name, i)
-		cm := &corev1.ConfigMap{}
-		if err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: migration.Namespace}, cm); err == nil {
-			if err := r.Delete(ctx, cm); err != nil && !apierrors.IsNotFound(err) {
-				logger.Error(err, "Failed to delete migration ConfigMap", "configmap", cmName)
-			} else {
-				logger.Info("Deleted migration ConfigMap", "configmap", cmName)
-			}
+	// Delete Job
+	jobName := r.jobName(migration.Name)
+	job := &batchv1.Job{}
+	if err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: migration.Namespace}, job); err == nil {
+		if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagation}); err != nil && !apierrors.IsNotFound(err) {
+			logger.Error(err, "Failed to delete migration job", "job", jobName)
+		} else {
+			logger.Info("Deleted migration job", "job", jobName)
 		}
 	}
 
-}
-
-func (r *MigrationReconciler) ensureStatusSlice(migration *platformv1alpha1.Migration) {
-	desired := len(migration.Spec.Migrations)
-	current := len(migration.Status.MigrationStatuses)
-
-	if current >= desired {
-		return
-	}
-
-	// Extend the status slice for new entries
-	for i := current; i < desired; i++ {
-		migration.Status.MigrationStatuses = append(migration.Status.MigrationStatuses, platformv1alpha1.MigrationStepStatus{
-			Name: migration.Spec.Migrations[i].Name,
-		})
+	// Delete ConfigMap
+	cmName := r.configMapName(migration.Name)
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: migration.Namespace}, cm); err == nil {
+		if err := r.Delete(ctx, cm); err != nil && !apierrors.IsNotFound(err) {
+			logger.Error(err, "Failed to delete migration ConfigMap", "configmap", cmName)
+		} else {
+			logger.Info("Deleted migration ConfigMap", "configmap", cmName)
+		}
 	}
 }
 
@@ -272,33 +242,33 @@ func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration 
 	}
 }
 
-func (r *MigrationReconciler) configMapName(migrationName string, index int) string {
-	return fmt.Sprintf("%s-%d-sql", migrationName, index)
+func (r *MigrationReconciler) configMapName(migrationName string) string {
+	return fmt.Sprintf("%s-sql", migrationName)
 }
 
-func (r *MigrationReconciler) jobName(migrationName string, index int) string {
-	return fmt.Sprintf("%s-%d", migrationName, index)
+func (r *MigrationReconciler) jobName(migrationName string) string {
+	return fmt.Sprintf("%s-apply", migrationName)
 }
 
-func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *platformv1alpha1.Migration, entry platformv1alpha1.MigrationEntry, name string) error {
+func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *platformv1alpha1.Migration, name string, batchHash string) error {
 	cm := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: migration.Namespace}, cm)
 	if err == nil {
-		// ConfigMap already exists
 		return nil
 	}
 	if !apierrors.IsNotFound(err) {
 		return err
 	}
 
-	// Create ConfigMap with the SQL content
+	batchSQL := buildBatchSQL(migration.Spec.Migrations, batchHash)
+
 	cm = &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: migration.Namespace,
 		},
 		Data: map[string]string{
-			"migration.sql": entry.SQL,
+			"batch.sql": batchSQL,
 		},
 	}
 
@@ -309,11 +279,31 @@ func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *pl
 	return r.Create(ctx, cm)
 }
 
-func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db *ResolvedMigrationDatabase, index int) *batchv1.Job {
+func buildBatchSQL(entries []platformv1alpha1.MigrationEntry, batchHash string) string {
+	var b strings.Builder
+	for i, entry := range entries {
+		b.WriteString(fmt.Sprintf("-- migration %d: %s\n", i, entry.Name))
+		b.WriteString(entry.SQL)
+		b.WriteString("\n\n")
+	}
+	b.WriteString(fmt.Sprintf("INSERT INTO _migrations (hash) VALUES ('%s');\n", batchHash))
+	return b.String()
+}
+
+func calculateBatchHash(entries []platformv1alpha1.MigrationEntry) string {
+	h := sha256.New()
+	for _, entry := range entries {
+		// Delimiter ensures concatenation is unambiguous
+		h.Write([]byte(entry.SQL))
+		h.Write([]byte("\x00MIGRATION\x00"))
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db *ResolvedMigrationDatabase, batchHash string) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
-	entry := migration.Spec.Migrations[index]
-	configMapName := r.configMapName(migration.Name, index)
+	configMapName := r.configMapName(migration.Name)
 
 	script := `set -e
 
@@ -324,28 +314,25 @@ until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do
 done
 
 # Create migrations tracking table if not exists
-psql -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW());"
+psql -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS _migrations (hash TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW());"
 
 # Check if already applied (idempotency at DB level)
-ALREADY_APPLIED=$(psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM _migrations WHERE name = '$MIGRATION_NAME';")
+ALREADY_APPLIED=$(psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM _migrations WHERE hash = '$MIGRATION_HASH';")
 
 if [ "$ALREADY_APPLIED" = "1" ]; then
-    echo "Migration $MIGRATION_NAME already applied, skipping"
+    echo "Migration batch already applied, skipping"
     exit 0
 fi
 
-# Apply migration from mounted ConfigMap (no shell interpretation of SQL content)
-psql -v ON_ERROR_STOP=1 -f /migrations/migration.sql
+# Apply migration batch atomically
+psql -v ON_ERROR_STOP=1 -f /migrations/batch.sql
 
-# Register migration as applied
-psql -v ON_ERROR_STOP=1 -c "INSERT INTO _migrations (name) VALUES ('$MIGRATION_NAME');"
-
-echo "Migration $MIGRATION_NAME applied successfully"
+echo "Migration batch applied successfully"
 `
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.jobName(migration.Name, index),
+			Name:      r.jobName(migration.Name),
 			Namespace: migration.Namespace,
 		},
 		Spec: batchv1.JobSpec{
@@ -368,7 +355,7 @@ echo "Migration $MIGRATION_NAME applied successfully"
 								envVar("PGUSER", db.User),
 								envVar("POSTGRES_USER", db.User),
 								envVar("PGDATABASE", db.DBName),
-								envVar("MIGRATION_NAME", entry.Name),
+								envVar("MIGRATION_HASH", batchHash),
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{

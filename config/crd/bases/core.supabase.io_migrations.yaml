@@ -68,13 +68,13 @@ spec:
                 type: string
               migrations:
                 description: |-
-                  Migrations is the ordered list of migration steps to apply sequentially.
-                  Existing entries are immutable; new entries may only be appended.
+                  Migrations is the ordered list of migration steps to apply atomically.
+                  The entire array is immutable after creation.
                 items:
                   description: MigrationEntry defines a single ordered migration step.
                   properties:
                     name:
-                      description: Name is a unique identifier for this migration
+                      description: Name is a human-readable identifier for this migration
                         step.
                       minLength: 1
                       type: string
@@ -82,9 +82,6 @@ spec:
                       description: SQL is the migration script to execute.
                       maxLength: 65536
                       type: string
-                      x-kubernetes-validations:
-                      - message: sql is immutable once created
-                        rule: self == oldSelf
                   required:
                   - name
                   - sql
@@ -92,22 +89,27 @@ spec:
                 maxItems: 128
                 minItems: 1
                 type: array
-                x-kubernetes-list-map-keys:
-                - name
-                x-kubernetes-list-type: map
             required:
             - databaseRef
             - image
             - migrations
             type: object
             x-kubernetes-validations:
-            - message: migrations cannot be removed
-              rule: size(self.migrations) >= size(oldSelf.migrations)
+            - message: migrations are immutable after creation
+              rule: self.migrations == oldSelf.migrations
           status:
             description: status defines the observed state of Migration
             properties:
+              appliedAt:
+                description: AppliedAt is when the batch was successfully applied.
+                format: date-time
+                type: string
+              appliedHash:
+                description: AppliedHash is the SHA-256 hash of the batch that was
+                  successfully applied.
+                type: string
               conditions:
-                description: conditions represent the current state of the Migration
+                description: Conditions represent the current state of the Migration
                   resource.
                 items:
                   description: Condition contains details for one aspect of the current
@@ -167,32 +169,6 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
-              migrationStatuses:
-                description: MigrationStatuses tracks the status of each individual
-                  migration step.
-                items:
-                  description: MigrationStepStatus tracks the status of a single migration
-                    step.
-                  properties:
-                    applied:
-                      description: Applied indicates if this migration was successfully
-                        applied.
-                      type: boolean
-                    appliedAt:
-                      description: AppliedAt is when the migration was applied.
-                      format: date-time
-                      type: string
-                    jobName:
-                      description: JobName is the Job that executed this migration.
-                      type: string
-                    name:
-                      description: Name of the migration entry.
-                      type: string
-                  required:
-                  - applied
-                  - name
-                  type: object
-                type: array
             type: object
         required:
         - spec

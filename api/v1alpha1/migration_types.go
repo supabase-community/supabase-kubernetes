@@ -22,55 +22,41 @@ import (
 
 // MigrationEntry defines a single ordered migration step.
 type MigrationEntry struct {
-	// Name is a unique identifier for this migration step.
+	// Name is a human-readable identifier for this migration step.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
 	// SQL is the migration script to execute.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxLength=65536
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="sql is immutable once created"
 	SQL string `json:"sql"`
 }
 
 // MigrationSpec defines the desired state of Migration.
-// +kubebuilder:validation:XValidation:rule="size(self.migrations) >= size(oldSelf.migrations)",message="migrations cannot be removed"
+// +kubebuilder:validation:XValidation:rule="self.migrations == oldSelf.migrations",message="migrations are immutable after creation"
 type MigrationSpec struct {
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 	// Image to use for migration jobs (must contain psql).
 	// +kubebuilder:validation:Required
 	Image string `json:"image"`
-	// Migrations is the ordered list of migration steps to apply sequentially.
-	// Existing entries are immutable; new entries may only be appended.
+	// Migrations is the ordered list of migration steps to apply atomically.
+	// The entire array is immutable after creation.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=128
-	// +listType=map
-	// +listMapKey=name
 	Migrations []MigrationEntry `json:"migrations"`
-}
-
-// MigrationStepStatus tracks the status of a single migration step.
-type MigrationStepStatus struct {
-	// Name of the migration entry.
-	Name string `json:"name"`
-	// Applied indicates if this migration was successfully applied.
-	Applied bool `json:"applied"`
-	// AppliedAt is when the migration was applied.
-	// +optional
-	AppliedAt *metav1.Time `json:"appliedAt,omitempty"`
-	// JobName is the Job that executed this migration.
-	// +optional
-	JobName string `json:"jobName,omitempty"`
 }
 
 // MigrationStatus defines the observed state of Migration.
 type MigrationStatus struct {
-	// MigrationStatuses tracks the status of each individual migration step.
+	// AppliedHash is the SHA-256 hash of the batch that was successfully applied.
 	// +optional
-	MigrationStatuses []MigrationStepStatus `json:"migrationStatuses,omitempty"`
-	// conditions represent the current state of the Migration resource.
+	AppliedHash string `json:"appliedHash,omitempty"`
+	// AppliedAt is when the batch was successfully applied.
+	// +optional
+	AppliedAt *metav1.Time `json:"appliedAt,omitempty"`
+	// Conditions represent the current state of the Migration resource.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
