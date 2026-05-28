@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -64,7 +65,7 @@ var _ = Describe("Migration Controller", func() {
 					Namespace: "default",
 				},
 				Spec: platformv1alpha1.SingleDatabaseSpec{
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
@@ -105,6 +106,14 @@ var _ = Describe("Migration Controller", func() {
 
 		It("should execute migrations in a single job and track applied hash", func() {
 			By("Waiting for SingleDatabase to be ready")
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singleDBName + "-db", Namespace: "default"}, sts)).To(Succeed())
+				sts.Status.Replicas = 1
+				sts.Status.ReadyReplicas = 1
+				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
 			singleDB := &platformv1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
@@ -122,7 +131,7 @@ var _ = Describe("Migration Controller", func() {
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Migrations: []platformv1alpha1.MigrationEntry{
 						{
 							Name: "001-create-users",
@@ -209,6 +218,14 @@ var _ = Describe("Migration Controller", func() {
 
 		It("should not reapply a batch with the same hash", func() {
 			By("Waiting for SingleDatabase to be ready")
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singleDBName + "-db", Namespace: "default"}, sts)).To(Succeed())
+				sts.Status.Replicas = 1
+				sts.Status.ReadyReplicas = 1
+				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
 			singleDB := &platformv1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
@@ -226,7 +243,7 @@ var _ = Describe("Migration Controller", func() {
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Migrations: []platformv1alpha1.MigrationEntry{
 						{
 							Name: "001-create-users",
@@ -265,7 +282,7 @@ var _ = Describe("Migration Controller", func() {
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Migrations: []platformv1alpha1.MigrationEntry{
 						{
 							Name: "different-name",
@@ -323,7 +340,7 @@ var _ = Describe("Migration Controller", func() {
 					Namespace: "default",
 				},
 				Spec: platformv1alpha1.SingleDatabaseSpec{
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
@@ -362,6 +379,14 @@ var _ = Describe("Migration Controller", func() {
 
 		It("should stop execution and leave applied hash empty when the batch fails", func() {
 			By("Waiting for SingleDatabase to be ready")
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singleDBName + "-db", Namespace: "default"}, sts)).To(Succeed())
+				sts.Status.Replicas = 1
+				sts.Status.ReadyReplicas = 1
+				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
 			singleDB := &platformv1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
@@ -379,7 +404,7 @@ var _ = Describe("Migration Controller", func() {
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Migrations: []platformv1alpha1.MigrationEntry{
 						{
 							Name: "001-will-fail",
@@ -448,7 +473,7 @@ var _ = Describe("Migration Controller", func() {
 					Namespace: "default",
 				},
 				Spec: platformv1alpha1.SingleDatabaseSpec{
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
@@ -478,6 +503,14 @@ var _ = Describe("Migration Controller", func() {
 
 		It("should reject updates that modify the migrations array", func() {
 			By("Waiting for SingleDatabase to be ready")
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singleDBName + "-db", Namespace: "default"}, sts)).To(Succeed())
+				sts.Status.Replicas = 1
+				sts.Status.ReadyReplicas = 1
+				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
 			singleDB := &platformv1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
@@ -495,7 +528,7 @@ var _ = Describe("Migration Controller", func() {
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Migrations: []platformv1alpha1.MigrationEntry{
 						{
 							Name: "001-create-users",

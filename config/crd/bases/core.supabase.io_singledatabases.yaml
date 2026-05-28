@@ -24,12 +24,6 @@ spec:
     - jsonPath: .status.storage
       name: Storage
       type: string
-    - jsonPath: .status.serviceName
-      name: Service
-      type: string
-    - jsonPath: .status.secretName
-      name: Secret
-      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -59,7 +53,7 @@ spec:
             description: SingleDatabaseSpec defines the desired state of SingleDatabase.
             properties:
               affinity:
-                description: Affinity is a group of affinity scheduling rules.
+                description: affinity defines affinity scheduling rules
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -971,10 +965,8 @@ spec:
                     type: object
                 type: object
               containerSecurityContext:
-                description: |-
-                  SecurityContext holds security configuration that will be applied to a container.
-                  Some fields are present in both SecurityContext and PodSecurityContext.  When both
-                  are set, the values in SecurityContext take precedence.
+                description: containerSecurityContext holds security configuration
+                  that will be applied to the container
                 properties:
                   allowPrivilegeEscalation:
                     description: |-
@@ -1163,29 +1155,188 @@ spec:
                         type: string
                     type: object
                 type: object
+              env:
+                description: env defines additional environment variables for the
+                  component container
+                items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
+                  properties:
+                    name:
+                      description: |-
+                        Name of the environment variable.
+                        May consist of any printable ASCII characters except '='.
+                      type: string
+                    value:
+                      description: |-
+                        Variable references $(VAR_NAME) are expanded
+                        using the previously defined environment variables in the container and
+                        any service environment variables. If a variable cannot be resolved,
+                        the reference in the input string will be unchanged. Double $$ are reduced
+                        to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                        "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                        Escaped references will never be expanded, regardless of whether the variable
+                        exists or not.
+                        Defaults to "".
+                      type: string
+                    valueFrom:
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
+                      properties:
+                        configMapKeyRef:
+                          description: Selects a key of a ConfigMap.
+                          properties:
+                            key:
+                              description: The key to select.
+                              type: string
+                            name:
+                              default: ""
+                              description: |-
+                                Name of the referent.
+                                This field is effectively required, but due to backwards compatibility is
+                                allowed to be empty. Instances of this type with an empty value here are
+                                almost certainly wrong.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              type: string
+                            optional:
+                              description: Specify whether the ConfigMap or its key
+                                must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fieldRef:
+                          description: |-
+                            Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                            spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                          properties:
+                            apiVersion:
+                              description: Version of the schema the FieldPath is
+                                written in terms of, defaults to "v1".
+                              type: string
+                            fieldPath:
+                              description: Path of the field to select in the specified
+                                API version.
+                              type: string
+                          required:
+                          - fieldPath
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fileKeyRef:
+                          description: |-
+                            FileKeyRef selects a key of the env file.
+                            Requires the EnvFiles feature gate to be enabled.
+                          properties:
+                            key:
+                              description: |-
+                                The key within the env file. An invalid key will prevent the pod from starting.
+                                The keys defined within a source may consist of any printable ASCII characters except '='.
+                                During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
+                              type: string
+                            optional:
+                              default: false
+                              description: |-
+                                Specify whether the file or its key must be defined. If the file or key
+                                does not exist, then the env var is not published.
+                                If optional is set to true and the specified key does not exist,
+                                the environment variable will not be set in the Pod's containers.
+
+                                If optional is set to false and the specified key does not exist,
+                                an error will be returned during Pod creation.
+                              type: boolean
+                            path:
+                              description: |-
+                                The path within the volume from which to select the file.
+                                Must be relative and may not contain the '..' path or start with '..'.
+                              type: string
+                            volumeName:
+                              description: The name of the volume mount containing
+                                the env file.
+                              type: string
+                          required:
+                          - key
+                          - path
+                          - volumeName
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        resourceFieldRef:
+                          description: |-
+                            Selects a resource of the container: only resources limits and requests
+                            (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                          properties:
+                            containerName:
+                              description: 'Container name: required for volumes,
+                                optional for env vars'
+                              type: string
+                            divisor:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Specifies the output format of the exposed
+                                resources, defaults to "1"
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            resource:
+                              description: 'Required: resource to select'
+                              type: string
+                          required:
+                          - resource
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        secretKeyRef:
+                          description: Selects a key of a secret in the pod's namespace
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              default: ""
+                              description: |-
+                                Name of the referent.
+                                This field is effectively required, but due to backwards compatibility is
+                                allowed to be empty. Instances of this type with an empty value here are
+                                almost certainly wrong.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
               image:
+                description: image overrides the default component image
                 type: string
               imagePullPolicy:
-                description: PullPolicy describes a policy for if/when to pull a container
-                  image
+                description: imagePullPolicy defines the policy for if/when to pull
+                  the container image
                 type: string
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: nodeSelector defines node selection constraints
                 type: object
               podAnnotations:
                 additionalProperties:
                   type: string
+                description: podAnnotations defines annotations to add to the pod
                 type: object
               podLabels:
                 additionalProperties:
                   type: string
+                description: podLabels defines labels to add to the pod
                 type: object
               podSecurityContext:
-                description: |-
-                  PodSecurityContext holds pod-level security attributes and common container settings.
-                  Some fields are also present in container.securityContext.  Field values of
-                  container.securityContext take precedence over field values of PodSecurityContext.
+                description: podSecurityContext holds pod-level security attributes
                 properties:
                   appArmorProfile:
                     description: |-
@@ -1417,10 +1568,11 @@ spec:
                     type: object
                 type: object
               priorityClassName:
+                description: priorityClassName defines the priority class for the
+                  pod
                 type: string
               probes:
-                description: ComponentProbes defines custom probe overrides for a
-                  component.
+                description: probes defines custom probe overrides for the component
                 properties:
                   liveness:
                     description: |-
@@ -1882,20 +2034,14 @@ spec:
                         type: integer
                     type: object
                 type: object
-              pvcDeletionPolicy:
-                allOf:
-                - enum:
-                  - Delete
-                  - Retain
-                - enum:
-                  - Delete
-                  - Retain
-                default: Delete
-                description: PVCDeletionPolicy defines the deletion behavior for the
-                  PVC.
-                type: string
+              replicas:
+                default: 1
+                description: replicas defines the number of component instances
+                format: int32
+                minimum: 0
+                type: integer
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: resources defines compute resource requirements
                 properties:
                   claims:
                     description: |-
@@ -1954,8 +2100,7 @@ spec:
                     type: object
                 type: object
               service:
-                description: SingleDatabaseServiceSpec configures the Service created
-                  for the PostgreSQL instance.
+                description: service defines the configuration for the component Service
                 properties:
                   annotations:
                     additionalProperties:
@@ -1982,6 +2127,18 @@ spec:
                     items:
                       type: string
                     type: array
+                  deletionPolicy:
+                    allOf:
+                    - enum:
+                      - Delete
+                      - Retain
+                    - enum:
+                      - Delete
+                      - Retain
+                    default: Delete
+                    description: PVCDeletionPolicy defines the deletion behavior for
+                      the PVC.
+                    type: string
                   resources:
                     description: VolumeResourceRequirements describes the storage
                       resource requirements for a volume.
@@ -2017,9 +2174,12 @@ spec:
                 - resources
                 type: object
               terminationGracePeriodSeconds:
+                description: terminationGracePeriodSeconds defines the grace period
+                  for pod termination
                 format: int64
                 type: integer
               tolerations:
+                description: tolerations defines pod tolerations
                 items:
                   description: |-
                     The pod this Toleration is attached to tolerates any taint that matches
@@ -2058,8 +2218,11 @@ spec:
                       type: string
                   type: object
                 type: array
+              version:
+                minLength: 1
+                type: string
             required:
-            - image
+            - version
             type: object
           status:
             description: SingleDatabaseStatus defines the observed state of SingleDatabase.
@@ -2122,9 +2285,6 @@ spec:
                 type: array
               phase:
                 type: string
-              readyReplicas:
-                format: int32
-                type: integer
               secretName:
                 type: string
               serviceName:

@@ -19,7 +19,6 @@ package controller
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -128,7 +127,7 @@ var _ = Describe("Secret Generation", func() {
 	})
 
 	Describe("GenerateJWTSecretData", func() {
-		It("should contain all 11 required keys", func() {
+		It("should contain all 9 required keys", func() {
 			data, err := GenerateJWTSecretData(time.Now(), 24*time.Hour*365*10)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(data).To(HaveKey("jwt-secret"))
@@ -140,8 +139,6 @@ var _ = Describe("Secret Generation", func() {
 			Expect(data).To(HaveKey("service-key-asymmetric"))
 			Expect(data).To(HaveKey("publishable-key"))
 			Expect(data).To(HaveKey("secret-key"))
-			Expect(data).To(HaveKey("publishable-keys-json"))
-			Expect(data).To(HaveKey("secret-keys-json"))
 		})
 
 		It("should produce valid jwt-keys and jwt-jwks", func() {
@@ -180,65 +177,17 @@ var _ = Describe("Secret Generation", func() {
 		})
 	})
 
-	Describe("GenerateStudioSecretData", func() {
-		It("should contain username and password keys", func() {
-			data, err := GenerateStudioSecretData()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(data).To(HaveKey("username"))
-			Expect(data).To(HaveKey("password"))
-		})
-	})
-
-	Describe("GenerateRealtimeSecretData", func() {
-		It("should contain secret-key-base", func() {
-			data, err := GenerateRealtimeSecretData()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(data).To(HaveKey("secret-key-base"))
-			Expect(data["secret-key-base"]).To(HaveLen(128))
-		})
-	})
-
-	Describe("GenerateMetaSecretData", func() {
-		It("should contain crypto-key", func() {
-			data, err := GenerateMetaSecretData()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(data).To(HaveKey("crypto-key"))
-			Expect(data["crypto-key"]).To(HaveLen(64))
-		})
-	})
-
 	Describe("GenerateKeysSecretData", func() {
-		It("should include crypto-key and secret-key-base", func() {
+		It("should include crypto-key, secret-key-base and vault-enc-key", func() {
 			data, err := GenerateKeysSecretData()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(data).To(HaveKey("crypto-key"))
 			Expect(data).To(HaveKey("secret-key-base"))
+			Expect(data).To(HaveKey("vault-enc-key"))
 			Expect(data["crypto-key"]).To(HaveLen(64))
 			Expect(data["secret-key-base"]).To(HaveLen(128))
+			Expect(data["vault-enc-key"]).To(HaveLen(32))
 		})
 	})
 
-	Describe("GenerateStorageSecretData", func() {
-		It("should contain access-key-id and secret-access-key", func() {
-			data, err := GenerateStorageSecretData()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(data).To(HaveKey("access-key-id"))
-			Expect(data).To(HaveKey("secret-access-key"))
-			Expect(data["access-key-id"]).To(HaveLen(20))
-			Expect(data["secret-access-key"]).To(HaveLen(40))
-		})
-	})
-
-	Describe("GenerateSAMLPrivateKeySecretData", func() {
-		It("should generate a base64-encoded PKCS#1 DER RSA private key", func() {
-			data, err := GenerateSAMLPrivateKeySecretData()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(data).To(HaveKey("private-key"))
-
-			der, err := base64.StdEncoding.DecodeString(string(data["private-key"]))
-			Expect(err).NotTo(HaveOccurred())
-			_, err = x509.ParsePKCS1PrivateKey(der)
-			Expect(err).NotTo(HaveOccurred())
-		})
-	})
 })

@@ -25,6 +25,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -46,12 +48,14 @@ import (
 const (
 	singleDatabaseComponent = "db"
 	singleDatabasePort      = int32(5432)
+	ComponentDatabase       = "database"
 )
 
 // SingleDatabaseReconciler reconciles a SingleDatabase object.
 type SingleDatabaseReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch;create;update;patch;delete
@@ -61,6 +65,7 @@ type SingleDatabaseReconciler struct {
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile handles the reconciliation loop for SingleDatabase resources.
 func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -76,8 +81,11 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
+	r.Recorder.Eventf(singleDB, corev1.EventTypeNormal, "Reconciling", "Starting reconciliation of SingleDatabase %s", singleDB.Name)
+
 	if err := r.validate(singleDB); err != nil {
 		logger.Error(err, "SingleDatabase validation failed")
+		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "ValidationFailed", "Validation failed: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "ValidationFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after validation failure")
@@ -87,6 +95,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if _, err := r.ensureSecret(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase secret")
+		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "SecretFailed", "Failed to ensure secret: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "SecretFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after secret failure")
@@ -96,6 +105,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensurePVC(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase pvc")
+		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "PVCFailed", "Failed to ensure PVC: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "PVCFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after pvc failure")
@@ -105,6 +115,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureService(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase service")
+		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "ServiceFailed", "Failed to ensure service: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "ServiceFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after service failure")
@@ -114,6 +125,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureStatefulSet(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase statefulset")
+		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "StatefulSetFailed", "Failed to ensure StatefulSet: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after statefulset failure")
@@ -123,31 +135,48 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	singleDB.Status.ServiceName = r.serviceName(singleDB.Name)
 	singleDB.Status.SecretName = r.secretName(singleDB.Name)
-	r.populateStatus(ctx, singleDB)
-	r.setCondition(singleDB, metav1.ConditionTrue, "AllResourcesReady", "Secret, Service and StatefulSet are ready")
+	r.populateStorageStatus(ctx, singleDB)
+
+	// Check if the StatefulSet pod is actually ready
+	sts := &appsv1.StatefulSet{}
+	stsReady := false
+	if err := r.Get(ctx, types.NamespacedName{Name: r.statefulSetName(singleDB.Name), Namespace: singleDB.Namespace}, sts); err == nil {
+		if sts.Status.ReadyReplicas >= 1 {
+			stsReady = true
+		}
+	}
+
+	if stsReady {
+		r.setCondition(singleDB, metav1.ConditionTrue, "AllResourcesReady", "Secret, Service and StatefulSet are ready")
+		r.Recorder.Event(singleDB, corev1.EventTypeNormal, "Ready", "Database pod is ready and accepting connections")
+	} else {
+		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetNotReady", "Waiting for database pod to become ready")
+		r.Recorder.Event(singleDB, corev1.EventTypeWarning, "StatefulSetNotReady", "Waiting for database pod to become ready")
+	}
+	singleDB.Status.Phase = r.determinePhase(singleDB)
+
 	if err := r.Status().Update(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to update SingleDatabase status")
+		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "StatusUpdateFailed", "Failed to update status: %s", err.Error())
 		return ctrl.Result{}, err
+	}
+
+	if !stsReady {
+		logger.Info("Database pod not ready yet, requeuing")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	logger.Info("Reconciliation completed successfully")
 	return ctrl.Result{}, nil
 }
 
-func (r *SingleDatabaseReconciler) populateStatus(ctx context.Context, singleDB *platformv1alpha1.SingleDatabase) {
-	sts := &appsv1.StatefulSet{}
-	if err := r.Get(ctx, types.NamespacedName{Name: r.statefulSetName(singleDB.Name), Namespace: singleDB.Namespace}, sts); err == nil {
-		singleDB.Status.ReadyReplicas = sts.Status.ReadyReplicas
-	}
-
+func (r *SingleDatabaseReconciler) populateStorageStatus(ctx context.Context, singleDB *platformv1alpha1.SingleDatabase) {
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(ctx, types.NamespacedName{Name: r.pvcName(singleDB.Name), Namespace: singleDB.Namespace}, pvc); err == nil {
 		if storage := pvc.Spec.Resources.Requests.Storage(); storage != nil {
 			singleDB.Status.Storage = storage.String()
 		}
 	}
-
-	singleDB.Status.Phase = r.determinePhase(singleDB)
 }
 
 func (r *SingleDatabaseReconciler) determinePhase(singleDB *platformv1alpha1.SingleDatabase) string {
@@ -159,6 +188,9 @@ func (r *SingleDatabaseReconciler) determinePhase(singleDB *platformv1alpha1.Sin
 	}
 	cond := meta.FindStatusCondition(singleDB.Status.Conditions, ConditionTypeReady)
 	if cond != nil && cond.Status == metav1.ConditionFalse {
+		if cond.Reason == "StatefulSetNotReady" {
+			return "Creating"
+		}
 		return "Failed"
 	}
 	return "Creating"
@@ -180,7 +212,7 @@ func (r *SingleDatabaseReconciler) storageResources(singleDB *platformv1alpha1.S
 }
 
 func (r *SingleDatabaseReconciler) secretName(name string) string {
-	return fmt.Sprintf("%s-credentials", name)
+	return fmt.Sprintf("%s-db", name)
 }
 
 func (r *SingleDatabaseReconciler) serviceName(name string) string {
@@ -262,7 +294,7 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *plat
 			},
 		}
 
-		if singleDB.Spec.PVCDeletionPolicy == platformv1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.PVCDeletionPolicy == "" {
+		if singleDB.Spec.Storage.DeletionPolicy == platformv1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.Storage.DeletionPolicy == "" {
 			if err := controllerutil.SetControllerReference(singleDB, pvc, r.Scheme); err != nil {
 				return fmt.Errorf("setting owner reference on pvc: %w", err)
 			}
@@ -293,7 +325,7 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *plat
 	}
 
 	// Sync owner reference based on current pvcDeletionPolicy.
-	ownerRefDesired := singleDB.Spec.PVCDeletionPolicy == platformv1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.PVCDeletionPolicy == ""
+	ownerRefDesired := singleDB.Spec.Storage.DeletionPolicy == platformv1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.Storage.DeletionPolicy == ""
 	ownerRefExists := false
 	for _, ref := range pvc.OwnerReferences {
 		if ref.UID == singleDB.UID {
@@ -494,10 +526,20 @@ func (r *SingleDatabaseReconciler) buildPasswordSyncInitContainer(image string, 
 	}
 }
 
+func (r *SingleDatabaseReconciler) resolveDatabaseImage(singleDB *platformv1alpha1.SingleDatabase) (string, error) {
+	if singleDB.Spec.Image != "" {
+		return singleDB.Spec.Image, nil
+	}
+	return ResolveComponentImage(singleDB.Spec.Version, ComponentDatabase)
+}
+
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, singleDB *platformv1alpha1.SingleDatabase) error {
 	logger := log.FromContext(ctx).WithValues("statefulset", r.statefulSetName(singleDB.Name))
 
-	image := singleDB.Spec.Image
+	image, err := r.resolveDatabaseImage(singleDB)
+	if err != nil {
+		return fmt.Errorf("resolving database image: %w", err)
+	}
 	replicas := int32(1)
 	secretName := r.secretName(singleDB.Name)
 
@@ -544,6 +586,7 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 		Resources:    singleDB.Spec.Resources,
 		VolumeMounts: []corev1.VolumeMount{{Name: "data", MountPath: "/var/lib/postgresql/data"}},
 	}
+	container.Env = append(container.Env, singleDB.Spec.Env...)
 
 	if singleDB.Spec.ContainerSecurityContext != nil {
 		container.SecurityContext = singleDB.Spec.ContainerSecurityContext
@@ -714,6 +757,7 @@ func (r *SingleDatabaseReconciler) setCondition(
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("singledatabase")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.SingleDatabase{}).
 		Owns(&corev1.Secret{}).

@@ -1,0 +1,29 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Project
+metadata:
+  labels:
+    app.kubernetes.io/name: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: supabase
+spec:
+  version: "2026.04.27"
+  jwtExpirySeconds: 1800
+  http:
+    protocol: "http"
+    hostname: "api.supabase.local"
+    port: 8000
+  databaseRef:
+    kind: SingleDatabase
+    name: supabase
+  restRef:
+    kind: Rest
+    name: supabase
+  metaRef:
+    kind: Meta
+    name: supabase
+  realtimeRef:
+    kind: Realtime
+    name: supabase
+  authRef:
+    kind: Auth
+    name: supabase

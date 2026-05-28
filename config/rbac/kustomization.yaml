@@ -22,15 +22,24 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the supabase-operator itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- auth_admin_role.yaml
+- auth_editor_role.yaml
+- auth_viewer_role.yaml
+- realtime_admin_role.yaml
+- realtime_editor_role.yaml
+- realtime_viewer_role.yaml
+- meta_admin_role.yaml
+- meta_editor_role.yaml
+- meta_viewer_role.yaml
+- rest_admin_role.yaml
+- rest_editor_role.yaml
+- rest_viewer_role.yaml
 - migration_admin_role.yaml
 - migration_editor_role.yaml
 - migration_viewer_role.yaml
 - singledatabase_admin_role.yaml
 - singledatabase_editor_role.yaml
 - singledatabase_viewer_role.yaml
-- function_admin_role.yaml
-- function_editor_role.yaml
-- function_viewer_role.yaml
 - project_admin_role.yaml
 - project_editor_role.yaml
 - project_viewer_role.yaml

@@ -1,0 +1,11 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Rest
+metadata:
+  labels:
+    app.kubernetes.io/name: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: supabase
+spec:
+  # dbSchemas: "public,storage,graphql_public"
+  # dbMaxRows: 1000
+  # dbExtraSearchPath: "public"

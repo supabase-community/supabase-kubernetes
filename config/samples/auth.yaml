@@ -1,0 +1,88 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Auth
+metadata:
+  labels:
+    app.kubernetes.io/name: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: supabase
+spec:
+  # Required Auth settings
+  siteUrl: "http://localhost:3000"
+  disableSignup: false
+  enableEmailSignup: true
+  enableAnonymousUsers: false
+  enableEmailAutoconfirm: false
+  enablePhoneSignup: false
+  enablePhoneAutoconfirm: false
+
+  # Optional redirect URLs
+  # additionalRedirectUrls:
+  #   - "http://localhost:3000/auth/callback"
+  #   - "https://app.example.com/auth/callback"
+
+  # # Optional: skip nonce check for external providers
+  # skipNonceCheck: true
+
+  # # Optional: enable secure email change flow
+  # mailerSecureEmailChangeEnabled: true
+
+  # # SMTP configuration (all fields required when smtp is set)
+  # smtp:
+  #   host: "smtp.sendgrid.net"
+  #   port: 587
+  #   user: "apikey"
+  #   passwordRef:
+  #     name: supabase-smtp
+  #     key: password
+  #   senderName: "Supabase"
+  #   adminEmail: "admin@example.com"
+  #   maxFrequency: "1s"
+
+  # # OAuth providers (all fields required when a provider is set)
+  # oauth:
+  #   google:
+  #     enabled: true
+  #     clientId: "<google-client-id>"
+  #     secretRef:
+  #       name: supabase-oauth
+  #       key: google-secret
+  #   github:
+  #     enabled: true
+  #     clientId: "<github-client-id>"
+  #     secretRef:
+  #       name: supabase-oauth
+  #       key: github-secret
+  #   azure:
+  #     enabled: false
+  #     clientId: "<azure-client-id>"
+  #     secretRef:
+  #       name: supabase-oauth
+  #       key: azure-secret
+
+  # # SMS configuration (all fields required when sms is set)
+  # sms:
+  #   provider: "twilio"
+  #   otpExp: 60
+  #   otpLength: 6
+  #   maxFrequency: "5s"
+  #   template: "Your code is {{ .Code }}"
+  #   twilioAccountSid: "<twilio-account-sid>"
+  #   twilioAuthTokenRef:
+  #     name: supabase-sms
+  #     key: twilio-auth-token
+  #   twilioMessageServiceSid: "<twilio-message-service-sid>"
+
+  # # MFA configuration (all fields optional)
+  # mfa:
+  #   totpEnrollEnabled: true
+  #   totpVerifyEnabled: true
+  #   phoneEnrollEnabled: false
+  #   phoneVerifyEnabled: false
+  #   maxEnrolledFactors: 10
+
+  # # SAML configuration (all fields optional)
+  # saml:
+  #   enabled: true
+  #   allowEncryptedAssertions: true
+  #   relayStateValidityPeriod: "1h"
+  #   rateLimitAssertion: 10

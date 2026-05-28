@@ -35,11 +35,16 @@ type MigrationEntry struct {
 // MigrationSpec defines the desired state of Migration.
 // +kubebuilder:validation:XValidation:rule="self.migrations == oldSelf.migrations",message="migrations are immutable after creation"
 type MigrationSpec struct {
+	WorkloadJobConfig `json:",inline"`
+
+	// version is the Supabase version used to resolve the default migration image
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Version string `json:"version"`
+
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
-	// Image to use for migration jobs (must contain psql).
-	// +kubebuilder:validation:Required
-	Image string `json:"image"`
+
 	// Migrations is the ordered list of migration steps to apply atomically.
 	// The entire array is immutable after creation.
 	// +kubebuilder:validation:Required
@@ -67,7 +72,7 @@ type MigrationStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=migrations,scope=Namespaced
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
-// +kubebuilder:printcolumn:name="Applied",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].message`
+// +kubebuilder:printcolumn:name="Applied Hash",type=string,JSONPath=`.status.appliedHash`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Migration is the Schema for the migrations API.

@@ -20,47 +20,46 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DatabaseRef references a database resource.
-type DatabaseRef struct {
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=SingleDatabase
-	Kind string `json:"kind"`
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name"`
-}
-
 // ProjectSpec defines the desired state of a Supabase deployment.
 type ProjectSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Version string `json:"version"`
+	// +kubebuilder:default=3600
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	JWTExpirySeconds *int32 `json:"jwtExpirySeconds,omitempty"`
 	// +kubebuilder:validation:Required
-	Global GlobalSpec `json:"global"`
-	// +kubebuilder:validation:Required
-	HTTP HTTPSpec `json:"http"`
+	HTTP HTTPConfig `json:"http"`
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 	// +optional
-	Studio *StudioSpec `json:"studio,omitempty"`
+	RestRef *RestRef `json:"restRef,omitempty"`
 	// +optional
-	Auth *AuthSpec `json:"auth,omitempty"`
+	MetaRef *MetaRef `json:"metaRef,omitempty"`
 	// +optional
-	Rest *RestSpec `json:"rest,omitempty"`
+	RealtimeRef *RealtimeRef `json:"realtimeRef,omitempty"`
 	// +optional
-	Realtime *RealtimeSpec `json:"realtime,omitempty"`
-	// +optional
-	Storage *StorageSpec `json:"storage,omitempty"`
-	// +optional
-	Meta *MetaSpec `json:"meta,omitempty"`
-	// +optional
-	Functions *FunctionsSpec `json:"functions,omitempty"`
+	AuthRef *AuthRef `json:"authRef,omitempty"`
+}
+
+// ResolvedDatabaseStatus exposes resolved database connection parameters.
+type ResolvedDatabaseStatus struct {
+	Host        string       `json:"host"`
+	Port        int32        `json:"port"`
+	DBName      string       `json:"dbName"`
+	PasswordRef SecretKeyRef `json:"passwordRef"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.
 type ProjectStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// +optional
+	ResolvedDatabase *ResolvedDatabaseStatus `json:"resolvedDatabase,omitempty"`
+	// AppliedMigrationHash is the SHA-256 hash of the built-in migration batch that was successfully applied.
+	// +optional
+	AppliedMigrationHash string `json:"appliedMigrationHash,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -20,7 +20,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"maps"
 	"strings"
+	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/controller/sql"
 )
 
 const (
@@ -47,7 +51,8 @@ const (
 // MigrationReconciler reconciles a Migration object
 type MigrationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 // ResolvedMigrationDatabase holds resolved connection params for a migration.
@@ -58,7 +63,13 @@ type ResolvedMigrationDatabase struct {
 	User       string
 	SecretName string
 	SecretKey  string
-	Image      string
+}
+
+func (r *MigrationReconciler) resolveMigrationImage(migration *platformv1alpha1.Migration) (string, error) {
+	if migration.Spec.Image != "" {
+		return migration.Spec.Image, nil
+	}
+	return ResolveComponentImage(migration.Spec.Version, "migration")
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete
@@ -68,6 +79,7 @@ type ResolvedMigrationDatabase struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile handles the reconciliation loop for Migration resources.
 func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -82,12 +94,22 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	db, err := r.resolveDatabaseRef(ctx, migration)
+	r.Recorder.Eventf(migration, corev1.EventTypeNormal, "Reconciling", "Starting reconciliation of Migration %s", migration.Name)
+
+	db, dbReady, err := r.resolveDatabaseRef(ctx, migration)
 	if err != nil {
 		logger.Error(err, "Failed to resolve database reference")
+		r.Recorder.Eventf(migration, corev1.EventTypeWarning, "DatabaseResolutionFailed", "Failed to resolve database reference: %s", err.Error())
 		r.setCondition(migration, metav1.ConditionFalse, "DatabaseResolutionFailed", err.Error())
 		_ = r.updateStatus(ctx, migration)
 		return ctrl.Result{}, err
+	}
+	if !dbReady {
+		r.setCondition(migration, metav1.ConditionFalse, "DatabaseNotReady", "Waiting for database to be ready")
+		if err := r.updateStatus(ctx, migration); err != nil {
+			logger.Error(err, "Failed to update status")
+		}
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	batchHash := calculateBatchHash(migration.Spec.Migrations)
@@ -106,7 +128,19 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	configMapName := r.configMapName(migration.Name)
 	if err := r.ensureConfigMap(ctx, migration, configMapName, batchHash); err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap for migration", "configmap", configMapName)
+		r.Recorder.Eventf(migration, corev1.EventTypeWarning, "ConfigMapFailed", "Failed to ensure ConfigMap: %s", err.Error())
 		r.setCondition(migration, metav1.ConditionFalse, "ConfigMapFailed", fmt.Sprintf("Failed to create ConfigMap: %s", err.Error()))
+		_ = r.updateStatus(ctx, migration)
+		return ctrl.Result{}, err
+	}
+	r.Recorder.Eventf(migration, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMap %s ensured", configMapName)
+
+	// Resolve migration image
+	image, err := r.resolveMigrationImage(migration)
+	if err != nil {
+		logger.Error(err, "Failed to resolve migration image")
+		r.Recorder.Eventf(migration, corev1.EventTypeWarning, "ImageResolutionFailed", "Failed to resolve migration image: %s", err.Error())
+		r.setCondition(migration, metav1.ConditionFalse, "ImageResolutionFailed", err.Error())
 		_ = r.updateStatus(ctx, migration)
 		return ctrl.Result{}, err
 	}
@@ -119,21 +153,24 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			logger.Error(err, "Failed to get migration job", "job", jobName)
+			r.Recorder.Eventf(migration, corev1.EventTypeWarning, "JobGetFailed", "Failed to get migration job: %s", err.Error())
 			return ctrl.Result{}, err
 		}
 
 		// Job does not exist, create it
 		logger.Info("Creating migration job", "job", jobName, "hash", batchHash)
-		job = r.buildJob(migration, db, batchHash)
+		job = r.buildJob(migration, db, image, batchHash)
 		if err := controllerutil.SetControllerReference(migration, job, r.Scheme); err != nil {
 			return ctrl.Result{}, fmt.Errorf("setting owner reference on job: %w", err)
 		}
 		if err := r.Create(ctx, job); err != nil {
 			logger.Error(err, "Failed to create migration job", "job", jobName)
+			r.Recorder.Eventf(migration, corev1.EventTypeWarning, "JobCreationFailed", "Failed to create migration job: %s", err.Error())
 			r.setCondition(migration, metav1.ConditionFalse, "JobCreationFailed", fmt.Sprintf("Failed to create job: %s", err.Error()))
 			_ = r.updateStatus(ctx, migration)
 			return ctrl.Result{}, err
 		}
+		r.Recorder.Eventf(migration, corev1.EventTypeNormal, "JobCreated", "Migration job %s created", jobName)
 
 		r.setCondition(migration, metav1.ConditionFalse, "Migrating", "Running migration batch")
 		_ = r.updateStatus(ctx, migration)
@@ -148,8 +185,10 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		now := metav1.Now()
 		migration.Status.AppliedAt = &now
 		r.setCondition(migration, metav1.ConditionTrue, "AllMigrationsApplied", "All migrations applied successfully")
+		r.Recorder.Eventf(migration, corev1.EventTypeNormal, "MigrationsApplied", "Migration batch applied successfully (hash: %s)", batchHash)
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status after success")
+			r.Recorder.Eventf(migration, corev1.EventTypeWarning, "StatusUpdateFailed", "Failed to update status: %s", err.Error())
 			return ctrl.Result{}, err
 		}
 		// Clean up resources on success
@@ -160,6 +199,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if job.Status.Failed > 0 {
 		logger.Info("Migration batch failed", "job", jobName, "hash", batchHash)
 		r.setCondition(migration, metav1.ConditionFalse, "MigrationFailed", "Migration batch failed")
+		r.Recorder.Eventf(migration, corev1.EventTypeWarning, "MigrationFailed", "Migration batch failed (job: %s)", jobName)
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status after failure")
 			return ctrl.Result{}, err
@@ -213,7 +253,7 @@ func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *p
 	}
 }
 
-func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *platformv1alpha1.Migration) (*ResolvedMigrationDatabase, error) {
+func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *platformv1alpha1.Migration) (*ResolvedMigrationDatabase, bool, error) {
 	ref := migration.Spec.DatabaseRef
 
 	switch ref.Kind {
@@ -221,12 +261,14 @@ func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration 
 		singleDB := &platformv1alpha1.SingleDatabase{}
 		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: migration.Namespace}, singleDB); err != nil {
 			if apierrors.IsNotFound(err) {
-				return nil, fmt.Errorf("SingleDatabase %q not found", ref.Name)
+				r.Recorder.Eventf(migration, corev1.EventTypeWarning, "DatabaseNotFound", "SingleDatabase %q not found, waiting", ref.Name)
+				return nil, false, nil
 			}
-			return nil, fmt.Errorf("getting SingleDatabase %q: %w", ref.Name, err)
+			return nil, false, fmt.Errorf("getting SingleDatabase %q: %w", ref.Name, err)
 		}
 		if !meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady) {
-			return nil, fmt.Errorf("SingleDatabase %q is not ready", ref.Name)
+			r.Recorder.Eventf(migration, corev1.EventTypeWarning, "DatabaseNotReady", "SingleDatabase %q is not ready, waiting", ref.Name)
+			return nil, false, nil
 		}
 		return &ResolvedMigrationDatabase{
 			Host:       fmt.Sprintf("%s.%s.svc.cluster.local", singleDB.Status.ServiceName, migration.Namespace),
@@ -235,10 +277,9 @@ func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration 
 			User:       migrationDBUser,
 			SecretName: singleDB.Status.SecretName,
 			SecretKey:  "password",
-			Image:      migration.Spec.Image,
-		}, nil
+		}, true, nil
 	default:
-		return nil, fmt.Errorf("unsupported database kind %q", ref.Kind)
+		return nil, false, fmt.Errorf("unsupported database kind %q", ref.Kind)
 	}
 }
 
@@ -300,35 +341,82 @@ func calculateBatchHash(entries []platformv1alpha1.MigrationEntry) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db *ResolvedMigrationDatabase, batchHash string) *batchv1.Job {
+func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db *ResolvedMigrationDatabase, image, batchHash string) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 	configMapName := r.configMapName(migration.Name)
 
-	script := `set -e
+	script := sql.MigrationScript
 
-# Wait for database to be ready
-until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do
-  echo "Waiting for database..."
-  sleep 2
-done
+	env := make([]corev1.EnvVar, 0, 8+len(migration.Spec.Env))
+	env = append(env,
+		envVarFromSecret("PGPASSWORD", db.SecretName, db.SecretKey),
+		envVarFromSecret("POSTGRES_PASSWORD", db.SecretName, db.SecretKey),
+		envVar("PGHOST", db.Host),
+		envVar("PGPORT", fmt.Sprintf("%d", db.Port)),
+		envVar("PGUSER", db.User),
+		envVar("POSTGRES_USER", db.User),
+		envVar("PGDATABASE", db.DBName),
+		envVar("MIGRATION_HASH", batchHash),
+	)
+	env = append(env, migration.Spec.Env...)
 
-# Create migrations tracking table if not exists
-psql -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS _migrations (hash TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW());"
+	container := corev1.Container{
+		Name:            migrationComponent,
+		Image:           image,
+		ImagePullPolicy: migration.Spec.ImagePullPolicy,
+		Command:         []string{"/bin/sh", "-c"},
+		Args:            []string{script},
+		Env:             env,
+		Resources:       migration.Spec.Resources,
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "migration-sql",
+				MountPath: "/migrations",
+				ReadOnly:  true,
+			},
+		},
+	}
 
-# Check if already applied (idempotency at DB level)
-ALREADY_APPLIED=$(psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM _migrations WHERE hash = '$MIGRATION_HASH';")
+	if migration.Spec.ContainerSecurityContext != nil {
+		container.SecurityContext = migration.Spec.ContainerSecurityContext
+	}
 
-if [ "$ALREADY_APPLIED" = "1" ]; then
-    echo "Migration batch already applied, skipping"
-    exit 0
-fi
+	podLabels := maps.Clone(migration.Spec.PodLabels)
+	if podLabels == nil {
+		podLabels = map[string]string{}
+	}
 
-# Apply migration batch atomically
-psql -v ON_ERROR_STOP=1 -f /migrations/batch.sql
+	podAnnotations := maps.Clone(migration.Spec.PodAnnotations)
+	if podAnnotations == nil {
+		podAnnotations = map[string]string{}
+	}
 
-echo "Migration batch applied successfully"
-`
+	podSpec := corev1.PodSpec{
+		RestartPolicy:                 corev1.RestartPolicyNever,
+		Containers:                    []corev1.Container{container},
+		NodeSelector:                  migration.Spec.NodeSelector,
+		Affinity:                      migration.Spec.Affinity,
+		Tolerations:                   migration.Spec.Tolerations,
+		PriorityClassName:             migration.Spec.PriorityClassName,
+		TerminationGracePeriodSeconds: migration.Spec.TerminationGracePeriodSeconds,
+		Volumes: []corev1.Volume{
+			{
+				Name: "migration-sql",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: configMapName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if migration.Spec.PodSecurityContext != nil {
+		podSpec.SecurityContext = migration.Spec.PodSecurityContext
+	}
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -339,46 +427,11 @@ echo "Migration batch applied successfully"
 			BackoffLimit:            &backoffLimit,
 			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
 			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:    migrationComponent,
-							Image:   db.Image,
-							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{script},
-							Env: []corev1.EnvVar{
-								envVarFromSecret("PGPASSWORD", db.SecretName, db.SecretKey),
-								envVarFromSecret("POSTGRES_PASSWORD", db.SecretName, db.SecretKey),
-								envVar("PGHOST", db.Host),
-								envVar("PGPORT", fmt.Sprintf("%d", db.Port)),
-								envVar("PGUSER", db.User),
-								envVar("POSTGRES_USER", db.User),
-								envVar("PGDATABASE", db.DBName),
-								envVar("MIGRATION_HASH", batchHash),
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "migration-sql",
-									MountPath: "/migrations",
-									ReadOnly:  true,
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "migration-sql",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: configMapName,
-									},
-								},
-							},
-						},
-					},
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      podLabels,
+					Annotations: podAnnotations,
 				},
+				Spec: podSpec,
 			},
 		},
 	}
@@ -401,6 +454,7 @@ func (r *MigrationReconciler) setCondition(
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MigrationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("migration")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.Migration{}).
 		Owns(&batchv1.Job{}).

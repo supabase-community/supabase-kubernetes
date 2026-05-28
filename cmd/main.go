@@ -185,13 +185,6 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "Project")
 		os.Exit(1)
 	}
-	if err := (&controller.FunctionReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "Function")
-		os.Exit(1)
-	}
 	if err := (&controller.SingleDatabaseReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -206,6 +199,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Migration")
 		os.Exit(1)
 	}
+
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

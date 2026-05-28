@@ -20,15 +20,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha1"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"math/big"
 	"time"
 
@@ -205,7 +201,7 @@ func GenerateOpaqueKey(prefix string) (string, error) {
 	return intermediate + "_" + checksum, nil
 }
 
-// GenerateJWTSecretData generates all key material for the JWT secret (11 keys).
+// GenerateJWTSecretData generates all key material for the JWT secret (9 keys).
 func GenerateJWTSecretData(now time.Time, jwtExpiry time.Duration) (SecretData, error) {
 	jwtSecretBytes := make([]byte, 30)
 	if _, err := rand.Read(jwtSecretBytes); err != nil {
@@ -267,9 +263,6 @@ func GenerateJWTSecretData(now time.Time, jwtExpiry time.Duration) (SecretData, 
 		return nil, fmt.Errorf("generating secret-key: %w", err)
 	}
 
-	publishableKeysJSON, _ := json.Marshal(map[string]string{"default": publishableKey})
-	secretKeysJSON, _ := json.Marshal(map[string]string{"default": secretKey})
-
 	return SecretData{
 		"jwt-secret":             []byte(jwtSecret),
 		"anon-key":               []byte(anonKey),
@@ -280,102 +273,29 @@ func GenerateJWTSecretData(now time.Time, jwtExpiry time.Duration) (SecretData, 
 		"service-key-asymmetric": []byte(serviceKeyAsym),
 		"publishable-key":        []byte(publishableKey),
 		"secret-key":             []byte(secretKey),
-		"publishable-keys-json":  publishableKeysJSON,
-		"secret-keys-json":       secretKeysJSON,
-	}, nil
-}
-
-// htpasswdLine generates an htpasswd line using SHA1 (format supported by Envoy Gateway).
-func htpasswdLine(username, password string) string {
-	hash := sha1.Sum([]byte(password))
-	return fmt.Sprintf("%s:{SHA}%s", username, base64.StdEncoding.EncodeToString(hash[:]))
-}
-
-// GenerateStudioSecretData generates the data for the Studio secret.
-func GenerateStudioSecretData() (SecretData, error) {
-	password, err := GenerateRandomAlphanumeric(32)
-	if err != nil {
-		return nil, fmt.Errorf("generating studio password: %w", err)
-	}
-
-	return SecretData{
-		"username":  []byte("supabase"),
-		"password":  []byte(password),
-		".htpasswd": []byte(htpasswdLine("supabase", password)),
-	}, nil
-}
-
-// GenerateRealtimeSecretData generates the data for the Realtime secret.
-func GenerateRealtimeSecretData() (SecretData, error) {
-	secretKeyBase, err := GenerateRandomHex(64)
-	if err != nil {
-		return nil, fmt.Errorf("generating realtime secret-key-base: %w", err)
-	}
-
-	return SecretData{
-		"secret-key-base": []byte(secretKeyBase),
-	}, nil
-}
-
-// GenerateMetaSecretData generates the data for the Meta crypto secret.
-func GenerateMetaSecretData() (SecretData, error) {
-	cryptoKey, err := GenerateRandomHex(32)
-	if err != nil {
-		return nil, fmt.Errorf("generating meta crypto-key: %w", err)
-	}
-
-	return SecretData{
-		"crypto-key": []byte(cryptoKey),
 	}, nil
 }
 
 // GenerateKeysSecretData generates the shared keys secret data.
-// This combines keys previously split across realtime and meta secrets.
 func GenerateKeysSecretData() (SecretData, error) {
-	realtimeData, err := GenerateRealtimeSecretData()
+	secretKeyBase, err := GenerateRandomHex(64)
 	if err != nil {
-		return nil, err
-	}
-	metaData, err := GenerateMetaSecretData()
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("generating secret-key-base: %w", err)
 	}
 
-	combined := SecretData{}
-	maps.Copy(combined, realtimeData)
-	maps.Copy(combined, metaData)
-	return combined, nil
-}
-
-// GenerateStorageSecretData generates the data for the Storage secret.
-func GenerateStorageSecretData() (SecretData, error) {
-	accessKeyID, err := GenerateRandomAlphanumeric(20)
+	cryptoKey, err := GenerateRandomHex(32)
 	if err != nil {
-		return nil, fmt.Errorf("generating storage access-key-id: %w", err)
+		return nil, fmt.Errorf("generating crypto-key: %w", err)
 	}
 
-	secretAccessKey, err := GenerateRandomAlphanumeric(40)
+	vaultEncKey, err := GenerateRandomHex(16)
 	if err != nil {
-		return nil, fmt.Errorf("generating storage secret-access-key: %w", err)
+		return nil, fmt.Errorf("generating vault-enc-key: %w", err)
 	}
 
 	return SecretData{
-		"access-key-id":     []byte(accessKeyID),
-		"secret-access-key": []byte(secretAccessKey),
-	}, nil
-}
-
-// GenerateSAMLPrivateKeySecretData generates a SAML private key in base64-encoded PKCS#1 DER format.
-func GenerateSAMLPrivateKeySecretData() (SecretData, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, fmt.Errorf("generating SAML RSA private key: %w", err)
-	}
-
-	der := x509.MarshalPKCS1PrivateKey(privateKey)
-	encoded := base64.StdEncoding.EncodeToString(der)
-
-	return SecretData{
-		"private-key": []byte(encoded),
+		"secret-key-base": []byte(secretKeyBase),
+		"crypto-key":      []byte(cryptoKey),
+		"vault-enc-key":   []byte(vaultEncKey),
 	}, nil
 }

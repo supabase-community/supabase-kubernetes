@@ -15,24 +15,6 @@ resources:
   controller: true
   domain: supabase.io
   group: core
-  kind: Project
-  path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: supabase.io
-  group: core
-  kind: Function
-  path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: supabase.io
-  group: core
   kind: SingleDatabase
   path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
   version: v1alpha1
@@ -43,6 +25,51 @@ resources:
   domain: supabase.io
   group: core
   kind: Migration
+  path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: supabase.io
+  group: core
+  kind: Project
+  path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: supabase.io
+  group: core
+  kind: Rest
+  path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: supabase.io
+  group: core
+  kind: Meta
+  path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: supabase.io
+  group: core
+  kind: Realtime
+  path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: supabase.io
+  group: core
+  kind: Auth
   path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
   version: v1alpha1
 version: "3"

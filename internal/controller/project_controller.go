@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -37,14 +38,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/controller/sql"
 )
 
 const (
 	DefaultJWTExpiry = 24 * time.Hour * 365 * 10
 
-	ConditionTypeSecretsReady  = "SecretsReady"
-	ConditionTypeReady         = "Ready"
-	ConditionTypeDatabaseReady = "DatabaseReady"
+	ConditionTypeSecretsReady   = "SecretsReady"
+	ConditionTypeReady          = "Ready"
+	ConditionTypeDatabaseReady  = "DatabaseReady"
+	ConditionTypeMigrationReady = "MigrationReady"
+	ConditionTypeRestReady      = "RestReady"
+	ConditionTypeAuthReady      = "AuthReady"
+	ConditionTypeMetaReady      = "MetaReady"
+	ConditionTypeRealtimeReady  = "RealtimeReady"
+
+	DefaultMigrationNameSuffix = "-migration"
 )
 
 // ResolvedDatabase holds the resolved connection parameters for a Project's database.
@@ -70,14 +79,19 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get
+// +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=rests,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=rests/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core.supabase.io,resources=auths,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=auths/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core.supabase.io,resources=meta,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=meta/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core.supabase.io,resources=realtimes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=realtimes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile handles the reconciliation loop for Project resources.
 func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -97,38 +111,8 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		logger.Error(err, "Failed to ensure secrets")
 		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "SecretGenerationFailed", err.Error())
 		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Generated secrets are not ready")
-		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after secret failure")
-		}
-		return ctrl.Result{}, err
-	}
-
-	if err := r.ensureStudioHtpasswd(ctx, project); err != nil {
-		logger.Error(err, "Failed to ensure studio htpasswd")
-		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "StudioHtpasswdFailed", err.Error())
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Studio htpasswd backfill failed")
-		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after studio htpasswd failure")
-		}
-		return ctrl.Result{}, err
-	}
-
-	if err := r.deleteStudioSecretIfDisabled(ctx, project); err != nil {
-		logger.Error(err, "Failed to delete studio secret")
-		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "StudioSecretDeletionFailed", err.Error())
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Studio secret deletion failed")
-		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after studio secret deletion failure")
-		}
-		return ctrl.Result{}, err
-	}
-
-	if err := r.deleteStorageSecretIfDisabled(ctx, project); err != nil {
-		logger.Error(err, "Failed to delete storage secret")
-		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "StorageSecretDeletionFailed", err.Error())
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Storage secret deletion failed")
-		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after storage secret deletion failure")
 		}
 		return ctrl.Result{}, err
 	}
@@ -138,35 +122,82 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		logger.Error(err, "Failed to resolve database reference")
 		r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "DatabaseResolutionFailed", err.Error())
 		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "DatabaseNotReady", "Database reference could not be resolved")
-		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after database resolution failure")
 		}
 		return ctrl.Result{}, err
 	}
-	r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionTrue, "DatabaseResolved", "Database reference resolved successfully")
 
-	if err := r.EnsureAllComponents(ctx, project, db); err != nil {
-		logger.Error(err, "Failed to ensure components")
-		r.setCondition(project, "ComponentsReady", metav1.ConditionFalse, "ComponentsFailed", err.Error())
-		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after component failure")
+	project.Status.ResolvedDatabase = &platformv1alpha1.ResolvedDatabaseStatus{
+		Host:        db.Host,
+		Port:        db.Port,
+		DBName:      db.DBName,
+		PasswordRef: db.PasswordRef,
+	}
+
+	migrationResult, err := r.ensureMigration(ctx, project)
+	if err != nil {
+		logger.Error(err, "Failed to ensure migration")
+		r.setCondition(project, ConditionTypeMigrationReady, metav1.ConditionFalse, "MigrationFailed", err.Error())
+		r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "MigrationNotReady", "Database migration failed")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "MigrationNotReady", "Built-in migration failed or not ready")
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after migration failure")
 		}
 		return ctrl.Result{}, err
 	}
-	r.setCondition(project, "ComponentsReady", metav1.ConditionTrue, "AllComponentsReady", "All enabled components are deployed")
-
-	if err := r.reconcileProxy(ctx, project); err != nil {
-		logger.Error(err, "Failed to reconcile proxy")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "ProxyNotReady", err.Error())
-		if statusErr := r.Status().Update(ctx, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after proxy failure")
+	if migrationResult.RequeueAfter > 0 {
+		r.setCondition(project, ConditionTypeMigrationReady, metav1.ConditionFalse, "MigrationInProgress", "Built-in migration is running")
+		r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "MigrationInProgress", "Waiting for built-in migration to complete")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "MigrationNotReady", "Waiting for built-in migration to complete")
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status while migration in progress")
 		}
-		return ctrl.Result{}, err
+		return migrationResult, nil
 	}
 
+	r.setCondition(project, ConditionTypeMigrationReady, metav1.ConditionTrue, "MigrationApplied", "Built-in migration applied successfully")
+	r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionTrue, "DatabaseResolved", "Database reference resolved and migration applied")
 	r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionTrue, "AllSecretsReady", "All generated secrets are present and complete")
+
+	if err := r.ensureRest(ctx, project); err != nil {
+		logger.Error(err, "Failed to ensure Rest")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "RestNotReady", err.Error())
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update Project status")
+		}
+		return ctrl.Result{}, err
+	}
+
+	if err := r.ensureMeta(ctx, project); err != nil {
+		logger.Error(err, "Failed to ensure Meta")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "MetaNotReady", err.Error())
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update Project status")
+		}
+		return ctrl.Result{}, err
+	}
+
+	if err := r.ensureRealtime(ctx, project); err != nil {
+		logger.Error(err, "Failed to ensure Realtime")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "RealtimeNotReady", err.Error())
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update Project status")
+		}
+		return ctrl.Result{}, err
+	}
+
+	if err := r.ensureAuth(ctx, project); err != nil {
+		logger.Error(err, "Failed to ensure Auth")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "AuthNotReady", err.Error())
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update Project status")
+		}
+		return ctrl.Result{}, err
+	}
+
 	r.setCondition(project, ConditionTypeReady, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
-	if err := r.Status().Update(ctx, project); err != nil {
+	if err := r.updateProjectStatus(ctx, project); err != nil {
 		logger.Error(err, "Failed to update Project status")
 		return ctrl.Result{}, err
 	}
@@ -176,8 +207,10 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 // secretDefinitions returns the list of secrets that must exist for a Project.
+//
+//nolint:unparam
 func (r *ProjectReconciler) secretDefinitions(project *platformv1alpha1.Project) []secretDefinition {
-	defs := []secretDefinition{
+	return []secretDefinition{
 		{
 			suffix: "jwt",
 			generator: func() (SecretData, error) {
@@ -185,29 +218,7 @@ func (r *ProjectReconciler) secretDefinitions(project *platformv1alpha1.Project)
 			},
 		},
 		{suffix: "keys", generator: func() (SecretData, error) { return GenerateKeysSecretData() }},
-		{suffix: "storage", generator: func() (SecretData, error) { return GenerateStorageSecretData() }},
 	}
-
-	studioEnabled := project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)
-	if studioEnabled {
-		defs = append(defs, secretDefinition{suffix: "studio", generator: func() (SecretData, error) { return GenerateStudioSecretData() }})
-	}
-
-	storageEnabled := project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true)
-	if storageEnabled {
-		defs = append(defs, secretDefinition{suffix: "storage", generator: func() (SecretData, error) { return GenerateStorageSecretData() }})
-	}
-
-	if project.Spec.Auth != nil && project.Spec.Auth.SAML != nil && derefBool(project.Spec.Auth.SAML.Enabled, false) {
-		defs = append(defs, secretDefinition{
-			suffix: "saml",
-			generator: func() (SecretData, error) {
-				return GenerateSAMLPrivateKeySecretData()
-			},
-		})
-	}
-
-	return defs
 }
 
 // ensureAllSecrets iterates over all secret definitions and ensures each one exists with all required keys.
@@ -314,91 +325,16 @@ func (r *ProjectReconciler) setCondition(
 	})
 }
 
-// ensureStudioHtpasswd backfills the .htpasswd key into the studio secret
-// for existing secrets that were created before the key was added.
-func (r *ProjectReconciler) ensureStudioHtpasswd(ctx context.Context, project *platformv1alpha1.Project) error {
-	studioEnabled := project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)
-	if !studioEnabled {
-		return nil
-	}
-
-	secretName := fmt.Sprintf("%s-studio", project.Name)
-	secret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: project.Namespace}, secret); err != nil {
-		return fmt.Errorf("getting studio secret: %w", err)
-	}
-
-	if _, ok := secret.Data[".htpasswd"]; ok {
-		return nil
-	}
-
-	username := string(secret.Data["username"])
-	password := string(secret.Data["password"])
-	if username == "" || password == "" {
-		return fmt.Errorf("studio secret missing username or password")
-	}
-
-	if secret.Data == nil {
-		secret.Data = make(map[string][]byte)
-	}
-	secret.Data[".htpasswd"] = []byte(htpasswdLine(username, password))
-
-	if err := r.Update(ctx, secret); err != nil {
-		return fmt.Errorf("patching studio secret with .htpasswd: %w", err)
-	}
-
-	log.FromContext(ctx).Info("Patched .htpasswd into studio secret")
-	return nil
-}
-
-// deleteStudioSecretIfDisabled removes the studio secret when the studio
-// component is disabled.
-func (r *ProjectReconciler) deleteStudioSecretIfDisabled(ctx context.Context, project *platformv1alpha1.Project) error {
-	studioEnabled := project.Spec.Studio == nil || derefBool(project.Spec.Studio.Enabled, true)
-	if studioEnabled {
-		return nil
-	}
-
-	secretName := fmt.Sprintf("%s-studio", project.Name)
-	secret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: project.Namespace}, secret); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
+// updateProjectStatus re-fetches the resource and applies the current status with retry on conflict.
+func (r *ProjectReconciler) updateProjectStatus(ctx context.Context, project *platformv1alpha1.Project) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest := &platformv1alpha1.Project{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, latest); err != nil {
+			return err
 		}
-		return fmt.Errorf("getting studio secret for deletion: %w", err)
-	}
-
-	if err := r.Delete(ctx, secret); err != nil {
-		return fmt.Errorf("deleting studio secret: %w", err)
-	}
-
-	log.FromContext(ctx).Info("Deleted studio secret because studio is disabled")
-	return nil
-}
-
-// deleteStorageSecretIfDisabled removes the storage secret when the storage
-// component is disabled.
-func (r *ProjectReconciler) deleteStorageSecretIfDisabled(ctx context.Context, project *platformv1alpha1.Project) error {
-	storageEnabled := project.Spec.Storage == nil || derefBool(project.Spec.Storage.Enabled, true)
-	if storageEnabled {
-		return nil
-	}
-
-	secretName := fmt.Sprintf("%s-storage", project.Name)
-	secret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: project.Namespace}, secret); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("getting storage secret for deletion: %w", err)
-	}
-
-	if err := r.Delete(ctx, secret); err != nil {
-		return fmt.Errorf("deleting storage secret: %w", err)
-	}
-
-	log.FromContext(ctx).Info("Deleted storage secret because storage is disabled")
-	return nil
+		latest.Status = project.Status
+		return r.Status().Update(ctx, latest)
+	})
 }
 
 func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *platformv1alpha1.Project) (*ResolvedDatabase, error) {
@@ -437,24 +373,75 @@ func keysOf(m map[string][]byte) []string {
 	return keys
 }
 
+func (r *ProjectReconciler) migrationName(project *platformv1alpha1.Project) string {
+	return project.Name + DefaultMigrationNameSuffix
+}
+
+func (r *ProjectReconciler) buildMigration(project *platformv1alpha1.Project) (*platformv1alpha1.Migration, error) {
+	entries, err := sql.DefaultMigrationEntries()
+	if err != nil {
+		return nil, fmt.Errorf("loading default migrations: %w", err)
+	}
+	return &platformv1alpha1.Migration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      r.migrationName(project),
+			Namespace: project.Namespace,
+		},
+		Spec: platformv1alpha1.MigrationSpec{
+			Version:     project.Spec.Version,
+			DatabaseRef: project.Spec.DatabaseRef,
+			Migrations:  entries,
+		},
+	}, nil
+}
+
+func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *platformv1alpha1.Project) (ctrl.Result, error) {
+	logger := log.FromContext(ctx).WithValues("migration", r.migrationName(project))
+
+	if project.Status.AppliedMigrationHash != "" {
+		return ctrl.Result{}, nil
+	}
+
+	migration := &platformv1alpha1.Migration{}
+	err := r.Get(ctx, types.NamespacedName{Name: r.migrationName(project), Namespace: project.Namespace}, migration)
+
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("getting migration: %w", err)
+		}
+
+		logger.Info("Creating built-in migration")
+		migration, err = r.buildMigration(project)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("building migration: %w", err)
+		}
+		if err := controllerutil.SetControllerReference(project, migration, r.Scheme); err != nil {
+			return ctrl.Result{}, fmt.Errorf("setting owner reference on migration: %w", err)
+		}
+		if err := r.Create(ctx, migration); err != nil {
+			return ctrl.Result{}, fmt.Errorf("creating migration: %w", err)
+		}
+		logger.Info("Created built-in migration")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	cond := meta.FindStatusCondition(migration.Status.Conditions, ConditionTypeReady)
+	if cond != nil && cond.Status == metav1.ConditionTrue {
+		project.Status.AppliedMigrationHash = migration.Status.AppliedHash
+		logger.Info("Migration applied", "hash", project.Status.AppliedMigrationHash)
+		return ctrl.Result{}, nil
+	}
+
+	if cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "MigrationFailed" {
+		return ctrl.Result{}, fmt.Errorf("migration failed: %s", cond.Message)
+	}
+
+	logger.Info("Waiting for migration to complete")
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	functionToProject := handler.EnqueueRequestsFromMapFunc(func(_ context.Context, obj client.Object) []reconcile.Request {
-		function, ok := obj.(*platformv1alpha1.Function)
-		if !ok {
-			return nil
-		}
-		if function.Spec.ProjectRef.Name == "" {
-			return nil
-		}
-		return []reconcile.Request{{
-			NamespacedName: types.NamespacedName{
-				Name:      function.Spec.ProjectRef.Name,
-				Namespace: function.Namespace,
-			},
-		}}
-	})
-
 	singleDatabaseToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 		singleDB, ok := obj.(*platformv1alpha1.SingleDatabase)
 		if !ok {
@@ -481,16 +468,127 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return requests
 	})
 
+	migrationToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		migration, ok := obj.(*platformv1alpha1.Migration)
+		if !ok {
+			return nil
+		}
+		for _, ref := range migration.OwnerReferences {
+			if ref.Kind == "Project" {
+				return []reconcile.Request{{
+					NamespacedName: types.NamespacedName{
+						Name:      ref.Name,
+						Namespace: migration.Namespace,
+					},
+				}}
+			}
+		}
+		return nil
+	})
+
+	restToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		rest, ok := obj.(*platformv1alpha1.Rest)
+		if !ok {
+			return nil
+		}
+		projectList := &platformv1alpha1.ProjectList{}
+		if err := r.List(ctx, projectList, client.InNamespace(rest.Namespace)); err != nil {
+			return nil
+		}
+		var requests []reconcile.Request
+		for i := range projectList.Items {
+			if projectList.Items[i].Spec.RestRef != nil && projectList.Items[i].Spec.RestRef.Name == rest.Name {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      projectList.Items[i].Name,
+						Namespace: projectList.Items[i].Namespace,
+					},
+				})
+			}
+		}
+		return requests
+	})
+
+	metaToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		m, ok := obj.(*platformv1alpha1.Meta)
+		if !ok {
+			return nil
+		}
+		projectList := &platformv1alpha1.ProjectList{}
+		if err := r.List(ctx, projectList, client.InNamespace(m.Namespace)); err != nil {
+			return nil
+		}
+		var requests []reconcile.Request
+		for i := range projectList.Items {
+			if projectList.Items[i].Spec.MetaRef != nil && projectList.Items[i].Spec.MetaRef.Name == m.Name {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      projectList.Items[i].Name,
+						Namespace: projectList.Items[i].Namespace,
+					},
+				})
+			}
+		}
+		return requests
+	})
+
+	realtimeToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		rt, ok := obj.(*platformv1alpha1.Realtime)
+		if !ok {
+			return nil
+		}
+		projectList := &platformv1alpha1.ProjectList{}
+		if err := r.List(ctx, projectList, client.InNamespace(rt.Namespace)); err != nil {
+			return nil
+		}
+		var requests []reconcile.Request
+		for i := range projectList.Items {
+			if projectList.Items[i].Spec.RealtimeRef != nil && projectList.Items[i].Spec.RealtimeRef.Name == rt.Name {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      projectList.Items[i].Name,
+						Namespace: projectList.Items[i].Namespace,
+					},
+				})
+			}
+		}
+		return requests
+	})
+
+	authToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		auth, ok := obj.(*platformv1alpha1.Auth)
+		if !ok {
+			return nil
+		}
+		projectList := &platformv1alpha1.ProjectList{}
+		if err := r.List(ctx, projectList, client.InNamespace(auth.Namespace)); err != nil {
+			return nil
+		}
+		var requests []reconcile.Request
+		for i := range projectList.Items {
+			if projectList.Items[i].Spec.AuthRef != nil && projectList.Items[i].Spec.AuthRef.Name == auth.Name {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      projectList.Items[i].Name,
+						Namespace: projectList.Items[i].Namespace,
+					},
+				})
+			}
+		}
+		return requests
+	})
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.Project{}).
-		Watches(&platformv1alpha1.Function{}, functionToProject).
 		Watches(&platformv1alpha1.SingleDatabase{}, singleDatabaseToProject).
+		Watches(&platformv1alpha1.Migration{}, migrationToProject).
+		Watches(&platformv1alpha1.Rest{}, restToProject).
+		Watches(&platformv1alpha1.Meta{}, metaToProject).
+		Watches(&platformv1alpha1.Realtime{}, realtimeToProject).
+		Watches(&platformv1alpha1.Auth{}, authToProject).
 		Owns(&corev1.Secret{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Service{}).
 		Owns(&appsv1.Deployment{}).
-		Owns(&appsv1.StatefulSet{}).
-		Owns(&platformv1alpha1.Function{}).
+		Owns(&corev1.Service{}).
 		Named("project").
 		Complete(r)
 }

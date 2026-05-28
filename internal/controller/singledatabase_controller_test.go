@@ -57,7 +57,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 					Namespace: "default",
 				},
 				Spec: platformv1alpha1.SingleDatabaseSpec{
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
@@ -80,19 +80,27 @@ var _ = Describe("SingleDatabase Controller", func() {
 		})
 
 		It("should set Ready condition and create dependent resources", func() {
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, sts)).To(Succeed())
+				sts.Status.Replicas = 1
+				sts.Status.ReadyReplicas = 1
+				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
 			singleDB := &platformv1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 				g.Expect(singleDB.Status.ServiceName).To(Equal("test-single-db-db"))
-				g.Expect(singleDB.Status.SecretName).To(Equal("test-single-db-credentials"))
+				g.Expect(singleDB.Status.SecretName).To(Equal("test-single-db-db"))
 			}, timeout, interval).Should(Succeed())
 		})
 
 		It("should add owner reference when pvcDeletionPolicy changes to Delete", func() {
 			singleDB := &platformv1alpha1.SingleDatabase{}
 			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.PVCDeletionPolicy = platformv1alpha1.PVCDeletionPolicyRetain
+			singleDB.Spec.Storage.DeletionPolicy = platformv1alpha1.PVCDeletionPolicyRetain
 			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
 
 			pvc := &corev1.PersistentVolumeClaim{}
@@ -102,7 +110,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.PVCDeletionPolicy = platformv1alpha1.PVCDeletionPolicyDelete
+			singleDB.Spec.Storage.DeletionPolicy = platformv1alpha1.PVCDeletionPolicyDelete
 			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
 
 			Eventually(func(g Gomega) {
@@ -121,7 +129,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.PVCDeletionPolicy = platformv1alpha1.PVCDeletionPolicyRetain
+			singleDB.Spec.Storage.DeletionPolicy = platformv1alpha1.PVCDeletionPolicyRetain
 			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
 
 			Eventually(func(g Gomega) {
@@ -155,7 +163,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 					Namespace: "default",
 				},
 				Spec: platformv1alpha1.SingleDatabaseSpec{
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
@@ -164,32 +172,34 @@ var _ = Describe("SingleDatabase Controller", func() {
 							},
 						},
 					},
-					NodeSelector: map[string]string{
-						"kubernetes.io/os": "linux",
-					},
-					Tolerations: []corev1.Toleration{
-						{
-							Key:      "dedicated",
-							Operator: corev1.TolerationOpEqual,
-							Value:    "postgres",
-							Effect:   corev1.TaintEffectNoSchedule,
+					WorkloadConfig: platformv1alpha1.WorkloadConfig{
+						NodeSelector: map[string]string{
+							"kubernetes.io/os": "linux",
 						},
-					},
-					PodAnnotations: map[string]string{
-						"prometheus.io/scrape": "true",
-					},
-					PodLabels: map[string]string{
-						"tier": "database",
-					},
-					ImagePullPolicy:               corev1.PullIfNotPresent,
-					TerminationGracePeriodSeconds: func() *int64 { v := int64(120); return &v }(),
-					ContainerSecurityContext: &corev1.SecurityContext{
-						AllowPrivilegeEscalation: func() *bool { v := false; return &v }(),
-						ReadOnlyRootFilesystem:   func() *bool { v := false; return &v }(),
-					},
-					PodSecurityContext: &corev1.PodSecurityContext{
-						RunAsNonRoot: func() *bool { v := true; return &v }(),
-						RunAsUser:    func() *int64 { v := int64(999); return &v }(),
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "dedicated",
+								Operator: corev1.TolerationOpEqual,
+								Value:    "postgres",
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+						PodAnnotations: map[string]string{
+							"prometheus.io/scrape": "true",
+						},
+						PodLabels: map[string]string{
+							"tier": "database",
+						},
+						ImagePullPolicy:               corev1.PullIfNotPresent,
+						TerminationGracePeriodSeconds: func() *int64 { v := int64(120); return &v }(),
+						ContainerSecurityContext: &corev1.SecurityContext{
+							AllowPrivilegeEscalation: func() *bool { v := false; return &v }(),
+							ReadOnlyRootFilesystem:   func() *bool { v := false; return &v }(),
+						},
+						PodSecurityContext: &corev1.PodSecurityContext{
+							RunAsNonRoot: func() *bool { v := true; return &v }(),
+							RunAsUser:    func() *int64 { v := int64(999); return &v }(),
+						},
 					},
 				},
 			}
@@ -245,6 +255,14 @@ var _ = Describe("SingleDatabase Controller", func() {
 		})
 
 		It("should populate enriched status", func() {
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-advanced-db", Namespace: "default"}, sts)).To(Succeed())
+				sts.Status.Replicas = 1
+				sts.Status.ReadyReplicas = 1
+				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
 			singleDB := &platformv1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
@@ -278,7 +296,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 					Namespace: "default",
 				},
 				Spec: platformv1alpha1.SingleDatabaseSpec{
-					Image: "supabase/postgres:17.6.1.084",
+					Version: "2026.04.27",
 					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
@@ -314,10 +332,10 @@ var _ = Describe("SingleDatabase Controller", func() {
 			Expect(initContainer.VolumeMounts).To(HaveLen(1))
 			Expect(initContainer.VolumeMounts[0].MountPath).To(Equal("/var/lib/postgresql/data"))
 
-			// Verify PGPASSWORD env references the credentials secret
+			// Verify PGPASSWORD env references the db secret
 			Expect(initContainer.Env).To(HaveLen(1))
 			Expect(initContainer.Env[0].Name).To(Equal("PGPASSWORD"))
-			Expect(initContainer.Env[0].ValueFrom.SecretKeyRef.Name).To(Equal("test-single-db-pwsync-credentials"))
+			Expect(initContainer.Env[0].ValueFrom.SecretKeyRef.Name).To(Equal("test-single-db-pwsync-db"))
 			Expect(initContainer.Env[0].ValueFrom.SecretKeyRef.Key).To(Equal("password"))
 		})
 
@@ -330,7 +348,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			}, timeout, interval).Should(Succeed())
 		})
 
-		It("should update secret-hash annotation when credentials secret is rotated", func() {
+		It("should update secret-hash annotation when db secret is rotated", func() {
 			sts := &appsv1.StatefulSet{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-pwsync-db", Namespace: "default"}, sts)).To(Succeed())
@@ -341,7 +359,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 
 			// Delete the secret to trigger rotation
 			secret := &corev1.Secret{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-pwsync-credentials", Namespace: "default"}, secret)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-pwsync-db", Namespace: "default"}, secret)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
 
 			// After reconciliation, the secret is recreated with a new password,

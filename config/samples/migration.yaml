@@ -1,0 +1,21 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Migration
+metadata:
+  labels:
+    app.kubernetes.io/name: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: supabase
+spec:
+  version: "2026.04.27"
+  databaseRef:
+    kind: SingleDatabase
+    name: supabase
+  migrations:
+    - name: "01-create-todos"
+      sql: |
+        CREATE TABLE IF NOT EXISTS todos (
+          id serial PRIMARY KEY,
+          title text NOT NULL,
+          completed boolean NOT NULL DEFAULT false,
+          created_at timestamptz NOT NULL DEFAULT NOW()
+        );

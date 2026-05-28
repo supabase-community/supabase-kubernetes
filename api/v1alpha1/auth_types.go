@@ -1,151 +1,205 @@
+/*
+Copyright 2026.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package v1alpha1
 
-// AuthSpec defines the configuration for the Supabase Auth (GoTrue) service.
-type AuthSpec struct {
-	ComponentSpec `json:",inline"`
-	// +kubebuilder:default=false
-	// +optional
-	DisableSignup *bool `json:"disableSignup,omitempty"`
-	// +kubebuilder:default=false
-	// +optional
-	EnableAnonymousUsers *bool `json:"enableAnonymousUsers,omitempty"`
-	// +kubebuilder:default=false
-	// +optional
-	ExternalSkipNonceCheck *bool `json:"externalSkipNonceCheck,omitempty"`
-	// +optional
-	Email *AuthEmailSpec `json:"email,omitempty"`
-	// +optional
-	Phone *AuthPhoneSpec `json:"phone,omitempty"`
-	// +optional
-	OAuth *AuthOAuthSpec `json:"oauth,omitempty"`
-	// +optional
-	SMS *AuthSmsSpec `json:"sms,omitempty"`
-	// +optional
-	MFA *AuthMfaSpec `json:"mfa,omitempty"`
-	// +optional
-	SAML *AuthSamlSpec `json:"saml,omitempty"`
-}
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
-// AuthEmailSpec defines email authentication configuration.
-type AuthEmailSpec struct {
-	// +kubebuilder:default=true
-	// +optional
-	EnableSignup *bool `json:"enableSignup,omitempty"`
-	// +kubebuilder:default=false
-	// +optional
-	AutoConfirm *bool `json:"autoConfirm,omitempty"`
-	// +optional
-	SMTP *AuthSmtpSpec `json:"smtp,omitempty"`
-}
-
-// AuthSmtpSpec defines SMTP server configuration.
-type AuthSmtpSpec struct {
-	// +kubebuilder:validation:Required
-	AdminEmail string `json:"adminEmail"`
+// SMTPConfig defines SMTP settings for GoTrue.
+type SMTPConfig struct {
 	// +kubebuilder:validation:Required
 	Host string `json:"host"`
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=65535
 	Port int32 `json:"port"`
 	// +kubebuilder:validation:Required
-	UserRef SecretKeyRef `json:"userRef"`
+	User string `json:"user"`
 	// +kubebuilder:validation:Required
-	PassRef SecretKeyRef `json:"passRef"`
+	PasswordRef SecretKeyRef `json:"passwordRef"`
+	// +kubebuilder:validation:Required
+	SenderName string `json:"senderName"`
+	// +kubebuilder:validation:Required
+	AdminEmail string `json:"adminEmail"`
 	// +optional
-	SenderName *string `json:"senderName,omitempty"`
+	MaxFrequency string `json:"maxFrequency,omitempty"`
 }
 
-// AuthPhoneSpec defines phone-based authentication configuration.
-type AuthPhoneSpec struct {
-	// +kubebuilder:default=false
-	// +optional
-	EnableSignup *bool `json:"enableSignup,omitempty"`
-	// +kubebuilder:default=false
-	// +optional
-	AutoConfirm *bool `json:"autoConfirm,omitempty"`
+// OAuthProviderConfig defines a single OAuth provider configuration.
+type OAuthProviderConfig struct {
+	// +kubebuilder:validation:Required
+	Enabled bool `json:"enabled"`
+	// +kubebuilder:validation:Required
+	ClientID string `json:"clientId"`
+	// +kubebuilder:validation:Required
+	SecretRef SecretKeyRef `json:"secretRef"`
 }
 
-// AuthOAuthSpec defines external OAuth provider configuration.
-type AuthOAuthSpec struct {
+// OAuthConfig defines OAuth provider settings.
+type OAuthConfig struct {
 	// +optional
-	Google *OAuthProviderSpec `json:"google,omitempty"`
+	Google *OAuthProviderConfig `json:"google,omitempty"`
 	// +optional
-	GitHub *OAuthProviderSpec `json:"github,omitempty"`
+	GitHub *OAuthProviderConfig `json:"github,omitempty"`
 	// +optional
-	Azure *OAuthProviderSpec `json:"azure,omitempty"`
+	Azure *OAuthProviderConfig `json:"azure,omitempty"`
 }
 
-// OAuthProviderSpec defines configuration for a single OAuth provider.
-type OAuthProviderSpec struct {
-	// +kubebuilder:default=false
-	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-	// +optional
-	ClientIDRef *SecretKeyRef `json:"clientIdRef,omitempty"`
-	// +optional
-	ClientSecretRef *SecretKeyRef `json:"clientSecretRef,omitempty"`
-}
-
-// AuthSmsSpec defines SMS-based authentication configuration.
-type AuthSmsSpec struct {
+// SMSConfig defines SMS provider settings.
+type SMSConfig struct {
 	// +kubebuilder:validation:Required
 	Provider string `json:"provider"`
-	// +optional
-	OTPExpSeconds *int32 `json:"otpExpSeconds,omitempty"`
-	// +optional
-	OTPLength *int32 `json:"otpLength,omitempty"`
-	// +optional
-	MaxFrequency *string `json:"maxFrequency,omitempty"`
-	// +optional
-	Template *string `json:"template,omitempty"`
-	// +optional
-	Twilio *AuthSmsTwilioSpec `json:"twilio,omitempty"`
+	// +kubebuilder:validation:Required
+	OTPExp int32 `json:"otpExp"`
+	// +kubebuilder:validation:Required
+	OTPLength int32 `json:"otpLength"`
+	// +kubebuilder:validation:Required
+	MaxFrequency string `json:"maxFrequency"`
+	// +kubebuilder:validation:Required
+	Template string `json:"template"`
+	// +kubebuilder:validation:Required
+	TwilioAccountSID string `json:"twilioAccountSid"`
+	// +kubebuilder:validation:Required
+	TwilioAuthTokenRef SecretKeyRef `json:"twilioAuthTokenRef"`
+	// +kubebuilder:validation:Required
+	TwilioMessageServiceSID string `json:"twilioMessageServiceSid"`
 }
 
-// AuthSmsTwilioSpec defines Twilio-specific SMS configuration.
-type AuthSmsTwilioSpec struct {
-	// +kubebuilder:validation:Required
-	AccountSIDRef SecretKeyRef `json:"accountSidRef"`
-	// +kubebuilder:validation:Required
-	AuthTokenRef SecretKeyRef `json:"authTokenRef"`
-	// +kubebuilder:validation:Required
-	MessageServiceSIDRef SecretKeyRef `json:"messageServiceSidRef"`
+// MFAConfig defines multi-factor authentication settings.
+type MFAConfig struct {
+	// +optional
+	TOTPEnrollEnabled bool `json:"totpEnrollEnabled,omitempty"`
+	// +optional
+	TOTPVerifyEnabled bool `json:"totpVerifyEnabled,omitempty"`
+	// +optional
+	PhoneEnrollEnabled bool `json:"phoneEnrollEnabled,omitempty"`
+	// +optional
+	PhoneVerifyEnabled bool `json:"phoneVerifyEnabled,omitempty"`
+	// +optional
+	MaxEnrolledFactors int32 `json:"maxEnrolledFactors,omitempty"`
 }
 
-// AuthMfaSpec defines multi-factor authentication configuration.
-type AuthMfaSpec struct {
-	// +kubebuilder:default=false
+// SAMLConfig defines SAML authentication settings.
+type SAMLConfig struct {
+	// +kubebuilder:validation:Required
+	Enabled bool `json:"enabled,omitempty"`
 	// +optional
-	TOTPEnrollEnabled *bool `json:"totpEnrollEnabled,omitempty"`
-	// +kubebuilder:default=false
+	AllowEncryptedAssertions bool `json:"allowEncryptedAssertions,omitempty"`
 	// +optional
-	TOTPVerifyEnabled *bool `json:"totpVerifyEnabled,omitempty"`
-	// +kubebuilder:default=false
+	RelayStateValidityPeriod string `json:"relayStateValidityPeriod,omitempty"`
 	// +optional
-	PhoneEnrollEnabled *bool `json:"phoneEnrollEnabled,omitempty"`
-	// +kubebuilder:default=false
-	// +optional
-	PhoneVerifyEnabled *bool `json:"phoneVerifyEnabled,omitempty"`
-	// +kubebuilder:default=10
-	// +kubebuilder:validation:Minimum=0
-	// +optional
-	MaxEnrolledFactors *int32 `json:"maxEnrolledFactors,omitempty"`
+	RateLimitAssertion int32 `json:"rateLimitAssertion,omitempty"`
 }
 
-// AuthSamlSpec defines SAML-based authentication configuration.
-type AuthSamlSpec struct {
-	// +kubebuilder:default=false
+// AuthSpec defines the desired state of Auth
+type AuthSpec struct {
+	WorkloadConfig `json:",inline"`
+
+	// siteUrl is the base URL of your site used for email links and redirects
+	// +kubebuilder:validation:Required
+	SiteURL string `json:"siteUrl"`
+
+	// additionalRedirectUrls is a list of additional URLs allowed for redirects
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-	// +kubebuilder:default=false
+	AdditionalRedirectURLs []string `json:"additionalRedirectUrls,omitempty"`
+
+	// disableSignup disables new user signups
+	// +kubebuilder:validation:Required
+	DisableSignup bool `json:"disableSignup"`
+
+	// enableEmailSignup enables email/password signups
+	// +kubebuilder:validation:Required
+	EnableEmailSignup bool `json:"enableEmailSignup"`
+
+	// enableAnonymousUsers enables anonymous user signings
+	// +kubebuilder:validation:Required
+	EnableAnonymousUsers bool `json:"enableAnonymousUsers"`
+
+	// enableEmailAutoconfirm skips email confirmation
+	// +kubebuilder:validation:Required
+	EnableEmailAutoconfirm bool `json:"enableEmailAutoconfirm"`
+
+	// enablePhoneSignup enables phone signups
+	// +kubebuilder:validation:Required
+	EnablePhoneSignup bool `json:"enablePhoneSignup"`
+
+	// enablePhoneAutoconfirm skips phone confirmation
+	// +kubebuilder:validation:Required
+	EnablePhoneAutoconfirm bool `json:"enablePhoneAutoconfirm"`
+	// skipNonceCheck skips nonce check for external providers
 	// +optional
-	AllowEncryptedAssertions *bool `json:"allowEncryptedAssertions,omitempty"`
-	// +kubebuilder:default="2m0s"
+	SkipNonceCheck *bool `json:"skipNonceCheck,omitempty"`
+	// mailerSecureEmailChangeEnabled enables secure email change flow
 	// +optional
-	RelayStateValidityPeriod *string `json:"relayStateValidityPeriod,omitempty"`
-	// +kubebuilder:default=15
-	// +kubebuilder:validation:Minimum=0
+	MailerSecureEmailChangeEnabled *bool `json:"mailerSecureEmailChangeEnabled,omitempty"`
+
+	// smtp defines SMTP configuration for sending emails
 	// +optional
-	RateLimitAssertion *int32 `json:"rateLimitAssertion,omitempty"`
+	SMTP *SMTPConfig `json:"smtp,omitempty"`
+
+	// oauth defines OAuth provider configuration
+	// +optional
+	OAuth *OAuthConfig `json:"oauth,omitempty"`
+
+	// sms defines SMS provider configuration
+	// +optional
+	SMS *SMSConfig `json:"sms,omitempty"`
+
+	// mfa defines multi-factor authentication configuration
+	// +optional
+	MFA *MFAConfig `json:"mfa,omitempty"`
+
+	// saml defines SAML authentication configuration
+	// +optional
+	SAML *SAMLConfig `json:"saml,omitempty"`
+}
+
+// AuthStatus defines the observed state of Auth.
+type AuthStatus struct {
+	// conditions represent the current state of the Auth resource
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=".status.conditions[?(@.type=='Ready')].status"
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
+
+// Auth is the Schema for the auths API
+type Auth struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   AuthSpec   `json:"spec,omitempty"`
+	Status AuthStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// AuthList contains a list of Auth
+type AuthList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Auth `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Auth{}, &AuthList{})
 }
