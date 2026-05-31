@@ -27,14 +27,12 @@ import (
 var defaultMigrations = [][]string{
 	{
 		"migrations/supabase.sql",
-	},
-	{
 		"migrations/webhooks.sql",
-	},
-	{
+		"migrations/roles.sql",
 		"migrations/logs.sql",
 		"migrations/pooler.sql",
 		"migrations/realtime.sql",
+		"migrations/jwt.sql",
 	},
 }
 

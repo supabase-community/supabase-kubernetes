@@ -122,6 +122,23 @@ func simulateMigrationSuccess(projectName string, timeout, interval time.Duratio
 	Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
 }
 
+//nolint:unparam // timeout is always the same in current test suite
+func simulateJWTSyncSuccess(projectName string, timeout, interval time.Duration) {
+	jobName := projectName + "-sync-jwt"
+
+	job := &batchv1.Job{}
+	Eventually(func(g Gomega) {
+		g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: jobName, Namespace: "default"}, job)).To(Succeed())
+	}, timeout, interval).Should(Succeed())
+
+	if job.Status.Succeeded > 0 {
+		return
+	}
+
+	job.Status.Succeeded = 1
+	Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
+}
+
 var _ = Describe("Project Controller", func() {
 	const timeout = 30 * time.Second
 	const interval = 250 * time.Millisecond
@@ -135,6 +152,7 @@ var _ = Describe("Project Controller", func() {
 			simulateSingleDatabaseReady("test-db", timeout, interval)
 			Expect(k8sClient.Create(ctx, validProject(projectName))).To(Succeed())
 			simulateMigrationSuccess(projectName, timeout, interval)
+			simulateJWTSyncSuccess(projectName, timeout, interval)
 			Eventually(func(g Gomega) {
 				created := &platformv1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
@@ -209,6 +227,7 @@ var _ = Describe("Project Controller", func() {
 			simulateSingleDatabaseReady("test-db", timeout, interval)
 			Expect(k8sClient.Create(ctx, minimalProject(projectName))).To(Succeed())
 			simulateMigrationSuccess(projectName, timeout, interval)
+			simulateJWTSyncSuccess(projectName, timeout, interval)
 			Eventually(func(g Gomega) {
 				created := &platformv1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
@@ -309,6 +328,7 @@ var _ = Describe("Project Controller", func() {
 			project.Spec.DatabaseRef = platformv1alpha1.DatabaseRef{Kind: "SingleDatabase", Name: "test-single-db"}
 			Expect(k8sClient.Create(ctx, project)).To(Succeed())
 			simulateMigrationSuccess(projectName, timeout, interval)
+			simulateJWTSyncSuccess(projectName, timeout, interval)
 			Eventually(func(g Gomega) {
 				created := &platformv1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
@@ -366,6 +386,7 @@ var _ = Describe("Project Controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			simulateMigrationSuccess(projectName, timeout, interval)
+			simulateJWTSyncSuccess(projectName, timeout, interval)
 
 			Eventually(func(g Gomega) {
 				project := &platformv1alpha1.Project{}
@@ -437,6 +458,7 @@ var _ = Describe("Project Controller", func() {
 			Expect(k8sClient.Create(ctx, project)).To(Succeed())
 
 			simulateMigrationSuccess(projectName, timeout, interval)
+			simulateJWTSyncSuccess(projectName, timeout, interval)
 			Eventually(func(g Gomega) {
 				created := &platformv1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
@@ -515,6 +537,7 @@ var _ = Describe("Project Controller", func() {
 			project.Spec.RestRef = &platformv1alpha1.RestRef{Kind: "Rest", Name: "missing-rest"}
 			Expect(k8sClient.Create(ctx, project)).To(Succeed())
 			simulateMigrationSuccess(projectName, timeout, interval)
+			simulateJWTSyncSuccess(projectName, timeout, interval)
 		})
 
 		AfterEach(func() {

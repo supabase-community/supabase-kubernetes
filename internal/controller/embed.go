@@ -26,3 +26,6 @@ var ProjectMigrationApplyScript string
 
 //go:embed scripts/singledatabase-password-sync.sh
 var SingleDatabasePasswordSyncScript string
+
+//go:embed scripts/project-sync-jwt.sh
+var ProjectSyncJWTScript string

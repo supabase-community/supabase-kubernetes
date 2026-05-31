@@ -21,9 +21,11 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"maps"
+	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -44,14 +46,15 @@ import (
 const (
 	DefaultJWTExpiry = 24 * time.Hour * 365 * 10
 
-	ConditionTypeSecretsReady   = "SecretsReady"
-	ConditionTypeReady          = "Ready"
-	ConditionTypeDatabaseReady  = "DatabaseReady"
-	ConditionTypeMigrationReady = "MigrationReady"
-	ConditionTypeRestReady      = "RestReady"
-	ConditionTypeAuthReady      = "AuthReady"
-	ConditionTypeMetaReady      = "MetaReady"
-	ConditionTypeRealtimeReady  = "RealtimeReady"
+	ConditionTypeSecretsReady     = "SecretsReady"
+	ConditionTypeReady            = "Ready"
+	ConditionTypeDatabaseReady    = "DatabaseReady"
+	ConditionTypeMigrationReady   = "MigrationReady"
+	ConditionTypeJWTSettingsReady = "JWTSettingsReady"
+	ConditionTypeRestReady        = "RestReady"
+	ConditionTypeAuthReady        = "AuthReady"
+	ConditionTypeMetaReady        = "MetaReady"
+	ConditionTypeRealtimeReady    = "RealtimeReady"
 
 	DefaultMigrationNameSuffix = "-migration"
 )
@@ -159,6 +162,27 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	r.setCondition(project, ConditionTypeMigrationReady, metav1.ConditionTrue, "MigrationApplied", "Built-in migration applied successfully")
 	r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionTrue, "DatabaseResolved", "Database reference resolved and migration applied")
 	r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionTrue, "AllSecretsReady", "All generated secrets are present and complete")
+
+	jwtResult, err := r.ensureJWTSettings(ctx, project)
+	if err != nil {
+		logger.Error(err, "Failed to ensure JWT settings")
+		r.setCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionFalse, "JWTSettingsFailed", err.Error())
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "JWTSettingsNotReady", err.Error())
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after JWT settings failure")
+		}
+		return ctrl.Result{}, err
+	}
+	if jwtResult.RequeueAfter > 0 {
+		r.setCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionFalse, "JWTSettingsInProgress", "Waiting for JWT settings sync to complete")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "JWTSettingsNotReady", "Waiting for JWT settings sync to complete")
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status while JWT settings in progress")
+		}
+		return jwtResult, nil
+	}
+
+	r.setCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionTrue, "JWTSettingsApplied", "JWT settings applied successfully")
 
 	if err := r.ensureRest(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Rest")
@@ -452,6 +476,120 @@ func calculateCombinedHash(hashes []string) string {
 		h.Write([]byte(hash))
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (r *ProjectReconciler) jwtSyncJobName(project *platformv1alpha1.Project) string {
+	return project.Name + "-sync-jwt"
+}
+
+func (r *ProjectReconciler) calculateJWTSettingsHash(secretData []byte, expirySeconds int32) string {
+	h := sha256.New()
+	h.Write(secretData)
+	h.Write([]byte(strconv.Itoa(int(expirySeconds))))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *platformv1alpha1.Project) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	jwtSecret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: project.Name + "-jwt", Namespace: project.Namespace}, jwtSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			logger.Info("JWT secret not found, skipping JWT settings sync")
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("getting JWT secret: %w", err)
+	}
+
+	expirySeconds := int32(3600)
+	if project.Spec.JWTExpirySeconds != nil {
+		expirySeconds = *project.Spec.JWTExpirySeconds
+	}
+
+	currentHash := r.calculateJWTSettingsHash(jwtSecret.Data["jwt-secret"], expirySeconds)
+
+	if project.Annotations != nil && project.Annotations["core.supabase.io/last-applied-sync-jwt-hash"] == currentHash {
+		return ctrl.Result{}, nil
+	}
+
+	jobName := r.jwtSyncJobName(project)
+	job := &batchv1.Job{}
+	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: project.Namespace}, job)
+
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("getting JWT sync job: %w", err)
+		}
+
+		logger.Info("Creating JWT settings sync job", "job", jobName)
+		job = r.buildJWTSettingsJob(project, expirySeconds)
+		if err := controllerutil.SetControllerReference(project, job, r.Scheme); err != nil {
+			return ctrl.Result{}, fmt.Errorf("setting owner reference on JWT sync job: %w", err)
+		}
+		if err := r.Create(ctx, job); err != nil {
+			return ctrl.Result{}, fmt.Errorf("creating JWT sync job: %w", err)
+		}
+		logger.Info("Created JWT settings sync job", "job", jobName)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	if job.Status.Succeeded > 0 {
+		if project.Annotations == nil {
+			project.Annotations = map[string]string{}
+		}
+		project.Annotations["core.supabase.io/last-applied-sync-jwt-hash"] = currentHash
+		logger.Info("JWT settings sync completed", "job", jobName)
+		return ctrl.Result{}, nil
+	}
+
+	if job.Status.Failed > 0 {
+		return ctrl.Result{}, fmt.Errorf("JWT sync job %s failed", jobName)
+	}
+
+	logger.Info("Waiting for JWT settings sync to complete", "job", jobName)
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+}
+
+func (r *ProjectReconciler) buildJWTSettingsJob(project *platformv1alpha1.Project, expirySeconds int32) *batchv1.Job {
+	backoffLimit := int32(0)
+	ttlSecondsAfterFinished := int32(86400)
+
+	image, _ := ResolveComponentImage(project.Spec.Version, "migration")
+
+	env := []corev1.EnvVar{
+		envVarFromSecret("PGPASSWORD", project.Status.ResolvedDatabase.PasswordRef.Name, project.Status.ResolvedDatabase.PasswordRef.Key),
+		envVar("PGHOST", project.Status.ResolvedDatabase.Host),
+		envVar("PGPORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
+		envVar("PGUSER", "supabase_admin"),
+		envVar("PGDATABASE", project.Status.ResolvedDatabase.DBName),
+		envVarFromSecret("JWT_SECRET", project.Name+"-jwt", "jwt-secret"),
+		envVar("JWT_EXP", strconv.Itoa(int(expirySeconds))),
+	}
+
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      r.jwtSyncJobName(project),
+			Namespace: project.Namespace,
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
+						{
+							Name:    "sync-jwt",
+							Image:   image,
+							Command: []string{"/bin/sh", "-c"},
+							Args:    []string{ProjectSyncJWTScript},
+							Env:     env,
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
