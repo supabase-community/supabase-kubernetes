@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"maps"
 	"time"
@@ -372,18 +373,18 @@ func keysOf(m map[string][]byte) []string {
 	return keys
 }
 
-func (r *ProjectReconciler) migrationName(project *platformv1alpha1.Project) string {
-	return project.Name + DefaultMigrationNameSuffix
+func (r *ProjectReconciler) migrationName(project *platformv1alpha1.Project, index int) string {
+	return fmt.Sprintf("%s%s-%d", project.Name, DefaultMigrationNameSuffix, index)
 }
 
-func (r *ProjectReconciler) buildMigration(project *platformv1alpha1.Project) (*platformv1alpha1.Migration, error) {
-	entries, err := DefaultMigrationEntries()
+func (r *ProjectReconciler) buildMigration(project *platformv1alpha1.Project, index int, files []string) (*platformv1alpha1.Migration, error) {
+	entries, err := LoadMigrationEntries(files)
 	if err != nil {
 		return nil, fmt.Errorf("loading default migrations: %w", err)
 	}
 	return &platformv1alpha1.Migration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.migrationName(project),
+			Name:      r.migrationName(project, index),
 			Namespace: project.Namespace,
 		},
 		Spec: platformv1alpha1.MigrationSpec{
@@ -395,48 +396,62 @@ func (r *ProjectReconciler) buildMigration(project *platformv1alpha1.Project) (*
 }
 
 func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *platformv1alpha1.Project) (ctrl.Result, error) {
-	logger := log.FromContext(ctx).WithValues("migration", r.migrationName(project))
+	logger := log.FromContext(ctx)
 
-	if project.Status.AppliedMigrationHash != "" {
-		return ctrl.Result{}, nil
-	}
+	appliedHashes := []string{}
 
-	migration := &platformv1alpha1.Migration{}
-	err := r.Get(ctx, types.NamespacedName{Name: r.migrationName(project), Namespace: project.Namespace}, migration)
+	for i, batch := range defaultMigrations {
+		migrationName := r.migrationName(project, i)
+		migrationLogger := logger.WithValues("migration", migrationName)
 
-	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("getting migration: %w", err)
-		}
+		migration := &platformv1alpha1.Migration{}
+		err := r.Get(ctx, types.NamespacedName{Name: migrationName, Namespace: project.Namespace}, migration)
 
-		logger.Info("Creating built-in migration")
-		migration, err = r.buildMigration(project)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("building migration: %w", err)
+			if !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, fmt.Errorf("getting migration %s: %w", migrationName, err)
+			}
+
+			migrationLogger.Info("Creating built-in migration")
+			migration, err = r.buildMigration(project, i, batch)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("building migration %s: %w", migrationName, err)
+			}
+			if err := controllerutil.SetControllerReference(project, migration, r.Scheme); err != nil {
+				return ctrl.Result{}, fmt.Errorf("setting owner reference on migration %s: %w", migrationName, err)
+			}
+			if err := r.Create(ctx, migration); err != nil {
+				return ctrl.Result{}, fmt.Errorf("creating migration %s: %w", migrationName, err)
+			}
+			migrationLogger.Info("Created built-in migration")
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
-		if err := controllerutil.SetControllerReference(project, migration, r.Scheme); err != nil {
-			return ctrl.Result{}, fmt.Errorf("setting owner reference on migration: %w", err)
+
+		cond := meta.FindStatusCondition(migration.Status.Conditions, ConditionTypeReady)
+		if cond != nil && cond.Status == metav1.ConditionTrue {
+			appliedHashes = append(appliedHashes, migration.Status.AppliedHash)
+			continue
 		}
-		if err := r.Create(ctx, migration); err != nil {
-			return ctrl.Result{}, fmt.Errorf("creating migration: %w", err)
+
+		if cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "MigrationFailed" {
+			return ctrl.Result{}, fmt.Errorf("migration %s failed: %s", migrationName, cond.Message)
 		}
-		logger.Info("Created built-in migration")
+
+		migrationLogger.Info("Waiting for migration to complete")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	cond := meta.FindStatusCondition(migration.Status.Conditions, ConditionTypeReady)
-	if cond != nil && cond.Status == metav1.ConditionTrue {
-		project.Status.AppliedMigrationHash = migration.Status.AppliedHash
-		logger.Info("Migration applied", "hash", project.Status.AppliedMigrationHash)
-		return ctrl.Result{}, nil
-	}
+	project.Status.AppliedMigrationHash = calculateCombinedHash(appliedHashes)
+	logger.Info("All migrations applied", "hash", project.Status.AppliedMigrationHash)
+	return ctrl.Result{}, nil
+}
 
-	if cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "MigrationFailed" {
-		return ctrl.Result{}, fmt.Errorf("migration failed: %s", cond.Message)
+func calculateCombinedHash(hashes []string) string {
+	h := sha256.New()
+	for _, hash := range hashes {
+		h.Write([]byte(hash))
 	}
-
-	logger.Info("Waiting for migration to complete")
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 // SetupWithManager sets up the controller with the Manager.

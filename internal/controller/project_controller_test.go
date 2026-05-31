@@ -96,7 +96,7 @@ func minimalProject(name string) *platformv1alpha1.Project {
 
 //nolint:unparam // timeout is always the same in current test suite
 func simulateMigrationSuccess(projectName string, timeout, interval time.Duration) {
-	migrationName := projectName + "-migration"
+	migrationName := projectName + "-migration-0"
 	jobName := migrationName + "-apply"
 
 	var migration *platformv1alpha1.Migration
@@ -356,12 +356,12 @@ var _ = Describe("Project Controller", func() {
 		})
 
 		It("should create built-in Migration and apply it before Ready", func() {
-			migrationName := projectName + "-migration"
+			migrationName := projectName + "-migration-0"
 
 			Eventually(func(g Gomega) {
 				m := &platformv1alpha1.Migration{}
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: migrationName, Namespace: "default"}, m)).To(Succeed())
-				g.Expect(m.Spec.Migrations).To(HaveLen(6))
+				g.Expect(m.Spec.Migrations).To(HaveLen(7))
 				g.Expect(m.Spec.DatabaseRef.Name).To(Equal("test-db"))
 			}, timeout, interval).Should(Succeed())
 
@@ -395,7 +395,7 @@ var _ = Describe("Project Controller", func() {
 			// The existing Migration CR should not be replaced by a new one.
 			Consistently(func(g Gomega) {
 				m := &platformv1alpha1.Migration{}
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-migration", Namespace: "default"}, m)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-migration-0", Namespace: "default"}, m)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(m.OwnerReferences).To(HaveLen(1))
 				g.Expect(m.OwnerReferences[0].Kind).To(Equal("Project"))
