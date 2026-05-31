@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/controller/sql"
 )
 
 const (
@@ -378,7 +377,7 @@ func (r *ProjectReconciler) migrationName(project *platformv1alpha1.Project) str
 }
 
 func (r *ProjectReconciler) buildMigration(project *platformv1alpha1.Project) (*platformv1alpha1.Migration, error) {
-	entries, err := sql.DefaultMigrationEntries()
+	entries, err := DefaultMigrationEntries()
 	if err != nil {
 		return nil, fmt.Errorf("loading default migrations: %w", err)
 	}

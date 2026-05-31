@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sql
+package controller
 
 import (
 	"embed"
@@ -29,8 +29,11 @@ import (
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
-//go:embed scripts/migrate.sh
-var MigrationScript string
+//go:embed scripts/project-migration-apply.sh
+var ProjectMigrationApplyScript string
+
+//go:embed scripts/singledatabase-password-sync.sh
+var SingleDatabasePasswordSyncScript string
 
 // DefaultMigrationEntries returns the built-in project migration entries
 // loaded from embedded SQL files.

@@ -470,53 +470,12 @@ func (r *SingleDatabaseReconciler) computeCredentialHash(ctx context.Context, na
 	return hex.EncodeToString(h.Sum(nil))[:16], nil
 }
 
-// passwordSyncScript is the shell script executed by the password-sync init container.
-// It detects whether the database has been previously initialized (PG_VERSION file exists).
-// On fresh installs it exits immediately (the main container handles bootstrap).
-// On existing databases it starts PostgreSQL in single-user mode to synchronize all
-// role passwords with the value from the PGPASSWORD environment variable.
-// The script uses gosu to run postgres as the unprivileged postgres user (the container
-// runs as root by default, and PostgreSQL refuses to start as root).
-const passwordSyncScript = `#!/bin/sh
-set -e
-
-PGDATA="/var/lib/postgresql/data"
-
-# Fresh install: no data directory yet, skip password sync
-if [ ! -f "$PGDATA/PG_VERSION" ]; then
-  echo "Fresh install detected, skipping password sync"
-  exit 0
-fi
-
-echo "Existing database detected, syncing passwords..."
-
-gosu postgres postgres --single -D "$PGDATA" postgres <<SQL
-ALTER ROLE anon WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE authenticated WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE authenticator WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE dashboard_user WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE pgbouncer WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE postgres WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE service_role WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE supabase_admin WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE supabase_auth_admin WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE supabase_functions_admin WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE supabase_replication_admin WITH PASSWORD '${PGPASSWORD}';
-ALTER ROLE supabase_storage_admin WITH PASSWORD '${PGPASSWORD}';
-DROP SCHEMA IF EXISTS _supavisor CASCADE;
-CREATE SCHEMA IF NOT EXISTS _supavisor;
-ALTER SCHEMA _supavisor OWNER TO supabase_admin;
-SQL
-
-echo "Password sync completed"
-`
-
 func (r *SingleDatabaseReconciler) buildPasswordSyncInitContainer(image string, imagePullPolicy corev1.PullPolicy, secretName string) corev1.Container {
 	return corev1.Container{
 		Name:            "password-sync",
 		Image:           image,
 		ImagePullPolicy: imagePullPolicy,
-		Command:         []string{"sh", "-c", passwordSyncScript},
+		Command:         []string{"sh", "-c", SingleDatabasePasswordSyncScript},
 		Env: []corev1.EnvVar{
 			r.envFromSecret("PGPASSWORD", secretName, "password"),
 		},

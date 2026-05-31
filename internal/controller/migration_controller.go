@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/controller/sql"
 )
 
 const (
@@ -346,7 +345,7 @@ func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db
 	ttlSecondsAfterFinished := int32(86400)
 	configMapName := r.configMapName(migration.Name)
 
-	script := sql.MigrationScript
+	script := ProjectMigrationApplyScript
 
 	env := make([]corev1.EnvVar, 0, 8+len(migration.Spec.Env))
 	env = append(env,
