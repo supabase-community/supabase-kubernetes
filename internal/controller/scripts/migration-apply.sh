@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 
 # Wait for database to be ready
