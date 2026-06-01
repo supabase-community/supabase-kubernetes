@@ -345,7 +345,7 @@ func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db
 	ttlSecondsAfterFinished := int32(86400)
 	configMapName := r.configMapName(migration.Name)
 
-	script := ProjectMigrationApplyScript
+	script := MigrationApplyScript
 
 	env := make([]corev1.EnvVar, 0, 8+len(migration.Spec.Env))
 	env = append(env,

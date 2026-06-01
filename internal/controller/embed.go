@@ -21,8 +21,8 @@ import "embed"
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
-//go:embed scripts/project-migration-apply.sh
-var ProjectMigrationApplyScript string
+//go:embed scripts/migration-apply.sh
+var MigrationApplyScript string
 
 //go:embed scripts/singledatabase-password-sync.sh
 var SingleDatabasePasswordSyncScript string
