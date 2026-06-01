@@ -29,3 +29,6 @@ var SingleDatabasePasswordSyncScript string
 
 //go:embed scripts/project-sync-jwt.sh
 var ProjectSyncJWTScript string
+
+//go:embed scripts/project-sync-password.sh
+var ProjectSyncPasswordScript string

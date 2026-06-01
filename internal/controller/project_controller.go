@@ -46,15 +46,16 @@ import (
 const (
 	DefaultJWTExpiry = 24 * time.Hour * 365 * 10
 
-	ConditionTypeSecretsReady     = "SecretsReady"
-	ConditionTypeReady            = "Ready"
-	ConditionTypeDatabaseReady    = "DatabaseReady"
-	ConditionTypeMigrationReady   = "MigrationReady"
-	ConditionTypeJWTSettingsReady = "JWTSettingsReady"
-	ConditionTypeRestReady        = "RestReady"
-	ConditionTypeAuthReady        = "AuthReady"
-	ConditionTypeMetaReady        = "MetaReady"
-	ConditionTypeRealtimeReady    = "RealtimeReady"
+	ConditionTypeSecretsReady      = "SecretsReady"
+	ConditionTypeReady             = "Ready"
+	ConditionTypeDatabaseReady     = "DatabaseReady"
+	ConditionTypeMigrationReady    = "MigrationReady"
+	ConditionTypeJWTSettingsReady  = "JWTSettingsReady"
+	ConditionTypePasswordSyncReady = "PasswordSyncReady"
+	ConditionTypeRestReady         = "RestReady"
+	ConditionTypeAuthReady         = "AuthReady"
+	ConditionTypeMetaReady         = "MetaReady"
+	ConditionTypeRealtimeReady     = "RealtimeReady"
 
 	DefaultMigrationNameSuffix = "-migration"
 )
@@ -183,6 +184,27 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	r.setCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionTrue, "JWTSettingsApplied", "JWT settings applied successfully")
+
+	passwordSyncResult, err := r.ensurePasswordSync(ctx, project)
+	if err != nil {
+		logger.Error(err, "Failed to ensure password sync")
+		r.setCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionFalse, "PasswordSyncFailed", err.Error())
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "PasswordSyncNotReady", err.Error())
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after password sync failure")
+		}
+		return ctrl.Result{}, err
+	}
+	if passwordSyncResult.RequeueAfter > 0 {
+		r.setCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionFalse, "PasswordSyncInProgress", "Waiting for password sync to complete")
+		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "PasswordSyncNotReady", "Waiting for password sync to complete")
+		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status while password sync in progress")
+		}
+		return passwordSyncResult, nil
+	}
+
+	r.setCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionTrue, "PasswordSyncApplied", "Password sync applied successfully")
 
 	if err := r.ensureRest(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Rest")
@@ -595,6 +617,134 @@ func (r *ProjectReconciler) buildJWTSettingsJob(project *platformv1alpha1.Projec
 							Image:   image,
 							Command: []string{"/bin/sh", "-c"},
 							Args:    []string{ProjectSyncJWTScript},
+							Env:     env,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (r *ProjectReconciler) passwordSyncJobName(project *platformv1alpha1.Project) string {
+	return project.Name + "-sync-password"
+}
+
+func (r *ProjectReconciler) calculatePasswordHash(secretData []byte) string {
+	h := sha256.New()
+	h.Write(secretData)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (r *ProjectReconciler) ensurePasswordSync(ctx context.Context, project *platformv1alpha1.Project) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	if project.Status.ResolvedDatabase == nil {
+		logger.Info("Resolved database not available, skipping password sync")
+		return ctrl.Result{}, nil
+	}
+
+	passwordRef := project.Status.ResolvedDatabase.PasswordRef
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: passwordRef.Name, Namespace: project.Namespace}, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			logger.Info("Password secret not found, skipping password sync")
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("getting password secret: %w", err)
+	}
+
+	password := string(secret.Data[passwordRef.Key])
+	currentHash := r.calculatePasswordHash([]byte(password))
+
+	if project.Annotations != nil && project.Annotations["core.supabase.io/last-applied-password-hash"] == currentHash {
+		return ctrl.Result{}, nil
+	}
+
+	jobName := r.passwordSyncJobName(project)
+	job := &batchv1.Job{}
+	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: project.Namespace}, job)
+
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("getting password sync job: %w", err)
+		}
+
+		logger.Info("Creating password sync job", "job", jobName)
+		job = r.buildPasswordSyncJob(project, password)
+		if err := controllerutil.SetControllerReference(project, job, r.Scheme); err != nil {
+			return ctrl.Result{}, fmt.Errorf("setting owner reference on password sync job: %w", err)
+		}
+		if err := r.Create(ctx, job); err != nil {
+			return ctrl.Result{}, fmt.Errorf("creating password sync job: %w", err)
+		}
+		logger.Info("Created password sync job", "job", jobName)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	if job.Status.Succeeded > 0 {
+		if project.Annotations == nil {
+			project.Annotations = map[string]string{}
+		}
+		project.Annotations["core.supabase.io/last-applied-password-hash"] = currentHash
+		if err := r.Update(ctx, project); err != nil {
+			logger.Error(err, "Failed to update project annotation after password sync", "job", jobName)
+			return ctrl.Result{}, fmt.Errorf("updating project annotation after password sync: %w", err)
+		}
+
+		propagation := metav1.DeletePropagationBackground
+		if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagation}); err != nil && !apierrors.IsNotFound(err) {
+			logger.Error(err, "Failed to delete password sync job", "job", jobName)
+		} else {
+			logger.Info("Deleted password sync job", "job", jobName)
+		}
+
+		logger.Info("Password sync completed", "job", jobName)
+		return ctrl.Result{}, nil
+	}
+
+	if job.Status.Failed > 0 {
+		return ctrl.Result{}, fmt.Errorf("password sync job %s failed", jobName)
+	}
+
+	logger.Info("Waiting for password sync to complete", "job", jobName)
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+}
+
+func (r *ProjectReconciler) buildPasswordSyncJob(project *platformv1alpha1.Project, password string) *batchv1.Job {
+	backoffLimit := int32(0)
+	ttlSecondsAfterFinished := int32(86400)
+
+	image, _ := ResolveComponentImage(project.Spec.Version, "migration")
+
+	env := []corev1.EnvVar{
+		envVar("PGPASSWORD", password),
+		envVar("PGHOST", project.Status.ResolvedDatabase.Host),
+		envVar("PGPORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
+		envVar("PGUSER", "supabase_admin"),
+		envVar("PGDATABASE", project.Status.ResolvedDatabase.DBName),
+		envVar("DB_ADMIN_USER", "supabase_admin"),
+		envVar("DB_SRV_NAME", fmt.Sprintf("%s.%s.svc.cluster.local", project.Status.ResolvedDatabase.Host, project.Namespace)),
+		envVar("DB_SRV_PORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
+	}
+
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      r.passwordSyncJobName(project),
+			Namespace: project.Namespace,
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoffLimit,
+			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
+						{
+							Name:    "sync-password",
+							Image:   image,
+							Command: []string{"/bin/sh", "-c"},
+							Args:    []string{ProjectSyncPasswordScript},
 							Env:     env,
 						},
 					},
