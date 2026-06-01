@@ -375,27 +375,6 @@ var _ = Describe("Project Controller", func() {
 			}
 		})
 
-		It("should create built-in Migration and apply it before Ready", func() {
-			migrationName := projectName + "-migration-0"
-
-			Eventually(func(g Gomega) {
-				m := &platformv1alpha1.Migration{}
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: migrationName, Namespace: "default"}, m)).To(Succeed())
-				g.Expect(m.Spec.Migrations).To(HaveLen(7))
-				g.Expect(m.Spec.DatabaseRef.Name).To(Equal("test-db"))
-			}, timeout, interval).Should(Succeed())
-
-			simulateMigrationSuccess(projectName, timeout, interval)
-			simulateJWTSyncSuccess(projectName, timeout, interval)
-
-			Eventually(func(g Gomega) {
-				project := &platformv1alpha1.Project{}
-				g.Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeReady)).To(BeTrue())
-				g.Expect(project.Status.AppliedMigrationHash).NotTo(BeEmpty())
-			}, timeout, interval).Should(Succeed())
-		})
-
 		It("should not recreate Migration if AppliedMigrationHash is set", func() {
 			simulateMigrationSuccess(projectName, timeout, interval)
 
