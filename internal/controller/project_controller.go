@@ -538,6 +538,18 @@ func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *plat
 			project.Annotations = map[string]string{}
 		}
 		project.Annotations["core.supabase.io/last-applied-sync-jwt-hash"] = currentHash
+		if err := r.Update(ctx, project); err != nil {
+			logger.Error(err, "Failed to update project annotation after JWT sync", "job", jobName)
+			return ctrl.Result{}, fmt.Errorf("updating project annotation after JWT sync: %w", err)
+		}
+
+		propagation := metav1.DeletePropagationBackground
+		if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagation}); err != nil && !apierrors.IsNotFound(err) {
+			logger.Error(err, "Failed to delete JWT sync job", "job", jobName)
+		} else {
+			logger.Info("Deleted JWT sync job", "job", jobName)
+		}
+
 		logger.Info("JWT settings sync completed", "job", jobName)
 		return ctrl.Result{}, nil
 	}
