@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -90,20 +91,23 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	err = (&ProjectReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		RequeueInterval: 100 * time.Millisecond,
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = (&SingleDatabaseReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		RequeueInterval: 100 * time.Millisecond,
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = (&MigrationReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		RequeueInterval: 100 * time.Millisecond,
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 

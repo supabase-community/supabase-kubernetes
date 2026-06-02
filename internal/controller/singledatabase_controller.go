@@ -54,8 +54,9 @@ const (
 // SingleDatabaseReconciler reconciles a SingleDatabase object.
 type SingleDatabaseReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Scheme          *runtime.Scheme
+	Recorder        record.EventRecorder
+	RequeueInterval time.Duration
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch;create;update;patch;delete
@@ -163,7 +164,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if !stsReady {
 		logger.Info("Database pod not ready yet, requeuing")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
 	logger.Info("Reconciliation completed successfully")

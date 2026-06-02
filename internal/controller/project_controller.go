@@ -76,7 +76,8 @@ type secretDefinition struct {
 // ProjectReconciler reconciles a Project object.
 type ProjectReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	RequeueInterval time.Duration
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects,verbs=get;list;watch;create;update;patch;delete
@@ -470,7 +471,7 @@ func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *platfo
 				return ctrl.Result{}, fmt.Errorf("creating migration %s: %w", migrationName, err)
 			}
 			migrationLogger.Info("Created built-in migration")
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 		}
 
 		cond := meta.FindStatusCondition(migration.Status.Conditions, ConditionTypeReady)
@@ -484,7 +485,7 @@ func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *platfo
 		}
 
 		migrationLogger.Info("Waiting for migration to complete")
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
 	project.Status.AppliedMigrationHash = calculateCombinedHash(appliedHashes)
@@ -552,7 +553,7 @@ func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *plat
 			return ctrl.Result{}, fmt.Errorf("creating JWT sync job: %w", err)
 		}
 		logger.Info("Created JWT settings sync job", "job", jobName)
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
 	if job.Status.Succeeded > 0 {
@@ -581,7 +582,7 @@ func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *plat
 	}
 
 	logger.Info("Waiting for JWT settings sync to complete", "job", jobName)
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 }
 
 func (r *ProjectReconciler) buildJWTSettingsJob(project *platformv1alpha1.Project, expirySeconds int32) *batchv1.Job {
@@ -679,7 +680,7 @@ func (r *ProjectReconciler) ensurePasswordSync(ctx context.Context, project *pla
 			return ctrl.Result{}, fmt.Errorf("creating password sync job: %w", err)
 		}
 		logger.Info("Created password sync job", "job", jobName)
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
 	if job.Status.Succeeded > 0 {
@@ -708,7 +709,7 @@ func (r *ProjectReconciler) ensurePasswordSync(ctx context.Context, project *pla
 	}
 
 	logger.Info("Waiting for password sync to complete", "job", jobName)
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 }
 
 func (r *ProjectReconciler) buildPasswordSyncJob(project *platformv1alpha1.Project, password string) *batchv1.Job {

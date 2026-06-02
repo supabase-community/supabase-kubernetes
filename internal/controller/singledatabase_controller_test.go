@@ -77,6 +77,9 @@ var _ = Describe("SingleDatabase Controller", func() {
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 			}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(HaveOccurred())
+			}, timeout, interval).Should(Succeed())
 		})
 
 		It("should set Ready condition and create dependent resources", func() {
@@ -212,6 +215,9 @@ var _ = Describe("SingleDatabase Controller", func() {
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 			}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(HaveOccurred())
+			}, timeout, interval).Should(Succeed())
 		})
 
 		It("should apply scheduling controls, security context and pod customization", func() {
@@ -316,6 +322,9 @@ var _ = Describe("SingleDatabase Controller", func() {
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 			}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(HaveOccurred())
+			}, timeout, interval).Should(Succeed())
 		})
 
 		It("should include password-sync init container in the StatefulSet", func() {

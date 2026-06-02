@@ -50,8 +50,9 @@ const (
 // MigrationReconciler reconciles a Migration object
 type MigrationReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Scheme          *runtime.Scheme
+	Recorder        record.EventRecorder
+	RequeueInterval time.Duration
 }
 
 // ResolvedMigrationDatabase holds resolved connection params for a migration.
@@ -108,7 +109,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status")
 		}
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
 	batchHash := calculateBatchHash(migration.Spec.Migrations)
