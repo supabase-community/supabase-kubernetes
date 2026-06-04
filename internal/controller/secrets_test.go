@@ -411,9 +411,24 @@ var _ = Describe("Secret Generation", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should contain saml-private-key as a valid RSA 2048+ bit key", func() {
+		It("should contain saml-private-key", func() {
 			Expect(data).To(HaveKey("saml-private-key"))
-			decoded, err := base64.StdEncoding.DecodeString(string(data["saml-private-key"]))
+			Expect(data["saml-private-key"]).NotTo(BeEmpty())
+		})
+	})
+
+	Describe("GenerateSAMLPrivateKey", func() {
+		It("should return a non-empty base64 string", func() {
+			encoded, err := GenerateSAMLPrivateKey()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(encoded).NotTo(BeEmpty())
+		})
+
+		It("should return a parseable RSA 2048+ bit key", func() {
+			encoded, err := GenerateSAMLPrivateKey()
+			Expect(err).NotTo(HaveOccurred())
+
+			decoded, err := base64.StdEncoding.DecodeString(encoded)
 			Expect(err).NotTo(HaveOccurred())
 			key, err := x509.ParsePKCS1PrivateKey(decoded)
 			Expect(err).NotTo(HaveOccurred())

@@ -278,6 +278,18 @@ func GenerateJWTSecretData(now time.Time, jwtExpiry time.Duration) (SecretData, 
 	}, nil
 }
 
+// GenerateSAMLPrivateKey generates a new RSA 2048-bit private key and returns
+// it as a base64-encoded PKCS#1 DER string.
+func GenerateSAMLPrivateKey() (string, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", fmt.Errorf("generating saml-private-key: %w", err)
+	}
+
+	derBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	return base64.StdEncoding.EncodeToString(derBytes), nil
+}
+
 // GenerateKeysSecretData generates the shared keys secret data.
 func GenerateKeysSecretData() (SecretData, error) {
 	secretKeyBase, err := GenerateRandomHex(64)
@@ -295,13 +307,10 @@ func GenerateKeysSecretData() (SecretData, error) {
 		return nil, fmt.Errorf("generating vault-enc-key: %w", err)
 	}
 
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	encoded, err := GenerateSAMLPrivateKey()
 	if err != nil {
 		return nil, fmt.Errorf("generating saml-private-key: %w", err)
 	}
-
-	derBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	encoded := base64.StdEncoding.EncodeToString(derBytes)
 
 	return SecretData{
 		"secret-key-base":  []byte(secretKeyBase),
