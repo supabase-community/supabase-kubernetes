@@ -12,3 +12,7 @@
 
 # Re-include embedded proxy templates
 !internal/controller/proxy_templates/*.yaml
+
+# Re-include embedded SQL migrations and shell scripts
+!internal/controller/migrations/*.sql
+!internal/controller/scripts/*.sh

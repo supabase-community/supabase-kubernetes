@@ -15,15 +15,15 @@ spec:
   databaseRef:
     kind: SingleDatabase
     name: supabase
-  restRef:
-    kind: Rest
-    name: supabase
-  metaRef:
-    kind: Meta
-    name: supabase
-  realtimeRef:
-    kind: Realtime
-    name: supabase
-  authRef:
-    kind: Auth
-    name: supabase
+  # restRef:
+  #   kind: Rest
+  #   name: supabase
+  # metaRef:
+  #   kind: Meta
+  #   name: supabase
+  # realtimeRef:
+  #   kind: Realtime
+  #   name: supabase
+  # authRef:
+  #   kind: Auth
+  #   name: supabase
