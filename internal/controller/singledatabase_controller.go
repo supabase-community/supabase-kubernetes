@@ -717,6 +717,8 @@ func (r *SingleDatabaseReconciler) setCondition(
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// TODO: Remove nolint after upgrading controller-runtime to a version where GetEventRecorder returns record.EventRecorder
+	//nolint:staticcheck // GetEventRecorderFor is deprecated but GetEventRecorder returns a different type incompatible with record.EventRecorder in controller-runtime v0.23
 	r.Recorder = mgr.GetEventRecorderFor("singledatabase")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&platformv1alpha1.SingleDatabase{}).
