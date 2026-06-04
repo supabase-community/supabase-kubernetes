@@ -84,17 +84,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	r.Recorder.Eventf(singleDB, corev1.EventTypeNormal, "Reconciling", "Starting reconciliation of SingleDatabase %s", singleDB.Name)
 
-	if err := r.validate(singleDB); err != nil {
-		logger.Error(err, "SingleDatabase validation failed")
-		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "ValidationFailed", "Validation failed: %s", err.Error())
-		r.setCondition(singleDB, metav1.ConditionFalse, "ValidationFailed", err.Error())
-		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
-			logger.Error(statusErr, "Failed to update SingleDatabase status after validation failure")
-		}
-		return ctrl.Result{}, err
-	}
-
-	if _, err := r.ensureSecret(ctx, singleDB); err != nil {
+	if err := r.ensureSecret(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase secret")
 		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "SecretFailed", "Failed to ensure secret: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "SecretFailed", err.Error())
@@ -197,10 +187,6 @@ func (r *SingleDatabaseReconciler) determinePhase(singleDB *supabasev1alpha1.Sin
 	return "Creating"
 }
 
-func (r *SingleDatabaseReconciler) validate(singleDB *supabasev1alpha1.SingleDatabase) error {
-	return nil
-}
-
 func (r *SingleDatabaseReconciler) storageResources(singleDB *supabasev1alpha1.SingleDatabase) corev1.VolumeResourceRequirements {
 	if singleDB.Spec.Storage.Resources.Requests != nil || singleDB.Spec.Storage.Resources.Limits != nil {
 		return singleDB.Spec.Storage.Resources
@@ -224,24 +210,24 @@ func (r *SingleDatabaseReconciler) statefulSetName(name string) string {
 	return fmt.Sprintf("%s-%s", name, singleDatabaseComponent)
 }
 
-func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) (bool, error) {
+func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
 	logger := log.FromContext(ctx).WithValues("secret", r.secretName(singleDB.Name))
 
 	secret := &corev1.Secret{}
 	err := r.Get(ctx, types.NamespacedName{Name: r.secretName(singleDB.Name), Namespace: singleDB.Namespace}, secret)
 	if err == nil {
 		logger.V(1).Info("Secret already exists")
-		return false, nil
+		return nil
 	}
 	if !apierrors.IsNotFound(err) {
-		return false, fmt.Errorf("getting secret: %w", err)
+		return fmt.Errorf("getting secret: %w", err)
 	}
 
 	logger.Info("Creating credentials secret")
 
 	password, err := GenerateRandomAlphanumeric(32)
 	if err != nil {
-		return false, fmt.Errorf("generating postgres password: %w", err)
+		return fmt.Errorf("generating postgres password: %w", err)
 	}
 
 	secret = &corev1.Secret{
@@ -256,15 +242,15 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *s
 	}
 
 	if err := controllerutil.SetControllerReference(singleDB, secret, r.Scheme); err != nil {
-		return false, fmt.Errorf("setting owner reference on secret: %w", err)
+		return fmt.Errorf("setting owner reference on secret: %w", err)
 	}
 
 	if err := r.Create(ctx, secret); err != nil {
-		return false, fmt.Errorf("creating secret: %w", err)
+		return fmt.Errorf("creating secret: %w", err)
 	}
 
 	logger.Info("Created credentials secret")
-	return true, nil
+	return nil
 }
 
 func (r *SingleDatabaseReconciler) pvcName(name string) string {
@@ -478,7 +464,7 @@ func (r *SingleDatabaseReconciler) buildPasswordSyncInitContainer(image string, 
 		ImagePullPolicy: imagePullPolicy,
 		Command:         []string{"sh", "-c", SingleDatabasePasswordSyncScript},
 		Env: []corev1.EnvVar{
-			r.envFromSecret("PGPASSWORD", secretName, "password"),
+			envVarFromSecret("PGPASSWORD", secretName, "password"),
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "data", MountPath: "/var/lib/postgresql/data"},
@@ -515,12 +501,12 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 		"app.kubernetes.io/component":  singleDatabaseComponent,
 		"app.kubernetes.io/managed-by": "supabase-operator",
 	}
-	labels = r.mergeMaps(labels, singleDB.Spec.PodLabels)
+	maps.Copy(labels, singleDB.Spec.PodLabels)
 
 	annotations := map[string]string{
 		"supabase.io/secret-hash": credentialHash,
 	}
-	annotations = r.mergeMaps(annotations, singleDB.Spec.PodAnnotations)
+	maps.Copy(annotations, singleDB.Spec.PodAnnotations)
 
 	container := corev1.Container{
 		Name:            singleDatabaseComponent,
@@ -534,13 +520,13 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 			},
 		},
 		Env: []corev1.EnvVar{
-			r.envFromSecret("POSTGRES_PASSWORD", secretName, "password"),
-			r.envFromSecret("POSTGRES_DB", secretName, "database"),
+			envVarFromSecret("POSTGRES_PASSWORD", secretName, "password"),
+			envVarFromSecret("POSTGRES_DB", secretName, "database"),
 			envVar("POSTGRES_HOST", "/var/run/postgresql"),
 			envVar("POSTGRES_PORT", "5432"),
-			r.envFromSecret("PGPASSWORD", secretName, "password"),
+			envVarFromSecret("PGPASSWORD", secretName, "password"),
 			envVar("PGPORT", "5432"),
-			r.envFromSecret("PGDATABASE", secretName, "database"),
+			envVarFromSecret("PGDATABASE", secretName, "database"),
 			envVar("PGHOST", "/var/run/postgresql"),
 		},
 		Resources:    singleDB.Spec.Resources,
@@ -630,10 +616,6 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 
 	existing.Spec.Replicas = desired.Spec.Replicas
 	existing.Spec.Template = desired.Spec.Template
-	existing.Spec.UpdateStrategy = desired.Spec.UpdateStrategy
-	existing.Spec.MinReadySeconds = desired.Spec.MinReadySeconds
-	existing.Spec.RevisionHistoryLimit = desired.Spec.RevisionHistoryLimit
-	existing.Spec.PersistentVolumeClaimRetentionPolicy = desired.Spec.PersistentVolumeClaimRetentionPolicy
 	existing.Labels = desired.Labels
 	logger.Info("Updating statefulset")
 	if err := r.Update(ctx, existing); err != nil {
@@ -646,13 +628,6 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 	}
 	return nil
 }
-func (r *SingleDatabaseReconciler) mergeMaps(base, override map[string]string) map[string]string {
-	result := make(map[string]string, len(base)+len(override))
-	maps.Copy(result, base)
-	maps.Copy(result, override)
-	return result
-}
-
 func (r *SingleDatabaseReconciler) buildProbes(probes *supabasev1alpha1.ComponentProbes) (*corev1.Probe, *corev1.Probe, *corev1.Probe) {
 	if probes != nil {
 		return probes.Startup, probes.Readiness, probes.Liveness
@@ -686,18 +661,6 @@ func (r *SingleDatabaseReconciler) accessModes(modes []corev1.PersistentVolumeAc
 		return []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	}
 	return modes
-}
-
-func (r *SingleDatabaseReconciler) envFromSecret(name, secretName, key string) corev1.EnvVar {
-	return corev1.EnvVar{
-		Name: name,
-		ValueFrom: &corev1.EnvVarSource{
-			SecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-				Key:                  key,
-			},
-		},
-	}
 }
 
 func (r *SingleDatabaseReconciler) setCondition(
