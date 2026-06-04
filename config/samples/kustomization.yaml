@@ -1,10 +1,17 @@
-## Append samples of your project ##
+namespace: default
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: supabase-operator
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: true
+    includeTemplates: true
+
 resources:
   - singledatabase.yaml
-  - migration.yaml
+  # - migration.yaml
   - project.yaml
   - meta.yaml
   - rest.yaml
   - realtime.yaml
   - auth.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples

@@ -1,9 +1,6 @@
 apiVersion: core.supabase.io/v1alpha1
 kind: Auth
 metadata:
-  labels:
-    app.kubernetes.io/name: supabase-operator
-    app.kubernetes.io/managed-by: kustomize
   name: supabase
 spec:
   # Required Auth settings
