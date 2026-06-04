@@ -6,7 +6,7 @@ resources:
 - bases/core.supabase.io_singledatabases.yaml
 - bases/core.supabase.io_migrations.yaml
 - bases/core.supabase.io_rests.yaml
-- bases/core.supabase.io_meta.yaml
+- bases/core.supabase.io_metas.yaml
 - bases/core.supabase.io_realtimes.yaml
 - bases/core.supabase.io_auths.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
