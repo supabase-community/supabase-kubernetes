@@ -31,19 +31,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 const ComponentRealtime = "realtime"
 
-func (r *ProjectReconciler) ensureRealtime(ctx context.Context, project *platformv1alpha1.Project) error {
+func (r *ProjectReconciler) ensureRealtime(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 	ref := project.Spec.RealtimeRef
 	if ref == nil {
 		return nil
 	}
 
-	rt := &platformv1alpha1.Realtime{}
+	rt := &supabasev1alpha1.Realtime{}
 	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, rt); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.setCondition(project, ConditionTypeRealtimeReady, metav1.ConditionFalse, "ComponentNotFound",
@@ -78,23 +78,23 @@ func (r *ProjectReconciler) ensureRealtime(ctx context.Context, project *platfor
 	return nil
 }
 
-func (r *ProjectReconciler) resolveRealtimeImage(rt *platformv1alpha1.Realtime, project *platformv1alpha1.Project) (string, error) {
+func (r *ProjectReconciler) resolveRealtimeImage(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) (string, error) {
 	if rt.Spec.Image != "" {
 		return rt.Spec.Image, nil
 	}
 	return ResolveComponentImage(project.Spec.Version, ComponentRealtime)
 }
 
-func realtimeResourceName(rt *platformv1alpha1.Realtime) string {
+func realtimeResourceName(rt *supabasev1alpha1.Realtime) string {
 	return rt.Name + "-realtime"
 }
 
-func (r *ProjectReconciler) ensureRealtimeService(ctx context.Context, project *platformv1alpha1.Project, rt *platformv1alpha1.Realtime) error {
+func (r *ProjectReconciler) ensureRealtimeService(ctx context.Context, project *supabasev1alpha1.Project, rt *supabasev1alpha1.Realtime) error {
 	logger := log.FromContext(ctx).WithValues("service", realtimeResourceName(rt))
 
 	svcSpec := rt.Spec.Service
 	if svcSpec == nil {
-		svcSpec = &platformv1alpha1.ServiceSpec{}
+		svcSpec = &supabasev1alpha1.ServiceSpec{}
 	}
 
 	svcType := corev1.ServiceTypeClusterIP
@@ -156,7 +156,7 @@ func (r *ProjectReconciler) ensureRealtimeService(ctx context.Context, project *
 	return nil
 }
 
-func (r *ProjectReconciler) ensureRealtimeDeployment(ctx context.Context, project *platformv1alpha1.Project, rt *platformv1alpha1.Realtime, image string) error {
+func (r *ProjectReconciler) ensureRealtimeDeployment(ctx context.Context, project *supabasev1alpha1.Project, rt *supabasev1alpha1.Realtime, image string) error {
 	logger := log.FromContext(ctx).WithValues("deployment", realtimeResourceName(rt))
 
 	replicas := int32(1)
@@ -234,10 +234,10 @@ func (r *ProjectReconciler) ensureRealtimeDeployment(ctx context.Context, projec
 	return nil
 }
 
-func (r *ProjectReconciler) buildRealtimeContainer(rt *platformv1alpha1.Realtime, project *platformv1alpha1.Project, image string) corev1.Container {
+func (r *ProjectReconciler) buildRealtimeContainer(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
-		resolved = &platformv1alpha1.ResolvedDatabaseStatus{}
+		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
 	}
 
 	projectJWTSecret := fmt.Sprintf("%s-jwt", project.Name)
@@ -295,7 +295,7 @@ func (r *ProjectReconciler) buildRealtimeContainer(rt *platformv1alpha1.Realtime
 	return container
 }
 
-func (r *ProjectReconciler) labelsForRealtime(rt *platformv1alpha1.Realtime, project *platformv1alpha1.Project) map[string]string {
+func (r *ProjectReconciler) labelsForRealtime(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "realtime",
 		"app.kubernetes.io/instance":   rt.Name,
@@ -305,7 +305,7 @@ func (r *ProjectReconciler) labelsForRealtime(rt *platformv1alpha1.Realtime, pro
 	}
 }
 
-func (r *ProjectReconciler) selectorLabelsForRealtime(rt *platformv1alpha1.Realtime) map[string]string {
+func (r *ProjectReconciler) selectorLabelsForRealtime(rt *supabasev1alpha1.Realtime) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "realtime",
 		"app.kubernetes.io/instance": rt.Name,

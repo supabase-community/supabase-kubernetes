@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 const (
@@ -72,7 +72,7 @@ type SingleDatabaseReconciler struct {
 func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	singleDB := &platformv1alpha1.SingleDatabase{}
+	singleDB := &supabasev1alpha1.SingleDatabase{}
 	if err := r.Get(ctx, req.NamespacedName, singleDB); err != nil {
 		if client.IgnoreNotFound(err) == nil {
 			logger.Info("SingleDatabase resource not found, likely deleted")
@@ -171,7 +171,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *SingleDatabaseReconciler) populateStorageStatus(ctx context.Context, singleDB *platformv1alpha1.SingleDatabase) {
+func (r *SingleDatabaseReconciler) populateStorageStatus(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) {
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(ctx, types.NamespacedName{Name: r.pvcName(singleDB.Name), Namespace: singleDB.Namespace}, pvc); err == nil {
 		if storage := pvc.Spec.Resources.Requests.Storage(); storage != nil {
@@ -180,7 +180,7 @@ func (r *SingleDatabaseReconciler) populateStorageStatus(ctx context.Context, si
 	}
 }
 
-func (r *SingleDatabaseReconciler) determinePhase(singleDB *platformv1alpha1.SingleDatabase) string {
+func (r *SingleDatabaseReconciler) determinePhase(singleDB *supabasev1alpha1.SingleDatabase) string {
 	if meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady) {
 		return "Running"
 	}
@@ -197,11 +197,11 @@ func (r *SingleDatabaseReconciler) determinePhase(singleDB *platformv1alpha1.Sin
 	return "Creating"
 }
 
-func (r *SingleDatabaseReconciler) validate(singleDB *platformv1alpha1.SingleDatabase) error {
+func (r *SingleDatabaseReconciler) validate(singleDB *supabasev1alpha1.SingleDatabase) error {
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) storageResources(singleDB *platformv1alpha1.SingleDatabase) corev1.VolumeResourceRequirements {
+func (r *SingleDatabaseReconciler) storageResources(singleDB *supabasev1alpha1.SingleDatabase) corev1.VolumeResourceRequirements {
 	if singleDB.Spec.Storage.Resources.Requests != nil || singleDB.Spec.Storage.Resources.Limits != nil {
 		return singleDB.Spec.Storage.Resources
 	}
@@ -224,7 +224,7 @@ func (r *SingleDatabaseReconciler) statefulSetName(name string) string {
 	return fmt.Sprintf("%s-%s", name, singleDatabaseComponent)
 }
 
-func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *platformv1alpha1.SingleDatabase) (bool, error) {
+func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) (bool, error) {
 	logger := log.FromContext(ctx).WithValues("secret", r.secretName(singleDB.Name))
 
 	secret := &corev1.Secret{}
@@ -271,7 +271,7 @@ func (r *SingleDatabaseReconciler) pvcName(name string) string {
 	return fmt.Sprintf("%s-%s-data", name, singleDatabaseComponent)
 }
 
-func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *platformv1alpha1.SingleDatabase) error {
+func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
 	logger := log.FromContext(ctx).WithValues("pvc", r.pvcName(singleDB.Name))
 
 	pvc := &corev1.PersistentVolumeClaim{}
@@ -295,7 +295,7 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *plat
 			},
 		}
 
-		if singleDB.Spec.Storage.DeletionPolicy == platformv1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.Storage.DeletionPolicy == "" {
+		if singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.Storage.DeletionPolicy == "" {
 			if err := controllerutil.SetControllerReference(singleDB, pvc, r.Scheme); err != nil {
 				return fmt.Errorf("setting owner reference on pvc: %w", err)
 			}
@@ -326,7 +326,7 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *plat
 	}
 
 	// Sync owner reference based on current pvcDeletionPolicy.
-	ownerRefDesired := singleDB.Spec.Storage.DeletionPolicy == platformv1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.Storage.DeletionPolicy == ""
+	ownerRefDesired := singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.Storage.DeletionPolicy == ""
 	ownerRefExists := false
 	for _, ref := range pvc.OwnerReferences {
 		if ref.UID == singleDB.UID {
@@ -377,7 +377,7 @@ func (r *SingleDatabaseReconciler) isPVCResizeNotSupportedError(err error) bool 
 		(strings.Contains(msg, "storageclass") || strings.Contains(msg, "dynamically provisioned"))
 }
 
-func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *platformv1alpha1.SingleDatabase) error {
+func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
 	logger := log.FromContext(ctx).WithValues("service", r.serviceName(singleDB.Name))
 
 	labels := map[string]string{
@@ -486,14 +486,14 @@ func (r *SingleDatabaseReconciler) buildPasswordSyncInitContainer(image string, 
 	}
 }
 
-func (r *SingleDatabaseReconciler) resolveDatabaseImage(singleDB *platformv1alpha1.SingleDatabase) (string, error) {
+func (r *SingleDatabaseReconciler) resolveDatabaseImage(singleDB *supabasev1alpha1.SingleDatabase) (string, error) {
 	if singleDB.Spec.Image != "" {
 		return singleDB.Spec.Image, nil
 	}
 	return ResolveComponentImage(singleDB.Spec.Version, ComponentDatabase)
 }
 
-func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, singleDB *platformv1alpha1.SingleDatabase) error {
+func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
 	logger := log.FromContext(ctx).WithValues("statefulset", r.statefulSetName(singleDB.Name))
 
 	image, err := r.resolveDatabaseImage(singleDB)
@@ -653,7 +653,7 @@ func (r *SingleDatabaseReconciler) mergeMaps(base, override map[string]string) m
 	return result
 }
 
-func (r *SingleDatabaseReconciler) buildProbes(probes *platformv1alpha1.ComponentProbes) (*corev1.Probe, *corev1.Probe, *corev1.Probe) {
+func (r *SingleDatabaseReconciler) buildProbes(probes *supabasev1alpha1.ComponentProbes) (*corev1.Probe, *corev1.Probe, *corev1.Probe) {
 	if probes != nil {
 		return probes.Startup, probes.Readiness, probes.Liveness
 	}
@@ -701,7 +701,7 @@ func (r *SingleDatabaseReconciler) envFromSecret(name, secretName, key string) c
 }
 
 func (r *SingleDatabaseReconciler) setCondition(
-	singleDB *platformv1alpha1.SingleDatabase,
+	singleDB *supabasev1alpha1.SingleDatabase,
 	status metav1.ConditionStatus,
 	reason string,
 	message string,
@@ -721,7 +721,7 @@ func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:staticcheck // GetEventRecorderFor is deprecated but GetEventRecorder returns a different type incompatible with record.EventRecorder in controller-runtime v0.23
 	r.Recorder = mgr.GetEventRecorderFor("singledatabase")
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&platformv1alpha1.SingleDatabase{}).
+		For(&supabasev1alpha1.SingleDatabase{}).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.PersistentVolumeClaim{}).

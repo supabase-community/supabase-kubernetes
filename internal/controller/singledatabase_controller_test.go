@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 var _ = Describe("SingleDatabase Controller", func() {
@@ -46,19 +46,19 @@ var _ = Describe("SingleDatabase Controller", func() {
 		}
 
 		BeforeEach(func() {
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, typeNamespacedName, singleDB)
 			if err == nil {
 				return
 			}
-			resource := &platformv1alpha1.SingleDatabase{
+			resource := &supabasev1alpha1.SingleDatabase{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      resourceName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.SingleDatabaseSpec{
+				Spec: supabasev1alpha1.SingleDatabaseSpec{
 					Version: "2026.04.27",
-					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
+					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
 							Requests: corev1.ResourceList{
@@ -72,7 +72,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 		})
 
 		AfterEach(func() {
-			resource := &platformv1alpha1.SingleDatabase{}
+			resource := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
@@ -91,7 +91,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
@@ -101,9 +101,9 @@ var _ = Describe("SingleDatabase Controller", func() {
 		})
 
 		It("should add owner reference when pvcDeletionPolicy changes to Delete", func() {
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.Storage.DeletionPolicy = platformv1alpha1.PVCDeletionPolicyRetain
+			singleDB.Spec.Storage.DeletionPolicy = supabasev1alpha1.PVCDeletionPolicyRetain
 			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
 
 			pvc := &corev1.PersistentVolumeClaim{}
@@ -113,7 +113,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.Storage.DeletionPolicy = platformv1alpha1.PVCDeletionPolicyDelete
+			singleDB.Spec.Storage.DeletionPolicy = supabasev1alpha1.PVCDeletionPolicyDelete
 			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
 
 			Eventually(func(g Gomega) {
@@ -125,14 +125,14 @@ var _ = Describe("SingleDatabase Controller", func() {
 
 		It("should remove owner reference when pvcDeletionPolicy changes to Retain", func() {
 			pvc := &corev1.PersistentVolumeClaim{}
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db-data", Namespace: "default"}, pvc)).To(Succeed())
 				g.Expect(pvc.OwnerReferences).To(HaveLen(1))
 			}, timeout, interval).Should(Succeed())
 
 			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.Storage.DeletionPolicy = platformv1alpha1.PVCDeletionPolicyRetain
+			singleDB.Spec.Storage.DeletionPolicy = supabasev1alpha1.PVCDeletionPolicyRetain
 			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
 
 			Eventually(func(g Gomega) {
@@ -155,19 +155,19 @@ var _ = Describe("SingleDatabase Controller", func() {
 		}
 
 		BeforeEach(func() {
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, typeNamespacedName, singleDB)
 			if err == nil {
 				return
 			}
-			resource := &platformv1alpha1.SingleDatabase{
+			resource := &supabasev1alpha1.SingleDatabase{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      resourceName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.SingleDatabaseSpec{
+				Spec: supabasev1alpha1.SingleDatabaseSpec{
 					Version: "2026.04.27",
-					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
+					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
 							Requests: corev1.ResourceList{
@@ -175,7 +175,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 							},
 						},
 					},
-					WorkloadConfig: platformv1alpha1.WorkloadConfig{
+					WorkloadConfig: supabasev1alpha1.WorkloadConfig{
 						NodeSelector: map[string]string{
 							"kubernetes.io/os": "linux",
 						},
@@ -210,7 +210,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 		})
 
 		AfterEach(func() {
-			resource := &platformv1alpha1.SingleDatabase{}
+			resource := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
@@ -269,7 +269,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
 				g.Expect(singleDB.Status.Phase).To(Equal("Running"))
@@ -291,19 +291,19 @@ var _ = Describe("SingleDatabase Controller", func() {
 		}
 
 		BeforeEach(func() {
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, typeNamespacedName, singleDB)
 			if err == nil {
 				return
 			}
-			resource := &platformv1alpha1.SingleDatabase{
+			resource := &supabasev1alpha1.SingleDatabase{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      resourceName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.SingleDatabaseSpec{
+				Spec: supabasev1alpha1.SingleDatabaseSpec{
 					Version: "2026.04.27",
-					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
+					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
 							Requests: corev1.ResourceList{
@@ -317,7 +317,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 		})
 
 		AfterEach(func() {
-			resource := &platformv1alpha1.SingleDatabase{}
+			resource := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())

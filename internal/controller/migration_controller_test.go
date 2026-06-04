@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 var _ = Describe("Migration Controller", func() {
@@ -54,19 +54,19 @@ var _ = Describe("Migration Controller", func() {
 		}
 
 		BeforeEach(func() {
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, singleDBNamespacedName, singleDB)
 			if err == nil {
 				return
 			}
-			dbResource := &platformv1alpha1.SingleDatabase{
+			dbResource := &supabasev1alpha1.SingleDatabase{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      singleDBName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.SingleDatabaseSpec{
+				Spec: supabasev1alpha1.SingleDatabaseSpec{
 					Version: "2026.04.27",
-					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
+					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
 							Requests: corev1.ResourceList{
@@ -81,7 +81,7 @@ var _ = Describe("Migration Controller", func() {
 
 		AfterEach(func() {
 			// Clean up migration first (which owns the jobs)
-			migration := &platformv1alpha1.Migration{}
+			migration := &supabasev1alpha1.Migration{}
 			err := k8sClient.Get(ctx, migrationNamespacedName, migration)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, migration)).To(Succeed())
@@ -97,7 +97,7 @@ var _ = Describe("Migration Controller", func() {
 				})).To(Succeed())
 			}
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err = k8sClient.Get(ctx, singleDBNamespacedName, singleDB)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, singleDB)).To(Succeed())
@@ -114,25 +114,25 @@ var _ = Describe("Migration Controller", func() {
 				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the Migration resource with multiple migrations")
-			migration := &platformv1alpha1.Migration{
+			migration := &supabasev1alpha1.Migration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      migrationName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.MigrationSpec{
-					DatabaseRef: platformv1alpha1.DatabaseRef{
+				Spec: supabasev1alpha1.MigrationSpec{
+					DatabaseRef: supabasev1alpha1.DatabaseRef{
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
 					Version: "2026.04.27",
-					Migrations: []platformv1alpha1.MigrationEntry{
+					Migrations: []supabasev1alpha1.MigrationEntry{
 						{
 							Name: "001-create-users",
 							SQL:  "CREATE TABLE IF NOT EXISTS users (id serial PRIMARY KEY);",
@@ -226,25 +226,25 @@ var _ = Describe("Migration Controller", func() {
 				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the first Migration resource")
-			firstMigration := &platformv1alpha1.Migration{
+			firstMigration := &supabasev1alpha1.Migration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      migrationName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.MigrationSpec{
-					DatabaseRef: platformv1alpha1.DatabaseRef{
+				Spec: supabasev1alpha1.MigrationSpec{
+					DatabaseRef: supabasev1alpha1.DatabaseRef{
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
 					Version: "2026.04.27",
-					Migrations: []platformv1alpha1.MigrationEntry{
+					Migrations: []supabasev1alpha1.MigrationEntry{
 						{
 							Name: "001-create-users",
 							SQL:  "CREATE TABLE IF NOT EXISTS users (id serial PRIMARY KEY);",
@@ -272,18 +272,18 @@ var _ = Describe("Migration Controller", func() {
 
 			By("Creating a second Migration with the same SQL but different name")
 			secondMigrationName := migrationName + "-duplicate"
-			secondMigration := &platformv1alpha1.Migration{
+			secondMigration := &supabasev1alpha1.Migration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      secondMigrationName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.MigrationSpec{
-					DatabaseRef: platformv1alpha1.DatabaseRef{
+				Spec: supabasev1alpha1.MigrationSpec{
+					DatabaseRef: supabasev1alpha1.DatabaseRef{
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
 					Version: "2026.04.27",
-					Migrations: []platformv1alpha1.MigrationEntry{
+					Migrations: []supabasev1alpha1.MigrationEntry{
 						{
 							Name: "different-name",
 							SQL:  "CREATE TABLE IF NOT EXISTS users (id serial PRIMARY KEY);",
@@ -329,19 +329,19 @@ var _ = Describe("Migration Controller", func() {
 		}
 
 		BeforeEach(func() {
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, singleDBNamespacedName, singleDB)
 			if err == nil {
 				return
 			}
-			dbResource := &platformv1alpha1.SingleDatabase{
+			dbResource := &supabasev1alpha1.SingleDatabase{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      singleDBName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.SingleDatabaseSpec{
+				Spec: supabasev1alpha1.SingleDatabaseSpec{
 					Version: "2026.04.27",
-					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
+					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
 							Requests: corev1.ResourceList{
@@ -355,7 +355,7 @@ var _ = Describe("Migration Controller", func() {
 		})
 
 		AfterEach(func() {
-			migration := &platformv1alpha1.Migration{}
+			migration := &supabasev1alpha1.Migration{}
 			err := k8sClient.Get(ctx, migrationNamespacedName, migration)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, migration)).To(Succeed())
@@ -370,7 +370,7 @@ var _ = Describe("Migration Controller", func() {
 				})
 			}
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err = k8sClient.Get(ctx, singleDBNamespacedName, singleDB)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, singleDB)).To(Succeed())
@@ -387,25 +387,25 @@ var _ = Describe("Migration Controller", func() {
 				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the Migration resource")
-			migration := &platformv1alpha1.Migration{
+			migration := &supabasev1alpha1.Migration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      migrationName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.MigrationSpec{
-					DatabaseRef: platformv1alpha1.DatabaseRef{
+				Spec: supabasev1alpha1.MigrationSpec{
+					DatabaseRef: supabasev1alpha1.DatabaseRef{
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
 					Version: "2026.04.27",
-					Migrations: []platformv1alpha1.MigrationEntry{
+					Migrations: []supabasev1alpha1.MigrationEntry{
 						{
 							Name: "001-will-fail",
 							SQL:  "INVALID SQL;",
@@ -462,19 +462,19 @@ var _ = Describe("Migration Controller", func() {
 		}
 
 		BeforeEach(func() {
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err := k8sClient.Get(ctx, singleDBNamespacedName, singleDB)
 			if err == nil {
 				return
 			}
-			dbResource := &platformv1alpha1.SingleDatabase{
+			dbResource := &supabasev1alpha1.SingleDatabase{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      singleDBName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.SingleDatabaseSpec{
+				Spec: supabasev1alpha1.SingleDatabaseSpec{
 					Version: "2026.04.27",
-					Storage: platformv1alpha1.VolumeClaimTemplateSpec{
+					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
 							Requests: corev1.ResourceList{
@@ -488,13 +488,13 @@ var _ = Describe("Migration Controller", func() {
 		})
 
 		AfterEach(func() {
-			migration := &platformv1alpha1.Migration{}
+			migration := &supabasev1alpha1.Migration{}
 			err := k8sClient.Get(ctx, migrationNamespacedName, migration)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, migration)).To(Succeed())
 			}
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			err = k8sClient.Get(ctx, singleDBNamespacedName, singleDB)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, singleDB)).To(Succeed())
@@ -511,25 +511,25 @@ var _ = Describe("Migration Controller", func() {
 				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
-			singleDB := &platformv1alpha1.SingleDatabase{}
+			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the Migration resource")
-			migration := &platformv1alpha1.Migration{
+			migration := &supabasev1alpha1.Migration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      migrationName,
 					Namespace: "default",
 				},
-				Spec: platformv1alpha1.MigrationSpec{
-					DatabaseRef: platformv1alpha1.DatabaseRef{
+				Spec: supabasev1alpha1.MigrationSpec{
+					DatabaseRef: supabasev1alpha1.DatabaseRef{
 						Kind: "SingleDatabase",
 						Name: singleDBName,
 					},
 					Version: "2026.04.27",
-					Migrations: []platformv1alpha1.MigrationEntry{
+					Migrations: []supabasev1alpha1.MigrationEntry{
 						{
 							Name: "001-create-users",
 							SQL:  "CREATE TABLE IF NOT EXISTS users (id serial PRIMARY KEY);",
@@ -540,7 +540,7 @@ var _ = Describe("Migration Controller", func() {
 			Expect(k8sClient.Create(ctx, migration)).To(Succeed())
 
 			By("Attempting to append a new migration entry")
-			migration.Spec.Migrations = append(migration.Spec.Migrations, platformv1alpha1.MigrationEntry{
+			migration.Spec.Migrations = append(migration.Spec.Migrations, supabasev1alpha1.MigrationEntry{
 				Name: "002-add-email",
 				SQL:  "ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;",
 			})

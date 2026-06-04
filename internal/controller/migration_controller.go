@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 const (
@@ -65,7 +65,7 @@ type ResolvedMigrationDatabase struct {
 	SecretKey  string
 }
 
-func (r *MigrationReconciler) resolveMigrationImage(migration *platformv1alpha1.Migration) (string, error) {
+func (r *MigrationReconciler) resolveMigrationImage(migration *supabasev1alpha1.Migration) (string, error) {
 	if migration.Spec.Image != "" {
 		return migration.Spec.Image, nil
 	}
@@ -85,7 +85,7 @@ func (r *MigrationReconciler) resolveMigrationImage(migration *platformv1alpha1.
 func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	migration := &platformv1alpha1.Migration{}
+	migration := &supabasev1alpha1.Migration{}
 	if err := r.Get(ctx, req.NamespacedName, migration); err != nil {
 		if client.IgnoreNotFound(err) == nil {
 			return ctrl.Result{}, nil
@@ -215,9 +215,9 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // updateStatus re-fetches the resource and applies the current status with retry on conflict.
-func (r *MigrationReconciler) updateStatus(ctx context.Context, migration *platformv1alpha1.Migration) error {
+func (r *MigrationReconciler) updateStatus(ctx context.Context, migration *supabasev1alpha1.Migration) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		latest := &platformv1alpha1.Migration{}
+		latest := &supabasev1alpha1.Migration{}
 		if err := r.Get(ctx, types.NamespacedName{Name: migration.Name, Namespace: migration.Namespace}, latest); err != nil {
 			return err
 		}
@@ -226,7 +226,7 @@ func (r *MigrationReconciler) updateStatus(ctx context.Context, migration *platf
 	})
 }
 
-func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *platformv1alpha1.Migration) {
+func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *supabasev1alpha1.Migration) {
 	logger := log.FromContext(ctx)
 	propagation := metav1.DeletePropagationBackground
 
@@ -253,12 +253,12 @@ func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *p
 	}
 }
 
-func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *platformv1alpha1.Migration) (*ResolvedMigrationDatabase, bool, error) {
+func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *supabasev1alpha1.Migration) (*ResolvedMigrationDatabase, bool, error) {
 	ref := migration.Spec.DatabaseRef
 
 	switch ref.Kind {
 	case kindSingleDatabase:
-		singleDB := &platformv1alpha1.SingleDatabase{}
+		singleDB := &supabasev1alpha1.SingleDatabase{}
 		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: migration.Namespace}, singleDB); err != nil {
 			if apierrors.IsNotFound(err) {
 				r.Recorder.Eventf(migration, corev1.EventTypeWarning, "DatabaseNotFound", "SingleDatabase %q not found, waiting", ref.Name)
@@ -291,7 +291,7 @@ func (r *MigrationReconciler) jobName(migrationName string) string {
 	return fmt.Sprintf("%s-apply", migrationName)
 }
 
-func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *platformv1alpha1.Migration, name string, batchHash string) error {
+func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *supabasev1alpha1.Migration, name string, batchHash string) error {
 	cm := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: migration.Namespace}, cm)
 	if err == nil {
@@ -320,7 +320,7 @@ func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *pl
 	return r.Create(ctx, cm)
 }
 
-func buildBatchSQL(entries []platformv1alpha1.MigrationEntry, batchHash string) string {
+func buildBatchSQL(entries []supabasev1alpha1.MigrationEntry, batchHash string) string {
 	var b strings.Builder
 	for i, entry := range entries {
 		b.WriteString(fmt.Sprintf("-- migration %d: %s\n", i, entry.Name))
@@ -331,7 +331,7 @@ func buildBatchSQL(entries []platformv1alpha1.MigrationEntry, batchHash string) 
 	return b.String()
 }
 
-func calculateBatchHash(entries []platformv1alpha1.MigrationEntry) string {
+func calculateBatchHash(entries []supabasev1alpha1.MigrationEntry) string {
 	h := sha256.New()
 	for _, entry := range entries {
 		// Delimiter ensures concatenation is unambiguous
@@ -341,7 +341,7 @@ func calculateBatchHash(entries []platformv1alpha1.MigrationEntry) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db *ResolvedMigrationDatabase, image, batchHash string) *batchv1.Job {
+func (r *MigrationReconciler) buildJob(migration *supabasev1alpha1.Migration, db *ResolvedMigrationDatabase, image, batchHash string) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 	configMapName := r.configMapName(migration.Name)
@@ -438,7 +438,7 @@ func (r *MigrationReconciler) buildJob(migration *platformv1alpha1.Migration, db
 }
 
 func (r *MigrationReconciler) setCondition(
-	migration *platformv1alpha1.Migration,
+	migration *supabasev1alpha1.Migration,
 	status metav1.ConditionStatus,
 	reason string,
 	message string,
@@ -458,7 +458,7 @@ func (r *MigrationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:staticcheck // GetEventRecorderFor is deprecated but GetEventRecorder returns a different type incompatible with record.EventRecorder in controller-runtime v0.23
 	r.Recorder = mgr.GetEventRecorderFor("migration")
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&platformv1alpha1.Migration{}).
+		For(&supabasev1alpha1.Migration{}).
 		Owns(&batchv1.Job{}).
 		Owns(&corev1.ConfigMap{}).
 		Named("migration").

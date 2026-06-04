@@ -31,19 +31,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 const ComponentMeta = "meta"
 
-func (r *ProjectReconciler) ensureMeta(ctx context.Context, project *platformv1alpha1.Project) error {
+func (r *ProjectReconciler) ensureMeta(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 	ref := project.Spec.MetaRef
 	if ref == nil {
 		return nil
 	}
 
-	m := &platformv1alpha1.Meta{}
+	m := &supabasev1alpha1.Meta{}
 	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, m); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.setCondition(project, ConditionTypeMetaReady, metav1.ConditionFalse, "ComponentNotFound",
@@ -78,23 +78,23 @@ func (r *ProjectReconciler) ensureMeta(ctx context.Context, project *platformv1a
 	return nil
 }
 
-func (r *ProjectReconciler) resolveMetaImage(m *platformv1alpha1.Meta, project *platformv1alpha1.Project) (string, error) {
+func (r *ProjectReconciler) resolveMetaImage(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) (string, error) {
 	if m.Spec.Image != "" {
 		return m.Spec.Image, nil
 	}
 	return ResolveComponentImage(project.Spec.Version, ComponentMeta)
 }
 
-func metaResourceName(m *platformv1alpha1.Meta) string {
+func metaResourceName(m *supabasev1alpha1.Meta) string {
 	return m.Name + "-meta"
 }
 
-func (r *ProjectReconciler) ensureMetaService(ctx context.Context, project *platformv1alpha1.Project, m *platformv1alpha1.Meta) error {
+func (r *ProjectReconciler) ensureMetaService(ctx context.Context, project *supabasev1alpha1.Project, m *supabasev1alpha1.Meta) error {
 	logger := log.FromContext(ctx).WithValues("service", metaResourceName(m))
 
 	svcSpec := m.Spec.Service
 	if svcSpec == nil {
-		svcSpec = &platformv1alpha1.ServiceSpec{}
+		svcSpec = &supabasev1alpha1.ServiceSpec{}
 	}
 
 	svcType := corev1.ServiceTypeClusterIP
@@ -156,7 +156,7 @@ func (r *ProjectReconciler) ensureMetaService(ctx context.Context, project *plat
 	return nil
 }
 
-func (r *ProjectReconciler) ensureMetaDeployment(ctx context.Context, project *platformv1alpha1.Project, m *platformv1alpha1.Meta, image string) error {
+func (r *ProjectReconciler) ensureMetaDeployment(ctx context.Context, project *supabasev1alpha1.Project, m *supabasev1alpha1.Meta, image string) error {
 	logger := log.FromContext(ctx).WithValues("deployment", metaResourceName(m))
 
 	replicas := int32(1)
@@ -234,10 +234,10 @@ func (r *ProjectReconciler) ensureMetaDeployment(ctx context.Context, project *p
 	return nil
 }
 
-func (r *ProjectReconciler) buildMetaContainer(m *platformv1alpha1.Meta, project *platformv1alpha1.Project, image string) corev1.Container {
+func (r *ProjectReconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
-		resolved = &platformv1alpha1.ResolvedDatabaseStatus{}
+		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
 	}
 
 	projectKeysSecret := fmt.Sprintf("%s-keys", project.Name)
@@ -283,7 +283,7 @@ func (r *ProjectReconciler) buildMetaContainer(m *platformv1alpha1.Meta, project
 	return container
 }
 
-func (r *ProjectReconciler) labelsForMeta(m *platformv1alpha1.Meta, project *platformv1alpha1.Project) map[string]string {
+func (r *ProjectReconciler) labelsForMeta(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "meta",
 		"app.kubernetes.io/instance":   m.Name,
@@ -293,7 +293,7 @@ func (r *ProjectReconciler) labelsForMeta(m *platformv1alpha1.Meta, project *pla
 	}
 }
 
-func (r *ProjectReconciler) selectorLabelsForMeta(m *platformv1alpha1.Meta) map[string]string {
+func (r *ProjectReconciler) selectorLabelsForMeta(m *supabasev1alpha1.Meta) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "meta",
 		"app.kubernetes.io/instance": m.Name,

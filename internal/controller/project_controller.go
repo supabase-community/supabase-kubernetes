@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 const (
@@ -65,7 +65,7 @@ type ResolvedDatabase struct {
 	Host        string
 	Port        int32
 	DBName      string
-	PasswordRef platformv1alpha1.SecretKeyRef
+	PasswordRef supabasev1alpha1.SecretKeyRef
 }
 
 type secretDefinition struct {
@@ -102,7 +102,7 @@ type ProjectReconciler struct {
 func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	project := &platformv1alpha1.Project{}
+	project := &supabasev1alpha1.Project{}
 	if err := r.Get(ctx, req.NamespacedName, project); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Project resource not found, likely deleted")
@@ -133,7 +133,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	project.Status.ResolvedDatabase = &platformv1alpha1.ResolvedDatabaseStatus{
+	project.Status.ResolvedDatabase = &supabasev1alpha1.ResolvedDatabaseStatus{
 		Host:        db.Host,
 		Port:        db.Port,
 		DBName:      db.DBName,
@@ -256,7 +256,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // secretDefinitions returns the list of secrets that must exist for a Project.
 //
 //nolint:unparam
-func (r *ProjectReconciler) secretDefinitions(project *platformv1alpha1.Project) []secretDefinition {
+func (r *ProjectReconciler) secretDefinitions(project *supabasev1alpha1.Project) []secretDefinition {
 	return []secretDefinition{
 		{
 			suffix: "jwt",
@@ -269,7 +269,7 @@ func (r *ProjectReconciler) secretDefinitions(project *platformv1alpha1.Project)
 }
 
 // ensureAllSecrets iterates over all secret definitions and ensures each one exists with all required keys.
-func (r *ProjectReconciler) ensureAllSecrets(ctx context.Context, project *platformv1alpha1.Project) error {
+func (r *ProjectReconciler) ensureAllSecrets(ctx context.Context, project *supabasev1alpha1.Project) error {
 	for _, def := range r.secretDefinitions(project) {
 		secretName := fmt.Sprintf("%s-%s", project.Name, def.suffix)
 		if err := r.ensureSecret(ctx, project, secretName, def.generator); err != nil {
@@ -282,7 +282,7 @@ func (r *ProjectReconciler) ensureAllSecrets(ctx context.Context, project *platf
 // ensureSecret ensures a Kubernetes Secret exists with all required keys.
 func (r *ProjectReconciler) ensureSecret(
 	ctx context.Context,
-	owner *platformv1alpha1.Project,
+	owner *supabasev1alpha1.Project,
 	name string,
 	generator func() (SecretData, error),
 ) error {
@@ -357,7 +357,7 @@ func (r *ProjectReconciler) ensureSecret(
 
 // setCondition sets a status condition on the Project.
 func (r *ProjectReconciler) setCondition(
-	project *platformv1alpha1.Project,
+	project *supabasev1alpha1.Project,
 	conditionType string,
 	status metav1.ConditionStatus,
 	reason string,
@@ -373,9 +373,9 @@ func (r *ProjectReconciler) setCondition(
 }
 
 // updateProjectStatus re-fetches the resource and applies the current status with retry on conflict.
-func (r *ProjectReconciler) updateProjectStatus(ctx context.Context, project *platformv1alpha1.Project) error {
+func (r *ProjectReconciler) updateProjectStatus(ctx context.Context, project *supabasev1alpha1.Project) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		latest := &platformv1alpha1.Project{}
+		latest := &supabasev1alpha1.Project{}
 		if err := r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, latest); err != nil {
 			return err
 		}
@@ -384,12 +384,12 @@ func (r *ProjectReconciler) updateProjectStatus(ctx context.Context, project *pl
 	})
 }
 
-func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *platformv1alpha1.Project) (*ResolvedDatabase, error) {
+func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *supabasev1alpha1.Project) (*ResolvedDatabase, error) {
 	ref := project.Spec.DatabaseRef
 
 	switch ref.Kind {
 	case "SingleDatabase":
-		singleDB := &platformv1alpha1.SingleDatabase{}
+		singleDB := &supabasev1alpha1.SingleDatabase{}
 		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, singleDB); err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, fmt.Errorf("SingleDatabase %q not found", ref.Name)
@@ -404,7 +404,7 @@ func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *pla
 			Host:        svcHost,
 			Port:        5432,
 			DBName:      "postgres",
-			PasswordRef: platformv1alpha1.SecretKeyRef{Name: singleDB.Status.SecretName, Key: "password"},
+			PasswordRef: supabasev1alpha1.SecretKeyRef{Name: singleDB.Status.SecretName, Key: "password"},
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported database kind %q", ref.Kind)
@@ -420,21 +420,21 @@ func keysOf(m map[string][]byte) []string {
 	return keys
 }
 
-func (r *ProjectReconciler) migrationName(project *platformv1alpha1.Project, index int) string {
+func (r *ProjectReconciler) migrationName(project *supabasev1alpha1.Project, index int) string {
 	return fmt.Sprintf("%s%s-%d", project.Name, DefaultMigrationNameSuffix, index)
 }
 
-func (r *ProjectReconciler) buildMigration(project *platformv1alpha1.Project, index int, files []string) (*platformv1alpha1.Migration, error) {
+func (r *ProjectReconciler) buildMigration(project *supabasev1alpha1.Project, index int, files []string) (*supabasev1alpha1.Migration, error) {
 	entries, err := LoadMigrationEntries(files)
 	if err != nil {
 		return nil, fmt.Errorf("loading default migrations: %w", err)
 	}
-	return &platformv1alpha1.Migration{
+	return &supabasev1alpha1.Migration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.migrationName(project, index),
 			Namespace: project.Namespace,
 		},
-		Spec: platformv1alpha1.MigrationSpec{
+		Spec: supabasev1alpha1.MigrationSpec{
 			Version:     project.Spec.Version,
 			DatabaseRef: project.Spec.DatabaseRef,
 			Migrations:  entries,
@@ -442,7 +442,7 @@ func (r *ProjectReconciler) buildMigration(project *platformv1alpha1.Project, in
 	}, nil
 }
 
-func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *platformv1alpha1.Project) (ctrl.Result, error) {
+func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *supabasev1alpha1.Project) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	appliedHashes := []string{}
@@ -451,7 +451,7 @@ func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *platfo
 		migrationName := r.migrationName(project, i)
 		migrationLogger := logger.WithValues("migration", migrationName)
 
-		migration := &platformv1alpha1.Migration{}
+		migration := &supabasev1alpha1.Migration{}
 		err := r.Get(ctx, types.NamespacedName{Name: migrationName, Namespace: project.Namespace}, migration)
 
 		if err != nil {
@@ -501,7 +501,7 @@ func calculateCombinedHash(hashes []string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (r *ProjectReconciler) jwtSyncJobName(project *platformv1alpha1.Project) string {
+func (r *ProjectReconciler) jwtSyncJobName(project *supabasev1alpha1.Project) string {
 	return project.Name + "-sync-jwt"
 }
 
@@ -512,7 +512,7 @@ func (r *ProjectReconciler) calculateJWTSettingsHash(secretData []byte, expirySe
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *platformv1alpha1.Project) (ctrl.Result, error) {
+func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *supabasev1alpha1.Project) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	jwtSecret := &corev1.Secret{}
@@ -585,7 +585,7 @@ func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *plat
 	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 }
 
-func (r *ProjectReconciler) buildJWTSettingsJob(project *platformv1alpha1.Project, expirySeconds int32) *batchv1.Job {
+func (r *ProjectReconciler) buildJWTSettingsJob(project *supabasev1alpha1.Project, expirySeconds int32) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 
@@ -627,7 +627,7 @@ func (r *ProjectReconciler) buildJWTSettingsJob(project *platformv1alpha1.Projec
 	}
 }
 
-func (r *ProjectReconciler) passwordSyncJobName(project *platformv1alpha1.Project) string {
+func (r *ProjectReconciler) passwordSyncJobName(project *supabasev1alpha1.Project) string {
 	return project.Name + "-sync-password"
 }
 
@@ -637,7 +637,7 @@ func (r *ProjectReconciler) calculatePasswordHash(secretData []byte) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (r *ProjectReconciler) ensurePasswordSync(ctx context.Context, project *platformv1alpha1.Project) (ctrl.Result, error) {
+func (r *ProjectReconciler) ensurePasswordSync(ctx context.Context, project *supabasev1alpha1.Project) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	if project.Status.ResolvedDatabase == nil {
@@ -712,7 +712,7 @@ func (r *ProjectReconciler) ensurePasswordSync(ctx context.Context, project *pla
 	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 }
 
-func (r *ProjectReconciler) buildPasswordSyncJob(project *platformv1alpha1.Project, password string) *batchv1.Job {
+func (r *ProjectReconciler) buildPasswordSyncJob(project *supabasev1alpha1.Project, password string) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 
@@ -758,12 +758,12 @@ func (r *ProjectReconciler) buildPasswordSyncJob(project *platformv1alpha1.Proje
 // SetupWithManager sets up the controller with the Manager.
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	singleDatabaseToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		singleDB, ok := obj.(*platformv1alpha1.SingleDatabase)
+		singleDB, ok := obj.(*supabasev1alpha1.SingleDatabase)
 		if !ok {
 			return nil
 		}
 
-		projectList := &platformv1alpha1.ProjectList{}
+		projectList := &supabasev1alpha1.ProjectList{}
 		if err := r.List(ctx, projectList, client.InNamespace(singleDB.Namespace)); err != nil {
 			return nil
 		}
@@ -784,7 +784,7 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	migrationToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		migration, ok := obj.(*platformv1alpha1.Migration)
+		migration, ok := obj.(*supabasev1alpha1.Migration)
 		if !ok {
 			return nil
 		}
@@ -802,11 +802,11 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	restToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		rest, ok := obj.(*platformv1alpha1.Rest)
+		rest, ok := obj.(*supabasev1alpha1.Rest)
 		if !ok {
 			return nil
 		}
-		projectList := &platformv1alpha1.ProjectList{}
+		projectList := &supabasev1alpha1.ProjectList{}
 		if err := r.List(ctx, projectList, client.InNamespace(rest.Namespace)); err != nil {
 			return nil
 		}
@@ -825,11 +825,11 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	metaToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		m, ok := obj.(*platformv1alpha1.Meta)
+		m, ok := obj.(*supabasev1alpha1.Meta)
 		if !ok {
 			return nil
 		}
-		projectList := &platformv1alpha1.ProjectList{}
+		projectList := &supabasev1alpha1.ProjectList{}
 		if err := r.List(ctx, projectList, client.InNamespace(m.Namespace)); err != nil {
 			return nil
 		}
@@ -848,11 +848,11 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	realtimeToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		rt, ok := obj.(*platformv1alpha1.Realtime)
+		rt, ok := obj.(*supabasev1alpha1.Realtime)
 		if !ok {
 			return nil
 		}
-		projectList := &platformv1alpha1.ProjectList{}
+		projectList := &supabasev1alpha1.ProjectList{}
 		if err := r.List(ctx, projectList, client.InNamespace(rt.Namespace)); err != nil {
 			return nil
 		}
@@ -871,11 +871,11 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	authToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		auth, ok := obj.(*platformv1alpha1.Auth)
+		auth, ok := obj.(*supabasev1alpha1.Auth)
 		if !ok {
 			return nil
 		}
-		projectList := &platformv1alpha1.ProjectList{}
+		projectList := &supabasev1alpha1.ProjectList{}
 		if err := r.List(ctx, projectList, client.InNamespace(auth.Namespace)); err != nil {
 			return nil
 		}
@@ -894,13 +894,13 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&platformv1alpha1.Project{}).
-		Watches(&platformv1alpha1.SingleDatabase{}, singleDatabaseToProject).
-		Watches(&platformv1alpha1.Migration{}, migrationToProject).
-		Watches(&platformv1alpha1.Rest{}, restToProject).
-		Watches(&platformv1alpha1.Meta{}, metaToProject).
-		Watches(&platformv1alpha1.Realtime{}, realtimeToProject).
-		Watches(&platformv1alpha1.Auth{}, authToProject).
+		For(&supabasev1alpha1.Project{}).
+		Watches(&supabasev1alpha1.SingleDatabase{}, singleDatabaseToProject).
+		Watches(&supabasev1alpha1.Migration{}, migrationToProject).
+		Watches(&supabasev1alpha1.Rest{}, restToProject).
+		Watches(&supabasev1alpha1.Meta{}, metaToProject).
+		Watches(&supabasev1alpha1.Realtime{}, realtimeToProject).
+		Watches(&supabasev1alpha1.Auth{}, authToProject).
 		Owns(&corev1.Secret{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).

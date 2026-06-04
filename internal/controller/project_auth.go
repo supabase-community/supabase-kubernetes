@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 const (
@@ -40,14 +40,14 @@ const (
 	AuthPort      = 9999
 )
 
-func (r *ProjectReconciler) ensureAuth(ctx context.Context, project *platformv1alpha1.Project) error {
+func (r *ProjectReconciler) ensureAuth(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 	ref := project.Spec.AuthRef
 	if ref == nil {
 		return nil
 	}
 
-	auth := &platformv1alpha1.Auth{}
+	auth := &supabasev1alpha1.Auth{}
 	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, auth); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.setCondition(project, ConditionTypeAuthReady, metav1.ConditionFalse, "ComponentNotFound",
@@ -82,18 +82,18 @@ func (r *ProjectReconciler) ensureAuth(ctx context.Context, project *platformv1a
 	return nil
 }
 
-func (r *ProjectReconciler) resolveAuthImage(auth *platformv1alpha1.Auth, project *platformv1alpha1.Project) (string, error) {
+func (r *ProjectReconciler) resolveAuthImage(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project) (string, error) {
 	if auth.Spec.Image != "" {
 		return auth.Spec.Image, nil
 	}
 	return ResolveComponentImage(project.Spec.Version, ComponentAuth)
 }
 
-func authResourceName(auth *platformv1alpha1.Auth) string {
+func authResourceName(auth *supabasev1alpha1.Auth) string {
 	return auth.Name + "-auth"
 }
 
-func apiExternalURL(project *platformv1alpha1.Project) string {
+func apiExternalURL(project *supabasev1alpha1.Project) string {
 	url := fmt.Sprintf("%s://%s", project.Spec.HTTP.Protocol, project.Spec.HTTP.Hostname)
 	if project.Spec.HTTP.Port != nil {
 		url = fmt.Sprintf("%s:%d", url, *project.Spec.HTTP.Port)
@@ -101,12 +101,12 @@ func apiExternalURL(project *platformv1alpha1.Project) string {
 	return url
 }
 
-func (r *ProjectReconciler) ensureAuthService(ctx context.Context, project *platformv1alpha1.Project, auth *platformv1alpha1.Auth) error {
+func (r *ProjectReconciler) ensureAuthService(ctx context.Context, project *supabasev1alpha1.Project, auth *supabasev1alpha1.Auth) error {
 	logger := log.FromContext(ctx).WithValues("service", authResourceName(auth))
 
 	svcSpec := auth.Spec.Service
 	if svcSpec == nil {
-		svcSpec = &platformv1alpha1.ServiceSpec{}
+		svcSpec = &supabasev1alpha1.ServiceSpec{}
 	}
 
 	svcType := corev1.ServiceTypeClusterIP
@@ -168,7 +168,7 @@ func (r *ProjectReconciler) ensureAuthService(ctx context.Context, project *plat
 	return nil
 }
 
-func (r *ProjectReconciler) ensureAuthDeployment(ctx context.Context, project *platformv1alpha1.Project, auth *platformv1alpha1.Auth, image string) error {
+func (r *ProjectReconciler) ensureAuthDeployment(ctx context.Context, project *supabasev1alpha1.Project, auth *supabasev1alpha1.Auth, image string) error {
 	logger := log.FromContext(ctx).WithValues("deployment", authResourceName(auth))
 
 	replicas := int32(1)
@@ -246,10 +246,10 @@ func (r *ProjectReconciler) ensureAuthDeployment(ctx context.Context, project *p
 	return nil
 }
 
-func (r *ProjectReconciler) buildAuthContainer(auth *platformv1alpha1.Auth, project *platformv1alpha1.Project, image string) corev1.Container {
+func (r *ProjectReconciler) buildAuthContainer(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
-		resolved = &platformv1alpha1.ResolvedDatabaseStatus{}
+		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
 	}
 
 	jwtExpiry := "3600"
@@ -444,7 +444,7 @@ func (r *ProjectReconciler) buildAuthContainer(auth *platformv1alpha1.Auth, proj
 	return container
 }
 
-func (r *ProjectReconciler) labelsForAuth(auth *platformv1alpha1.Auth, project *platformv1alpha1.Project) map[string]string {
+func (r *ProjectReconciler) labelsForAuth(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "auth",
 		"app.kubernetes.io/instance":   auth.Name,
@@ -454,7 +454,7 @@ func (r *ProjectReconciler) labelsForAuth(auth *platformv1alpha1.Auth, project *
 	}
 }
 
-func (r *ProjectReconciler) selectorLabelsForAuth(auth *platformv1alpha1.Auth) map[string]string {
+func (r *ProjectReconciler) selectorLabelsForAuth(auth *supabasev1alpha1.Auth) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "auth",
 		"app.kubernetes.io/instance": auth.Name,

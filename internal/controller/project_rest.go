@@ -31,19 +31,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 const ComponentRest = "rest"
 
-func (r *ProjectReconciler) ensureRest(ctx context.Context, project *platformv1alpha1.Project) error {
+func (r *ProjectReconciler) ensureRest(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 	ref := project.Spec.RestRef
 	if ref == nil {
 		return nil
 	}
 
-	rest := &platformv1alpha1.Rest{}
+	rest := &supabasev1alpha1.Rest{}
 	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, rest); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.setCondition(project, ConditionTypeRestReady, metav1.ConditionFalse, "ComponentNotFound",
@@ -78,23 +78,23 @@ func (r *ProjectReconciler) ensureRest(ctx context.Context, project *platformv1a
 	return nil
 }
 
-func (r *ProjectReconciler) resolveRestImage(rest *platformv1alpha1.Rest, project *platformv1alpha1.Project) (string, error) {
+func (r *ProjectReconciler) resolveRestImage(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) (string, error) {
 	if rest.Spec.Image != "" {
 		return rest.Spec.Image, nil
 	}
 	return ResolveComponentImage(project.Spec.Version, ComponentRest)
 }
 
-func restResourceName(rest *platformv1alpha1.Rest) string {
+func restResourceName(rest *supabasev1alpha1.Rest) string {
 	return rest.Name + "-rest"
 }
 
-func (r *ProjectReconciler) ensureRestService(ctx context.Context, project *platformv1alpha1.Project, rest *platformv1alpha1.Rest) error {
+func (r *ProjectReconciler) ensureRestService(ctx context.Context, project *supabasev1alpha1.Project, rest *supabasev1alpha1.Rest) error {
 	logger := log.FromContext(ctx).WithValues("service", restResourceName(rest))
 
 	svcSpec := rest.Spec.Service
 	if svcSpec == nil {
-		svcSpec = &platformv1alpha1.ServiceSpec{}
+		svcSpec = &supabasev1alpha1.ServiceSpec{}
 	}
 
 	svcType := corev1.ServiceTypeClusterIP
@@ -156,7 +156,7 @@ func (r *ProjectReconciler) ensureRestService(ctx context.Context, project *plat
 	return nil
 }
 
-func (r *ProjectReconciler) ensureRestDeployment(ctx context.Context, project *platformv1alpha1.Project, rest *platformv1alpha1.Rest, image string) error {
+func (r *ProjectReconciler) ensureRestDeployment(ctx context.Context, project *supabasev1alpha1.Project, rest *supabasev1alpha1.Rest, image string) error {
 	logger := log.FromContext(ctx).WithValues("deployment", restResourceName(rest))
 
 	replicas := int32(1)
@@ -234,10 +234,10 @@ func (r *ProjectReconciler) ensureRestDeployment(ctx context.Context, project *p
 	return nil
 }
 
-func (r *ProjectReconciler) buildRestContainer(rest *platformv1alpha1.Rest, project *platformv1alpha1.Project, image string) corev1.Container {
+func (r *ProjectReconciler) buildRestContainer(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
-		resolved = &platformv1alpha1.ResolvedDatabaseStatus{}
+		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
 	}
 
 	dbSchemas := rest.Spec.DBSchemas
@@ -311,7 +311,7 @@ func (r *ProjectReconciler) buildRestContainer(rest *platformv1alpha1.Rest, proj
 	return container
 }
 
-func (r *ProjectReconciler) labelsForRest(rest *platformv1alpha1.Rest, project *platformv1alpha1.Project) map[string]string {
+func (r *ProjectReconciler) labelsForRest(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "rest",
 		"app.kubernetes.io/instance":   rest.Name,
@@ -321,7 +321,7 @@ func (r *ProjectReconciler) labelsForRest(rest *platformv1alpha1.Rest, project *
 	}
 }
 
-func (r *ProjectReconciler) selectorLabelsForRest(rest *platformv1alpha1.Rest) map[string]string {
+func (r *ProjectReconciler) selectorLabelsForRest(rest *supabasev1alpha1.Rest) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "rest",
 		"app.kubernetes.io/instance": rest.Name,

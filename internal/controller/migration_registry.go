@@ -19,7 +19,7 @@ package controller
 import (
 	"fmt"
 
-	platformv1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 // defaultMigrations is the ordered list of built-in migration batches.
@@ -36,15 +36,15 @@ var defaultMigrations = [][]string{
 
 // LoadMigrationEntries loads the explicitly listed SQL files from the embed FS
 // and returns them as ordered MigrationEntry values.
-func LoadMigrationEntries(files []string) ([]platformv1alpha1.MigrationEntry, error) {
-	entries := make([]platformv1alpha1.MigrationEntry, 0, len(files))
+func LoadMigrationEntries(files []string) ([]supabasev1alpha1.MigrationEntry, error) {
+	entries := make([]supabasev1alpha1.MigrationEntry, 0, len(files))
 
 	for _, file := range files {
 		data, err := migrationFiles.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("reading embedded migration %q: %w", file, err)
 		}
-		entries = append(entries, platformv1alpha1.MigrationEntry{
+		entries = append(entries, supabasev1alpha1.MigrationEntry{
 			Name: file,
 			SQL:  string(data),
 		})
