@@ -20,7 +20,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -293,9 +295,18 @@ func GenerateKeysSecretData() (SecretData, error) {
 		return nil, fmt.Errorf("generating vault-enc-key: %w", err)
 	}
 
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, fmt.Errorf("generating saml-private-key: %w", err)
+	}
+
+	derBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	encoded := base64.StdEncoding.EncodeToString(derBytes)
+
 	return SecretData{
-		"secret-key-base": []byte(secretKeyBase),
-		"crypto-key":      []byte(cryptoKey),
-		"vault-enc-key":   []byte(vaultEncKey),
+		"secret-key-base":  []byte(secretKeyBase),
+		"crypto-key":       []byte(cryptoKey),
+		"vault-enc-key":    []byte(vaultEncKey),
+		"saml-private-key": []byte(encoded),
 	}, nil
 }

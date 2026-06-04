@@ -18,10 +18,6 @@ package controller
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/base64"
 	"fmt"
 	"maps"
 	"strconv"
@@ -69,14 +65,6 @@ func (r *ProjectReconciler) ensureAuth(ctx context.Context, project *platformv1a
 		return err
 	}
 
-	if auth.Spec.SAML != nil && auth.Spec.SAML.Enabled {
-		if err := r.ensureSAMLSecret(ctx, project); err != nil {
-			logger.Error(err, "Failed to ensure SAML secret")
-			r.setCondition(project, ConditionTypeAuthReady, metav1.ConditionFalse, "SAMLSecretFailed", err.Error())
-			return err
-		}
-	}
-
 	if err := r.ensureAuthService(ctx, project, auth); err != nil {
 		logger.Error(err, "Failed to ensure Auth Service")
 		r.setCondition(project, ConditionTypeAuthReady, metav1.ConditionFalse, "ServiceFailed", err.Error())
@@ -111,62 +99,6 @@ func apiExternalURL(project *platformv1alpha1.Project) string {
 		url = fmt.Sprintf("%s:%d", url, *project.Spec.HTTP.Port)
 	}
 	return url
-}
-
-func (r *ProjectReconciler) ensureSAMLSecret(ctx context.Context, project *platformv1alpha1.Project) error {
-	logger := log.FromContext(ctx)
-	secretName := fmt.Sprintf("%s-saml", project.Name)
-
-	existing := &corev1.Secret{}
-	err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: project.Namespace}, existing)
-	if err == nil {
-		if _, ok := existing.Data["private-key"]; ok {
-			logger.V(1).Info("SAML secret already exists")
-			return nil
-		}
-		data, genErr := GenerateSAMLSecretData()
-		if genErr != nil {
-			return fmt.Errorf("generating SAML secret data: %w", genErr)
-		}
-		existing.Data = data
-		if updateErr := r.Update(ctx, existing); updateErr != nil {
-			return fmt.Errorf("updating SAML secret: %w", updateErr)
-		}
-		logger.Info("Updated SAML secret with missing key")
-		return nil
-	}
-
-	if !apierrors.IsNotFound(err) {
-		return fmt.Errorf("getting SAML secret: %w", err)
-	}
-
-	data, err := GenerateSAMLSecretData()
-	if err != nil {
-		return fmt.Errorf("generating SAML secret data: %w", err)
-	}
-
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: project.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "supabase-operator",
-				"app.kubernetes.io/part-of":    project.Name,
-			},
-		},
-		Data: data,
-	}
-
-	if err := controllerutil.SetControllerReference(project, secret, r.Scheme); err != nil {
-		return fmt.Errorf("setting owner reference on SAML secret: %w", err)
-	}
-
-	logger.Info("Creating SAML secret")
-	if err := r.Create(ctx, secret); err != nil {
-		return fmt.Errorf("creating SAML secret: %w", err)
-	}
-	logger.Info("Created SAML secret")
-	return nil
 }
 
 func (r *ProjectReconciler) ensureAuthService(ctx context.Context, project *platformv1alpha1.Project, auth *platformv1alpha1.Auth) error {
@@ -341,7 +273,7 @@ func (r *ProjectReconciler) buildAuthContainer(auth *platformv1alpha1.Auth, proj
 
 	if auth.Spec.SAML != nil && auth.Spec.SAML.Enabled {
 		env = append(env, envVarFromSecret("GOTRUE_SAML_PRIVATE_KEY",
-			fmt.Sprintf("%s-saml", project.Name), "private-key"))
+			fmt.Sprintf("%s-keys", project.Name), "saml-private-key"))
 	}
 
 	if auth.Spec.OAuth != nil {
@@ -527,19 +459,4 @@ func (r *ProjectReconciler) selectorLabelsForAuth(auth *platformv1alpha1.Auth) m
 		"app.kubernetes.io/name":     "auth",
 		"app.kubernetes.io/instance": auth.Name,
 	}
-}
-
-// GenerateSAMLSecretData generates a Base64-encoded PKCS#1 DER RSA private key.
-func GenerateSAMLSecretData() (SecretData, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, fmt.Errorf("generating RSA key: %w", err)
-	}
-
-	derBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	encoded := base64.StdEncoding.EncodeToString(derBytes)
-
-	return SecretData{
-		"private-key": []byte(encoded),
-	}, nil
 }

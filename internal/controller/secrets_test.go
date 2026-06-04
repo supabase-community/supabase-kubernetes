@@ -19,6 +19,7 @@ package controller
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -178,15 +179,22 @@ var _ = Describe("Secret Generation", func() {
 	})
 
 	Describe("GenerateKeysSecretData", func() {
-		It("should include crypto-key, secret-key-base and vault-enc-key", func() {
+		It("should include crypto-key, secret-key-base, vault-enc-key and saml-private-key", func() {
 			data, err := GenerateKeysSecretData()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(data).To(HaveKey("crypto-key"))
 			Expect(data).To(HaveKey("secret-key-base"))
 			Expect(data).To(HaveKey("vault-enc-key"))
+			Expect(data).To(HaveKey("saml-private-key"))
 			Expect(data["crypto-key"]).To(HaveLen(64))
 			Expect(data["secret-key-base"]).To(HaveLen(128))
 			Expect(data["vault-enc-key"]).To(HaveLen(32))
+
+			decoded, decodeErr := base64.StdEncoding.DecodeString(string(data["saml-private-key"]))
+			Expect(decodeErr).NotTo(HaveOccurred())
+			key, parseErr := x509.ParsePKCS1PrivateKey(decoded)
+			Expect(parseErr).NotTo(HaveOccurred())
+			Expect(key.N.BitLen()).To(BeNumerically(">=", 2048))
 		})
 	})
 
