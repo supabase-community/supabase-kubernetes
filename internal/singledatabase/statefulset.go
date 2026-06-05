@@ -37,7 +37,32 @@ func StatefulSetName(dbName string) string {
 // BuildStatefulSet constructs the StatefulSet for a SingleDatabase.
 func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, credentialHash string) *appsv1.StatefulSet {
 	replicas := int32(1)
+	labels, annotations := buildLabelsAndAnnotations(db, credentialHash)
+	container := buildMainContainer(db, image, secretName)
+	podSpec := buildPodSpec(db, image, container)
 
+	return &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      StatefulSetName(db.Name),
+			Namespace: db.Namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas:    &replicas,
+			Selector:    &metav1.LabelSelector{MatchLabels: DefaultLabels(db.Name)},
+			ServiceName: ServiceName(db.Name),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      labels,
+					Annotations: annotations,
+				},
+				Spec: podSpec,
+			},
+		},
+	}
+}
+
+func buildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, credentialHash string) (map[string]string, map[string]string) {
 	labels := DefaultLabels(db.Name)
 	maps.Copy(labels, db.Spec.PodLabels)
 
@@ -46,6 +71,10 @@ func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, cr
 	}
 	maps.Copy(annotations, db.Spec.PodAnnotations)
 
+	return labels, annotations
+}
+
+func buildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName string) corev1.Container {
 	container := corev1.Container{
 		Name:            Component,
 		Image:           image,
@@ -78,11 +107,19 @@ func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, cr
 
 	container.StartupProbe, container.ReadinessProbe, container.LivenessProbe = BuildProbes(db.Spec.Probes)
 
-	initContainer := BuildPasswordSyncInitContainer(image, db.Spec.ImagePullPolicy, secretName)
+	return container
+}
+
+func buildPodSpec(db *supabasev1alpha1.SingleDatabase, image string, mainContainer corev1.Container) corev1.PodSpec {
+	initContainer := BuildPasswordSyncInitContainer(
+		image,
+		db.Spec.ImagePullPolicy,
+		SecretName(db.Name),
+	)
 
 	podSpec := corev1.PodSpec{
 		InitContainers: []corev1.Container{initContainer},
-		Containers:     []corev1.Container{container},
+		Containers:     []corev1.Container{mainContainer},
 		Volumes: []corev1.Volume{
 			{
 				Name: "data",
@@ -104,25 +141,7 @@ func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, cr
 		podSpec.SecurityContext = db.Spec.PodSecurityContext
 	}
 
-	return &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      StatefulSetName(db.Name),
-			Namespace: db.Namespace,
-			Labels:    labels,
-		},
-		Spec: appsv1.StatefulSetSpec{
-			Replicas:    &replicas,
-			Selector:    &metav1.LabelSelector{MatchLabels: DefaultLabels(db.Name)},
-			ServiceName: ServiceName(db.Name),
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
-					Annotations: annotations,
-				},
-				Spec: podSpec,
-			},
-		},
-	}
+	return podSpec
 }
 
 // BuildPasswordSyncInitContainer constructs the init container that synchronizes

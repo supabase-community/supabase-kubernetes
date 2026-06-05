@@ -28,7 +28,7 @@ import (
 
 // PVCName returns the name of the data PersistentVolumeClaim for a SingleDatabase.
 func PVCName(dbName string) string {
-	return fmt.Sprintf("%s-db-data", dbName)
+	return fmt.Sprintf("%s-db", dbName)
 }
 
 // BuildPVC constructs the PersistentVolumeClaim for a SingleDatabase.
