@@ -21,7 +21,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"maps"
 	"reflect"
 	"sort"
 	"strings"
@@ -31,11 +30,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,14 +40,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/assets"
+	"github.com/supabase-community/supabase-kubernetes/internal/singledatabase"
 )
 
-const (
-	singleDatabaseComponent = "db"
-	singleDatabasePort      = int32(5432)
-	ComponentDatabase       = "database"
-)
+const ComponentDatabase = "database"
 
 // SingleDatabaseReconciler reconciles a SingleDatabase object.
 type SingleDatabaseReconciler struct {
@@ -125,14 +118,14 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	singleDB.Status.ServiceName = r.serviceName(singleDB.Name)
-	singleDB.Status.SecretName = r.secretName(singleDB.Name)
+	singleDB.Status.ServiceName = singledatabase.ServiceName(singleDB.Name)
+	singleDB.Status.SecretName = singledatabase.SecretName(singleDB.Name)
 	r.populateStorageStatus(ctx, singleDB)
 
 	// Check if the StatefulSet pod is actually ready
 	sts := &appsv1.StatefulSet{}
 	stsReady := false
-	if err := r.Get(ctx, types.NamespacedName{Name: r.statefulSetName(singleDB.Name), Namespace: singleDB.Namespace}, sts); err == nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(singleDB.Name), Namespace: singleDB.Namespace}, sts); err == nil {
 		if sts.Status.ReadyReplicas >= 1 {
 			stsReady = true
 		}
@@ -162,27 +155,11 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *SingleDatabaseReconciler) secretName(name string) string {
-	return fmt.Sprintf("%s-db", name)
-}
-
-func (r *SingleDatabaseReconciler) serviceName(name string) string {
-	return fmt.Sprintf("%s-db", name)
-}
-
-func (r *SingleDatabaseReconciler) statefulSetName(name string) string {
-	return fmt.Sprintf("%s-db", name)
-}
-
-func (r *SingleDatabaseReconciler) pvcName(name string) string {
-	return fmt.Sprintf("%s-db-data", name)
-}
-
 func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
-	logger := log.FromContext(ctx).WithValues("secret", r.secretName(singleDB.Name))
+	logger := log.FromContext(ctx).WithValues("secret", singledatabase.SecretName(singleDB.Name))
 
 	secret := &corev1.Secret{}
-	err := r.Get(ctx, types.NamespacedName{Name: r.secretName(singleDB.Name), Namespace: singleDB.Namespace}, secret)
+	err := r.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(singleDB.Name), Namespace: singleDB.Namespace}, secret)
 	if err == nil {
 		logger.V(1).Info("Secret already exists")
 		return nil
@@ -198,16 +175,7 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *s
 		return fmt.Errorf("generating postgres password: %w", err)
 	}
 
-	secret = &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.secretName(singleDB.Name),
-			Namespace: singleDB.Namespace,
-		},
-		Data: map[string][]byte{
-			"database": []byte("postgres"),
-			"password": []byte(password),
-		},
-	}
+	secret = singledatabase.BuildSecret(singleDB, password)
 
 	if err := controllerutil.SetControllerReference(singleDB, secret, r.Scheme); err != nil {
 		return fmt.Errorf("setting owner reference on secret: %w", err)
@@ -222,10 +190,10 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *s
 }
 
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
-	logger := log.FromContext(ctx).WithValues("pvc", r.pvcName(singleDB.Name))
+	logger := log.FromContext(ctx).WithValues("pvc", singledatabase.PVCName(singleDB.Name))
 
 	pvc := &corev1.PersistentVolumeClaim{}
-	err := r.Get(ctx, types.NamespacedName{Name: r.pvcName(singleDB.Name), Namespace: singleDB.Namespace}, pvc)
+	err := r.Get(ctx, types.NamespacedName{Name: singledatabase.PVCName(singleDB.Name), Namespace: singleDB.Namespace}, pvc)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("getting pvc: %w", err)
@@ -233,17 +201,7 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supa
 
 		logger.Info("Creating PVC")
 
-		pvc = &corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      r.pvcName(singleDB.Name),
-				Namespace: singleDB.Namespace,
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes:      r.accessModes(singleDB.Spec.Storage.AccessModes),
-				StorageClassName: singleDB.Spec.Storage.StorageClassName,
-				Resources:        r.storageResources(singleDB),
-			},
-		}
+		pvc = singledatabase.BuildPVC(singleDB)
 
 		if singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyDelete || singleDB.Spec.Storage.DeletionPolicy == "" {
 			if err := controllerutil.SetControllerReference(singleDB, pvc, r.Scheme); err != nil {
@@ -263,7 +221,7 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supa
 	needsUpdate := false
 
 	// Only storage size can be expanded; accessModes and storageClassName are immutable.
-	storageRes := r.storageResources(singleDB)
+	storageRes := singledatabase.StorageResources(singleDB)
 	desiredStorage := storageRes.Requests.Storage()
 	existingStorage := pvc.Spec.Resources.Requests.Storage()
 	if desiredStorage != nil && (existingStorage == nil || desiredStorage.Cmp(*existingStorage) > 0) {
@@ -319,48 +277,9 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supa
 }
 
 func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
-	logger := log.FromContext(ctx).WithValues("service", r.serviceName(singleDB.Name))
+	logger := log.FromContext(ctx).WithValues("service", singledatabase.ServiceName(singleDB.Name))
 
-	labels := map[string]string{
-		"app.kubernetes.io/name":       "supabase",
-		"app.kubernetes.io/instance":   singleDB.Name,
-		"app.kubernetes.io/component":  singleDatabaseComponent,
-		"app.kubernetes.io/managed-by": "supabase-operator",
-	}
-	annotations := map[string]string{}
-	svcType := corev1.ServiceTypeClusterIP
-	if singleDB.Spec.Service != nil {
-		if singleDB.Spec.Service.Type != "" {
-			svcType = singleDB.Spec.Service.Type
-		}
-		maps.Copy(annotations, singleDB.Spec.Service.Annotations)
-		maps.Copy(labels, singleDB.Spec.Service.Labels)
-	}
-
-	desired := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        r.serviceName(singleDB.Name),
-			Namespace:   singleDB.Namespace,
-			Labels:      labels,
-			Annotations: annotations,
-		},
-		Spec: corev1.ServiceSpec{
-			Type: svcType,
-			Selector: map[string]string{
-				"app.kubernetes.io/name":      "supabase",
-				"app.kubernetes.io/instance":  singleDB.Name,
-				"app.kubernetes.io/component": singleDatabaseComponent,
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       "postgres",
-					Protocol:   corev1.ProtocolTCP,
-					Port:       singleDatabasePort,
-					TargetPort: intstr.FromInt32(singleDatabasePort),
-				},
-			},
-		},
-	}
+	desired := singledatabase.BuildService(singleDB)
 
 	if err := controllerutil.SetControllerReference(singleDB, desired, r.Scheme); err != nil {
 		return fmt.Errorf("setting owner reference on service: %w", err)
@@ -391,14 +310,13 @@ func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *
 }
 
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
-	logger := log.FromContext(ctx).WithValues("statefulset", r.statefulSetName(singleDB.Name))
+	logger := log.FromContext(ctx).WithValues("statefulset", singledatabase.StatefulSetName(singleDB.Name))
 
 	image, err := r.resolveDatabaseImage(singleDB)
 	if err != nil {
 		return fmt.Errorf("resolving database image: %w", err)
 	}
-	replicas := int32(1)
-	secretName := r.secretName(singleDB.Name)
+	secretName := singledatabase.SecretName(singleDB.Name)
 
 	// Compute credential hash to trigger pod rollout on secret changes
 	credentialHash, err := r.computeCredentialHash(ctx, singleDB.Namespace, secretName)
@@ -406,96 +324,7 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 		return fmt.Errorf("computing credential hash: %w", err)
 	}
 
-	labels := map[string]string{
-		"app.kubernetes.io/name":       "supabase",
-		"app.kubernetes.io/instance":   singleDB.Name,
-		"app.kubernetes.io/component":  singleDatabaseComponent,
-		"app.kubernetes.io/managed-by": "supabase-operator",
-	}
-	maps.Copy(labels, singleDB.Spec.PodLabels)
-
-	annotations := map[string]string{
-		"supabase.io/secret-hash": credentialHash,
-	}
-	maps.Copy(annotations, singleDB.Spec.PodAnnotations)
-
-	container := corev1.Container{
-		Name:            singleDatabaseComponent,
-		Image:           image,
-		ImagePullPolicy: singleDB.Spec.ImagePullPolicy,
-		Ports: []corev1.ContainerPort{
-			{
-				Name:          "postgres",
-				ContainerPort: singleDatabasePort,
-				Protocol:      corev1.ProtocolTCP,
-			},
-		},
-		Env: []corev1.EnvVar{
-			envVarFromSecret("POSTGRES_PASSWORD", secretName, "password"),
-			envVarFromSecret("POSTGRES_DB", secretName, "database"),
-			envVar("POSTGRES_HOST", "/var/run/postgresql"),
-			envVar("POSTGRES_PORT", "5432"),
-			envVarFromSecret("PGPASSWORD", secretName, "password"),
-			envVar("PGPORT", "5432"),
-			envVarFromSecret("PGDATABASE", secretName, "database"),
-			envVar("PGHOST", "/var/run/postgresql"),
-		},
-		Resources:    singleDB.Spec.Resources,
-		VolumeMounts: []corev1.VolumeMount{{Name: "data", MountPath: "/var/lib/postgresql/data"}},
-	}
-	container.Env = append(container.Env, singleDB.Spec.Env...)
-
-	if singleDB.Spec.ContainerSecurityContext != nil {
-		container.SecurityContext = singleDB.Spec.ContainerSecurityContext
-	}
-
-	container.StartupProbe, container.ReadinessProbe, container.LivenessProbe = r.buildProbes(singleDB.Spec.Probes)
-
-	initContainer := r.buildPasswordSyncInitContainer(image, singleDB.Spec.ImagePullPolicy, secretName)
-
-	podSpec := corev1.PodSpec{
-		InitContainers: []corev1.Container{initContainer},
-		Containers:     []corev1.Container{container},
-		Volumes: []corev1.Volume{
-			{
-				Name: "data",
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: r.pvcName(singleDB.Name),
-					},
-				},
-			},
-		},
-		NodeSelector:                  singleDB.Spec.NodeSelector,
-		Tolerations:                   singleDB.Spec.Tolerations,
-		Affinity:                      singleDB.Spec.Affinity,
-		PriorityClassName:             singleDB.Spec.PriorityClassName,
-		TerminationGracePeriodSeconds: singleDB.Spec.TerminationGracePeriodSeconds,
-	}
-
-	if singleDB.Spec.PodSecurityContext != nil {
-		podSpec.SecurityContext = singleDB.Spec.PodSecurityContext
-	}
-
-	desired := &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.statefulSetName(singleDB.Name),
-			Namespace: singleDB.Namespace,
-			Labels:    labels,
-		},
-		Spec: appsv1.StatefulSetSpec{
-			Replicas:    &replicas,
-			Selector:    &metav1.LabelSelector{MatchLabels: labels},
-			ServiceName: r.serviceName(singleDB.Name),
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
-					Annotations: annotations,
-				},
-				Spec: podSpec,
-			},
-		},
-	}
+	desired := singledatabase.BuildStatefulSet(singleDB, image, secretName, credentialHash)
 
 	if err := controllerutil.SetControllerReference(singleDB, desired, r.Scheme); err != nil {
 		return fmt.Errorf("setting owner reference on statefulset: %w", err)
@@ -542,7 +371,7 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 
 func (r *SingleDatabaseReconciler) populateStorageStatus(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) {
 	pvc := &corev1.PersistentVolumeClaim{}
-	if err := r.Get(ctx, types.NamespacedName{Name: r.pvcName(singleDB.Name), Namespace: singleDB.Namespace}, pvc); err == nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.PVCName(singleDB.Name), Namespace: singleDB.Namespace}, pvc); err == nil {
 		if storage := pvc.Spec.Resources.Requests.Storage(); storage != nil {
 			singleDB.Status.Storage = storage.String()
 		}
@@ -564,17 +393,6 @@ func (r *SingleDatabaseReconciler) determinePhase(singleDB *supabasev1alpha1.Sin
 		return "Failed"
 	}
 	return "Creating"
-}
-
-func (r *SingleDatabaseReconciler) storageResources(singleDB *supabasev1alpha1.SingleDatabase) corev1.VolumeResourceRequirements {
-	if singleDB.Spec.Storage.Resources.Requests != nil || singleDB.Spec.Storage.Resources.Limits != nil {
-		return singleDB.Spec.Storage.Resources
-	}
-	return corev1.VolumeResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceStorage: resource.MustParse("10Gi"),
-		},
-	}
 }
 
 func (r *SingleDatabaseReconciler) isPVCResizeNotSupportedError(err error) bool {
@@ -606,61 +424,11 @@ func (r *SingleDatabaseReconciler) computeCredentialHash(ctx context.Context, na
 	return hex.EncodeToString(h.Sum(nil))[:16], nil
 }
 
-func (r *SingleDatabaseReconciler) buildPasswordSyncInitContainer(image string, imagePullPolicy corev1.PullPolicy, secretName string) corev1.Container {
-	return corev1.Container{
-		Name:            "password-sync",
-		Image:           image,
-		ImagePullPolicy: imagePullPolicy,
-		Command:         []string{"sh", "-c", assets.SingleDatabasePasswordSyncScript},
-		Env: []corev1.EnvVar{
-			envVarFromSecret("PGPASSWORD", secretName, "password"),
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{Name: "data", MountPath: "/var/lib/postgresql/data"},
-		},
-	}
-}
-
 func (r *SingleDatabaseReconciler) resolveDatabaseImage(singleDB *supabasev1alpha1.SingleDatabase) (string, error) {
 	if singleDB.Spec.Image != "" {
 		return singleDB.Spec.Image, nil
 	}
 	return ResolveComponentImage(singleDB.Spec.Version, ComponentDatabase)
-}
-
-func (r *SingleDatabaseReconciler) buildProbes(probes *supabasev1alpha1.ComponentProbes) (*corev1.Probe, *corev1.Probe, *corev1.Probe) {
-	if probes != nil {
-		return probes.Startup, probes.Readiness, probes.Liveness
-	}
-
-	pgIsReady := &corev1.ExecAction{
-		Command: []string{"pg_isready", "-U", "postgres"},
-	}
-
-	startup := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
-		PeriodSeconds:    10,
-		FailureThreshold: 30,
-	}
-	readiness := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
-		PeriodSeconds:    10,
-		FailureThreshold: 3,
-	}
-	liveness := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
-		PeriodSeconds:    20,
-		FailureThreshold: 3,
-	}
-
-	return startup, readiness, liveness
-}
-
-func (r *SingleDatabaseReconciler) accessModes(modes []corev1.PersistentVolumeAccessMode) []corev1.PersistentVolumeAccessMode {
-	if len(modes) == 0 {
-		return []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	}
-	return modes
 }
 
 func (r *SingleDatabaseReconciler) setCondition(
