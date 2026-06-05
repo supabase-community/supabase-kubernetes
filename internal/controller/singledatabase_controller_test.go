@@ -109,7 +109,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 
 			pvc := &corev1.PersistentVolumeClaim{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db-data", Namespace: "default"}, pvc)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, pvc)).To(Succeed())
 				g.Expect(pvc.OwnerReferences).To(BeEmpty())
 			}, timeout, interval).Should(Succeed())
 
@@ -118,7 +118,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db-data", Namespace: "default"}, pvc)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, pvc)).To(Succeed())
 				g.Expect(pvc.OwnerReferences).To(HaveLen(1))
 				g.Expect(pvc.OwnerReferences[0].UID).To(Equal(singleDB.UID))
 			}, timeout, interval).Should(Succeed())
@@ -128,7 +128,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			pvc := &corev1.PersistentVolumeClaim{}
 			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db-data", Namespace: "default"}, pvc)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, pvc)).To(Succeed())
 				g.Expect(pvc.OwnerReferences).To(HaveLen(1))
 			}, timeout, interval).Should(Succeed())
 
@@ -137,7 +137,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db-data", Namespace: "default"}, pvc)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, pvc)).To(Succeed())
 				g.Expect(pvc.OwnerReferences).To(BeEmpty())
 			}, timeout, interval).Should(Succeed())
 		})

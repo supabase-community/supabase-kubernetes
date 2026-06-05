@@ -37,9 +37,9 @@ func StatefulSetName(dbName string) string {
 // BuildStatefulSet constructs the StatefulSet for a SingleDatabase.
 func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, credentialHash string) *appsv1.StatefulSet {
 	replicas := int32(1)
-	labels, annotations := buildLabelsAndAnnotations(db, credentialHash)
-	container := buildMainContainer(db, image, secretName)
-	podSpec := buildPodSpec(db, image, container)
+	labels, annotations := BuildLabelsAndAnnotations(db, credentialHash)
+	container := BuildMainContainer(db, image, secretName)
+	podSpec := BuildPodSpec(db, image, container)
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -62,7 +62,7 @@ func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, cr
 	}
 }
 
-func buildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, credentialHash string) (map[string]string, map[string]string) {
+func BuildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, credentialHash string) (map[string]string, map[string]string) {
 	labels := DefaultLabels(db.Name)
 	maps.Copy(labels, db.Spec.PodLabels)
 
@@ -74,7 +74,7 @@ func buildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, credentialHa
 	return labels, annotations
 }
 
-func buildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName string) corev1.Container {
+func BuildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName string) corev1.Container {
 	container := corev1.Container{
 		Name:            Component,
 		Image:           image,
@@ -110,7 +110,7 @@ func buildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName s
 	return container
 }
 
-func buildPodSpec(db *supabasev1alpha1.SingleDatabase, image string, mainContainer corev1.Container) corev1.PodSpec {
+func BuildPodSpec(db *supabasev1alpha1.SingleDatabase, image string, mainContainer corev1.Container) corev1.PodSpec {
 	initContainer := BuildPasswordSyncInitContainer(
 		image,
 		db.Spec.ImagePullPolicy,

@@ -37,6 +37,7 @@ func BuildPVC(db *supabasev1alpha1.SingleDatabase) *corev1.PersistentVolumeClaim
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      PVCName(db.Name),
 			Namespace: db.Namespace,
+			Labels:    DefaultLabels(db.Name),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes:      AccessModes(db.Spec.Storage.AccessModes),

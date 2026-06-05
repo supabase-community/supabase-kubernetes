@@ -36,6 +36,7 @@ func BuildSecret(db *supabasev1alpha1.SingleDatabase, password string) *corev1.S
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      SecretName(db.Name),
 			Namespace: db.Namespace,
+			Labels:    DefaultLabels(db.Name),
 		},
 		Data: map[string][]byte{
 			"database": []byte(Database),
