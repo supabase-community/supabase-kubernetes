@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 const ComponentMeta = "meta"
@@ -254,14 +255,14 @@ func (r *ProjectReconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project
 			},
 		},
 		Env: []corev1.EnvVar{
-			envVarFromSecret("PG_META_DB_PASSWORD", resolved.PasswordRef.Name, resolved.PasswordRef.Key),
-			envVarFromSecret("CRYPTO_KEY", projectKeysSecret, "crypto-key"),
-			envVar("PG_META_DB_HOST", resolved.Host),
-			envVar("PG_META_DB_PORT", strconv.Itoa(int(resolved.Port))),
-			envVar("PG_META_DB_NAME", resolved.DBName),
-			envVar("PG_META_DB_USER", "supabase_admin"),
-			envVar("PG_META_DB_SSL_MODE", "disable"),
-			envVar("PG_META_PORT", "8080"),
+			helper.EnvVarFromSecret("PG_META_DB_PASSWORD", resolved.PasswordRef.Name, resolved.PasswordRef.Key),
+			helper.EnvVarFromSecret("CRYPTO_KEY", projectKeysSecret, "crypto-key"),
+			helper.EnvVar("PG_META_DB_HOST", resolved.Host),
+			helper.EnvVar("PG_META_DB_PORT", strconv.Itoa(int(resolved.Port))),
+			helper.EnvVar("PG_META_DB_NAME", resolved.DBName),
+			helper.EnvVar("PG_META_DB_USER", "supabase_admin"),
+			helper.EnvVar("PG_META_DB_SSL_MODE", "disable"),
+			helper.EnvVar("PG_META_PORT", "8080"),
 		},
 		Resources:       m.Spec.Resources,
 		SecurityContext: m.Spec.ContainerSecurityContext,

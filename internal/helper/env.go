@@ -14,17 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package helper
 
-import (
-	corev1 "k8s.io/api/core/v1"
-)
+import corev1 "k8s.io/api/core/v1"
 
-func envVar(name, value string) corev1.EnvVar {
+// EnvVar creates a simple environment variable with the given name and value.
+func EnvVar(name, value string) corev1.EnvVar {
 	return corev1.EnvVar{Name: name, Value: value}
 }
 
-func envVarFromSecret(name, secretName, key string) corev1.EnvVar {
+// EnvVarFromSecret creates an environment variable that reads its value from a Secret key.
+func EnvVarFromSecret(name, secretName, key string) corev1.EnvVar {
 	return corev1.EnvVar{
 		Name: name,
 		ValueFrom: &corev1.EnvVarSource{

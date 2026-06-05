@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 const ComponentRest = "rest"
@@ -275,21 +276,21 @@ func (r *ProjectReconciler) buildRestContainer(rest *supabasev1alpha1.Rest, proj
 			},
 		},
 		Env: []corev1.EnvVar{
-			envVarFromSecret("PGRST_DB_PASSWORD", resolved.PasswordRef.Name, resolved.PasswordRef.Key),
-			envVarFromSecret("PGRST_JWT_SECRET", projectJWTSecret, "jwt-jwks"),
-			envVarFromSecret("PGRST_APP_SETTINGS_JWT_SECRET", projectJWTSecret, "jwt-secret"),
-			envVar("PGRST_DB_URI", fmt.Sprintf("postgres://authenticator:%s@%s:%d/%s",
+			helper.EnvVarFromSecret("PGRST_DB_PASSWORD", resolved.PasswordRef.Name, resolved.PasswordRef.Key),
+			helper.EnvVarFromSecret("PGRST_JWT_SECRET", projectJWTSecret, "jwt-jwks"),
+			helper.EnvVarFromSecret("PGRST_APP_SETTINGS_JWT_SECRET", projectJWTSecret, "jwt-secret"),
+			helper.EnvVar("PGRST_DB_URI", fmt.Sprintf("postgres://authenticator:%s@%s:%d/%s",
 				"$(PGRST_DB_PASSWORD)",
 				resolved.Host,
 				resolved.Port,
 				resolved.DBName,
 			)),
-			envVar("PGRST_DB_SCHEMAS", dbSchemas),
-			envVar("PGRST_DB_MAX_ROWS", strconv.Itoa(int(dbMaxRows))),
-			envVar("PGRST_DB_EXTRA_SEARCH_PATH", dbExtraSearchPath),
-			envVar("PGRST_DB_ANON_ROLE", "anon"),
-			envVar("PGRST_DB_USE_LEGACY_GUCS", "false"),
-			envVar("PGRST_APP_SETTINGS_JWT_EXP", jwtExpiry),
+			helper.EnvVar("PGRST_DB_SCHEMAS", dbSchemas),
+			helper.EnvVar("PGRST_DB_MAX_ROWS", strconv.Itoa(int(dbMaxRows))),
+			helper.EnvVar("PGRST_DB_EXTRA_SEARCH_PATH", dbExtraSearchPath),
+			helper.EnvVar("PGRST_DB_ANON_ROLE", "anon"),
+			helper.EnvVar("PGRST_DB_USE_LEGACY_GUCS", "false"),
+			helper.EnvVar("PGRST_APP_SETTINGS_JWT_EXP", jwtExpiry),
 		},
 		Resources:       rest.Spec.Resources,
 		SecurityContext: rest.Spec.ContainerSecurityContext,

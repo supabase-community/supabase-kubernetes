@@ -40,6 +40,7 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 const (
@@ -351,14 +352,14 @@ func (r *MigrationReconciler) buildJob(migration *supabasev1alpha1.Migration, db
 
 	env := make([]corev1.EnvVar, 0, 8+len(migration.Spec.Env))
 	env = append(env,
-		envVarFromSecret("PGPASSWORD", db.SecretName, db.SecretKey),
-		envVarFromSecret("POSTGRES_PASSWORD", db.SecretName, db.SecretKey),
-		envVar("PGHOST", db.Host),
-		envVar("PGPORT", fmt.Sprintf("%d", db.Port)),
-		envVar("PGUSER", db.User),
-		envVar("POSTGRES_USER", db.User),
-		envVar("PGDATABASE", db.DBName),
-		envVar("MIGRATION_HASH", batchHash),
+		helper.EnvVarFromSecret("PGPASSWORD", db.SecretName, db.SecretKey),
+		helper.EnvVarFromSecret("POSTGRES_PASSWORD", db.SecretName, db.SecretKey),
+		helper.EnvVar("PGHOST", db.Host),
+		helper.EnvVar("PGPORT", fmt.Sprintf("%d", db.Port)),
+		helper.EnvVar("PGUSER", db.User),
+		helper.EnvVar("POSTGRES_USER", db.User),
+		helper.EnvVar("PGDATABASE", db.DBName),
+		helper.EnvVar("MIGRATION_HASH", batchHash),
 	)
 	env = append(env, migration.Spec.Env...)
 

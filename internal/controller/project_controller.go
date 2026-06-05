@@ -43,6 +43,7 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 const (
@@ -595,13 +596,13 @@ func (r *ProjectReconciler) buildJWTSettingsJob(project *supabasev1alpha1.Projec
 	image, _ := ResolveComponentImage(project.Spec.Version, "migration")
 
 	env := []corev1.EnvVar{
-		envVarFromSecret("PGPASSWORD", project.Status.ResolvedDatabase.PasswordRef.Name, project.Status.ResolvedDatabase.PasswordRef.Key),
-		envVar("PGHOST", project.Status.ResolvedDatabase.Host),
-		envVar("PGPORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
-		envVar("PGUSER", "supabase_admin"),
-		envVar("PGDATABASE", project.Status.ResolvedDatabase.DBName),
-		envVarFromSecret("JWT_SECRET", project.Name+"-jwt", "jwt-secret"),
-		envVar("JWT_EXP", strconv.Itoa(int(expirySeconds))),
+		helper.EnvVarFromSecret("PGPASSWORD", project.Status.ResolvedDatabase.PasswordRef.Name, project.Status.ResolvedDatabase.PasswordRef.Key),
+		helper.EnvVar("PGHOST", project.Status.ResolvedDatabase.Host),
+		helper.EnvVar("PGPORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
+		helper.EnvVar("PGUSER", "supabase_admin"),
+		helper.EnvVar("PGDATABASE", project.Status.ResolvedDatabase.DBName),
+		helper.EnvVarFromSecret("JWT_SECRET", project.Name+"-jwt", "jwt-secret"),
+		helper.EnvVar("JWT_EXP", strconv.Itoa(int(expirySeconds))),
 	}
 
 	return &batchv1.Job{
@@ -722,14 +723,14 @@ func (r *ProjectReconciler) buildPasswordSyncJob(project *supabasev1alpha1.Proje
 	image, _ := ResolveComponentImage(project.Spec.Version, "migration")
 
 	env := []corev1.EnvVar{
-		envVar("PGPASSWORD", password),
-		envVar("PGHOST", project.Status.ResolvedDatabase.Host),
-		envVar("PGPORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
-		envVar("PGUSER", "supabase_admin"),
-		envVar("PGDATABASE", project.Status.ResolvedDatabase.DBName),
-		envVar("DB_ADMIN_USER", "supabase_admin"),
-		envVar("DB_SRV_NAME", fmt.Sprintf("%s.%s.svc.cluster.local", project.Status.ResolvedDatabase.Host, project.Namespace)),
-		envVar("DB_SRV_PORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
+		helper.EnvVar("PGPASSWORD", password),
+		helper.EnvVar("PGHOST", project.Status.ResolvedDatabase.Host),
+		helper.EnvVar("PGPORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
+		helper.EnvVar("PGUSER", "supabase_admin"),
+		helper.EnvVar("PGDATABASE", project.Status.ResolvedDatabase.DBName),
+		helper.EnvVar("DB_ADMIN_USER", "supabase_admin"),
+		helper.EnvVar("DB_SRV_NAME", fmt.Sprintf("%s.%s.svc.cluster.local", project.Status.ResolvedDatabase.Host, project.Namespace)),
+		helper.EnvVar("DB_SRV_PORT", fmt.Sprintf("%d", project.Status.ResolvedDatabase.Port)),
 	}
 
 	return &batchv1.Job{

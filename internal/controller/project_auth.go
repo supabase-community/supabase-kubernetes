@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 const (
@@ -261,155 +262,155 @@ func (r *ProjectReconciler) buildAuthContainer(auth *supabasev1alpha1.Auth, proj
 	externalURL := apiExternalURL(project)
 
 	env := []corev1.EnvVar{
-		envVarFromSecret("GOTRUE_DB_PASSWORD", resolved.PasswordRef.Name, resolved.PasswordRef.Key),
-		envVarFromSecret("GOTRUE_JWT_SECRET", projectJWTSecret, "jwt-secret"),
-		envVarFromSecret("GOTRUE_JWT_KEYS", projectJWTSecret, "jwt-keys"),
+		helper.EnvVarFromSecret("GOTRUE_DB_PASSWORD", resolved.PasswordRef.Name, resolved.PasswordRef.Key),
+		helper.EnvVarFromSecret("GOTRUE_JWT_SECRET", projectJWTSecret, "jwt-secret"),
+		helper.EnvVarFromSecret("GOTRUE_JWT_KEYS", projectJWTSecret, "jwt-keys"),
 	}
 
 	if auth.Spec.SMTP != nil {
-		env = append(env, envVarFromSecret("GOTRUE_SMTP_PASS",
+		env = append(env, helper.EnvVarFromSecret("GOTRUE_SMTP_PASS",
 			auth.Spec.SMTP.PasswordRef.Name, auth.Spec.SMTP.PasswordRef.Key))
 	}
 
 	if auth.Spec.SAML != nil && auth.Spec.SAML.Enabled {
-		env = append(env, envVarFromSecret("GOTRUE_SAML_PRIVATE_KEY",
+		env = append(env, helper.EnvVarFromSecret("GOTRUE_SAML_PRIVATE_KEY",
 			fmt.Sprintf("%s-keys", project.Name), "saml-private-key"))
 	}
 
 	if auth.Spec.OAuth != nil {
 		if auth.Spec.OAuth.Google != nil {
-			env = append(env, envVarFromSecret("GOTRUE_EXTERNAL_GOOGLE_SECRET",
+			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_GOOGLE_SECRET",
 				auth.Spec.OAuth.Google.SecretRef.Name, auth.Spec.OAuth.Google.SecretRef.Key))
 		}
 		if auth.Spec.OAuth.GitHub != nil {
-			env = append(env, envVarFromSecret("GOTRUE_EXTERNAL_GITHUB_SECRET",
+			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_GITHUB_SECRET",
 				auth.Spec.OAuth.GitHub.SecretRef.Name, auth.Spec.OAuth.GitHub.SecretRef.Key))
 		}
 		if auth.Spec.OAuth.Azure != nil {
-			env = append(env, envVarFromSecret("GOTRUE_EXTERNAL_AZURE_SECRET",
+			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_AZURE_SECRET",
 				auth.Spec.OAuth.Azure.SecretRef.Name, auth.Spec.OAuth.Azure.SecretRef.Key))
 		}
 	}
 
 	if auth.Spec.SMS != nil {
-		env = append(env, envVarFromSecret("GOTRUE_SMS_TWILIO_AUTH_TOKEN",
+		env = append(env, helper.EnvVarFromSecret("GOTRUE_SMS_TWILIO_AUTH_TOKEN",
 			auth.Spec.SMS.TwilioAuthTokenRef.Name, auth.Spec.SMS.TwilioAuthTokenRef.Key))
 	}
 
 	env = append(env, auth.Spec.Env...)
 
 	env = append(env,
-		envVar("GOTRUE_API_HOST", "0.0.0.0"),
-		envVar("GOTRUE_API_PORT", "9999"),
-		envVar("API_EXTERNAL_URL", externalURL),
-		envVar("GOTRUE_DB_DRIVER", "postgres"),
-		envVar("GOTRUE_DB_DATABASE_URL", fmt.Sprintf("postgres://supabase_auth_admin:%s@%s:%d/%s",
+		helper.EnvVar("GOTRUE_API_HOST", "0.0.0.0"),
+		helper.EnvVar("GOTRUE_API_PORT", "9999"),
+		helper.EnvVar("API_EXTERNAL_URL", externalURL),
+		helper.EnvVar("GOTRUE_DB_DRIVER", "postgres"),
+		helper.EnvVar("GOTRUE_DB_DATABASE_URL", fmt.Sprintf("postgres://supabase_auth_admin:%s@%s:%d/%s",
 			"$(GOTRUE_DB_PASSWORD)",
 			resolved.Host,
 			resolved.Port,
 			resolved.DBName,
 		)),
-		envVar("GOTRUE_SITE_URL", auth.Spec.SiteURL),
-		envVar("GOTRUE_DISABLE_SIGNUP", strconv.FormatBool(auth.Spec.DisableSignup)),
-		envVar("GOTRUE_JWT_ADMIN_ROLES", "service_role"),
-		envVar("GOTRUE_JWT_AUD", "authenticated"),
-		envVar("GOTRUE_JWT_DEFAULT_GROUP_NAME", "authenticated"),
-		envVar("GOTRUE_JWT_EXP", jwtExpiry),
-		envVar("GOTRUE_JWT_ISSUER", fmt.Sprintf("%s/auth/v1", externalURL)),
-		envVar("GOTRUE_EXTERNAL_EMAIL_ENABLED", strconv.FormatBool(auth.Spec.EnableEmailSignup)),
-		envVar("GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED", strconv.FormatBool(auth.Spec.EnableAnonymousUsers)),
-		envVar("GOTRUE_MAILER_AUTOCONFIRM", strconv.FormatBool(auth.Spec.EnableEmailAutoconfirm)),
-		envVar("GOTRUE_MAILER_URLPATHS_INVITE", "/auth/v1/verify"),
-		envVar("GOTRUE_MAILER_URLPATHS_CONFIRMATION", "/auth/v1/verify"),
-		envVar("GOTRUE_MAILER_URLPATHS_RECOVERY", "/auth/v1/verify"),
-		envVar("GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE", "/auth/v1/verify"),
-		envVar("GOTRUE_EXTERNAL_PHONE_ENABLED", strconv.FormatBool(auth.Spec.EnablePhoneSignup)),
-		envVar("GOTRUE_SMS_AUTOCONFIRM", strconv.FormatBool(auth.Spec.EnablePhoneAutoconfirm)),
+		helper.EnvVar("GOTRUE_SITE_URL", auth.Spec.SiteURL),
+		helper.EnvVar("GOTRUE_DISABLE_SIGNUP", strconv.FormatBool(auth.Spec.DisableSignup)),
+		helper.EnvVar("GOTRUE_JWT_ADMIN_ROLES", "service_role"),
+		helper.EnvVar("GOTRUE_JWT_AUD", "authenticated"),
+		helper.EnvVar("GOTRUE_JWT_DEFAULT_GROUP_NAME", "authenticated"),
+		helper.EnvVar("GOTRUE_JWT_EXP", jwtExpiry),
+		helper.EnvVar("GOTRUE_JWT_ISSUER", fmt.Sprintf("%s/auth/v1", externalURL)),
+		helper.EnvVar("GOTRUE_EXTERNAL_EMAIL_ENABLED", strconv.FormatBool(auth.Spec.EnableEmailSignup)),
+		helper.EnvVar("GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED", strconv.FormatBool(auth.Spec.EnableAnonymousUsers)),
+		helper.EnvVar("GOTRUE_MAILER_AUTOCONFIRM", strconv.FormatBool(auth.Spec.EnableEmailAutoconfirm)),
+		helper.EnvVar("GOTRUE_MAILER_URLPATHS_INVITE", "/auth/v1/verify"),
+		helper.EnvVar("GOTRUE_MAILER_URLPATHS_CONFIRMATION", "/auth/v1/verify"),
+		helper.EnvVar("GOTRUE_MAILER_URLPATHS_RECOVERY", "/auth/v1/verify"),
+		helper.EnvVar("GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE", "/auth/v1/verify"),
+		helper.EnvVar("GOTRUE_EXTERNAL_PHONE_ENABLED", strconv.FormatBool(auth.Spec.EnablePhoneSignup)),
+		helper.EnvVar("GOTRUE_SMS_AUTOCONFIRM", strconv.FormatBool(auth.Spec.EnablePhoneAutoconfirm)),
 	)
 
 	if len(auth.Spec.AdditionalRedirectURLs) > 0 {
-		env = append(env, envVar("GOTRUE_URI_ALLOW_LIST", strings.Join(auth.Spec.AdditionalRedirectURLs, ",")))
+		env = append(env, helper.EnvVar("GOTRUE_URI_ALLOW_LIST", strings.Join(auth.Spec.AdditionalRedirectURLs, ",")))
 	}
 
 	if auth.Spec.SkipNonceCheck != nil {
-		env = append(env, envVar("GOTRUE_EXTERNAL_SKIP_NONCE_CHECK", strconv.FormatBool(*auth.Spec.SkipNonceCheck)))
+		env = append(env, helper.EnvVar("GOTRUE_EXTERNAL_SKIP_NONCE_CHECK", strconv.FormatBool(*auth.Spec.SkipNonceCheck)))
 	}
 
 	if auth.Spec.MailerSecureEmailChangeEnabled != nil {
-		env = append(env, envVar("GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED", strconv.FormatBool(*auth.Spec.MailerSecureEmailChangeEnabled)))
+		env = append(env, helper.EnvVar("GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED", strconv.FormatBool(*auth.Spec.MailerSecureEmailChangeEnabled)))
 	}
 
 	if auth.Spec.SMTP != nil {
 		env = append(env,
-			envVar("GOTRUE_SMTP_HOST", auth.Spec.SMTP.Host),
-			envVar("GOTRUE_SMTP_PORT", strconv.Itoa(int(auth.Spec.SMTP.Port))),
-			envVar("GOTRUE_SMTP_USER", auth.Spec.SMTP.User),
-			envVar("GOTRUE_SMTP_ADMIN_EMAIL", auth.Spec.SMTP.AdminEmail),
-			envVar("GOTRUE_SMTP_SENDER_NAME", auth.Spec.SMTP.SenderName),
+			helper.EnvVar("GOTRUE_SMTP_HOST", auth.Spec.SMTP.Host),
+			helper.EnvVar("GOTRUE_SMTP_PORT", strconv.Itoa(int(auth.Spec.SMTP.Port))),
+			helper.EnvVar("GOTRUE_SMTP_USER", auth.Spec.SMTP.User),
+			helper.EnvVar("GOTRUE_SMTP_ADMIN_EMAIL", auth.Spec.SMTP.AdminEmail),
+			helper.EnvVar("GOTRUE_SMTP_SENDER_NAME", auth.Spec.SMTP.SenderName),
 		)
 		if auth.Spec.SMTP.MaxFrequency != "" {
-			env = append(env, envVar("GOTRUE_SMTP_MAX_FREQUENCY", auth.Spec.SMTP.MaxFrequency))
+			env = append(env, helper.EnvVar("GOTRUE_SMTP_MAX_FREQUENCY", auth.Spec.SMTP.MaxFrequency))
 		}
 	}
 
 	if auth.Spec.OAuth != nil {
 		if auth.Spec.OAuth.Google != nil {
 			env = append(env,
-				envVar("GOTRUE_EXTERNAL_GOOGLE_ENABLED", strconv.FormatBool(auth.Spec.OAuth.Google.Enabled)),
-				envVar("GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID", auth.Spec.OAuth.Google.ClientID),
-				envVar("GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
+				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_ENABLED", strconv.FormatBool(auth.Spec.OAuth.Google.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID", auth.Spec.OAuth.Google.ClientID),
+				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
 		}
 		if auth.Spec.OAuth.GitHub != nil {
 			env = append(env,
-				envVar("GOTRUE_EXTERNAL_GITHUB_ENABLED", strconv.FormatBool(auth.Spec.OAuth.GitHub.Enabled)),
-				envVar("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", auth.Spec.OAuth.GitHub.ClientID),
-				envVar("GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
+				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_ENABLED", strconv.FormatBool(auth.Spec.OAuth.GitHub.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", auth.Spec.OAuth.GitHub.ClientID),
+				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
 		}
 		if auth.Spec.OAuth.Azure != nil {
 			env = append(env,
-				envVar("GOTRUE_EXTERNAL_AZURE_ENABLED", strconv.FormatBool(auth.Spec.OAuth.Azure.Enabled)),
-				envVar("GOTRUE_EXTERNAL_AZURE_CLIENT_ID", auth.Spec.OAuth.Azure.ClientID),
-				envVar("GOTRUE_EXTERNAL_AZURE_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
+				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_ENABLED", strconv.FormatBool(auth.Spec.OAuth.Azure.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_CLIENT_ID", auth.Spec.OAuth.Azure.ClientID),
+				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
 		}
 	}
 
 	if auth.Spec.SMS != nil {
 		env = append(env,
-			envVar("GOTRUE_SMS_PROVIDER", auth.Spec.SMS.Provider),
-			envVar("GOTRUE_SMS_OTP_EXP", strconv.Itoa(int(auth.Spec.SMS.OTPExp))),
-			envVar("GOTRUE_SMS_OTP_LENGTH", strconv.Itoa(int(auth.Spec.SMS.OTPLength))),
-			envVar("GOTRUE_SMS_TEMPLATE", auth.Spec.SMS.Template),
-			envVar("GOTRUE_SMS_TWILIO_ACCOUNT_SID", auth.Spec.SMS.TwilioAccountSID),
-			envVar("GOTRUE_SMS_TWILIO_MESSAGE_SERVICE_SID", auth.Spec.SMS.TwilioMessageServiceSID),
-			envVar("GOTRUE_SMS_MAX_FREQUENCY", auth.Spec.SMS.MaxFrequency),
+			helper.EnvVar("GOTRUE_SMS_PROVIDER", auth.Spec.SMS.Provider),
+			helper.EnvVar("GOTRUE_SMS_OTP_EXP", strconv.Itoa(int(auth.Spec.SMS.OTPExp))),
+			helper.EnvVar("GOTRUE_SMS_OTP_LENGTH", strconv.Itoa(int(auth.Spec.SMS.OTPLength))),
+			helper.EnvVar("GOTRUE_SMS_TEMPLATE", auth.Spec.SMS.Template),
+			helper.EnvVar("GOTRUE_SMS_TWILIO_ACCOUNT_SID", auth.Spec.SMS.TwilioAccountSID),
+			helper.EnvVar("GOTRUE_SMS_TWILIO_MESSAGE_SERVICE_SID", auth.Spec.SMS.TwilioMessageServiceSID),
+			helper.EnvVar("GOTRUE_SMS_MAX_FREQUENCY", auth.Spec.SMS.MaxFrequency),
 		)
 	}
 
 	if auth.Spec.MFA != nil {
 		env = append(env,
-			envVar("GOTRUE_MFA_TOTP_ENROLL_ENABLED", strconv.FormatBool(auth.Spec.MFA.TOTPEnrollEnabled)),
-			envVar("GOTRUE_MFA_TOTP_VERIFY_ENABLED", strconv.FormatBool(auth.Spec.MFA.TOTPVerifyEnabled)),
-			envVar("GOTRUE_MFA_PHONE_ENROLL_ENABLED", strconv.FormatBool(auth.Spec.MFA.PhoneEnrollEnabled)),
-			envVar("GOTRUE_MFA_PHONE_VERIFY_ENABLED", strconv.FormatBool(auth.Spec.MFA.PhoneVerifyEnabled)),
+			helper.EnvVar("GOTRUE_MFA_TOTP_ENROLL_ENABLED", strconv.FormatBool(auth.Spec.MFA.TOTPEnrollEnabled)),
+			helper.EnvVar("GOTRUE_MFA_TOTP_VERIFY_ENABLED", strconv.FormatBool(auth.Spec.MFA.TOTPVerifyEnabled)),
+			helper.EnvVar("GOTRUE_MFA_PHONE_ENROLL_ENABLED", strconv.FormatBool(auth.Spec.MFA.PhoneEnrollEnabled)),
+			helper.EnvVar("GOTRUE_MFA_PHONE_VERIFY_ENABLED", strconv.FormatBool(auth.Spec.MFA.PhoneVerifyEnabled)),
 		)
 		if auth.Spec.MFA.MaxEnrolledFactors > 0 {
-			env = append(env, envVar("GOTRUE_MFA_MAX_ENROLLED_FACTORS", strconv.Itoa(int(auth.Spec.MFA.MaxEnrolledFactors))))
+			env = append(env, helper.EnvVar("GOTRUE_MFA_MAX_ENROLLED_FACTORS", strconv.Itoa(int(auth.Spec.MFA.MaxEnrolledFactors))))
 		}
 	}
 
 	if auth.Spec.SAML != nil {
 		env = append(env,
-			envVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(auth.Spec.SAML.Enabled)),
-			envVar("GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS", strconv.FormatBool(auth.Spec.SAML.AllowEncryptedAssertions)),
+			helper.EnvVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(auth.Spec.SAML.Enabled)),
+			helper.EnvVar("GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS", strconv.FormatBool(auth.Spec.SAML.AllowEncryptedAssertions)),
 		)
 		if auth.Spec.SAML.RelayStateValidityPeriod != "" {
-			env = append(env, envVar("GOTRUE_SAML_RELAY_STATE_VALIDITY_PERIOD", auth.Spec.SAML.RelayStateValidityPeriod))
+			env = append(env, helper.EnvVar("GOTRUE_SAML_RELAY_STATE_VALIDITY_PERIOD", auth.Spec.SAML.RelayStateValidityPeriod))
 		}
 		if auth.Spec.SAML.RateLimitAssertion > 0 {
-			env = append(env, envVar("GOTRUE_SAML_RATE_LIMIT_ASSERTIONS", strconv.Itoa(int(auth.Spec.SAML.RateLimitAssertion))))
+			env = append(env, helper.EnvVar("GOTRUE_SAML_RATE_LIMIT_ASSERTIONS", strconv.Itoa(int(auth.Spec.SAML.RateLimitAssertion))))
 		}
 	}
 

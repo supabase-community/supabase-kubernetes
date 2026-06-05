@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 const ComponentRealtime = "realtime"
@@ -255,25 +256,25 @@ func (r *ProjectReconciler) buildRealtimeContainer(rt *supabasev1alpha1.Realtime
 			},
 		},
 		Env: []corev1.EnvVar{
-			envVarFromSecret("DB_PASSWORD", resolved.PasswordRef.Name, resolved.PasswordRef.Key),
-			envVarFromSecret("SECRET_KEY_BASE", projectKeysSecret, "secret-key-base"),
-			envVarFromSecret("JWT_SECRET", projectJWTSecret, "jwt-secret"),
-			envVarFromSecret("API_JWT_SECRET", projectJWTSecret, "jwt-secret"),
-			envVarFromSecret("API_JWT_JWKS", projectJWTSecret, "jwt-jwks"),
-			envVar("DB_HOST", resolved.Host),
-			envVar("DB_PORT", strconv.Itoa(int(resolved.Port))),
-			envVar("DB_USER", "supabase_admin"),
-			envVar("DB_NAME", resolved.DBName),
-			envVar("PORT", "4000"),
-			envVar("DB_AFTER_CONNECT_QUERY", "SET search_path TO _realtime"),
-			envVar("DB_ENC_KEY", "supabaserealtime"),
-			envVar("ERL_AFLAGS", "-proto_dist inet_tcp"),
-			envVar("DNS_NODES", "''"),
-			envVar("RLIMIT_NOFILE", "10000"),
-			envVar("APP_NAME", "realtime"),
-			envVar("SEED_SELF_HOST", "true"),
-			envVar("RUN_JANITOR", "true"),
-			envVar("DISABLE_HEALTHCHECK_LOGGING", "true"),
+			helper.EnvVarFromSecret("DB_PASSWORD", resolved.PasswordRef.Name, resolved.PasswordRef.Key),
+			helper.EnvVarFromSecret("SECRET_KEY_BASE", projectKeysSecret, "secret-key-base"),
+			helper.EnvVarFromSecret("JWT_SECRET", projectJWTSecret, "jwt-secret"),
+			helper.EnvVarFromSecret("API_JWT_SECRET", projectJWTSecret, "jwt-secret"),
+			helper.EnvVarFromSecret("API_JWT_JWKS", projectJWTSecret, "jwt-jwks"),
+			helper.EnvVar("DB_HOST", resolved.Host),
+			helper.EnvVar("DB_PORT", strconv.Itoa(int(resolved.Port))),
+			helper.EnvVar("DB_USER", "supabase_admin"),
+			helper.EnvVar("DB_NAME", resolved.DBName),
+			helper.EnvVar("PORT", "4000"),
+			helper.EnvVar("DB_AFTER_CONNECT_QUERY", "SET search_path TO _realtime"),
+			helper.EnvVar("DB_ENC_KEY", "supabaserealtime"),
+			helper.EnvVar("ERL_AFLAGS", "-proto_dist inet_tcp"),
+			helper.EnvVar("DNS_NODES", "''"),
+			helper.EnvVar("RLIMIT_NOFILE", "10000"),
+			helper.EnvVar("APP_NAME", "realtime"),
+			helper.EnvVar("SEED_SELF_HOST", "true"),
+			helper.EnvVar("RUN_JANITOR", "true"),
+			helper.EnvVar("DISABLE_HEALTHCHECK_LOGGING", "true"),
 		},
 		Resources:       rt.Spec.Resources,
 		SecurityContext: rt.Spec.ContainerSecurityContext,
