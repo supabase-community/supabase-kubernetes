@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 )
 
 var _ = Describe("SingleDatabase Controller", func() {
@@ -337,7 +338,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			initContainer := sts.Spec.Template.Spec.InitContainers[0]
 			Expect(initContainer.Name).To(Equal("password-sync"))
 			Expect(initContainer.Image).To(Equal("supabase/postgres:17.6.1.084"))
-			Expect(initContainer.Command).To(Equal([]string{"sh", "-c", SingleDatabasePasswordSyncScript}))
+			Expect(initContainer.Command).To(Equal([]string{"sh", "-c", assets.SingleDatabasePasswordSyncScript}))
 			Expect(initContainer.VolumeMounts).To(HaveLen(1))
 			Expect(initContainer.VolumeMounts[0].MountPath).To(Equal("/var/lib/postgresql/data"))
 

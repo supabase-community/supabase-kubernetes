@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 )
 
 const (
@@ -619,7 +620,7 @@ func (r *ProjectReconciler) buildJWTSettingsJob(project *supabasev1alpha1.Projec
 							Name:    "sync-jwt",
 							Image:   image,
 							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{ProjectSyncJWTScript},
+							Args:    []string{assets.ProjectSyncJWTScript},
 							Env:     env,
 						},
 					},
@@ -747,7 +748,7 @@ func (r *ProjectReconciler) buildPasswordSyncJob(project *supabasev1alpha1.Proje
 							Name:    "sync-password",
 							Image:   image,
 							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{ProjectSyncPasswordScript},
+							Args:    []string{assets.ProjectSyncPasswordScript},
 							Env:     env,
 						},
 					},

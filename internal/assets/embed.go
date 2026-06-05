@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package assets
 
 import "embed"
 
 //go:embed migrations/*.sql
-var migrationFiles embed.FS
+var MigrationFiles embed.FS
 
 //go:embed scripts/migration-apply.sh
 var MigrationApplyScript string

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 )
 
 // defaultMigrations is the ordered list of built-in migration batches.
@@ -40,7 +41,7 @@ func LoadMigrationEntries(files []string) ([]supabasev1alpha1.MigrationEntry, er
 	entries := make([]supabasev1alpha1.MigrationEntry, 0, len(files))
 
 	for _, file := range files {
-		data, err := migrationFiles.ReadFile(file)
+		data, err := assets.MigrationFiles.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("reading embedded migration %q: %w", file, err)
 		}

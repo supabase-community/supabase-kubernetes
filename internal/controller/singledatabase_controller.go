@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 )
 
 const (
@@ -610,7 +611,7 @@ func (r *SingleDatabaseReconciler) buildPasswordSyncInitContainer(image string, 
 		Name:            "password-sync",
 		Image:           image,
 		ImagePullPolicy: imagePullPolicy,
-		Command:         []string{"sh", "-c", SingleDatabasePasswordSyncScript},
+		Command:         []string{"sh", "-c", assets.SingleDatabasePasswordSyncScript},
 		Env: []corev1.EnvVar{
 			envVarFromSecret("PGPASSWORD", secretName, "password"),
 		},
