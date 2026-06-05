@@ -161,53 +161,20 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *SingleDatabaseReconciler) populateStorageStatus(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) {
-	pvc := &corev1.PersistentVolumeClaim{}
-	if err := r.Get(ctx, types.NamespacedName{Name: r.pvcName(singleDB.Name), Namespace: singleDB.Namespace}, pvc); err == nil {
-		if storage := pvc.Spec.Resources.Requests.Storage(); storage != nil {
-			singleDB.Status.Storage = storage.String()
-		}
-	}
-}
-
-func (r *SingleDatabaseReconciler) determinePhase(singleDB *supabasev1alpha1.SingleDatabase) string {
-	if meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady) {
-		return "Running"
-	}
-	if len(singleDB.Status.Conditions) == 0 {
-		return "Pending"
-	}
-	cond := meta.FindStatusCondition(singleDB.Status.Conditions, ConditionTypeReady)
-	if cond != nil && cond.Status == metav1.ConditionFalse {
-		if cond.Reason == "StatefulSetNotReady" {
-			return "Creating"
-		}
-		return "Failed"
-	}
-	return "Creating"
-}
-
-func (r *SingleDatabaseReconciler) storageResources(singleDB *supabasev1alpha1.SingleDatabase) corev1.VolumeResourceRequirements {
-	if singleDB.Spec.Storage.Resources.Requests != nil || singleDB.Spec.Storage.Resources.Limits != nil {
-		return singleDB.Spec.Storage.Resources
-	}
-	return corev1.VolumeResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceStorage: resource.MustParse("10Gi"),
-		},
-	}
-}
-
 func (r *SingleDatabaseReconciler) secretName(name string) string {
 	return fmt.Sprintf("%s-db", name)
 }
 
 func (r *SingleDatabaseReconciler) serviceName(name string) string {
-	return fmt.Sprintf("%s-%s", name, singleDatabaseComponent)
+	return fmt.Sprintf("%s-db", name)
 }
 
 func (r *SingleDatabaseReconciler) statefulSetName(name string) string {
-	return fmt.Sprintf("%s-%s", name, singleDatabaseComponent)
+	return fmt.Sprintf("%s-db", name)
+}
+
+func (r *SingleDatabaseReconciler) pvcName(name string) string {
+	return fmt.Sprintf("%s-db-data", name)
 }
 
 func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
@@ -251,10 +218,6 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *s
 
 	logger.Info("Created credentials secret")
 	return nil
-}
-
-func (r *SingleDatabaseReconciler) pvcName(name string) string {
-	return fmt.Sprintf("%s-%s-data", name, singleDatabaseComponent)
 }
 
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
@@ -354,15 +317,6 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supa
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) isPVCResizeNotSupportedError(err error) bool {
-	if !apierrors.IsForbidden(err) {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "resize") &&
-		(strings.Contains(msg, "storageclass") || strings.Contains(msg, "dynamically provisioned"))
-}
-
 func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
 	logger := log.FromContext(ctx).WithValues("service", r.serviceName(singleDB.Name))
 
@@ -433,50 +387,6 @@ func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *
 		return fmt.Errorf("updating service: %w", err)
 	}
 	return nil
-}
-
-// computeCredentialHash computes a deterministic hash of the credentials secret data.
-// This is used as a pod template annotation to trigger pod rollouts when the secret changes.
-func (r *SingleDatabaseReconciler) computeCredentialHash(ctx context.Context, namespace, secretName string) (string, error) {
-	secret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret); err != nil {
-		return "", fmt.Errorf("getting secret for hash computation: %w", err)
-	}
-
-	keys := make([]string, 0, len(secret.Data))
-	for k := range secret.Data {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	h := sha256.New()
-	for _, k := range keys {
-		h.Write([]byte(k))
-		h.Write(secret.Data[k])
-	}
-	return hex.EncodeToString(h.Sum(nil))[:16], nil
-}
-
-func (r *SingleDatabaseReconciler) buildPasswordSyncInitContainer(image string, imagePullPolicy corev1.PullPolicy, secretName string) corev1.Container {
-	return corev1.Container{
-		Name:            "password-sync",
-		Image:           image,
-		ImagePullPolicy: imagePullPolicy,
-		Command:         []string{"sh", "-c", SingleDatabasePasswordSyncScript},
-		Env: []corev1.EnvVar{
-			envVarFromSecret("PGPASSWORD", secretName, "password"),
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{Name: "data", MountPath: "/var/lib/postgresql/data"},
-		},
-	}
-}
-
-func (r *SingleDatabaseReconciler) resolveDatabaseImage(singleDB *supabasev1alpha1.SingleDatabase) (string, error) {
-	if singleDB.Spec.Image != "" {
-		return singleDB.Spec.Image, nil
-	}
-	return ResolveComponentImage(singleDB.Spec.Version, ComponentDatabase)
 }
 
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
@@ -628,6 +538,95 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 	}
 	return nil
 }
+
+func (r *SingleDatabaseReconciler) populateStorageStatus(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) {
+	pvc := &corev1.PersistentVolumeClaim{}
+	if err := r.Get(ctx, types.NamespacedName{Name: r.pvcName(singleDB.Name), Namespace: singleDB.Namespace}, pvc); err == nil {
+		if storage := pvc.Spec.Resources.Requests.Storage(); storage != nil {
+			singleDB.Status.Storage = storage.String()
+		}
+	}
+}
+
+func (r *SingleDatabaseReconciler) determinePhase(singleDB *supabasev1alpha1.SingleDatabase) string {
+	if meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady) {
+		return "Running"
+	}
+	if len(singleDB.Status.Conditions) == 0 {
+		return "Pending"
+	}
+	cond := meta.FindStatusCondition(singleDB.Status.Conditions, ConditionTypeReady)
+	if cond != nil && cond.Status == metav1.ConditionFalse {
+		if cond.Reason == "StatefulSetNotReady" {
+			return "Creating"
+		}
+		return "Failed"
+	}
+	return "Creating"
+}
+
+func (r *SingleDatabaseReconciler) storageResources(singleDB *supabasev1alpha1.SingleDatabase) corev1.VolumeResourceRequirements {
+	if singleDB.Spec.Storage.Resources.Requests != nil || singleDB.Spec.Storage.Resources.Limits != nil {
+		return singleDB.Spec.Storage.Resources
+	}
+	return corev1.VolumeResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceStorage: resource.MustParse("10Gi"),
+		},
+	}
+}
+
+func (r *SingleDatabaseReconciler) isPVCResizeNotSupportedError(err error) bool {
+	if !apierrors.IsForbidden(err) {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "resize") &&
+		(strings.Contains(msg, "storageclass") || strings.Contains(msg, "dynamically provisioned"))
+}
+
+func (r *SingleDatabaseReconciler) computeCredentialHash(ctx context.Context, namespace, secretName string) (string, error) {
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret); err != nil {
+		return "", fmt.Errorf("getting secret for hash computation: %w", err)
+	}
+
+	keys := make([]string, 0, len(secret.Data))
+	for k := range secret.Data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	h := sha256.New()
+	for _, k := range keys {
+		h.Write([]byte(k))
+		h.Write(secret.Data[k])
+	}
+	return hex.EncodeToString(h.Sum(nil))[:16], nil
+}
+
+func (r *SingleDatabaseReconciler) buildPasswordSyncInitContainer(image string, imagePullPolicy corev1.PullPolicy, secretName string) corev1.Container {
+	return corev1.Container{
+		Name:            "password-sync",
+		Image:           image,
+		ImagePullPolicy: imagePullPolicy,
+		Command:         []string{"sh", "-c", SingleDatabasePasswordSyncScript},
+		Env: []corev1.EnvVar{
+			envVarFromSecret("PGPASSWORD", secretName, "password"),
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "data", MountPath: "/var/lib/postgresql/data"},
+		},
+	}
+}
+
+func (r *SingleDatabaseReconciler) resolveDatabaseImage(singleDB *supabasev1alpha1.SingleDatabase) (string, error) {
+	if singleDB.Spec.Image != "" {
+		return singleDB.Spec.Image, nil
+	}
+	return ResolveComponentImage(singleDB.Spec.Version, ComponentDatabase)
+}
+
 func (r *SingleDatabaseReconciler) buildProbes(probes *supabasev1alpha1.ComponentProbes) (*corev1.Probe, *corev1.Probe, *corev1.Probe) {
 	if probes != nil {
 		return probes.Startup, probes.Readiness, probes.Liveness
