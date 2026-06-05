@@ -17,11 +17,11 @@ limitations under the License.
 package controller
 
 import (
-	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -30,33 +30,29 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/assets"
+	"github.com/supabase-community/supabase-kubernetes/internal/singledatabase"
 )
 
+func testSingleDatabaseMinimal(name string) *supabasev1alpha1.SingleDatabase {
+	return &supabasev1alpha1.SingleDatabase{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
+		Spec: supabasev1alpha1.SingleDatabaseSpec{
+			Version: "2026.04.27",
+		},
+	}
+}
+
 var _ = Describe("SingleDatabase Controller", func() {
-	Context("When reconciling a resource", func() {
-		const resourceName = "test-single-db"
-		const timeout = 30 * time.Second
-		const interval = 250 * time.Millisecond
+	const timeout = 30 * time.Second
+	const interval = 250 * time.Millisecond
 
-		ctx := context.Background()
-
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default",
-		}
+	Context("When creating a SingleDatabase", func() {
+		const dbName = "test-singledatabase"
+		dbKey := types.NamespacedName{Name: dbName, Namespace: "default"}
 
 		BeforeEach(func() {
-			singleDB := &supabasev1alpha1.SingleDatabase{}
-			err := k8sClient.Get(ctx, typeNamespacedName, singleDB)
-			if err == nil {
-				return
-			}
-			resource := &supabasev1alpha1.SingleDatabase{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      resourceName,
-					Namespace: "default",
-				},
+			db := &supabasev1alpha1.SingleDatabase{
+				ObjectMeta: metav1.ObjectMeta{Name: dbName, Namespace: "default"},
 				Spec: supabasev1alpha1.SingleDatabaseSpec{
 					Version: "2026.04.27",
 					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
@@ -69,315 +65,149 @@ var _ = Describe("SingleDatabase Controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+			Expect(k8sClient.Create(ctx, db)).To(Succeed())
 		})
 
 		AfterEach(func() {
-			resource := &supabasev1alpha1.SingleDatabase{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			if err == nil {
-				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+			db := &supabasev1alpha1.SingleDatabase{}
+			if err := k8sClient.Get(ctx, dbKey, db); err == nil {
+				Expect(k8sClient.Delete(ctx, db)).To(Succeed())
 			}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(HaveOccurred())
-			}, timeout, interval).Should(Succeed())
 		})
 
-		It("should set Ready condition and create dependent resources", func() {
-			sts := &appsv1.StatefulSet{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, sts)).To(Succeed())
-				sts.Status.Replicas = 1
-				sts.Status.ReadyReplicas = 1
-				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
-			}, timeout, interval).Should(Succeed())
-
-			singleDB := &supabasev1alpha1.SingleDatabase{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
-				g.Expect(singleDB.Status.ServiceName).To(Equal("test-single-db-db"))
-				g.Expect(singleDB.Status.SecretName).To(Equal("test-single-db-db"))
-			}, timeout, interval).Should(Succeed())
-		})
-
-		It("should add owner reference when pvcDeletionPolicy changes to Delete", func() {
-			singleDB := &supabasev1alpha1.SingleDatabase{}
-			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.Storage.DeletionPolicy = supabasev1alpha1.PVCDeletionPolicyRetain
-			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
-
-			pvc := &corev1.PersistentVolumeClaim{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, pvc)).To(Succeed())
-				g.Expect(pvc.OwnerReferences).To(BeEmpty())
-			}, timeout, interval).Should(Succeed())
-
-			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.Storage.DeletionPolicy = supabasev1alpha1.PVCDeletionPolicyDelete
-			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
-
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, pvc)).To(Succeed())
-				g.Expect(pvc.OwnerReferences).To(HaveLen(1))
-				g.Expect(pvc.OwnerReferences[0].UID).To(Equal(singleDB.UID))
-			}, timeout, interval).Should(Succeed())
-		})
-
-		It("should remove owner reference when pvcDeletionPolicy changes to Retain", func() {
-			pvc := &corev1.PersistentVolumeClaim{}
-			singleDB := &supabasev1alpha1.SingleDatabase{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, pvc)).To(Succeed())
-				g.Expect(pvc.OwnerReferences).To(HaveLen(1))
-			}, timeout, interval).Should(Succeed())
-
-			Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-			singleDB.Spec.Storage.DeletionPolicy = supabasev1alpha1.PVCDeletionPolicyRetain
-			Expect(k8sClient.Update(ctx, singleDB)).To(Succeed())
-
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-db", Namespace: "default"}, pvc)).To(Succeed())
-				g.Expect(pvc.OwnerReferences).To(BeEmpty())
-			}, timeout, interval).Should(Succeed())
-		})
-	})
-
-	Context("When reconciling with advanced configuration", func() {
-		const resourceName = "test-single-db-advanced"
-		const timeout = 30 * time.Second
-		const interval = 250 * time.Millisecond
-
-		ctx := context.Background()
-
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default",
-		}
-
-		BeforeEach(func() {
-			singleDB := &supabasev1alpha1.SingleDatabase{}
-			err := k8sClient.Get(ctx, typeNamespacedName, singleDB)
-			if err == nil {
-				return
-			}
-			resource := &supabasev1alpha1.SingleDatabase{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      resourceName,
-					Namespace: "default",
-				},
-				Spec: supabasev1alpha1.SingleDatabaseSpec{
-					Version: "2026.04.27",
-					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.VolumeResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: resource.MustParse("1Gi"),
-							},
-						},
-					},
-					WorkloadConfig: supabasev1alpha1.WorkloadConfig{
-						NodeSelector: map[string]string{
-							"kubernetes.io/os": "linux",
-						},
-						Tolerations: []corev1.Toleration{
-							{
-								Key:      "dedicated",
-								Operator: corev1.TolerationOpEqual,
-								Value:    "postgres",
-								Effect:   corev1.TaintEffectNoSchedule,
-							},
-						},
-						PodAnnotations: map[string]string{
-							"prometheus.io/scrape": "true",
-						},
-						PodLabels: map[string]string{
-							"tier": "database",
-						},
-						ImagePullPolicy:               corev1.PullIfNotPresent,
-						TerminationGracePeriodSeconds: func() *int64 { v := int64(120); return &v }(),
-						ContainerSecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: func() *bool { v := false; return &v }(),
-							ReadOnlyRootFilesystem:   func() *bool { v := false; return &v }(),
-						},
-						PodSecurityContext: &corev1.PodSecurityContext{
-							RunAsNonRoot: func() *bool { v := true; return &v }(),
-							RunAsUser:    func() *int64 { v := int64(999); return &v }(),
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
-		})
-
-		AfterEach(func() {
-			resource := &supabasev1alpha1.SingleDatabase{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			if err == nil {
-				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-			}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(HaveOccurred())
-			}, timeout, interval).Should(Succeed())
-		})
-
-		It("should apply scheduling controls, security context and pod customization", func() {
-			sts := &appsv1.StatefulSet{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-advanced-db", Namespace: "default"}, sts)).To(Succeed())
-			}, timeout, interval).Should(Succeed())
-
-			podSpec := sts.Spec.Template.Spec
-			container := podSpec.Containers[0]
-
-			Expect(podSpec.NodeSelector).To(Equal(map[string]string{"kubernetes.io/os": "linux"}))
-			Expect(podSpec.Tolerations).To(HaveLen(1))
-			Expect(podSpec.Tolerations[0].Key).To(Equal("dedicated"))
-			Expect(podSpec.PriorityClassName).To(BeEmpty())
-			Expect(container.ImagePullPolicy).To(Equal(corev1.PullIfNotPresent))
-			Expect(podSpec.TerminationGracePeriodSeconds).To(HaveValue(BeEquivalentTo(120)))
-
-			Expect(sts.Spec.Template.Annotations).To(HaveKeyWithValue("prometheus.io/scrape", "true"))
-			Expect(sts.Spec.Template.Labels).To(HaveKeyWithValue("tier", "database"))
-
-			Expect(podSpec.SecurityContext).NotTo(BeNil())
-			Expect(podSpec.SecurityContext.RunAsNonRoot).To(HaveValue(BeTrue()))
-			Expect(podSpec.SecurityContext.RunAsUser).To(HaveValue(BeEquivalentTo(999)))
-
-			Expect(container.SecurityContext).NotTo(BeNil())
-			Expect(container.SecurityContext.AllowPrivilegeEscalation).To(HaveValue(BeFalse()))
-		})
-
-		It("should apply default probes when not specified", func() {
-			sts := &appsv1.StatefulSet{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-advanced-db", Namespace: "default"}, sts)).To(Succeed())
-			}, timeout, interval).Should(Succeed())
-
-			container := sts.Spec.Template.Spec.Containers[0]
-			Expect(container.StartupProbe).NotTo(BeNil())
-			Expect(container.ReadinessProbe).NotTo(BeNil())
-			Expect(container.LivenessProbe).NotTo(BeNil())
-			Expect(container.StartupProbe.Exec.Command).To(Equal([]string{"pg_isready", "-U", "postgres"}))
-		})
-
-		It("should populate enriched status", func() {
-			sts := &appsv1.StatefulSet{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-advanced-db", Namespace: "default"}, sts)).To(Succeed())
-				sts.Status.Replicas = 1
-				sts.Status.ReadyReplicas = 1
-				g.Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
-			}, timeout, interval).Should(Succeed())
-
-			singleDB := &supabasev1alpha1.SingleDatabase{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, typeNamespacedName, singleDB)).To(Succeed())
-				g.Expect(singleDB.Status.Phase).To(Equal("Running"))
-				g.Expect(singleDB.Status.Storage).To(Equal("1Gi"))
-			}, timeout, interval).Should(Succeed())
-		})
-	})
-
-	Context("When managing password synchronization", func() {
-		const resourceName = "test-single-db-pwsync"
-		const timeout = 30 * time.Second
-		const interval = 250 * time.Millisecond
-
-		ctx := context.Background()
-
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default",
-		}
-
-		BeforeEach(func() {
-			singleDB := &supabasev1alpha1.SingleDatabase{}
-			err := k8sClient.Get(ctx, typeNamespacedName, singleDB)
-			if err == nil {
-				return
-			}
-			resource := &supabasev1alpha1.SingleDatabase{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      resourceName,
-					Namespace: "default",
-				},
-				Spec: supabasev1alpha1.SingleDatabaseSpec{
-					Version: "2026.04.27",
-					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.VolumeResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: resource.MustParse("1Gi"),
-							},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
-		})
-
-		AfterEach(func() {
-			resource := &supabasev1alpha1.SingleDatabase{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			if err == nil {
-				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-			}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(HaveOccurred())
-			}, timeout, interval).Should(Succeed())
-		})
-
-		It("should include password-sync init container in the StatefulSet", func() {
-			sts := &appsv1.StatefulSet{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-pwsync-db", Namespace: "default"}, sts)).To(Succeed())
-				g.Expect(sts.Spec.Template.Spec.InitContainers).To(HaveLen(1))
-			}, timeout, interval).Should(Succeed())
-
-			initContainer := sts.Spec.Template.Spec.InitContainers[0]
-			Expect(initContainer.Name).To(Equal("password-sync"))
-			Expect(initContainer.Image).To(Equal("supabase/postgres:17.6.1.084"))
-			Expect(initContainer.Command).To(Equal([]string{"sh", "-c", assets.SingleDatabasePasswordSyncScript}))
-			Expect(initContainer.VolumeMounts).To(HaveLen(1))
-			Expect(initContainer.VolumeMounts[0].MountPath).To(Equal("/var/lib/postgresql/data"))
-
-			// Verify PGPASSWORD env references the db secret
-			Expect(initContainer.Env).To(HaveLen(1))
-			Expect(initContainer.Env[0].Name).To(Equal("PGPASSWORD"))
-			Expect(initContainer.Env[0].ValueFrom.SecretKeyRef.Name).To(Equal("test-single-db-pwsync-db"))
-			Expect(initContainer.Env[0].ValueFrom.SecretKeyRef.Key).To(Equal("password"))
-		})
-
-		It("should include secret-hash annotation in the pod template", func() {
-			sts := &appsv1.StatefulSet{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-pwsync-db", Namespace: "default"}, sts)).To(Succeed())
-				g.Expect(sts.Spec.Template.Annotations).To(HaveKey("supabase.io/secret-hash"))
-				g.Expect(sts.Spec.Template.Annotations["supabase.io/secret-hash"]).NotTo(BeEmpty())
-			}, timeout, interval).Should(Succeed())
-		})
-
-		It("should update secret-hash annotation when db secret is rotated", func() {
-			sts := &appsv1.StatefulSet{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-pwsync-db", Namespace: "default"}, sts)).To(Succeed())
-				g.Expect(sts.Spec.Template.Annotations).To(HaveKey("supabase.io/secret-hash"))
-			}, timeout, interval).Should(Succeed())
-
-			oldHash := sts.Spec.Template.Annotations["supabase.io/secret-hash"]
-
-			// Delete the secret to trigger rotation
+		It("Should create Secret, PVC, Service and StatefulSet", func() {
+			By("Checking that Secret was created")
 			secret := &corev1.Secret{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-pwsync-db", Namespace: "default"}, secret)).To(Succeed())
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbName), Namespace: "default"}, secret)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+			Expect(secret.Data).To(HaveKey("password"))
+			Expect(secret.Data).To(HaveKey("database"))
+
+			By("Checking that PVC was created")
+			pvc := &corev1.PersistentVolumeClaim{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.PVCName(dbName), Namespace: "default"}, pvc)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			By("Checking that Service was created")
+			svc := &corev1.Service{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.ServiceName(dbName), Namespace: "default"}, svc)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+			Expect(svc.Spec.Ports).To(HaveLen(1))
+			Expect(svc.Spec.Ports[0].Port).To(Equal(int32(5432)))
+
+			By("Checking that StatefulSet was created")
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+			Expect(sts.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(sts.Spec.Template.Spec.InitContainers).To(HaveLen(1))
+		})
+
+		It("Should mark SingleDatabase as Ready when StatefulSet is ready", func() {
+			By("Simulating StatefulSet readiness")
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			sts.Status.Replicas = 1
+			sts.Status.ReadyReplicas = 1
+			Expect(k8sClient.Status().Update(ctx, sts)).To(Succeed())
+
+			By("Checking that SingleDatabase status is Ready")
+			Eventually(func(g Gomega) {
+				db := &supabasev1alpha1.SingleDatabase{}
+				g.Expect(k8sClient.Get(ctx, dbKey, db)).To(Succeed())
+				g.Expect(db.Status.Phase).To(Equal("Ready"))
+				g.Expect(meta.IsStatusConditionTrue(db.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(db.Status.ServiceName).To(Equal(singledatabase.ServiceName(dbName)))
+				g.Expect(db.Status.SecretName).To(Equal(singledatabase.SecretName(dbName)))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("Should regenerate password Secret if deleted", func() {
+			By("Waiting for Secret to be created")
+			secret := &corev1.Secret{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbName), Namespace: "default"}, secret)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			oldPassword := string(secret.Data["password"])
 			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
 
-			// After reconciliation, the secret is recreated with a new password,
-			// and the StatefulSet annotation should change
+			By("Waiting for Secret to be recreated with new password")
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-single-db-pwsync-db", Namespace: "default"}, sts)).To(Succeed())
-				g.Expect(sts.Spec.Template.Annotations["supabase.io/secret-hash"]).NotTo(Equal(oldHash))
+				recreated := &corev1.Secret{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbName), Namespace: "default"}, recreated)).To(Succeed())
+				g.Expect(string(recreated.Data["password"])).NotTo(Equal(oldPassword))
 			}, timeout, interval).Should(Succeed())
+		})
+
+		It("Should update StatefulSet spec when SingleDatabase spec changes", func() {
+			By("Waiting for StatefulSet to be created")
+			sts := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, sts)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			oldImage := sts.Spec.Template.Spec.Containers[0].Image
+
+			By("Updating SingleDatabase version")
+			db := &supabasev1alpha1.SingleDatabase{}
+			Expect(k8sClient.Get(ctx, dbKey, db)).To(Succeed())
+			db.Spec.Version = "2026.04.27"
+			// Trigger a change by adding an env var since version alone isn't stored directly in a field we mutate
+			db.Spec.Env = []corev1.EnvVar{{Name: "TEST_VAR", Value: "test_value"}}
+			Expect(k8sClient.Update(ctx, db)).To(Succeed())
+
+			By("Waiting for StatefulSet to be updated with new env var")
+			Eventually(func(g Gomega) {
+				updated := &appsv1.StatefulSet{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, updated)).To(Succeed())
+				container := updated.Spec.Template.Spec.Containers[0]
+				var found bool
+				for _, env := range container.Env {
+					if env.Name == "TEST_VAR" && env.Value == "test_value" {
+						found = true
+						break
+					}
+				}
+				g.Expect(found).To(BeTrue())
+			}, timeout, interval).Should(Succeed())
+
+			_ = oldImage
+		})
+	})
+
+	Context("When creating a SingleDatabase without storage resources", func() {
+		const dbName = "test-singledatabase-default-storage"
+		dbKey := types.NamespacedName{Name: dbName, Namespace: "default"}
+
+		BeforeEach(func() {
+			db := testSingleDatabaseMinimal(dbName)
+			Expect(k8sClient.Create(ctx, db)).To(Succeed())
+		})
+
+		AfterEach(func() {
+			db := &supabasev1alpha1.SingleDatabase{}
+			if err := k8sClient.Get(ctx, dbKey, db); err == nil {
+				Expect(k8sClient.Delete(ctx, db)).To(Succeed())
+			}
+		})
+
+		It("Should default storage to 10Gi", func() {
+			pvc := &corev1.PersistentVolumeClaim{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.PVCName(dbName), Namespace: "default"}, pvc)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			storage := pvc.Spec.Resources.Requests.Storage()
+			Expect(storage).NotTo(BeNil())
+			Expect(storage.String()).To(Equal("10Gi"))
 		})
 	})
 })

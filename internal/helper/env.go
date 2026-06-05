@@ -16,7 +16,13 @@ limitations under the License.
 
 package helper
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	"crypto/sha256"
+	"fmt"
+	"sort"
+
+	corev1 "k8s.io/api/core/v1"
+)
 
 // EnvVar creates a simple environment variable with the given name and value.
 func EnvVar(name, value string) corev1.EnvVar {
@@ -34,4 +40,22 @@ func EnvVarFromSecret(name, secretName, key string) corev1.EnvVar {
 			},
 		},
 	}
+}
+
+// SecretHash calculates a SHA-256 hash over all key-value pairs in a Secret's Data.
+// The keys are sorted to produce a deterministic hash regardless of map iteration order.
+func SecretHash(secret *corev1.Secret) string {
+	h := sha256.New()
+	keys := make([]string, 0, len(secret.Data))
+	for k := range secret.Data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		h.Write([]byte(k))
+		h.Write([]byte("="))
+		h.Write(secret.Data[k])
+		h.Write([]byte("\n"))
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

@@ -35,9 +35,9 @@ func StatefulSetName(dbName string) string {
 }
 
 // BuildStatefulSet constructs the StatefulSet for a SingleDatabase.
-func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, credentialHash string) *appsv1.StatefulSet {
+func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, secretHash string) *appsv1.StatefulSet {
 	replicas := int32(1)
-	labels, annotations := BuildLabelsAndAnnotations(db, credentialHash)
+	labels, annotations := BuildLabelsAndAnnotations(db, secretHash)
 	container := BuildMainContainer(db, image, secretName)
 	podSpec := BuildPodSpec(db, image, container)
 
@@ -62,12 +62,12 @@ func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, cr
 	}
 }
 
-func BuildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, credentialHash string) (map[string]string, map[string]string) {
+func BuildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, secretHash string) (map[string]string, map[string]string) {
 	labels := DefaultLabels(db.Name)
 	maps.Copy(labels, db.Spec.PodLabels)
 
 	annotations := map[string]string{
-		"supabase.io/secret-hash": credentialHash,
+		"supabase.io/secret-hash": secretHash,
 	}
 	maps.Copy(annotations, db.Spec.PodAnnotations)
 
