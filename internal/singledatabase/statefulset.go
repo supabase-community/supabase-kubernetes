@@ -26,6 +26,7 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // StatefulSetName returns the name of the StatefulSet for a SingleDatabase.
@@ -57,46 +58,14 @@ func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, cr
 			},
 		},
 		Env: []corev1.EnvVar{
-			{
-				Name: "POSTGRES_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-						Key:                  "password",
-					},
-				},
-			},
-			{
-				Name: "POSTGRES_DB",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-						Key:                  "database",
-					},
-				},
-			},
-			{Name: "POSTGRES_HOST", Value: "/var/run/postgresql"},
-			{Name: "POSTGRES_PORT", Value: "5432"},
-			{
-				Name: "PGPASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-						Key:                  "password",
-					},
-				},
-			},
-			{Name: "PGPORT", Value: "5432"},
-			{
-				Name: "PGDATABASE",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-						Key:                  "database",
-					},
-				},
-			},
-			{Name: "PGHOST", Value: "/var/run/postgresql"},
+			helper.EnvVarFromSecret("POSTGRES_PASSWORD", secretName, "password"),
+			helper.EnvVarFromSecret("POSTGRES_DB", secretName, "database"),
+			helper.EnvVar("POSTGRES_HOST", "/var/run/postgresql"),
+			helper.EnvVar("POSTGRES_PORT", "5432"),
+			helper.EnvVarFromSecret("PGPASSWORD", secretName, "password"),
+			helper.EnvVar("PGPORT", "5432"),
+			helper.EnvVarFromSecret("PGDATABASE", secretName, "database"),
+			helper.EnvVar("PGHOST", "/var/run/postgresql"),
 		},
 		Resources:    db.Spec.Resources,
 		VolumeMounts: []corev1.VolumeMount{{Name: "data", MountPath: "/var/lib/postgresql/data"}},
@@ -165,15 +134,7 @@ func BuildPasswordSyncInitContainer(image string, imagePullPolicy corev1.PullPol
 		ImagePullPolicy: imagePullPolicy,
 		Command:         []string{"sh", "-c", assets.SingleDatabasePasswordSyncScript},
 		Env: []corev1.EnvVar{
-			{
-				Name: "PGPASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-						Key:                  "password",
-					},
-				},
-			},
+			helper.EnvVarFromSecret("PGPASSWORD", secretName, "password"),
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "data", MountPath: "/var/lib/postgresql/data"},
