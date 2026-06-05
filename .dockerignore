@@ -10,9 +10,6 @@
 !go.mod
 !go.sum
 
-# Re-include embedded proxy templates
-!internal/controller/proxy_templates/*.yaml
-
-# Re-include embedded SQL migrations and shell scripts
-!internal/controller/migrations/*.sql
-!internal/controller/scripts/*.sh
+# Re-include embedded files
+!internal/assets/migrations/*.sql
+!internal/assets/scripts/*.sh
