@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -77,6 +78,7 @@ type secretDefinition struct {
 type ProjectReconciler struct {
 	client.Client
 	Scheme          *runtime.Scheme
+	Recorder        events.EventRecorder
 	RequeueInterval time.Duration
 }
 

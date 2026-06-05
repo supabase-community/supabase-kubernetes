@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -55,7 +55,7 @@ const (
 type SingleDatabaseReconciler struct {
 	client.Client
 	Scheme          *runtime.Scheme
-	Recorder        record.EventRecorder
+	Recorder        events.EventRecorder
 	RequeueInterval time.Duration
 }
 
@@ -82,11 +82,11 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	r.Recorder.Eventf(singleDB, corev1.EventTypeNormal, "Reconciling", "Starting reconciliation of SingleDatabase %s", singleDB.Name)
+	r.Recorder.Eventf(singleDB, nil, corev1.EventTypeNormal, "Reconciling", "Reconciling", "Starting reconciliation of SingleDatabase %s", singleDB.Name)
 
 	if err := r.ensureSecret(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase secret")
-		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "SecretFailed", "Failed to ensure secret: %s", err.Error())
+		r.Recorder.Eventf(singleDB, nil, corev1.EventTypeWarning, "SecretFailed", "SecretCreationFailed", "Failed to ensure secret: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "SecretFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after secret failure")
@@ -96,7 +96,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensurePVC(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase pvc")
-		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "PVCFailed", "Failed to ensure PVC: %s", err.Error())
+		r.Recorder.Eventf(singleDB, nil, corev1.EventTypeWarning, "PVCFailed", "PVCCreationFailed", "Failed to ensure PVC: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "PVCFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after pvc failure")
@@ -106,7 +106,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureService(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase service")
-		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "ServiceFailed", "Failed to ensure service: %s", err.Error())
+		r.Recorder.Eventf(singleDB, nil, corev1.EventTypeWarning, "ServiceFailed", "ServiceCreationFailed", "Failed to ensure service: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "ServiceFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after service failure")
@@ -116,7 +116,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureStatefulSet(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure SingleDatabase statefulset")
-		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "StatefulSetFailed", "Failed to ensure StatefulSet: %s", err.Error())
+		r.Recorder.Eventf(singleDB, nil, corev1.EventTypeWarning, "StatefulSetFailed", "StatefulSetCreationFailed", "Failed to ensure StatefulSet: %s", err.Error())
 		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetFailed", err.Error())
 		if statusErr := r.Status().Update(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update SingleDatabase status after statefulset failure")
@@ -139,16 +139,16 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if stsReady {
 		r.setCondition(singleDB, metav1.ConditionTrue, "AllResourcesReady", "Secret, Service and StatefulSet are ready")
-		r.Recorder.Event(singleDB, corev1.EventTypeNormal, "Ready", "Database pod is ready and accepting connections")
+		r.Recorder.Eventf(singleDB, nil, corev1.EventTypeNormal, "Ready", "Ready", "Database pod is ready and accepting connections")
 	} else {
 		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetNotReady", "Waiting for database pod to become ready")
-		r.Recorder.Event(singleDB, corev1.EventTypeWarning, "StatefulSetNotReady", "Waiting for database pod to become ready")
+		r.Recorder.Eventf(singleDB, nil, corev1.EventTypeWarning, "StatefulSetNotReady", "StatefulSetNotReady", "Waiting for database pod to become ready")
 	}
 	singleDB.Status.Phase = r.determinePhase(singleDB)
 
 	if err := r.Status().Update(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to update SingleDatabase status")
-		r.Recorder.Eventf(singleDB, corev1.EventTypeWarning, "StatusUpdateFailed", "Failed to update status: %s", err.Error())
+		r.Recorder.Eventf(singleDB, nil, corev1.EventTypeWarning, "StatusUpdateFailed", "StatusUpdateFailed", "Failed to update status: %s", err.Error())
 		return ctrl.Result{}, err
 	}
 
@@ -680,9 +680,6 @@ func (r *SingleDatabaseReconciler) setCondition(
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// TODO: Remove nolint after upgrading controller-runtime to a version where GetEventRecorder returns record.EventRecorder
-	//nolint:staticcheck // GetEventRecorderFor is deprecated but GetEventRecorder returns a different type incompatible with record.EventRecorder in controller-runtime v0.23
-	r.Recorder = mgr.GetEventRecorderFor("singledatabase")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&supabasev1alpha1.SingleDatabase{}).
 		Owns(&corev1.Secret{}).

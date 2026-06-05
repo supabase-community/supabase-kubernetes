@@ -198,6 +198,7 @@ func main() {
 	if err := (&controller.ProjectReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("project"),
 		RequeueInterval: 5 * time.Second,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "Project")
@@ -206,17 +207,19 @@ func main() {
 	if err := (&controller.SingleDatabaseReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("singledatabase"),
 		RequeueInterval: 10 * time.Second,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "SingleDatabase")
+		setupLog.Error(err, "Failed to create controller", "controller", "SingleDatabase")
 		os.Exit(1)
 	}
 	if err := (&controller.MigrationReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("migration"),
 		RequeueInterval: 10 * time.Second,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Migration")
+		setupLog.Error(err, "Failed to create controller", "controller", "Migration")
 		os.Exit(1)
 	}
 

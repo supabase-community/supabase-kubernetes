@@ -93,6 +93,7 @@ var _ = BeforeSuite(func() {
 	err = (&ProjectReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("project"),
 		RequeueInterval: 100 * time.Millisecond,
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
@@ -100,6 +101,7 @@ var _ = BeforeSuite(func() {
 	err = (&SingleDatabaseReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("singledatabase"),
 		RequeueInterval: 100 * time.Millisecond,
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
@@ -107,6 +109,7 @@ var _ = BeforeSuite(func() {
 	err = (&MigrationReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("migration"),
 		RequeueInterval: 100 * time.Millisecond,
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())

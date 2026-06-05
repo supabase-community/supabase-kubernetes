@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,7 +51,7 @@ const (
 type MigrationReconciler struct {
 	client.Client
 	Scheme          *runtime.Scheme
-	Recorder        record.EventRecorder
+	Recorder        events.EventRecorder
 	RequeueInterval time.Duration
 }
 
@@ -94,12 +94,12 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	r.Recorder.Eventf(migration, corev1.EventTypeNormal, "Reconciling", "Starting reconciliation of Migration %s", migration.Name)
+	r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "Reconciling", "Reconciling", "Starting reconciliation of Migration %s", migration.Name)
 
 	db, dbReady, err := r.resolveDatabaseRef(ctx, migration)
 	if err != nil {
 		logger.Error(err, "Failed to resolve database reference")
-		r.Recorder.Eventf(migration, corev1.EventTypeWarning, "DatabaseResolutionFailed", "Failed to resolve database reference: %s", err.Error())
+		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "DatabaseResolutionFailed", "DatabaseResolutionFailed", "Failed to resolve database reference: %s", err.Error())
 		r.setCondition(migration, metav1.ConditionFalse, "DatabaseResolutionFailed", err.Error())
 		_ = r.updateStatus(ctx, migration)
 		return ctrl.Result{}, err
@@ -128,18 +128,18 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	configMapName := r.configMapName(migration.Name)
 	if err := r.ensureConfigMap(ctx, migration, configMapName, batchHash); err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap for migration", "configmap", configMapName)
-		r.Recorder.Eventf(migration, corev1.EventTypeWarning, "ConfigMapFailed", "Failed to ensure ConfigMap: %s", err.Error())
+		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "ConfigMapFailed", "ConfigMapCreationFailed", "Failed to ensure ConfigMap: %s", err.Error())
 		r.setCondition(migration, metav1.ConditionFalse, "ConfigMapFailed", fmt.Sprintf("Failed to create ConfigMap: %s", err.Error()))
 		_ = r.updateStatus(ctx, migration)
 		return ctrl.Result{}, err
 	}
-	r.Recorder.Eventf(migration, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMap %s ensured", configMapName)
+	r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMapCreated", "ConfigMap %s ensured", configMapName)
 
 	// Resolve migration image
 	image, err := r.resolveMigrationImage(migration)
 	if err != nil {
 		logger.Error(err, "Failed to resolve migration image")
-		r.Recorder.Eventf(migration, corev1.EventTypeWarning, "ImageResolutionFailed", "Failed to resolve migration image: %s", err.Error())
+		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "ImageResolutionFailed", "ImageResolutionFailed", "Failed to resolve migration image: %s", err.Error())
 		r.setCondition(migration, metav1.ConditionFalse, "ImageResolutionFailed", err.Error())
 		_ = r.updateStatus(ctx, migration)
 		return ctrl.Result{}, err
@@ -153,7 +153,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			logger.Error(err, "Failed to get migration job", "job", jobName)
-			r.Recorder.Eventf(migration, corev1.EventTypeWarning, "JobGetFailed", "Failed to get migration job: %s", err.Error())
+			r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "JobGetFailed", "JobGetFailed", "Failed to get migration job: %s", err.Error())
 			return ctrl.Result{}, err
 		}
 
@@ -165,12 +165,12 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		if err := r.Create(ctx, job); err != nil {
 			logger.Error(err, "Failed to create migration job", "job", jobName)
-			r.Recorder.Eventf(migration, corev1.EventTypeWarning, "JobCreationFailed", "Failed to create migration job: %s", err.Error())
+			r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "JobCreationFailed", "JobCreationFailed", "Failed to create migration job: %s", err.Error())
 			r.setCondition(migration, metav1.ConditionFalse, "JobCreationFailed", fmt.Sprintf("Failed to create job: %s", err.Error()))
 			_ = r.updateStatus(ctx, migration)
 			return ctrl.Result{}, err
 		}
-		r.Recorder.Eventf(migration, corev1.EventTypeNormal, "JobCreated", "Migration job %s created", jobName)
+		r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "JobCreated", "JobCreated", "Migration job %s created", jobName)
 
 		r.setCondition(migration, metav1.ConditionFalse, "Migrating", "Running migration batch")
 		_ = r.updateStatus(ctx, migration)
@@ -185,10 +185,10 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		now := metav1.Now()
 		migration.Status.AppliedAt = &now
 		r.setCondition(migration, metav1.ConditionTrue, "AllMigrationsApplied", "All migrations applied successfully")
-		r.Recorder.Eventf(migration, corev1.EventTypeNormal, "MigrationsApplied", "Migration batch applied successfully (hash: %s)", batchHash)
+		r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "MigrationsApplied", "MigrationsApplied", "Migration batch applied successfully (hash: %s)", batchHash)
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status after success")
-			r.Recorder.Eventf(migration, corev1.EventTypeWarning, "StatusUpdateFailed", "Failed to update status: %s", err.Error())
+			r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "StatusUpdateFailed", "StatusUpdateFailed", "Failed to update status: %s", err.Error())
 			return ctrl.Result{}, err
 		}
 		// Clean up resources on success
@@ -199,7 +199,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if job.Status.Failed > 0 {
 		logger.Info("Migration batch failed", "job", jobName, "hash", batchHash)
 		r.setCondition(migration, metav1.ConditionFalse, "MigrationFailed", "Migration batch failed")
-		r.Recorder.Eventf(migration, corev1.EventTypeWarning, "MigrationFailed", "Migration batch failed (job: %s)", jobName)
+		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "MigrationFailed", "MigrationFailed", "Migration batch failed (job: %s)", jobName)
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status after failure")
 			return ctrl.Result{}, err
@@ -261,13 +261,13 @@ func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration 
 		singleDB := &supabasev1alpha1.SingleDatabase{}
 		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: migration.Namespace}, singleDB); err != nil {
 			if apierrors.IsNotFound(err) {
-				r.Recorder.Eventf(migration, corev1.EventTypeWarning, "DatabaseNotFound", "SingleDatabase %q not found, waiting", ref.Name)
+				r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "DatabaseNotFound", "DatabaseNotFound", "SingleDatabase %q not found, waiting", ref.Name)
 				return nil, false, nil
 			}
 			return nil, false, fmt.Errorf("getting SingleDatabase %q: %w", ref.Name, err)
 		}
 		if !meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady) {
-			r.Recorder.Eventf(migration, corev1.EventTypeWarning, "DatabaseNotReady", "SingleDatabase %q is not ready, waiting", ref.Name)
+			r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "DatabaseNotReady", "DatabaseNotReady", "SingleDatabase %q is not ready, waiting", ref.Name)
 			return nil, false, nil
 		}
 		return &ResolvedMigrationDatabase{
@@ -454,9 +454,6 @@ func (r *MigrationReconciler) setCondition(
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MigrationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// TODO: Remove nolint after upgrading controller-runtime to a version where GetEventRecorder returns record.EventRecorder
-	//nolint:staticcheck // GetEventRecorderFor is deprecated but GetEventRecorder returns a different type incompatible with record.EventRecorder in controller-runtime v0.23
-	r.Recorder = mgr.GetEventRecorderFor("migration")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&supabasev1alpha1.Migration{}).
 		Owns(&batchv1.Job{}).
