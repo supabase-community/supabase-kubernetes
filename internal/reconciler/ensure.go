@@ -50,7 +50,7 @@ func EnsureResource(
 	c client.Client,
 	desired client.Object,
 	owner client.Object,
-	mutateFn func(existing client.Object, desired client.Object) error,
+	mutateFn func(existing, desired client.Object) error,
 ) (Result, error) {
 	logger := log.FromContext(ctx).WithValues(
 		"kind", fmt.Sprintf("%T", desired),
