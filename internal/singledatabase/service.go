@@ -60,7 +60,7 @@ func BuildService(db *supabasev1alpha1.SingleDatabase) *corev1.Service {
 			},
 			Ports: []corev1.ServicePort{
 				{
-					Name:       "postgres",
+					Name:       DefaultContainerPortName,
 					Protocol:   corev1.ProtocolTCP,
 					Port:       DefaultPort,
 					TargetPort: intstr.FromInt32(DefaultPort),
