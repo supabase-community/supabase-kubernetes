@@ -38,7 +38,6 @@ func BuildSecret(db *supabasev1alpha1.SingleDatabase, password string) *corev1.S
 			Labels:    DefaultLabels(db.Name),
 		},
 		Data: map[string][]byte{
-			DefaultSecretDatabaseKey: []byte(DefaultDatabase),
 			DefaultSecretPasswordKey: []byte(password),
 		},
 	}

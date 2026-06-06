@@ -82,7 +82,6 @@ var _ = Describe("SingleDatabase Controller", func() {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbName), Namespace: "default"}, secret)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 			Expect(secret.Data).To(HaveKey("password"))
-			Expect(secret.Data).To(HaveKey("database"))
 
 			By("Checking that PVC was created")
 			pvc := &corev1.PersistentVolumeClaim{}

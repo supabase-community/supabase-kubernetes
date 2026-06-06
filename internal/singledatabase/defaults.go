@@ -34,8 +34,6 @@ const (
 	DefaultContainerPortName = "postgres"
 	// DefaultDatabase is the default database to use on postgres.
 	DefaultDatabase = "postgres"
-	// DefaultSecretDatabaseKey is the Secret data key for the database name.
-	DefaultSecretDatabaseKey = "database"
 	// DefaultSecretPasswordKey is the Secret data key for the password.
 	DefaultSecretPasswordKey = "password"
 	// DefaultVolumeName is the name of the PostgreSQL data volume.
