@@ -35,8 +35,6 @@ type SingleDatabaseSpec struct {
 // SingleDatabaseStatus defines the observed state of SingleDatabase.
 type SingleDatabaseStatus struct {
 	// +optional
-	Phase string `json:"phase,omitempty"`
-	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// +optional
 	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
@@ -45,9 +43,7 @@ type SingleDatabaseStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=singledatabases,scope=Namespaced
-// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
-// +kubebuilder:printcolumn:name="Storage",type=string,JSONPath=`.status.storage`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // SingleDatabase is the Schema for the singledatabases API.

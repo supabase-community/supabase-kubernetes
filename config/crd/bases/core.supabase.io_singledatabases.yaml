@@ -15,14 +15,8 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.phase
-      name: Phase
-      type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
-      type: string
-    - jsonPath: .status.storage
-      name: Storage
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -2283,8 +2277,6 @@ spec:
                   - type
                   type: object
                 type: array
-              phase:
-                type: string
               resolvedDatabase:
                 description: ResolvedDatabase exposes resolved database connection
                   parameters.

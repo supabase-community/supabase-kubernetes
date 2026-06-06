@@ -121,7 +121,6 @@ var _ = Describe("SingleDatabase Controller", func() {
 			Eventually(func(g Gomega) {
 				db := &supabasev1alpha1.SingleDatabase{}
 				g.Expect(k8sClient.Get(ctx, dbKey, db)).To(Succeed())
-				g.Expect(db.Status.Phase).To(Equal("Ready"))
 				g.Expect(meta.IsStatusConditionTrue(db.Status.Conditions, ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 		})

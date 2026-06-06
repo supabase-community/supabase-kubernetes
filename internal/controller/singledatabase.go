@@ -149,7 +149,6 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
 		logger.Info("Waiting for StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", *sts.Spec.Replicas)
 		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetNotReady", "Waiting for StatefulSet pods to be ready")
-		singleDB.Status.Phase = "Pending"
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status while waiting for StatefulSet")
 		}
@@ -302,7 +301,6 @@ func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supa
 		},
 	}
 
-	singleDB.Status.Phase = "Ready"
 	r.setCondition(singleDB, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
 
 	return r.updateStatus(ctx, singleDB)
