@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	migpkg "github.com/supabase-community/supabase-kubernetes/internal/migration"
 )
 
 var _ = Describe("Migration Controller", func() {
@@ -184,7 +185,7 @@ var _ = Describe("Migration Controller", func() {
 			}
 			Expect(hashEnv).NotTo(BeNil())
 			Expect(hashEnv.Value).NotTo(BeEmpty())
-			expectedHash := calculateBatchHash(migration.Spec.Migrations)
+			expectedHash := migpkg.CalculateBatchHash(migration.Spec.Migrations)
 			Expect(hashEnv.Value).To(Equal(expectedHash))
 
 			By("Checking that exactly one ConfigMap was created")
@@ -263,7 +264,7 @@ var _ = Describe("Migration Controller", func() {
 			firstJob.Status.Succeeded = 1
 			Expect(k8sClient.Status().Update(ctx, firstJob)).To(Succeed())
 
-			expectedHash := calculateBatchHash(firstMigration.Spec.Migrations)
+			expectedHash := migpkg.CalculateBatchHash(firstMigration.Spec.Migrations)
 
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, migrationNamespacedName, firstMigration)).To(Succeed())
