@@ -26,6 +26,7 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
+	"github.com/supabase-community/supabase-kubernetes/internal/database"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
@@ -35,7 +36,7 @@ func JobName(migrationName string) string {
 }
 
 // BuildJob constructs the migration Job.
-func BuildJob(migration *supabasev1alpha1.Migration, db *ResolvedDatabase, image, batchHash string) *batchv1.Job {
+func BuildJob(migration *supabasev1alpha1.Migration, db *database.ResolvedDatabase, image, batchHash string) *batchv1.Job {
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 	configMapName := ConfigMapName(migration.Name)
@@ -44,8 +45,8 @@ func BuildJob(migration *supabasev1alpha1.Migration, db *ResolvedDatabase, image
 
 	env := make([]corev1.EnvVar, 0, 8+len(migration.Spec.Env))
 	env = append(env,
-		helper.EnvVarFromSecret("PGPASSWORD", db.SecretName, db.SecretKey),
-		helper.EnvVarFromSecret("POSTGRES_PASSWORD", db.SecretName, db.SecretKey),
+		helper.EnvVarFromSecret("PGPASSWORD", db.SecretName, db.SecretPasswordKey),
+		helper.EnvVarFromSecret("POSTGRES_PASSWORD", db.SecretName, db.SecretPasswordKey),
 		helper.EnvVar("PGHOST", db.Host),
 		helper.EnvVar("PGPORT", fmt.Sprintf("%d", db.Port)),
 		helper.EnvVar("PGUSER", db.User),

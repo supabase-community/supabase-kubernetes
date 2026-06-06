@@ -45,6 +45,7 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
+	"github.com/supabase-community/supabase-kubernetes/internal/database"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	projectpkg "github.com/supabase-community/supabase-kubernetes/internal/project"
@@ -62,14 +63,6 @@ const (
 
 	DefaultMigrationNameSuffix = "-migration"
 )
-
-// ResolvedDatabase holds the resolved connection parameters for a Project's database.
-type ResolvedDatabase struct {
-	Host        string
-	Port        int32
-	DBName      string
-	PasswordRef supabasev1alpha1.SecretKeyRef
-}
 
 type secretDefinition struct {
 	suffix    string
@@ -150,7 +143,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Host:        db.Host,
 		Port:        db.Port,
 		DBName:      db.DBName,
-		PasswordRef: db.PasswordRef,
+		PasswordRef: supabasev1alpha1.SecretKeyRef{Name: db.SecretName, Key: db.SecretPasswordKey},
 	}
 
 	migrationResult, err := r.ensureMigration(ctx, project)
@@ -397,31 +390,15 @@ func (r *ProjectReconciler) updateProjectStatus(ctx context.Context, project *su
 	})
 }
 
-func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *supabasev1alpha1.Project) (*ResolvedDatabase, error) {
-	ref := project.Spec.DatabaseRef
-
-	switch ref.Kind {
-	case "SingleDatabase":
-		singleDB := &supabasev1alpha1.SingleDatabase{}
-		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, singleDB); err != nil {
-			if apierrors.IsNotFound(err) {
-				return nil, fmt.Errorf("SingleDatabase %q not found", ref.Name)
-			}
-			return nil, fmt.Errorf("getting SingleDatabase %q: %w", ref.Name, err)
-		}
-		if !meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady) {
-			return nil, fmt.Errorf("SingleDatabase %q is not ready", ref.Name)
-		}
-		svcHost := fmt.Sprintf("%s.%s.svc.cluster.local", singleDB.Status.ServiceName, project.Namespace)
-		return &ResolvedDatabase{
-			Host:        svcHost,
-			Port:        5432,
-			DBName:      "postgres",
-			PasswordRef: supabasev1alpha1.SecretKeyRef{Name: singleDB.Status.SecretName, Key: "password"},
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported database kind %q", ref.Kind)
+func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *supabasev1alpha1.Project) (*database.ResolvedDatabase, error) {
+	db, ready, err := database.ResolveRef(ctx, r.Client, project.Spec.DatabaseRef, project.Namespace)
+	if err != nil {
+		return nil, err
 	}
+	if !ready {
+		return nil, fmt.Errorf("database reference %q is not ready", project.Spec.DatabaseRef.Name)
+	}
+	return db, nil
 }
 
 // keysOf returns the keys of a map as a string slice (for logging).

@@ -36,11 +36,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/database"
 	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	migpkg "github.com/supabase-community/supabase-kubernetes/internal/migration"
 )
-
-const kindSingleDatabase = "SingleDatabase"
 
 // MigrationReconciler reconciles a Migration object
 type MigrationReconciler struct {
@@ -238,34 +237,26 @@ func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *s
 	}
 }
 
-func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *supabasev1alpha1.Migration) (*migpkg.ResolvedDatabase, bool, error) {
-	ref := migration.Spec.DatabaseRef
-
-	switch ref.Kind {
-	case kindSingleDatabase:
+func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *supabasev1alpha1.Migration) (*database.ResolvedDatabase, bool, error) {
+	db, ready, err := database.ResolveRef(ctx, r.Client, migration.Spec.DatabaseRef, migration.Namespace)
+	if err != nil {
+		return nil, false, err
+	}
+	if !ready {
+		ref := migration.Spec.DatabaseRef
+		// Determine whether it is not-found or not-ready so we can emit the right event.
 		singleDB := &supabasev1alpha1.SingleDatabase{}
-		if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: migration.Namespace}, singleDB); err != nil {
-			if apierrors.IsNotFound(err) {
+		if getErr := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: migration.Namespace}, singleDB); getErr != nil {
+			if apierrors.IsNotFound(getErr) {
 				r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "DatabaseNotFound", "DatabaseNotFound", "SingleDatabase %q not found, waiting", ref.Name)
 				return nil, false, nil
 			}
-			return nil, false, fmt.Errorf("getting SingleDatabase %q: %w", ref.Name, err)
+			return nil, false, fmt.Errorf("getting SingleDatabase %q: %w", ref.Name, getErr)
 		}
-		if !meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady) {
-			r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "DatabaseNotReady", "DatabaseNotReady", "SingleDatabase %q is not ready, waiting", ref.Name)
-			return nil, false, nil
-		}
-		return &migpkg.ResolvedDatabase{
-			Host:       fmt.Sprintf("%s.%s.svc.cluster.local", singleDB.Status.ServiceName, migration.Namespace),
-			Port:       5432,
-			DBName:     "postgres",
-			User:       migpkg.DBUser,
-			SecretName: singleDB.Status.SecretName,
-			SecretKey:  "password",
-		}, true, nil
-	default:
-		return nil, false, fmt.Errorf("unsupported database kind %q", ref.Kind)
+		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "DatabaseNotReady", "DatabaseNotReady", "SingleDatabase %q is not ready, waiting", ref.Name)
+		return nil, false, nil
 	}
+	return db, true, nil
 }
 
 func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *supabasev1alpha1.Migration, name string, batchHash string) error {
