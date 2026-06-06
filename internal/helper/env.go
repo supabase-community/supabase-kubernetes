@@ -42,6 +42,19 @@ func EnvVarFromSecret(name, secretName, key string) corev1.EnvVar {
 	}
 }
 
+// EnvVarFromConfigMap creates an environment variable that reads its value from a ConfigMap key.
+func EnvVarFromConfigMap(name, configMapName, key string) corev1.EnvVar {
+	return corev1.EnvVar{
+		Name: name,
+		ValueFrom: &corev1.EnvVarSource{
+			ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
+				Key:                  key,
+			},
+		},
+	}
+}
+
 // SecretHash calculates a SHA-256 hash over all key-value pairs in a Secret's Data.
 // The keys are sorted to produce a deterministic hash regardless of map iteration order.
 func SecretHash(secret *corev1.Secret) string {

@@ -83,6 +83,15 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
+	if err := r.ensureConfigMap(ctx, singleDB); err != nil {
+		logger.Error(err, "Failed to ensure ConfigMap")
+		r.setCondition(singleDB, metav1.ConditionFalse, "ConfigMapFailed", err.Error())
+		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after ConfigMap failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	image, err := r.resolveDatabaseImage(singleDB)
 	if err != nil {
 		logger.Error(err, "Failed to resolve database image")
@@ -94,6 +103,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	secretName := singledatabase.SecretName(singleDB.Name)
+	configMapName := singledatabase.ConfigMapName(singleDB.Name)
 
 	if err := r.ensurePVC(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure PVC")
@@ -113,7 +123,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureStatefulSet(ctx, singleDB, image, secretName, secretHash); err != nil {
+	if err := r.ensureStatefulSet(ctx, singleDB, image, secretName, configMapName, secretHash); err != nil {
 		logger.Error(err, "Failed to ensure StatefulSet")
 		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
@@ -217,8 +227,22 @@ func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supaba
 	return err
 }
 
-func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, image, secretName, secretHash string) error {
-	sts := singledatabase.BuildStatefulSet(db, image, secretName, secretHash)
+func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
+	cm := singledatabase.BuildConfigMap(db)
+	mutateFn := func(existing, desired client.Object) error {
+		e := existing.(*corev1.ConfigMap)
+		d := desired.(*corev1.ConfigMap)
+		e.Data = d.Data
+		e.Labels = d.Labels
+		e.Annotations = d.Annotations
+		return nil
+	}
+	_, _, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateFn)
+	return err
+}
+
+func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, image, secretName, configMapName, secretHash string) error {
+	sts := singledatabase.BuildStatefulSet(db, image, secretName, configMapName, secretHash)
 	mutateFn := func(existing, desired client.Object) error {
 		e := existing.(*appsv1.StatefulSet)
 		d := desired.(*appsv1.StatefulSet)

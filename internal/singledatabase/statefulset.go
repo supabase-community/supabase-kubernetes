@@ -19,7 +19,6 @@ package singledatabase
 import (
 	"fmt"
 	"maps"
-	"strconv"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
@@ -35,10 +34,10 @@ func StatefulSetName(dbName string) string {
 }
 
 // BuildStatefulSet constructs the StatefulSet for a SingleDatabase.
-func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, secretHash string) *appsv1.StatefulSet {
+func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, configMapName, secretHash string) *appsv1.StatefulSet {
 	replicas := DefaultReplicas
 	labels, annotations := BuildLabelsAndAnnotations(db, secretHash)
-	container := BuildMainContainer(db, image, secretName)
+	container := BuildMainContainer(db, image, secretName, configMapName)
 	podSpec := BuildPodSpec(db, image, container)
 
 	return &appsv1.StatefulSet{
@@ -74,7 +73,7 @@ func BuildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, secretHash s
 	return labels, annotations
 }
 
-func BuildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName string) corev1.Container {
+func BuildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName, configMapName string) corev1.Container {
 	container := corev1.Container{
 		Name:            DefaultComponent,
 		Image:           image,
@@ -89,10 +88,10 @@ func BuildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName s
 		Env: []corev1.EnvVar{
 			helper.EnvVarFromSecret("POSTGRES_PASSWORD", secretName, DefaultSecretPasswordKey),
 			helper.EnvVarFromSecret("PGPASSWORD", secretName, DefaultSecretPasswordKey),
-			helper.EnvVar("POSTGRES_DB", DefaultDatabase),
-			helper.EnvVar("PGDATABASE", DefaultDatabase),
-			helper.EnvVar("POSTGRES_PORT", strconv.Itoa(int(DefaultPort))),
-			helper.EnvVar("PGPORT", strconv.Itoa(int(DefaultPort))),
+			helper.EnvVarFromConfigMap("POSTGRES_DB", configMapName, DefaultConfigMapKeyDatabase),
+			helper.EnvVarFromConfigMap("PGDATABASE", configMapName, DefaultConfigMapKeyDatabase),
+			helper.EnvVarFromConfigMap("POSTGRES_PORT", configMapName, DefaultConfigMapKeyPort),
+			helper.EnvVarFromConfigMap("PGPORT", configMapName, DefaultConfigMapKeyPort),
 			helper.EnvVar("POSTGRES_HOST", DefaultPostgresHost),
 			helper.EnvVar("PGHOST", DefaultPostgresHost),
 		},
