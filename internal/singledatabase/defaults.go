@@ -34,16 +34,14 @@ const (
 	DefaultContainerPortName = "postgres"
 	// DefaultDatabase is the default database to use on postgres.
 	DefaultDatabase = "postgres"
-	// DefaultSecretPasswordKey is the Secret data key for the password.
-	DefaultSecretPasswordKey = "password"
 	// DefaultVolumeName is the name of the PostgreSQL data volume.
 	DefaultVolumeName = "data"
 	// DefaultSecretHashAnnotation is the annotation key for the secret hash.
 	DefaultSecretHashAnnotation = "supabase.io/secret-hash"
 	// DefaultConfigMapHashAnnotation is the annotation key for the configmap hash.
 	DefaultConfigMapHashAnnotation = "supabase.io/configmap-hash"
-	// DefaultDatabaseUser is the default PostgreSQL user for pg_isready.
-	DefaultDatabaseUser = "postgres"
+	// DefaultDatabaseUser is the default PostgreSQL user.
+	DefaultDatabaseUser = "supabase_admin"
 	// DefaultPostgresHost is the default PostgreSQL host.
 	DefaultPostgresHost = "/var/run/postgresql"
 	// DefaultDataMountPath is the default mount path for PostgreSQL data.
@@ -70,6 +68,14 @@ const (
 	DefaultLivenessProbePeriodSeconds = int32(20)
 	// DefaultLivenessProbeFailureThreshold is the default failure threshold for the liveness probe.
 	DefaultLivenessProbeFailureThreshold = int32(3)
+	// DefaultSecretPasswordKey is the Secret data key for the password.
+	DefaultSecretPasswordKey = "password"
+	// DefaultConfigMapKeyPort is the ConfigMap data key for the PostgreSQL port.
+	DefaultConfigMapKeyPort = "port"
+	// DefaultConfigMapKeyDatabase is the ConfigMap data key for the database name.
+	DefaultConfigMapKeyDatabase = "database"
+	// DefaultConfigMapKeyUser is the ConfigMap data key for the database user.
+	DefaultConfigMapKeyUser = "user"
 )
 
 // DefaultLabels returns the standard labels for SingleDatabase resources.

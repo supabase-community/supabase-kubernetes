@@ -25,15 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	// DefaultConfigMapKeyPort is the ConfigMap data key for the PostgreSQL port.
-	DefaultConfigMapKeyPort = "port"
-	// DefaultConfigMapKeyDatabase is the ConfigMap data key for the database name.
-	DefaultConfigMapKeyDatabase = "database"
-	// DefaultConfigMapKeyUser is the ConfigMap data key for the database user.
-	DefaultConfigMapKeyUser = "user"
-)
-
 // ConfigMapName returns the name of the ConfigMap for a SingleDatabase.
 func ConfigMapName(dbName string) string {
 	return fmt.Sprintf("%s-db", dbName)
