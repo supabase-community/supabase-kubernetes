@@ -40,6 +40,8 @@ const (
 	DefaultVolumeName = "data"
 	// DefaultSecretHashAnnotation is the annotation key for the secret hash.
 	DefaultSecretHashAnnotation = "supabase.io/secret-hash"
+	// DefaultConfigMapHashAnnotation is the annotation key for the configmap hash.
+	DefaultConfigMapHashAnnotation = "supabase.io/configmap-hash"
 	// DefaultDatabaseUser is the default PostgreSQL user for pg_isready.
 	DefaultDatabaseUser = "postgres"
 	// DefaultPostgresHost is the default PostgreSQL host.

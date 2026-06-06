@@ -55,6 +55,24 @@ func EnvVarFromConfigMap(name, configMapName, key string) corev1.EnvVar {
 	}
 }
 
+// ConfigMapHash calculates a SHA-256 hash over all key-value pairs in a ConfigMap's Data.
+// The keys are sorted to produce a deterministic hash regardless of map iteration order.
+func ConfigMapHash(cm *corev1.ConfigMap) string {
+	h := sha256.New()
+	keys := make([]string, 0, len(cm.Data))
+	for k := range cm.Data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		h.Write([]byte(k))
+		h.Write([]byte("="))
+		h.Write([]byte(cm.Data[k]))
+		h.Write([]byte("\n"))
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 // SecretHash calculates a SHA-256 hash over all key-value pairs in a Secret's Data.
 // The keys are sorted to produce a deterministic hash regardless of map iteration order.
 func SecretHash(secret *corev1.Secret) string {

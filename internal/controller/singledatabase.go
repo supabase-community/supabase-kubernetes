@@ -83,7 +83,8 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureConfigMap(ctx, singleDB); err != nil {
+	configMapHash, err := r.ensureConfigMap(ctx, singleDB)
+	if err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap")
 		r.setCondition(singleDB, metav1.ConditionFalse, "ConfigMapFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
@@ -123,7 +124,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureStatefulSet(ctx, singleDB, image, secretName, configMapName, secretHash); err != nil {
+	if err := r.ensureStatefulSet(ctx, singleDB, image, secretName, configMapName, secretHash, configMapHash); err != nil {
 		logger.Error(err, "Failed to ensure StatefulSet")
 		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
@@ -189,10 +190,8 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 		return "", fmt.Errorf("ensuring secret: %w", err)
 	}
 
-	secret := obj.(*corev1.Secret)
-
 	r.Recorder.Eventf(db, nil, corev1.EventTypeNormal, "SecretCreated", "SecretCreated", "Created credentials Secret %s", singledatabase.SecretName(db.Name))
-	return helper.SecretHash(secret), nil
+	return helper.SecretHash(obj.(*corev1.Secret)), nil
 }
 
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
@@ -227,7 +226,7 @@ func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supaba
 	return err
 }
 
-func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
+func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (string, error) {
 	cm := singledatabase.BuildConfigMap(db)
 	mutateFn := func(existing, desired client.Object) error {
 		e := existing.(*corev1.ConfigMap)
@@ -237,12 +236,17 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 		e.Annotations = d.Annotations
 		return nil
 	}
-	_, _, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateFn)
-	return err
+	obj, _, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateFn)
+	if err != nil {
+		return "", fmt.Errorf("ensuring configmap: %w", err)
+	}
+
+	r.Recorder.Eventf(db, nil, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMapCreated", "Created config %s", singledatabase.ConfigMapName(db.Name))
+	return helper.ConfigMapHash(obj.(*corev1.ConfigMap)), nil
 }
 
-func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, image, secretName, configMapName, secretHash string) error {
-	sts := singledatabase.BuildStatefulSet(db, image, secretName, configMapName, secretHash)
+func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, image, secretName, configMapName, secretHash, configMapHash string) error {
+	sts := singledatabase.BuildStatefulSet(db, image, secretName, configMapName, secretHash, configMapHash)
 	mutateFn := func(existing, desired client.Object) error {
 		e := existing.(*appsv1.StatefulSet)
 		d := desired.(*appsv1.StatefulSet)
