@@ -238,7 +238,7 @@ func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabase
 func (r *Reconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
-		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
+		resolved = &supabasev1alpha1.ResolvedDatabase{}
 	}
 
 	projectKeysSecret := fmt.Sprintf("%s-keys", project.Name)

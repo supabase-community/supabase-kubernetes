@@ -123,8 +123,6 @@ var _ = Describe("SingleDatabase Controller", func() {
 				g.Expect(k8sClient.Get(ctx, dbKey, db)).To(Succeed())
 				g.Expect(db.Status.Phase).To(Equal("Ready"))
 				g.Expect(meta.IsStatusConditionTrue(db.Status.Conditions, ConditionTypeReady)).To(BeTrue())
-				g.Expect(db.Status.ServiceName).To(Equal(singledatabase.ServiceName(dbName)))
-				g.Expect(db.Status.SecretName).To(Equal(singledatabase.SecretName(dbName)))
 			}, timeout, interval).Should(Succeed())
 		})
 

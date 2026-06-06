@@ -20,31 +20,11 @@ import (
 	"context"
 	"fmt"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-const (
-	// DefaultPort is the default PostgreSQL port.
-	DefaultPort = int32(5432)
-	// DefaultDBName is the default PostgreSQL database name.
-	DefaultDBName = "postgres"
-	// DefaultSecretKey is the default secret key holding the database password.
-	DefaultSecretKey = "password"
-	// DefaultUser is the default database user.
-	DefaultUser = "supabase_admin"
-)
-
-// ResolvedDatabase holds resolved connection parameters for a DatabaseRef.
-type ResolvedDatabase struct {
-	Host              string
-	Port              int32
-	DBName            string
-	User              string
-	SecretName        string
-	SecretPasswordKey string
-}
 
 // ResolveRef resolves a DatabaseRef into connection parameters.
 // It returns the resolved database, a boolean indicating whether the database
@@ -56,11 +36,35 @@ func ResolveRef(
 	c client.Client,
 	ref supabasev1alpha1.DatabaseRef,
 	namespace string,
-) (*ResolvedDatabase, bool, error) {
+) (*supabasev1alpha1.ResolvedDatabase, bool, error) {
 	switch ref.Kind {
 	case "SingleDatabase":
 		return resolveSingleDatabase(ctx, c, ref, namespace)
 	default:
 		return nil, false, fmt.Errorf("unsupported database kind %q", ref.Kind)
 	}
+}
+
+func resolveSingleDatabase(
+	ctx context.Context,
+	c client.Client,
+	ref supabasev1alpha1.DatabaseRef,
+	namespace string,
+) (*supabasev1alpha1.ResolvedDatabase, bool, error) {
+	singleDB := &supabasev1alpha1.SingleDatabase{}
+	if err := c.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: namespace}, singleDB); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("getting SingleDatabase %q: %w", ref.Name, err)
+	}
+	if !meta.IsStatusConditionTrue(singleDB.Status.Conditions, "Ready") {
+		return nil, false, nil
+	}
+
+	if singleDB.Status.ResolvedDatabase == nil {
+		return nil, false, nil
+	}
+
+	return singleDB.Status.ResolvedDatabase, true, nil
 }

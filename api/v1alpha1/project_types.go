@@ -43,20 +43,12 @@ type ProjectSpec struct {
 	AuthRef *AuthRef `json:"authRef,omitempty"`
 }
 
-// ResolvedDatabaseStatus exposes resolved database connection parameters.
-type ResolvedDatabaseStatus struct {
-	Host        string       `json:"host"`
-	Port        int32        `json:"port"`
-	DBName      string       `json:"dbName"`
-	PasswordRef SecretKeyRef `json:"passwordRef"`
-}
-
 // ProjectStatus defines the observed state of a Supabase deployment.
 type ProjectStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// +optional
-	ResolvedDatabase *ResolvedDatabaseStatus `json:"resolvedDatabase,omitempty"`
+	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
 	// AppliedMigrationHash is the SHA-256 hash of the built-in migration batch that was successfully applied.
 	// +optional
 	AppliedMigrationHash string `json:"appliedMigrationHash,omitempty"`

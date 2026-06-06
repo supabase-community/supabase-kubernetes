@@ -37,13 +37,9 @@ type SingleDatabaseStatus struct {
 	// +optional
 	Phase string `json:"phase,omitempty"`
 	// +optional
-	Storage string `json:"storage,omitempty"`
-	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// +optional
-	ServiceName string `json:"serviceName,omitempty"`
-	// +optional
-	SecretName string `json:"secretName,omitempty"`
+	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
 }
 
 // +kubebuilder:object:root=true

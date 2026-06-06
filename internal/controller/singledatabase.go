@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -73,7 +74,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	r.Recorder.Eventf(singleDB, nil, corev1.EventTypeNormal, "Reconciling", "Reconciling", "Starting reconciliation of SingleDatabase %s", singleDB.Name)
 
-	secretHash, err := r.ensureSecret(ctx, singleDB)
+	secret, err := r.ensureSecret(ctx, singleDB)
 	if err != nil {
 		logger.Error(err, "Failed to ensure Secret")
 		r.setCondition(singleDB, metav1.ConditionFalse, "SecretFailed", err.Error())
@@ -83,7 +84,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	configMapHash, err := r.ensureConfigMap(ctx, singleDB)
+	configMap, err := r.ensureConfigMap(ctx, singleDB)
 	if err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap")
 		r.setCondition(singleDB, metav1.ConditionFalse, "ConfigMapFailed", err.Error())
@@ -105,6 +106,8 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	secretName := singledatabase.SecretName(singleDB.Name)
 	configMapName := singledatabase.ConfigMapName(singleDB.Name)
+	secretHash := helper.SecretHash(secret)
+	configMapHash := helper.ConfigMapHash(configMap)
 
 	if err := r.ensurePVC(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure PVC")
@@ -153,13 +156,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
-	singleDB.Status.Phase = "Ready"
-	singleDB.Status.ServiceName = singledatabase.ServiceName(singleDB.Name)
-	singleDB.Status.SecretName = secretName
-	singleDB.Status.Storage = r.resolveStorageStatus(singleDB)
-	r.setCondition(singleDB, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
-
-	if err := r.updateStatus(ctx, singleDB); err != nil {
+	if err := r.markReady(ctx, singleDB, configMap, secretName); err != nil {
 		logger.Error(err, "Failed to update SingleDatabase status")
 		return ctrl.Result{}, err
 	}
@@ -169,10 +166,10 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (string, error) {
+func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (*corev1.Secret, error) {
 	password, err := helper.GenerateRandomAlphanumeric(32)
 	if err != nil {
-		return "", fmt.Errorf("generating password: %w", err)
+		return nil, fmt.Errorf("generating password: %w", err)
 	}
 
 	desired := singledatabase.BuildSecret(db, password)
@@ -187,11 +184,11 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 	}
 	obj, _, err := reconciler.EnsureResource(ctx, r.Client, desired, db, mutateFn)
 	if err != nil {
-		return "", fmt.Errorf("ensuring secret: %w", err)
+		return nil, fmt.Errorf("ensuring secret: %w", err)
 	}
 
 	r.Recorder.Eventf(db, nil, corev1.EventTypeNormal, "SecretCreated", "SecretCreated", "Created credentials Secret %s", singledatabase.SecretName(db.Name))
-	return helper.SecretHash(obj.(*corev1.Secret)), nil
+	return obj.(*corev1.Secret), nil
 }
 
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
@@ -226,7 +223,7 @@ func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supaba
 	return err
 }
 
-func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (string, error) {
+func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (*corev1.ConfigMap, error) {
 	cm := singledatabase.BuildConfigMap(db)
 	mutateFn := func(existing, desired client.Object) error {
 		e := existing.(*corev1.ConfigMap)
@@ -238,11 +235,11 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 	}
 	obj, _, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateFn)
 	if err != nil {
-		return "", fmt.Errorf("ensuring configmap: %w", err)
+		return nil, fmt.Errorf("ensuring configmap: %w", err)
 	}
 
 	r.Recorder.Eventf(db, nil, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMapCreated", "Created config %s", singledatabase.ConfigMapName(db.Name))
-	return helper.ConfigMapHash(obj.(*corev1.ConfigMap)), nil
+	return obj.(*corev1.ConfigMap), nil
 }
 
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, image, secretName, configMapName, secretHash, configMapHash string) error {
@@ -264,16 +261,6 @@ func (r *SingleDatabaseReconciler) resolveDatabaseImage(db *supabasev1alpha1.Sin
 		return db.Spec.Image, nil
 	}
 	return images.Resolve(db.Spec.Version, images.ComponentDatabase)
-}
-
-func (r *SingleDatabaseReconciler) resolveStorageStatus(db *supabasev1alpha1.SingleDatabase) string {
-	if db.Spec.Storage.Resources.Requests != nil {
-		if val, ok := db.Spec.Storage.Resources.Requests[corev1.ResourceStorage]; ok {
-			return (&val).String()
-		}
-	}
-	val := singledatabase.DefaultStorageResources().Requests[corev1.ResourceStorage]
-	return (&val).String()
 }
 
 func (r *SingleDatabaseReconciler) setCondition(
@@ -300,6 +287,25 @@ func (r *SingleDatabaseReconciler) updateStatus(ctx context.Context, db *supabas
 		latest.Status = db.Status
 		return r.Status().Update(ctx, latest)
 	})
+}
+
+func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, configMap *corev1.ConfigMap, secretName string) error {
+	port, _ := strconv.Atoi(configMap.Data[singledatabase.DefaultConfigMapKeyPort])
+	singleDB.Status.ResolvedDatabase = &supabasev1alpha1.ResolvedDatabase{
+		Host:   fmt.Sprintf("%s.%s.svc.cluster.local", singledatabase.ServiceName(singleDB.Name), singleDB.Namespace),
+		Port:   int32(port),
+		DBName: configMap.Data[singledatabase.DefaultConfigMapKeyDatabase],
+		User:   configMap.Data[singledatabase.DefaultConfigMapKeyUser],
+		PasswordRef: supabasev1alpha1.SecretKeyRef{
+			Name: secretName,
+			Key:  singledatabase.DefaultSecretPasswordKey,
+		},
+	}
+
+	singleDB.Status.Phase = "Ready"
+	r.setCondition(singleDB, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
+
+	return r.updateStatus(ctx, singleDB)
 }
 
 // SetupWithManager sets up the controller with the Manager.

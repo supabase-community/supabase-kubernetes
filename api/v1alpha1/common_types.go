@@ -39,6 +39,15 @@ type SecretKeyRef struct {
 	Key string `json:"key"`
 }
 
+// ResolvedDatabase exposes resolved database connection parameters.
+type ResolvedDatabase struct {
+	Host        string       `json:"host"`
+	Port        int32        `json:"port"`
+	DBName      string       `json:"dbName"`
+	User        string       `json:"user,omitempty"`
+	PasswordRef SecretKeyRef `json:"passwordRef"`
+}
+
 // ComponentProbes defines custom probe overrides for a component.
 type ComponentProbes struct {
 	// +optional

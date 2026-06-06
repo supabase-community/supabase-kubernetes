@@ -2285,12 +2285,39 @@ spec:
                 type: array
               phase:
                 type: string
-              secretName:
-                type: string
-              serviceName:
-                type: string
-              storage:
-                type: string
+              resolvedDatabase:
+                description: ResolvedDatabase exposes resolved database connection
+                  parameters.
+                properties:
+                  dbName:
+                    type: string
+                  host:
+                    type: string
+                  passwordRef:
+                    description: SecretKeyRef is a reference to a specific key in
+                      a Kubernetes Secret.
+                    properties:
+                      key:
+                        minLength: 1
+                        type: string
+                      name:
+                        minLength: 1
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  port:
+                    format: int32
+                    type: integer
+                  user:
+                    type: string
+                required:
+                - dbName
+                - host
+                - passwordRef
+                - port
+                type: object
             type: object
         type: object
     served: true

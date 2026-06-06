@@ -214,7 +214,7 @@ spec:
                   type: object
                 type: array
               resolvedDatabase:
-                description: ResolvedDatabaseStatus exposes resolved database connection
+                description: ResolvedDatabase exposes resolved database connection
                   parameters.
                 properties:
                   dbName:
@@ -238,6 +238,8 @@ spec:
                   port:
                     format: int32
                     type: integer
+                  user:
+                    type: string
                 required:
                 - dbName
                 - host

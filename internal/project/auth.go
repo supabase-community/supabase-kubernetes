@@ -247,7 +247,7 @@ func (r *Reconciler) ensureAuthDeployment(ctx context.Context, project *supabase
 func (r *Reconciler) buildAuthContainer(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
-		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
+		resolved = &supabasev1alpha1.ResolvedDatabase{}
 	}
 
 	jwtExpiry := "3600"

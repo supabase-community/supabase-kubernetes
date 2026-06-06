@@ -139,12 +139,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	project.Status.ResolvedDatabase = &supabasev1alpha1.ResolvedDatabaseStatus{
-		Host:        db.Host,
-		Port:        db.Port,
-		DBName:      db.DBName,
-		PasswordRef: supabasev1alpha1.SecretKeyRef{Name: db.SecretName, Key: db.SecretPasswordKey},
-	}
+	project.Status.ResolvedDatabase = db
 
 	migrationResult, err := r.ensureMigration(ctx, project)
 	if err != nil {
@@ -390,7 +385,7 @@ func (r *ProjectReconciler) updateProjectStatus(ctx context.Context, project *su
 	})
 }
 
-func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *supabasev1alpha1.Project) (*database.ResolvedDatabase, error) {
+func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *supabasev1alpha1.Project) (*supabasev1alpha1.ResolvedDatabase, error) {
 	db, ready, err := database.ResolveRef(ctx, r.Client, project.Spec.DatabaseRef, project.Namespace)
 	if err != nil {
 		return nil, err

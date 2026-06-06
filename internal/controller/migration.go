@@ -237,7 +237,7 @@ func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *s
 	}
 }
 
-func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *supabasev1alpha1.Migration) (*database.ResolvedDatabase, bool, error) {
+func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration *supabasev1alpha1.Migration) (*supabasev1alpha1.ResolvedDatabase, bool, error) {
 	db, ready, err := database.ResolveRef(ctx, r.Client, migration.Spec.DatabaseRef, migration.Namespace)
 	if err != nil {
 		return nil, false, err
