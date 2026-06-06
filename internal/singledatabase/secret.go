@@ -19,10 +19,9 @@ package singledatabase
 import (
 	"fmt"
 
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 // SecretName returns the name of the credentials Secret for a SingleDatabase.
@@ -39,8 +38,8 @@ func BuildSecret(db *supabasev1alpha1.SingleDatabase, password string) *corev1.S
 			Labels:    DefaultLabels(db.Name),
 		},
 		Data: map[string][]byte{
-			"database": []byte(Database),
-			"password": []byte(password),
+			DefaultSecretDatabaseKey: []byte(DefaultDatabase),
+			DefaultSecretPasswordKey: []byte(password),
 		},
 	}
 }

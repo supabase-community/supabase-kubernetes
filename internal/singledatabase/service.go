@@ -20,11 +20,10 @@ import (
 	"fmt"
 	"maps"
 
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 // ServiceName returns the name of the Service for a SingleDatabase.
@@ -36,7 +35,7 @@ func ServiceName(dbName string) string {
 func BuildService(db *supabasev1alpha1.SingleDatabase) *corev1.Service {
 	labels := DefaultLabels(db.Name)
 	annotations := map[string]string{}
-	svcType := corev1.ServiceTypeClusterIP
+	svcType := DefaultServiceType
 	if db.Spec.Service != nil {
 		if db.Spec.Service.Type != "" {
 			svcType = db.Spec.Service.Type
@@ -55,16 +54,16 @@ func BuildService(db *supabasev1alpha1.SingleDatabase) *corev1.Service {
 		Spec: corev1.ServiceSpec{
 			Type: svcType,
 			Selector: map[string]string{
-				"app.kubernetes.io/name":      AppName,
+				"app.kubernetes.io/name":      DefaultAppName,
 				"app.kubernetes.io/instance":  db.Name,
-				"app.kubernetes.io/component": Component,
+				"app.kubernetes.io/component": DefaultComponent,
 			},
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "postgres",
 					Protocol:   corev1.ProtocolTCP,
-					Port:       Port,
-					TargetPort: intstr.FromInt32(Port),
+					Port:       DefaultPort,
+					TargetPort: intstr.FromInt32(DefaultPort),
 				},
 			},
 		},

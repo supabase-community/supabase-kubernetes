@@ -19,11 +19,9 @@ package singledatabase
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PVCName returns the name of the data PersistentVolumeClaim for a SingleDatabase.
@@ -50,7 +48,7 @@ func BuildPVC(db *supabasev1alpha1.SingleDatabase) *corev1.PersistentVolumeClaim
 // AccessModes returns the desired access modes, defaulting to ReadWriteOnce.
 func AccessModes(modes []corev1.PersistentVolumeAccessMode) []corev1.PersistentVolumeAccessMode {
 	if len(modes) == 0 {
-		return []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+		return []corev1.PersistentVolumeAccessMode{DefaultAccessMode}
 	}
 	return modes
 }
@@ -61,13 +59,4 @@ func StorageResources(db *supabasev1alpha1.SingleDatabase) corev1.VolumeResource
 		return db.Spec.Storage.Resources
 	}
 	return DefaultStorageResources()
-}
-
-// DefaultStorageResources returns the default storage resource requirements.
-func DefaultStorageResources() corev1.VolumeResourceRequirements {
-	return corev1.VolumeResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceStorage: resource.MustParse("10Gi"),
-		},
-	}
 }

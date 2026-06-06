@@ -19,14 +19,14 @@ package singledatabase
 import (
 	"fmt"
 	"maps"
-
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // StatefulSetName returns the name of the StatefulSet for a SingleDatabase.
@@ -36,7 +36,7 @@ func StatefulSetName(dbName string) string {
 
 // BuildStatefulSet constructs the StatefulSet for a SingleDatabase.
 func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, image, secretName, secretHash string) *appsv1.StatefulSet {
-	replicas := int32(1)
+	replicas := DefaultReplicas
 	labels, annotations := BuildLabelsAndAnnotations(db, secretHash)
 	container := BuildMainContainer(db, image, secretName)
 	podSpec := BuildPodSpec(db, image, container)
@@ -67,7 +67,7 @@ func BuildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, secretHash s
 	maps.Copy(labels, db.Spec.PodLabels)
 
 	annotations := map[string]string{
-		"supabase.io/secret-hash": secretHash,
+		DefaultSecretHashAnnotation: secretHash,
 	}
 	maps.Copy(annotations, db.Spec.PodAnnotations)
 
@@ -76,28 +76,28 @@ func BuildLabelsAndAnnotations(db *supabasev1alpha1.SingleDatabase, secretHash s
 
 func BuildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName string) corev1.Container {
 	container := corev1.Container{
-		Name:            Component,
+		Name:            DefaultComponent,
 		Image:           image,
 		ImagePullPolicy: db.Spec.ImagePullPolicy,
 		Ports: []corev1.ContainerPort{
 			{
-				Name:          "postgres",
-				ContainerPort: Port,
+				Name:          DefaultContainerPortName,
+				ContainerPort: DefaultPort,
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
 		Env: []corev1.EnvVar{
-			helper.EnvVarFromSecret("POSTGRES_PASSWORD", secretName, "password"),
-			helper.EnvVarFromSecret("POSTGRES_DB", secretName, "database"),
-			helper.EnvVar("POSTGRES_HOST", "/var/run/postgresql"),
-			helper.EnvVar("POSTGRES_PORT", "5432"),
-			helper.EnvVarFromSecret("PGPASSWORD", secretName, "password"),
-			helper.EnvVar("PGPORT", "5432"),
-			helper.EnvVarFromSecret("PGDATABASE", secretName, "database"),
-			helper.EnvVar("PGHOST", "/var/run/postgresql"),
+			helper.EnvVarFromSecret("POSTGRES_PASSWORD", secretName, DefaultSecretPasswordKey),
+			helper.EnvVarFromSecret("POSTGRES_DB", secretName, DefaultSecretDatabaseKey),
+			helper.EnvVar("POSTGRES_HOST", DefaultPostgresHost),
+			helper.EnvVar("POSTGRES_PORT", strconv.Itoa(int(DefaultPort))),
+			helper.EnvVarFromSecret("PGPASSWORD", secretName, DefaultSecretPasswordKey),
+			helper.EnvVar("PGPORT", strconv.Itoa(int(DefaultPort))),
+			helper.EnvVarFromSecret("PGDATABASE", secretName, DefaultSecretDatabaseKey),
+			helper.EnvVar("PGHOST", DefaultPostgresHost),
 		},
 		Resources:    db.Spec.Resources,
-		VolumeMounts: []corev1.VolumeMount{{Name: "data", MountPath: "/var/lib/postgresql/data"}},
+		VolumeMounts: []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultDataMountPath}},
 	}
 	container.Env = append(container.Env, db.Spec.Env...)
 
@@ -122,7 +122,7 @@ func BuildPodSpec(db *supabasev1alpha1.SingleDatabase, image string, mainContain
 		Containers:     []corev1.Container{mainContainer},
 		Volumes: []corev1.Volume{
 			{
-				Name: "data",
+				Name: DefaultVolumeName,
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 						ClaimName: PVCName(db.Name),
@@ -148,15 +148,15 @@ func BuildPodSpec(db *supabasev1alpha1.SingleDatabase, image string, mainContain
 // the PostgreSQL password on disk with the Secret value.
 func BuildPasswordSyncInitContainer(image string, imagePullPolicy corev1.PullPolicy, secretName string) corev1.Container {
 	return corev1.Container{
-		Name:            "password-sync",
+		Name:            DefaultInitContainerName,
 		Image:           image,
 		ImagePullPolicy: imagePullPolicy,
 		Command:         []string{"sh", "-c", assets.SingleDatabasePasswordSyncScript},
 		Env: []corev1.EnvVar{
-			helper.EnvVarFromSecret("PGPASSWORD", secretName, "password"),
+			helper.EnvVarFromSecret("PGPASSWORD", secretName, DefaultSecretPasswordKey),
 		},
 		VolumeMounts: []corev1.VolumeMount{
-			{Name: "data", MountPath: "/var/lib/postgresql/data"},
+			{Name: DefaultVolumeName, MountPath: DefaultDataMountPath},
 		},
 	}
 }
@@ -168,25 +168,5 @@ func BuildProbes(probes *supabasev1alpha1.ComponentProbes) (*corev1.Probe, *core
 		return probes.Startup, probes.Readiness, probes.Liveness
 	}
 
-	pgIsReady := &corev1.ExecAction{
-		Command: []string{"pg_isready", "-U", "postgres"},
-	}
-
-	startup := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
-		PeriodSeconds:    10,
-		FailureThreshold: 30,
-	}
-	readiness := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
-		PeriodSeconds:    10,
-		FailureThreshold: 3,
-	}
-	liveness := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
-		PeriodSeconds:    20,
-		FailureThreshold: 3,
-	}
-
-	return startup, readiness, liveness
+	return DefaultProbes()
 }
