@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,8 +31,13 @@ func SecretName(dbName string) string {
 }
 
 // BuildSecret constructs the credentials Secret for a SingleDatabase.
-func BuildSecret(db *supabasev1alpha1.SingleDatabase, password string) *corev1.Secret {
-	return &corev1.Secret{
+func BuildSecret(db *supabasev1alpha1.SingleDatabase) (*corev1.Secret, error) {
+	password, err := helper.GenerateRandomAlphanumeric(32)
+	if err != nil {
+		return nil, fmt.Errorf("generating password: %w", err)
+	}
+
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      SecretName(db.Name),
 			Namespace: db.Namespace,
@@ -41,4 +47,5 @@ func BuildSecret(db *supabasev1alpha1.SingleDatabase, password string) *corev1.S
 			DefaultSecretPasswordKey: []byte(password),
 		},
 	}
+	return secret, nil
 }

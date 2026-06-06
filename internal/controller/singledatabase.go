@@ -166,12 +166,11 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (*corev1.Secret, error) {
-	password, err := helper.GenerateRandomAlphanumeric(32)
+	desired, err := singledatabase.BuildSecret(db)
 	if err != nil {
-		return nil, fmt.Errorf("generating password: %w", err)
+		return nil, fmt.Errorf("building secret: %w", err)
 	}
 
-	desired := singledatabase.BuildSecret(db, password)
 	mutateFn := func(existing, desired client.Object) error {
 		e := existing.(*corev1.Secret)
 		d := desired.(*corev1.Secret)
