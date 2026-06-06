@@ -34,12 +34,10 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
-const (
-	ComponentAuth = "auth"
-	AuthPort      = 9999
-)
+const AuthPort = 9999
 
 func (r *ProjectReconciler) ensureAuth(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
@@ -87,7 +85,7 @@ func (r *ProjectReconciler) resolveAuthImage(auth *supabasev1alpha1.Auth, projec
 	if auth.Spec.Image != "" {
 		return auth.Spec.Image, nil
 	}
-	return ResolveComponentImage(project.Spec.Version, ComponentAuth)
+	return images.Resolve(project.Spec.Version, images.ComponentAuth)
 }
 
 func authResourceName(auth *supabasev1alpha1.Auth) string {

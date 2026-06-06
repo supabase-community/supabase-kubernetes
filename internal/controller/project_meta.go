@@ -33,9 +33,8 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
-
-const ComponentMeta = "meta"
 
 func (r *ProjectReconciler) ensureMeta(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
@@ -83,7 +82,7 @@ func (r *ProjectReconciler) resolveMetaImage(m *supabasev1alpha1.Meta, project *
 	if m.Spec.Image != "" {
 		return m.Spec.Image, nil
 	}
-	return ResolveComponentImage(project.Spec.Version, ComponentMeta)
+	return images.Resolve(project.Spec.Version, images.ComponentMeta)
 }
 
 func metaResourceName(m *supabasev1alpha1.Meta) string {

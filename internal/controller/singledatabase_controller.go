@@ -35,11 +35,10 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 	"github.com/supabase-community/supabase-kubernetes/internal/singledatabase"
 )
-
-const ComponentDatabase = "database"
 
 // SingleDatabaseReconciler reconciles a SingleDatabase object.
 type SingleDatabaseReconciler struct {
@@ -236,7 +235,7 @@ func (r *SingleDatabaseReconciler) resolveDatabaseImage(db *supabasev1alpha1.Sin
 	if db.Spec.Image != "" {
 		return db.Spec.Image, nil
 	}
-	return ResolveComponentImage(db.Spec.Version, ComponentDatabase)
+	return images.Resolve(db.Spec.Version, images.ComponentDatabase)
 }
 
 func (r *SingleDatabaseReconciler) resolveStorageStatus(db *supabasev1alpha1.SingleDatabase) string {

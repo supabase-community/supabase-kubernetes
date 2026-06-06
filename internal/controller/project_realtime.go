@@ -33,9 +33,8 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
-
-const ComponentRealtime = "realtime"
 
 func (r *ProjectReconciler) ensureRealtime(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
@@ -83,7 +82,7 @@ func (r *ProjectReconciler) resolveRealtimeImage(rt *supabasev1alpha1.Realtime, 
 	if rt.Spec.Image != "" {
 		return rt.Spec.Image, nil
 	}
-	return ResolveComponentImage(project.Spec.Version, ComponentRealtime)
+	return images.Resolve(project.Spec.Version, images.ComponentRealtime)
 }
 
 func realtimeResourceName(rt *supabasev1alpha1.Realtime) string {

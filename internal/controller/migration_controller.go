@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	migpkg "github.com/supabase-community/supabase-kubernetes/internal/migration"
 )
 
@@ -53,7 +54,7 @@ func (r *MigrationReconciler) resolveMigrationImage(migration *supabasev1alpha1.
 	if migration.Spec.Image != "" {
 		return migration.Spec.Image, nil
 	}
-	return ResolveComponentImage(migration.Spec.Version, "migration")
+	return images.Resolve(migration.Spec.Version, images.ComponentMigration)
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete

@@ -33,9 +33,8 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
-
-const ComponentRest = "rest"
 
 func (r *ProjectReconciler) ensureRest(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
@@ -83,7 +82,7 @@ func (r *ProjectReconciler) resolveRestImage(rest *supabasev1alpha1.Rest, projec
 	if rest.Spec.Image != "" {
 		return rest.Spec.Image, nil
 	}
-	return ResolveComponentImage(project.Spec.Version, ComponentRest)
+	return images.Resolve(project.Spec.Version, images.ComponentRest)
 }
 
 func restResourceName(rest *supabasev1alpha1.Rest) string {

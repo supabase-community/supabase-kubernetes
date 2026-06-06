@@ -44,6 +44,7 @@ import (
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
 const (
@@ -593,7 +594,7 @@ func (r *ProjectReconciler) buildJWTSettingsJob(project *supabasev1alpha1.Projec
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 
-	image, _ := ResolveComponentImage(project.Spec.Version, "migration")
+	image, _ := images.Resolve(project.Spec.Version, images.ComponentMigration)
 
 	env := []corev1.EnvVar{
 		helper.EnvVarFromSecret("PGPASSWORD", project.Status.ResolvedDatabase.PasswordRef.Name, project.Status.ResolvedDatabase.PasswordRef.Key),
@@ -720,7 +721,7 @@ func (r *ProjectReconciler) buildPasswordSyncJob(project *supabasev1alpha1.Proje
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 
-	image, _ := ResolveComponentImage(project.Spec.Version, "migration")
+	image, _ := images.Resolve(project.Spec.Version, images.ComponentMigration)
 
 	env := []corev1.EnvVar{
 		helper.EnvVar("PGPASSWORD", password),
