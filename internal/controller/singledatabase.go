@@ -168,10 +168,10 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 	mutateFn := func(existing, desired client.Object) error {
 		e := existing.(*corev1.Secret)
 		d := desired.(*corev1.Secret)
-		if _, ok := e.Data["password"]; ok {
+		if _, ok := e.Data[singledatabase.DefaultSecretPasswordKey]; ok {
 			return nil
 		}
-		e.Data["password"] = d.Data["password"]
+		e.Data[singledatabase.DefaultSecretPasswordKey] = d.Data[singledatabase.DefaultSecretPasswordKey]
 		return nil
 	}
 	obj, _, err := reconciler.EnsureResource(ctx, r.Client, desired, db, mutateFn)
