@@ -38,19 +38,19 @@ func BuildPVC(db *supabasev1alpha1.SingleDatabase) *corev1.PersistentVolumeClaim
 			Labels:    DefaultLabels(db.Name),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes:      AccessModes(db.Spec.Storage.AccessModes),
 			StorageClassName: db.Spec.Storage.StorageClassName,
+			AccessModes:      AccessModes(db),
 			Resources:        StorageResources(db),
 		},
 	}
 }
 
 // AccessModes returns the desired access modes, defaulting to ReadWriteOnce.
-func AccessModes(modes []corev1.PersistentVolumeAccessMode) []corev1.PersistentVolumeAccessMode {
-	if len(modes) == 0 {
-		return []corev1.PersistentVolumeAccessMode{DefaultAccessMode}
+func AccessModes(db *supabasev1alpha1.SingleDatabase) []corev1.PersistentVolumeAccessMode {
+	if len(db.Spec.Storage.AccessModes) > 0 {
+		return db.Spec.Storage.AccessModes
 	}
-	return modes
+	return DefaultStorageAccessModes()
 }
 
 // StorageResources returns the PVC resource requirements, defaulting to 10Gi.

@@ -23,4 +23,7 @@ const (
 	ComponentMigration = "migration"
 	ComponentRealtime  = "realtime"
 	ComponentRest      = "rest"
+
+	// DefaultVersion is the fallback version used when the requested version is not registered.
+	DefaultVersion = "2026.04.27"
 )

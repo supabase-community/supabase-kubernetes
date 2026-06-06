@@ -56,11 +56,7 @@ func (r *Reconciler) EnsureRest(ctx context.Context, project *supabasev1alpha1.P
 		return err
 	}
 
-	image, err := r.resolveRestImage(rest, project)
-	if err != nil {
-		r.setCondition(project, ConditionTypeRestReady, metav1.ConditionFalse, "VersionNotSupported", err.Error())
-		return err
-	}
+	image := r.resolveRestImage(rest, project)
 
 	if err := r.ensureRestService(ctx, project, rest); err != nil {
 		logger.Error(err, "Failed to ensure Rest Service")
@@ -79,9 +75,9 @@ func (r *Reconciler) EnsureRest(ctx context.Context, project *supabasev1alpha1.P
 	return nil
 }
 
-func (r *Reconciler) resolveRestImage(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) (string, error) {
+func (r *Reconciler) resolveRestImage(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) string {
 	if rest.Spec.Image != "" {
-		return rest.Spec.Image, nil
+		return rest.Spec.Image
 	}
 	return images.Resolve(project.Spec.Version, images.ComponentRest)
 }

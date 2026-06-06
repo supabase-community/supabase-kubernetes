@@ -33,31 +33,16 @@ func ServiceName(dbName string) string {
 
 // BuildService constructs the Service for a SingleDatabase.
 func BuildService(db *supabasev1alpha1.SingleDatabase) *corev1.Service {
-	labels := DefaultLabels(db.Name)
-	annotations := map[string]string{}
-	svcType := DefaultServiceType
-	if db.Spec.Service != nil {
-		if db.Spec.Service.Type != "" {
-			svcType = db.Spec.Service.Type
-		}
-		maps.Copy(annotations, db.Spec.Service.Annotations)
-		maps.Copy(labels, db.Spec.Service.Labels)
-	}
-
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        ServiceName(db.Name),
 			Namespace:   db.Namespace,
-			Labels:      labels,
-			Annotations: annotations,
+			Labels:      ServiceLabels(db),
+			Annotations: ServiceAnnotations(db),
 		},
 		Spec: corev1.ServiceSpec{
-			Type: svcType,
-			Selector: map[string]string{
-				"app.kubernetes.io/name":      DefaultAppName,
-				"app.kubernetes.io/instance":  db.Name,
-				"app.kubernetes.io/component": DefaultComponent,
-			},
+			Type:     ServiceType(db),
+			Selector: DefaultLabels(db.Name),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       DefaultContainerPortName,
@@ -68,4 +53,30 @@ func BuildService(db *supabasev1alpha1.SingleDatabase) *corev1.Service {
 			},
 		},
 	}
+}
+
+// ServiceType returns the Service type, defaulting when unset.
+func ServiceType(db *supabasev1alpha1.SingleDatabase) corev1.ServiceType {
+	if db.Spec.Service != nil && db.Spec.Service.Type != "" {
+		return db.Spec.Service.Type
+	}
+	return DefaultServiceType
+}
+
+// ServiceLabels returns default labels merged with user-provided service labels.
+func ServiceLabels(db *supabasev1alpha1.SingleDatabase) map[string]string {
+	labels := DefaultLabels(db.Name)
+	if db.Spec.Service != nil {
+		maps.Copy(labels, db.Spec.Service.Labels)
+	}
+	return labels
+}
+
+// ServiceAnnotations returns annotations merged with user-provided service annotations.
+func ServiceAnnotations(db *supabasev1alpha1.SingleDatabase) map[string]string {
+	annotations := map[string]string{}
+	if db.Spec.Service != nil {
+		maps.Copy(annotations, db.Spec.Service.Annotations)
+	}
+	return annotations
 }

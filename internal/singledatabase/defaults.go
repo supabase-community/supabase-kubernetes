@@ -19,6 +19,9 @@ package singledatabase
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
 const (
@@ -97,6 +100,11 @@ func DefaultStorageResources() corev1.VolumeResourceRequirements {
 	}
 }
 
+// DefaultStorageAccessModes returns the default storage access modes.
+func DefaultStorageAccessModes() []corev1.PersistentVolumeAccessMode {
+	return []corev1.PersistentVolumeAccessMode{DefaultAccessMode}
+}
+
 func pgIsReadyProbe() *corev1.ExecAction {
 	return &corev1.ExecAction{
 		Command: []string{"pg_isready", "-U", DefaultDatabaseUser},
@@ -128,4 +136,14 @@ func DefaultLivenessProbe() *corev1.Probe {
 		PeriodSeconds:    DefaultLivenessProbePeriodSeconds,
 		FailureThreshold: DefaultLivenessProbeFailureThreshold,
 	}
+}
+
+// ResolveImage returns the container image for a SingleDatabase.
+// If db.Spec.Image is set, it returns that value directly.
+// Otherwise, it resolves the image from the version/component registry.
+func ResolveImage(db *supabasev1alpha1.SingleDatabase) string {
+	if db.Spec.Image != "" {
+		return db.Spec.Image
+	}
+	return images.Resolve(db.Spec.Version, images.ComponentDatabase)
 }

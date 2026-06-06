@@ -16,8 +16,6 @@ limitations under the License.
 
 package images
 
-import "fmt"
-
 // images maps a Supabase version to component images.
 // Each version must explicitly declare all supported component images.
 var images = map[string]map[string]string{
@@ -32,15 +30,16 @@ var images = map[string]map[string]string{
 }
 
 // Resolve returns the container image for a given version and component.
-// If the version or component is not registered, it returns an error.
-func Resolve(version, component string) (string, error) {
+// If the version is not registered, it falls back to DefaultVersion.
+// If the component is not registered, it returns an empty string.
+func Resolve(version, component string) string {
 	components, ok := images[version]
 	if !ok {
-		return "", fmt.Errorf("version %q does not have a registered image for component %q", version, component)
+		components = images[DefaultVersion]
 	}
 	image, ok := components[component]
 	if !ok {
-		return "", fmt.Errorf("version %q does not have a registered image for component %q", version, component)
+		return ""
 	}
-	return image, nil
+	return image
 }

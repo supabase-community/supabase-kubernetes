@@ -56,11 +56,7 @@ func (r *Reconciler) EnsureRealtime(ctx context.Context, project *supabasev1alph
 		return err
 	}
 
-	image, err := r.resolveRealtimeImage(rt, project)
-	if err != nil {
-		r.setCondition(project, ConditionTypeRealtimeReady, metav1.ConditionFalse, "VersionNotSupported", err.Error())
-		return err
-	}
+	image := r.resolveRealtimeImage(rt, project)
 
 	if err := r.ensureRealtimeService(ctx, project, rt); err != nil {
 		logger.Error(err, "Failed to ensure Realtime Service")
@@ -79,9 +75,9 @@ func (r *Reconciler) EnsureRealtime(ctx context.Context, project *supabasev1alph
 	return nil
 }
 
-func (r *Reconciler) resolveRealtimeImage(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) (string, error) {
+func (r *Reconciler) resolveRealtimeImage(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) string {
 	if rt.Spec.Image != "" {
-		return rt.Spec.Image, nil
+		return rt.Spec.Image
 	}
 	return images.Resolve(project.Spec.Version, images.ComponentRealtime)
 }

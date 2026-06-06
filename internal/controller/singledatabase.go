@@ -36,7 +36,6 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 	"github.com/supabase-community/supabase-kubernetes/internal/singledatabase"
 )
@@ -94,18 +93,6 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	image, err := r.resolveDatabaseImage(singleDB)
-	if err != nil {
-		logger.Error(err, "Failed to resolve database image")
-		r.setCondition(singleDB, metav1.ConditionFalse, "ImageResolutionFailed", err.Error())
-		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after image resolution failure")
-		}
-		return ctrl.Result{}, err
-	}
-
-	secretName := singledatabase.SecretName(singleDB.Name)
-	configMapName := singledatabase.ConfigMapName(singleDB.Name)
 	secretHash := helper.SecretHash(secret)
 	configMapHash := helper.ConfigMapHash(configMap)
 
@@ -127,7 +114,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureStatefulSet(ctx, singleDB, image, secretName, configMapName, secretHash, configMapHash); err != nil {
+	if err := r.ensureStatefulSet(ctx, singleDB, secretHash, configMapHash); err != nil {
 		logger.Error(err, "Failed to ensure StatefulSet")
 		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
@@ -155,7 +142,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
-	if err := r.markReady(ctx, singleDB, configMap, secretName); err != nil {
+	if err := r.markReady(ctx, singleDB, configMap); err != nil {
 		logger.Error(err, "Failed to update SingleDatabase status")
 		return ctrl.Result{}, err
 	}
@@ -240,8 +227,8 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 	return obj.(*corev1.ConfigMap), nil
 }
 
-func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, image, secretName, configMapName, secretHash, configMapHash string) error {
-	sts := singledatabase.BuildStatefulSet(db, image, secretName, configMapName, secretHash, configMapHash)
+func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
+	sts := singledatabase.BuildStatefulSet(db, secretHash, configMapHash)
 	mutateFn := func(existing, desired client.Object) error {
 		e := existing.(*appsv1.StatefulSet)
 		d := desired.(*appsv1.StatefulSet)
@@ -252,13 +239,6 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *su
 	}
 	_, _, err := reconciler.EnsureResource(ctx, r.Client, sts, db, mutateFn)
 	return err
-}
-
-func (r *SingleDatabaseReconciler) resolveDatabaseImage(db *supabasev1alpha1.SingleDatabase) (string, error) {
-	if db.Spec.Image != "" {
-		return db.Spec.Image, nil
-	}
-	return images.Resolve(db.Spec.Version, images.ComponentDatabase)
 }
 
 func (r *SingleDatabaseReconciler) setCondition(
@@ -287,7 +267,7 @@ func (r *SingleDatabaseReconciler) updateStatus(ctx context.Context, db *supabas
 	})
 }
 
-func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, configMap *corev1.ConfigMap, secretName string) error {
+func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, configMap *corev1.ConfigMap) error {
 	port, _ := strconv.Atoi(configMap.Data[singledatabase.DefaultConfigMapKeyPort])
 	singleDB.Status.ResolvedDatabase = &supabasev1alpha1.ResolvedDatabase{
 		Host:   fmt.Sprintf("%s.%s.svc.cluster.local", singledatabase.ServiceName(singleDB.Name), singleDB.Namespace),
@@ -295,7 +275,7 @@ func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supa
 		DBName: configMap.Data[singledatabase.DefaultConfigMapKeyDatabase],
 		User:   configMap.Data[singledatabase.DefaultConfigMapKeyUser],
 		PasswordRef: supabasev1alpha1.SecretKeyRef{
-			Name: secretName,
+			Name: singledatabase.SecretName(singleDB.Name),
 			Key:  singledatabase.DefaultSecretPasswordKey,
 		},
 	}

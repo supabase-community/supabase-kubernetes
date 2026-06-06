@@ -56,11 +56,7 @@ func (r *Reconciler) EnsureMeta(ctx context.Context, project *supabasev1alpha1.P
 		return err
 	}
 
-	image, err := r.resolveMetaImage(m, project)
-	if err != nil {
-		r.setCondition(project, ConditionTypeMetaReady, metav1.ConditionFalse, "VersionNotSupported", err.Error())
-		return err
-	}
+	image := r.resolveMetaImage(m, project)
 
 	if err := r.ensureMetaService(ctx, project, m); err != nil {
 		logger.Error(err, "Failed to ensure Meta Service")
@@ -79,9 +75,9 @@ func (r *Reconciler) EnsureMeta(ctx context.Context, project *supabasev1alpha1.P
 	return nil
 }
 
-func (r *Reconciler) resolveMetaImage(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) (string, error) {
+func (r *Reconciler) resolveMetaImage(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) string {
 	if m.Spec.Image != "" {
-		return m.Spec.Image, nil
+		return m.Spec.Image
 	}
 	return images.Resolve(project.Spec.Version, images.ComponentMeta)
 }

@@ -57,11 +57,7 @@ func (r *Reconciler) EnsureAuth(ctx context.Context, project *supabasev1alpha1.P
 		return err
 	}
 
-	image, err := r.resolveAuthImage(auth, project)
-	if err != nil {
-		r.setCondition(project, ConditionTypeAuthReady, metav1.ConditionFalse, "VersionNotSupported", err.Error())
-		return err
-	}
+	image := r.resolveAuthImage(auth, project)
 
 	if err := r.ensureAuthService(ctx, project, auth); err != nil {
 		logger.Error(err, "Failed to ensure Auth Service")
@@ -80,9 +76,9 @@ func (r *Reconciler) EnsureAuth(ctx context.Context, project *supabasev1alpha1.P
 	return nil
 }
 
-func (r *Reconciler) resolveAuthImage(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project) (string, error) {
+func (r *Reconciler) resolveAuthImage(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project) string {
 	if auth.Spec.Image != "" {
-		return auth.Spec.Image, nil
+		return auth.Spec.Image
 	}
 	return images.Resolve(project.Spec.Version, images.ComponentAuth)
 }

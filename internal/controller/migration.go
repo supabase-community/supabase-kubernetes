@@ -49,9 +49,9 @@ type MigrationReconciler struct {
 	RequeueInterval time.Duration
 }
 
-func (r *MigrationReconciler) resolveMigrationImage(migration *supabasev1alpha1.Migration) (string, error) {
+func (r *MigrationReconciler) resolveMigrationImage(migration *supabasev1alpha1.Migration) string {
 	if migration.Spec.Image != "" {
-		return migration.Spec.Image, nil
+		return migration.Spec.Image
 	}
 	return images.Resolve(migration.Spec.Version, images.ComponentMigration)
 }
@@ -120,14 +120,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMapCreated", "ConfigMap %s ensured", configMapName)
 
 	// Resolve migration image
-	image, err := r.resolveMigrationImage(migration)
-	if err != nil {
-		logger.Error(err, "Failed to resolve migration image")
-		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "ImageResolutionFailed", "ImageResolutionFailed", "Failed to resolve migration image: %s", err.Error())
-		r.setCondition(migration, metav1.ConditionFalse, "ImageResolutionFailed", err.Error())
-		_ = r.updateStatus(ctx, migration)
-		return ctrl.Result{}, err
-	}
+	image := r.resolveMigrationImage(migration)
 
 	// Check if job exists
 	jobName := migpkg.JobName(migration.Name)
