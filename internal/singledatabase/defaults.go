@@ -91,27 +91,35 @@ func DefaultStorageResources() corev1.VolumeResourceRequirements {
 	}
 }
 
-// DefaultProbes returns the default startup, readiness and liveness probes for the database container.
-func DefaultProbes() (*corev1.Probe, *corev1.Probe, *corev1.Probe) {
-	pgIsReady := &corev1.ExecAction{
+func pgIsReadyProbe() *corev1.ExecAction {
+	return &corev1.ExecAction{
 		Command: []string{"pg_isready", "-U", DefaultDatabaseUser},
 	}
+}
 
-	startup := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
+// DefaultStartupProbe returns the default startup probe for the database container.
+func DefaultStartupProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReadyProbe()},
 		PeriodSeconds:    DefaultStartupProbePeriodSeconds,
 		FailureThreshold: DefaultStartupProbeFailureThreshold,
 	}
-	readiness := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
+}
+
+// DefaultReadinessProbe returns the default readiness probe for the database container.
+func DefaultReadinessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReadyProbe()},
 		PeriodSeconds:    DefaultReadinessProbePeriodSeconds,
 		FailureThreshold: DefaultReadinessProbeFailureThreshold,
 	}
-	liveness := &corev1.Probe{
-		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReady},
+}
+
+// DefaultLivenessProbe returns the default liveness probe for the database container.
+func DefaultLivenessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:     corev1.ProbeHandler{Exec: pgIsReadyProbe()},
 		PeriodSeconds:    DefaultLivenessProbePeriodSeconds,
 		FailureThreshold: DefaultLivenessProbeFailureThreshold,
 	}
-
-	return startup, readiness, liveness
 }

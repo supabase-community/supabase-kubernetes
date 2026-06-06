@@ -96,16 +96,17 @@ func BuildMainContainer(db *supabasev1alpha1.SingleDatabase, image, secretName s
 			helper.EnvVarFromSecret("PGDATABASE", secretName, DefaultSecretDatabaseKey),
 			helper.EnvVar("PGHOST", DefaultPostgresHost),
 		},
-		Resources:    db.Spec.Resources,
-		VolumeMounts: []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultDataMountPath}},
+		StartupProbe:   BuildStartupProbe(db.Spec.Probes),
+		ReadinessProbe: BuildReadinessProbe(db.Spec.Probes),
+		LivenessProbe:  BuildLivenessProbe(db.Spec.Probes),
+		Resources:      db.Spec.Resources,
+		VolumeMounts:   []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultDataMountPath}},
 	}
 	container.Env = append(container.Env, db.Spec.Env...)
 
 	if db.Spec.ContainerSecurityContext != nil {
 		container.SecurityContext = db.Spec.ContainerSecurityContext
 	}
-
-	container.StartupProbe, container.ReadinessProbe, container.LivenessProbe = BuildProbes(db.Spec.Probes)
 
 	return container
 }
@@ -161,12 +162,29 @@ func BuildPasswordSyncInitContainer(image string, imagePullPolicy corev1.PullPol
 	}
 }
 
-// BuildProbes returns the startup, readiness and liveness probes for the database container.
-// When probes is nil, default pg_isready probes are returned.
-func BuildProbes(probes *supabasev1alpha1.ComponentProbes) (*corev1.Probe, *corev1.Probe, *corev1.Probe) {
-	if probes != nil {
-		return probes.Startup, probes.Readiness, probes.Liveness
+// BuildStartupProbe returns the startup probe for the database container.
+// When probes is nil or probes.Startup is nil, a default pg_isready probe is returned.
+func BuildStartupProbe(probes *supabasev1alpha1.ComponentProbes) *corev1.Probe {
+	if probes != nil && probes.Startup != nil {
+		return probes.Startup
 	}
+	return DefaultStartupProbe()
+}
 
-	return DefaultProbes()
+// BuildReadinessProbe returns the readiness probe for the database container.
+// When probes is nil or probes.Readiness is nil, a default pg_isready probe is returned.
+func BuildReadinessProbe(probes *supabasev1alpha1.ComponentProbes) *corev1.Probe {
+	if probes != nil && probes.Readiness != nil {
+		return probes.Readiness
+	}
+	return DefaultReadinessProbe()
+}
+
+// BuildLivenessProbe returns the liveness probe for the database container.
+// When probes is nil or probes.Liveness is nil, a default pg_isready probe is returned.
+func BuildLivenessProbe(probes *supabasev1alpha1.ComponentProbes) *corev1.Probe {
+	if probes != nil && probes.Liveness != nil {
+		return probes.Liveness
+	}
+	return DefaultLivenessProbe()
 }
