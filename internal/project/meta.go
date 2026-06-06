@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package project
 
 import (
 	"context"
@@ -36,7 +36,8 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
-func (r *ProjectReconciler) ensureMeta(ctx context.Context, project *supabasev1alpha1.Project) error {
+// EnsureMeta reconciles the Meta Deployment and Service for a Project.
+func (r *Reconciler) EnsureMeta(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 	ref := project.Spec.MetaRef
 	if ref == nil {
@@ -44,7 +45,7 @@ func (r *ProjectReconciler) ensureMeta(ctx context.Context, project *supabasev1a
 	}
 
 	m := &supabasev1alpha1.Meta{}
-	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, m); err != nil {
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, m); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.setCondition(project, ConditionTypeMetaReady, metav1.ConditionFalse, "ComponentNotFound",
 				fmt.Sprintf("Meta %q not found", ref.Name))
@@ -78,7 +79,7 @@ func (r *ProjectReconciler) ensureMeta(ctx context.Context, project *supabasev1a
 	return nil
 }
 
-func (r *ProjectReconciler) resolveMetaImage(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) (string, error) {
+func (r *Reconciler) resolveMetaImage(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) (string, error) {
 	if m.Spec.Image != "" {
 		return m.Spec.Image, nil
 	}
@@ -89,7 +90,7 @@ func metaResourceName(m *supabasev1alpha1.Meta) string {
 	return m.Name + "-meta"
 }
 
-func (r *ProjectReconciler) ensureMetaService(ctx context.Context, project *supabasev1alpha1.Project, m *supabasev1alpha1.Meta) error {
+func (r *Reconciler) ensureMetaService(ctx context.Context, project *supabasev1alpha1.Project, m *supabasev1alpha1.Meta) error {
 	logger := log.FromContext(ctx).WithValues("service", metaResourceName(m))
 
 	svcSpec := m.Spec.Service
@@ -130,13 +131,13 @@ func (r *ProjectReconciler) ensureMetaService(ctx context.Context, project *supa
 	}
 
 	existing := &corev1.Service{}
-	err := r.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("getting service: %w", err)
 		}
 		logger.Info("Creating Service")
-		if err := r.Create(ctx, desired); err != nil {
+		if err := r.Client.Create(ctx, desired); err != nil {
 			return fmt.Errorf("creating service: %w", err)
 		}
 		logger.Info("Created Service")
@@ -149,14 +150,14 @@ func (r *ProjectReconciler) ensureMetaService(ctx context.Context, project *supa
 	existing.Annotations = desired.Annotations
 	existing.Labels = desired.Labels
 
-	if err := r.Update(ctx, existing); err != nil {
+	if err := r.Client.Update(ctx, existing); err != nil {
 		return fmt.Errorf("updating service: %w", err)
 	}
 	logger.V(1).Info("Updated Service")
 	return nil
 }
 
-func (r *ProjectReconciler) ensureMetaDeployment(ctx context.Context, project *supabasev1alpha1.Project, m *supabasev1alpha1.Meta, image string) error {
+func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabasev1alpha1.Project, m *supabasev1alpha1.Meta, image string) error {
 	logger := log.FromContext(ctx).WithValues("deployment", metaResourceName(m))
 
 	replicas := int32(1)
@@ -209,13 +210,13 @@ func (r *ProjectReconciler) ensureMetaDeployment(ctx context.Context, project *s
 	}
 
 	existing := &appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("getting deployment: %w", err)
 		}
 		logger.Info("Creating Deployment")
-		if err := r.Create(ctx, desired); err != nil {
+		if err := r.Client.Create(ctx, desired); err != nil {
 			return fmt.Errorf("creating deployment: %w", err)
 		}
 		logger.Info("Created Deployment")
@@ -227,14 +228,14 @@ func (r *ProjectReconciler) ensureMetaDeployment(ctx context.Context, project *s
 	existing.Spec.Template = desired.Spec.Template
 	existing.Labels = desired.Labels
 
-	if err := r.Update(ctx, existing); err != nil {
+	if err := r.Client.Update(ctx, existing); err != nil {
 		return fmt.Errorf("updating deployment: %w", err)
 	}
 	logger.V(1).Info("Updated Deployment")
 	return nil
 }
 
-func (r *ProjectReconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project, image string) corev1.Container {
+func (r *Reconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
 		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
@@ -283,7 +284,7 @@ func (r *ProjectReconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project
 	return container
 }
 
-func (r *ProjectReconciler) labelsForMeta(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) map[string]string {
+func (r *Reconciler) labelsForMeta(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "meta",
 		"app.kubernetes.io/instance":   m.Name,
@@ -293,7 +294,7 @@ func (r *ProjectReconciler) labelsForMeta(m *supabasev1alpha1.Meta, project *sup
 	}
 }
 
-func (r *ProjectReconciler) selectorLabelsForMeta(m *supabasev1alpha1.Meta) map[string]string {
+func (r *Reconciler) selectorLabelsForMeta(m *supabasev1alpha1.Meta) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "meta",
 		"app.kubernetes.io/instance": m.Name,

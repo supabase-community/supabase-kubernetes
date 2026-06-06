@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	projectpkg "github.com/supabase-community/supabase-kubernetes/internal/project"
 )
 
 //nolint:unparam // timeout is always the same in current test suite
@@ -520,8 +521,8 @@ var _ = Describe("Project Controller", func() {
 		It("should set component ready conditions on Project", func() {
 			project := &supabasev1alpha1.Project{}
 			Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
-			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeRestReady)).To(BeTrue())
-			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeAuthReady)).To(BeTrue())
+			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, projectpkg.ConditionTypeRestReady)).To(BeTrue())
+			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, projectpkg.ConditionTypeAuthReady)).To(BeTrue())
 		})
 	})
 
@@ -556,7 +557,7 @@ var _ = Describe("Project Controller", func() {
 			Eventually(func(g Gomega) {
 				project := &supabasev1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
-				cond := meta.FindStatusCondition(project.Status.Conditions, ConditionTypeRestReady)
+				cond := meta.FindStatusCondition(project.Status.Conditions, projectpkg.ConditionTypeRestReady)
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(cond.Reason).To(Equal("ComponentNotFound"))

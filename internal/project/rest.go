@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package project
 
 import (
 	"context"
@@ -36,7 +36,8 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
-func (r *ProjectReconciler) ensureRest(ctx context.Context, project *supabasev1alpha1.Project) error {
+// EnsureRest reconciles the Rest Deployment and Service for a Project.
+func (r *Reconciler) EnsureRest(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 	ref := project.Spec.RestRef
 	if ref == nil {
@@ -44,7 +45,7 @@ func (r *ProjectReconciler) ensureRest(ctx context.Context, project *supabasev1a
 	}
 
 	rest := &supabasev1alpha1.Rest{}
-	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, rest); err != nil {
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, rest); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.setCondition(project, ConditionTypeRestReady, metav1.ConditionFalse, "ComponentNotFound",
 				fmt.Sprintf("Rest %q not found", ref.Name))
@@ -78,7 +79,7 @@ func (r *ProjectReconciler) ensureRest(ctx context.Context, project *supabasev1a
 	return nil
 }
 
-func (r *ProjectReconciler) resolveRestImage(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) (string, error) {
+func (r *Reconciler) resolveRestImage(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) (string, error) {
 	if rest.Spec.Image != "" {
 		return rest.Spec.Image, nil
 	}
@@ -89,7 +90,7 @@ func restResourceName(rest *supabasev1alpha1.Rest) string {
 	return rest.Name + "-rest"
 }
 
-func (r *ProjectReconciler) ensureRestService(ctx context.Context, project *supabasev1alpha1.Project, rest *supabasev1alpha1.Rest) error {
+func (r *Reconciler) ensureRestService(ctx context.Context, project *supabasev1alpha1.Project, rest *supabasev1alpha1.Rest) error {
 	logger := log.FromContext(ctx).WithValues("service", restResourceName(rest))
 
 	svcSpec := rest.Spec.Service
@@ -130,13 +131,13 @@ func (r *ProjectReconciler) ensureRestService(ctx context.Context, project *supa
 	}
 
 	existing := &corev1.Service{}
-	err := r.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("getting service: %w", err)
 		}
 		logger.Info("Creating Service")
-		if err := r.Create(ctx, desired); err != nil {
+		if err := r.Client.Create(ctx, desired); err != nil {
 			return fmt.Errorf("creating service: %w", err)
 		}
 		logger.Info("Created Service")
@@ -149,14 +150,14 @@ func (r *ProjectReconciler) ensureRestService(ctx context.Context, project *supa
 	existing.Annotations = desired.Annotations
 	existing.Labels = desired.Labels
 
-	if err := r.Update(ctx, existing); err != nil {
+	if err := r.Client.Update(ctx, existing); err != nil {
 		return fmt.Errorf("updating service: %w", err)
 	}
 	logger.V(1).Info("Updated Service")
 	return nil
 }
 
-func (r *ProjectReconciler) ensureRestDeployment(ctx context.Context, project *supabasev1alpha1.Project, rest *supabasev1alpha1.Rest, image string) error {
+func (r *Reconciler) ensureRestDeployment(ctx context.Context, project *supabasev1alpha1.Project, rest *supabasev1alpha1.Rest, image string) error {
 	logger := log.FromContext(ctx).WithValues("deployment", restResourceName(rest))
 
 	replicas := int32(1)
@@ -209,13 +210,13 @@ func (r *ProjectReconciler) ensureRestDeployment(ctx context.Context, project *s
 	}
 
 	existing := &appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("getting deployment: %w", err)
 		}
 		logger.Info("Creating Deployment")
-		if err := r.Create(ctx, desired); err != nil {
+		if err := r.Client.Create(ctx, desired); err != nil {
 			return fmt.Errorf("creating deployment: %w", err)
 		}
 		logger.Info("Created Deployment")
@@ -227,14 +228,14 @@ func (r *ProjectReconciler) ensureRestDeployment(ctx context.Context, project *s
 	existing.Spec.Template = desired.Spec.Template
 	existing.Labels = desired.Labels
 
-	if err := r.Update(ctx, existing); err != nil {
+	if err := r.Client.Update(ctx, existing); err != nil {
 		return fmt.Errorf("updating deployment: %w", err)
 	}
 	logger.V(1).Info("Updated Deployment")
 	return nil
 }
 
-func (r *ProjectReconciler) buildRestContainer(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project, image string) corev1.Container {
+func (r *Reconciler) buildRestContainer(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
 		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
@@ -311,7 +312,7 @@ func (r *ProjectReconciler) buildRestContainer(rest *supabasev1alpha1.Rest, proj
 	return container
 }
 
-func (r *ProjectReconciler) labelsForRest(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) map[string]string {
+func (r *Reconciler) labelsForRest(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "rest",
 		"app.kubernetes.io/instance":   rest.Name,
@@ -321,7 +322,7 @@ func (r *ProjectReconciler) labelsForRest(rest *supabasev1alpha1.Rest, project *
 	}
 }
 
-func (r *ProjectReconciler) selectorLabelsForRest(rest *supabasev1alpha1.Rest) map[string]string {
+func (r *Reconciler) selectorLabelsForRest(rest *supabasev1alpha1.Rest) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "rest",
 		"app.kubernetes.io/instance": rest.Name,

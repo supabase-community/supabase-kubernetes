@@ -47,6 +47,7 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	"github.com/supabase-community/supabase-kubernetes/internal/images"
+	projectpkg "github.com/supabase-community/supabase-kubernetes/internal/project"
 )
 
 const (
@@ -58,10 +59,6 @@ const (
 	ConditionTypeMigrationReady    = "MigrationReady"
 	ConditionTypeJWTSettingsReady  = "JWTSettingsReady"
 	ConditionTypePasswordSyncReady = "PasswordSyncReady"
-	ConditionTypeRestReady         = "RestReady"
-	ConditionTypeAuthReady         = "AuthReady"
-	ConditionTypeMetaReady         = "MetaReady"
-	ConditionTypeRealtimeReady     = "RealtimeReady"
 
 	DefaultMigrationNameSuffix = "-migration"
 )
@@ -85,6 +82,15 @@ type ProjectReconciler struct {
 	Scheme          *runtime.Scheme
 	Recorder        events.EventRecorder
 	RequeueInterval time.Duration
+}
+
+// projectReconciler returns a project package reconciler backed by the same
+// client and scheme used by the controller reconciler.
+func (r *ProjectReconciler) projectReconciler() *projectpkg.Reconciler {
+	return &projectpkg.Reconciler{
+		Client: r.Client,
+		Scheme: r.Scheme,
+	}
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects,verbs=get;list;watch;create;update;patch;delete
@@ -214,7 +220,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	r.setCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionTrue, "PasswordSyncApplied", "Password sync applied successfully")
 
-	if err := r.ensureRest(ctx, project); err != nil {
+	if err := r.projectReconciler().EnsureRest(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Rest")
 		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "RestNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
@@ -223,7 +229,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureMeta(ctx, project); err != nil {
+	if err := r.projectReconciler().EnsureMeta(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Meta")
 		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "MetaNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
@@ -232,7 +238,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureRealtime(ctx, project); err != nil {
+	if err := r.projectReconciler().EnsureRealtime(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Realtime")
 		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "RealtimeNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
@@ -241,7 +247,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureAuth(ctx, project); err != nil {
+	if err := r.projectReconciler().EnsureAuth(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Auth")
 		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "AuthNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
@@ -432,7 +438,7 @@ func (r *ProjectReconciler) migrationName(project *supabasev1alpha1.Project, ind
 }
 
 func (r *ProjectReconciler) buildMigration(project *supabasev1alpha1.Project, index int, files []string) (*supabasev1alpha1.Migration, error) {
-	entries, err := LoadMigrationEntries(files)
+	entries, err := projectpkg.LoadMigrationEntries(files)
 	if err != nil {
 		return nil, fmt.Errorf("loading default migrations: %w", err)
 	}
@@ -454,7 +460,7 @@ func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *supaba
 
 	appliedHashes := []string{}
 
-	for i, batch := range defaultMigrations {
+	for i, batch := range projectpkg.DefaultMigrations {
 		migrationName := r.migrationName(project, i)
 		migrationLogger := logger.WithValues("migration", migrationName)
 

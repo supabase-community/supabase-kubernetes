@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package project
 
 import (
 	"context"
@@ -36,7 +36,8 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
-func (r *ProjectReconciler) ensureRealtime(ctx context.Context, project *supabasev1alpha1.Project) error {
+// EnsureRealtime reconciles the Realtime Deployment and Service for a Project.
+func (r *Reconciler) EnsureRealtime(ctx context.Context, project *supabasev1alpha1.Project) error {
 	logger := log.FromContext(ctx)
 	ref := project.Spec.RealtimeRef
 	if ref == nil {
@@ -44,7 +45,7 @@ func (r *ProjectReconciler) ensureRealtime(ctx context.Context, project *supabas
 	}
 
 	rt := &supabasev1alpha1.Realtime{}
-	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, rt); err != nil {
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, rt); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.setCondition(project, ConditionTypeRealtimeReady, metav1.ConditionFalse, "ComponentNotFound",
 				fmt.Sprintf("Realtime %q not found", ref.Name))
@@ -78,7 +79,7 @@ func (r *ProjectReconciler) ensureRealtime(ctx context.Context, project *supabas
 	return nil
 }
 
-func (r *ProjectReconciler) resolveRealtimeImage(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) (string, error) {
+func (r *Reconciler) resolveRealtimeImage(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) (string, error) {
 	if rt.Spec.Image != "" {
 		return rt.Spec.Image, nil
 	}
@@ -89,7 +90,7 @@ func realtimeResourceName(rt *supabasev1alpha1.Realtime) string {
 	return rt.Name + "-realtime"
 }
 
-func (r *ProjectReconciler) ensureRealtimeService(ctx context.Context, project *supabasev1alpha1.Project, rt *supabasev1alpha1.Realtime) error {
+func (r *Reconciler) ensureRealtimeService(ctx context.Context, project *supabasev1alpha1.Project, rt *supabasev1alpha1.Realtime) error {
 	logger := log.FromContext(ctx).WithValues("service", realtimeResourceName(rt))
 
 	svcSpec := rt.Spec.Service
@@ -130,13 +131,13 @@ func (r *ProjectReconciler) ensureRealtimeService(ctx context.Context, project *
 	}
 
 	existing := &corev1.Service{}
-	err := r.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("getting service: %w", err)
 		}
 		logger.Info("Creating Service")
-		if err := r.Create(ctx, desired); err != nil {
+		if err := r.Client.Create(ctx, desired); err != nil {
 			return fmt.Errorf("creating service: %w", err)
 		}
 		logger.Info("Created Service")
@@ -149,14 +150,14 @@ func (r *ProjectReconciler) ensureRealtimeService(ctx context.Context, project *
 	existing.Annotations = desired.Annotations
 	existing.Labels = desired.Labels
 
-	if err := r.Update(ctx, existing); err != nil {
+	if err := r.Client.Update(ctx, existing); err != nil {
 		return fmt.Errorf("updating service: %w", err)
 	}
 	logger.V(1).Info("Updated Service")
 	return nil
 }
 
-func (r *ProjectReconciler) ensureRealtimeDeployment(ctx context.Context, project *supabasev1alpha1.Project, rt *supabasev1alpha1.Realtime, image string) error {
+func (r *Reconciler) ensureRealtimeDeployment(ctx context.Context, project *supabasev1alpha1.Project, rt *supabasev1alpha1.Realtime, image string) error {
 	logger := log.FromContext(ctx).WithValues("deployment", realtimeResourceName(rt))
 
 	replicas := int32(1)
@@ -209,13 +210,13 @@ func (r *ProjectReconciler) ensureRealtimeDeployment(ctx context.Context, projec
 	}
 
 	existing := &appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("getting deployment: %w", err)
 		}
 		logger.Info("Creating Deployment")
-		if err := r.Create(ctx, desired); err != nil {
+		if err := r.Client.Create(ctx, desired); err != nil {
 			return fmt.Errorf("creating deployment: %w", err)
 		}
 		logger.Info("Created Deployment")
@@ -227,14 +228,14 @@ func (r *ProjectReconciler) ensureRealtimeDeployment(ctx context.Context, projec
 	existing.Spec.Template = desired.Spec.Template
 	existing.Labels = desired.Labels
 
-	if err := r.Update(ctx, existing); err != nil {
+	if err := r.Client.Update(ctx, existing); err != nil {
 		return fmt.Errorf("updating deployment: %w", err)
 	}
 	logger.V(1).Info("Updated Deployment")
 	return nil
 }
 
-func (r *ProjectReconciler) buildRealtimeContainer(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project, image string) corev1.Container {
+func (r *Reconciler) buildRealtimeContainer(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project, image string) corev1.Container {
 	resolved := project.Status.ResolvedDatabase
 	if resolved == nil {
 		resolved = &supabasev1alpha1.ResolvedDatabaseStatus{}
@@ -295,7 +296,7 @@ func (r *ProjectReconciler) buildRealtimeContainer(rt *supabasev1alpha1.Realtime
 	return container
 }
 
-func (r *ProjectReconciler) labelsForRealtime(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) map[string]string {
+func (r *Reconciler) labelsForRealtime(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "realtime",
 		"app.kubernetes.io/instance":   rt.Name,
@@ -305,7 +306,7 @@ func (r *ProjectReconciler) labelsForRealtime(rt *supabasev1alpha1.Realtime, pro
 	}
 }
 
-func (r *ProjectReconciler) selectorLabelsForRealtime(rt *supabasev1alpha1.Realtime) map[string]string {
+func (r *Reconciler) selectorLabelsForRealtime(rt *supabasev1alpha1.Realtime) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "realtime",
 		"app.kubernetes.io/instance": rt.Name,

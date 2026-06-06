@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package project
 
 import (
 	"fmt"
@@ -23,9 +23,9 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 )
 
-// defaultMigrations is the ordered list of built-in migration batches.
+// DefaultMigrations is the ordered list of built-in migration batches.
 // Each batch is a list of embedded SQL file paths in apply order.
-var defaultMigrations = [][]string{
+var DefaultMigrations = [][]string{
 	{
 		"migrations/supabase.sql",
 		"migrations/webhooks.sql",
