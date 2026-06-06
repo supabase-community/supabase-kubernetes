@@ -18,7 +18,9 @@ package controller
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"maps"
 	"strconv"
@@ -74,7 +76,7 @@ type ResolvedDatabase struct {
 
 type secretDefinition struct {
 	suffix    string
-	generator func() (SecretData, error)
+	generator func() (map[string][]byte, error)
 }
 
 // ProjectReconciler reconciles a Project object.
@@ -265,11 +267,11 @@ func (r *ProjectReconciler) secretDefinitions(project *supabasev1alpha1.Project)
 	return []secretDefinition{
 		{
 			suffix: "jwt",
-			generator: func() (SecretData, error) {
+			generator: func() (map[string][]byte, error) {
 				return GenerateJWTSecretData(time.Now(), DefaultJWTExpiry)
 			},
 		},
-		{suffix: "keys", generator: func() (SecretData, error) { return GenerateKeysSecretData() }},
+		{suffix: "keys", generator: func() (map[string][]byte, error) { return GenerateKeysSecretData() }},
 	}
 }
 
@@ -289,7 +291,7 @@ func (r *ProjectReconciler) ensureSecret(
 	ctx context.Context,
 	owner *supabasev1alpha1.Project,
 	name string,
-	generator func() (SecretData, error),
+	generator func() (map[string][]byte, error),
 ) error {
 	logger := log.FromContext(ctx).WithValues("secret", name)
 
@@ -911,4 +913,109 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Named("project").
 		Complete(r)
+}
+
+// GenerateJWTSecretData generates all key material for the JWT secret (9 keys).
+func GenerateJWTSecretData(now time.Time, jwtExpiry time.Duration) (map[string][]byte, error) {
+	jwtSecretBytes := make([]byte, 30)
+	if _, err := rand.Read(jwtSecretBytes); err != nil {
+		return nil, fmt.Errorf("generating jwt-secret bytes: %w", err)
+	}
+	jwtSecret := base64.StdEncoding.EncodeToString(jwtSecretBytes)
+
+	anonKey, err := helper.GenerateJWTToken(jwtSecret, "anon", now, jwtExpiry)
+	if err != nil {
+		return nil, fmt.Errorf("generating anon-key: %w", err)
+	}
+
+	serviceKey, err := helper.GenerateJWTToken(jwtSecret, "service_role", now, jwtExpiry)
+	if err != nil {
+		return nil, fmt.Errorf("generating service-key: %w", err)
+	}
+
+	ecKey, err := helper.GenerateECP256Keypair()
+	if err != nil {
+		return nil, fmt.Errorf("generating EC P-256 keypair: %w", err)
+	}
+
+	kid, err := helper.GenerateRandomHex(16)
+	if err != nil {
+		return nil, fmt.Errorf("generating kid: %w", err)
+	}
+
+	ecPrivateJWK := helper.ECPrivateKeyToJWK(ecKey, kid)
+	ecPublicJWK := helper.ECPublicKeyToJWK(ecKey, kid)
+	octJWK := helper.SymmetricKeyToJWK(jwtSecret)
+
+	jwtKeys, err := helper.BuildJWTKeys(ecPrivateJWK, octJWK)
+	if err != nil {
+		return nil, fmt.Errorf("building jwt-keys: %w", err)
+	}
+
+	jwtJWKS, err := helper.BuildJWTJWKS(ecPublicJWK, octJWK)
+	if err != nil {
+		return nil, fmt.Errorf("building jwt-jwks: %w", err)
+	}
+
+	anonKeyAsym, err := helper.SignES256JWT(ecKey, kid, "anon", now, jwtExpiry)
+	if err != nil {
+		return nil, fmt.Errorf("generating anon-key-asymmetric: %w", err)
+	}
+
+	serviceKeyAsym, err := helper.SignES256JWT(ecKey, kid, "service_role", now, jwtExpiry)
+	if err != nil {
+		return nil, fmt.Errorf("generating service-key-asymmetric: %w", err)
+	}
+
+	publishableKey, err := helper.GenerateOpaqueKey("sb_publishable_")
+	if err != nil {
+		return nil, fmt.Errorf("generating publishable-key: %w", err)
+	}
+
+	secretKey, err := helper.GenerateOpaqueKey("sb_secret_")
+	if err != nil {
+		return nil, fmt.Errorf("generating secret-key: %w", err)
+	}
+
+	return map[string][]byte{
+		"jwt-secret":             []byte(jwtSecret),
+		"anon-key":               []byte(anonKey),
+		"service-key":            []byte(serviceKey),
+		"jwt-keys":               []byte(jwtKeys),
+		"jwt-jwks":               []byte(jwtJWKS),
+		"anon-key-asymmetric":    []byte(anonKeyAsym),
+		"service-key-asymmetric": []byte(serviceKeyAsym),
+		"publishable-key":        []byte(publishableKey),
+		"secret-key":             []byte(secretKey),
+	}, nil
+}
+
+// GenerateKeysSecretData generates the shared keys secret data.
+func GenerateKeysSecretData() (map[string][]byte, error) {
+	secretKeyBase, err := helper.GenerateRandomHex(64)
+	if err != nil {
+		return nil, fmt.Errorf("generating secret-key-base: %w", err)
+	}
+
+	cryptoKey, err := helper.GenerateRandomHex(32)
+	if err != nil {
+		return nil, fmt.Errorf("generating crypto-key: %w", err)
+	}
+
+	vaultEncKey, err := helper.GenerateRandomHex(16)
+	if err != nil {
+		return nil, fmt.Errorf("generating vault-enc-key: %w", err)
+	}
+
+	encoded, err := helper.GenerateSAMLPrivateKey()
+	if err != nil {
+		return nil, fmt.Errorf("generating saml-private-key: %w", err)
+	}
+
+	return map[string][]byte{
+		"secret-key-base":  []byte(secretKeyBase),
+		"crypto-key":       []byte(cryptoKey),
+		"vault-enc-key":    []byte(vaultEncKey),
+		"saml-private-key": []byte(encoded),
+	}, nil
 }

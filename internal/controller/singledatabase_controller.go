@@ -159,7 +159,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (string, error) {
-	password, err := GenerateRandomAlphanumeric(32)
+	password, err := helper.GenerateRandomAlphanumeric(32)
 	if err != nil {
 		return "", fmt.Errorf("generating password: %w", err)
 	}
