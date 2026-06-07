@@ -51,7 +51,7 @@ func EnsureResource[T client.Object](
 	desired T,
 	owner client.Object,
 	mutateFn func(existing, desired T) error,
-) (T, Result, error) {
+) (Result, error) {
 	logger := log.FromContext(ctx).WithValues(
 		"kind", fmt.Sprintf("%T", desired),
 		"name", desired.GetName(),
@@ -60,8 +60,7 @@ func EnsureResource[T client.Object](
 
 	if owner != nil {
 		if err := controllerutil.SetControllerReference(owner, desired, c.Scheme()); err != nil {
-			var zero T
-			return zero, "", fmt.Errorf("setting owner reference: %w", err)
+			return "", fmt.Errorf("setting owner reference: %w", err)
 		}
 	}
 
@@ -73,19 +72,18 @@ func EnsureResource[T client.Object](
 		return mutateFn(desired, original)
 	})
 	if err != nil {
-		var zero T
-		return zero, "", err
+		return "", err
 	}
 
 	switch result {
 	case controllerutil.OperationResultCreated:
 		logger.Info("Created resource")
-		return desired, ResultCreated, nil
+		return ResultCreated, nil
 	case controllerutil.OperationResultUpdated:
 		logger.V(1).Info("Updated resource")
-		return desired, ResultUpdated, nil
+		return ResultUpdated, nil
 	default:
 		logger.V(1).Info("Resource unchanged")
-		return desired, ResultUnchanged, nil
+		return ResultUnchanged, nil
 	}
 }

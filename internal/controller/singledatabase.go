@@ -84,8 +84,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	secret, err := r.ensureSecret(ctx, singleDB)
-	if err != nil {
+	if err := r.ensureSecret(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure Secret")
 		r.setCondition(singleDB, metav1.ConditionFalse, "SecretFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
@@ -94,13 +93,24 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	configMap, err := r.ensureConfigMap(ctx, singleDB)
-	if err != nil {
+	if err := r.ensureConfigMap(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap")
 		r.setCondition(singleDB, metav1.ConditionFalse, "ConfigMapFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after ConfigMap failure")
 		}
+		return ctrl.Result{}, err
+	}
+
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(singleDB.Name), Namespace: singleDB.Namespace}, secret); err != nil {
+		logger.Error(err, "Failed to get Secret")
+		return ctrl.Result{}, err
+	}
+
+	configMap := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.ConfigMapName(singleDB.Name), Namespace: singleDB.Namespace}, configMap); err != nil {
+		logger.Error(err, "Failed to get ConfigMap")
 		return ctrl.Result{}, err
 	}
 
@@ -162,18 +172,18 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (*corev1.Secret, error) {
+func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	desired, err := singledatabase.BuildSecret(db)
 	if err != nil {
-		return nil, fmt.Errorf("building secret: %w", err)
+		return fmt.Errorf("building secret: %w", err)
 	}
 
-	obj, _, err := reconciler.EnsureResource(ctx, r.Client, desired, db, mutateSecret)
+	_, err = reconciler.EnsureResource(ctx, r.Client, desired, db, mutateSecret)
 	if err != nil {
-		return nil, fmt.Errorf("ensuring secret: %w", err)
+		return fmt.Errorf("ensuring secret: %w", err)
 	}
 
-	return obj, nil
+	return nil
 }
 
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
@@ -182,29 +192,29 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1
 	if db.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyRetain {
 		owner = nil
 	}
-	_, _, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, mutatePVC)
+	_, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, mutatePVC)
 	return err
 }
 
 func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	svc := singledatabase.BuildService(db)
-	_, _, err := reconciler.EnsureResource(ctx, r.Client, svc, db, mutateService)
+	_, err := reconciler.EnsureResource(ctx, r.Client, svc, db, mutateService)
 	return err
 }
 
-func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (*corev1.ConfigMap, error) {
+func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	cm := singledatabase.BuildConfigMap(db)
-	obj, _, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateConfigMap)
+	_, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateConfigMap)
 	if err != nil {
-		return nil, fmt.Errorf("ensuring configmap: %w", err)
+		return fmt.Errorf("ensuring configmap: %w", err)
 	}
 
-	return obj, nil
+	return nil
 }
 
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
 	sts := singledatabase.BuildStatefulSet(db, secretHash, configMapHash)
-	_, _, err := reconciler.EnsureResource(ctx, r.Client, sts, db, mutateStatefulSet)
+	_, err := reconciler.EnsureResource(ctx, r.Client, sts, db, mutateStatefulSet)
 	return err
 }
 
