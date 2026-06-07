@@ -75,3 +75,14 @@ func MutateStatefulSet() func(existing, desired *appsv1.StatefulSet) error {
 		return nil
 	}
 }
+
+// MutateDeployment returns a mutateFn that copies Spec, Labels and
+// Annotations from desired to existing.
+func MutateDeployment() func(existing, desired *appsv1.Deployment) error {
+	return func(existing, desired *appsv1.Deployment) error {
+		existing.Spec = desired.Spec
+		existing.Labels = desired.Labels
+		existing.Annotations = desired.Annotations
+		return nil
+	}
+}
