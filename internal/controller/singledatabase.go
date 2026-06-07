@@ -178,7 +178,7 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 		return fmt.Errorf("building secret: %w", err)
 	}
 
-	_, err = reconciler.EnsureResource(ctx, r.Client, desired, db, mutateSecret)
+	_, err = reconciler.EnsureResource(ctx, r.Client, desired, db, reconciler.MutateSecret(singledatabase.DefaultSecretPasswordKey))
 	if err != nil {
 		return fmt.Errorf("ensuring secret: %w", err)
 	}
@@ -192,19 +192,19 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1
 	if db.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyRetain {
 		owner = nil
 	}
-	_, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, mutatePVC)
+	_, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, reconciler.MutatePVC())
 	return err
 }
 
 func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	svc := singledatabase.BuildService(db)
-	_, err := reconciler.EnsureResource(ctx, r.Client, svc, db, mutateService)
+	_, err := reconciler.EnsureResource(ctx, r.Client, svc, db, reconciler.MutateService())
 	return err
 }
 
 func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	cm := singledatabase.BuildConfigMap(db)
-	_, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateConfigMap)
+	_, err := reconciler.EnsureResource(ctx, r.Client, cm, db, reconciler.MutateConfigMap())
 	if err != nil {
 		return fmt.Errorf("ensuring configmap: %w", err)
 	}
@@ -214,7 +214,7 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
 	sts := singledatabase.BuildStatefulSet(db, secretHash, configMapHash)
-	_, err := reconciler.EnsureResource(ctx, r.Client, sts, db, mutateStatefulSet)
+	_, err := reconciler.EnsureResource(ctx, r.Client, sts, db, reconciler.MutateStatefulSet())
 	return err
 }
 
@@ -260,40 +260,4 @@ func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supa
 	r.setCondition(singleDB, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
 
 	return r.updateStatus(ctx, singleDB)
-}
-
-func mutateSecret(existing, desired *corev1.Secret) error {
-	if _, ok := existing.Data[singledatabase.DefaultSecretPasswordKey]; ok {
-		return nil
-	}
-	existing.Data[singledatabase.DefaultSecretPasswordKey] = desired.Data[singledatabase.DefaultSecretPasswordKey]
-	return nil
-}
-
-func mutatePVC(existing, desired *corev1.PersistentVolumeClaim) error {
-	existing.Spec.Resources = desired.Spec.Resources
-	return nil
-}
-
-func mutateService(existing, desired *corev1.Service) error {
-	existing.Spec.Ports = desired.Spec.Ports
-	existing.Spec.Selector = desired.Spec.Selector
-	existing.Spec.Type = desired.Spec.Type
-	existing.Labels = desired.Labels
-	existing.Annotations = desired.Annotations
-	return nil
-}
-
-func mutateConfigMap(existing, desired *corev1.ConfigMap) error {
-	existing.Data = desired.Data
-	existing.Labels = desired.Labels
-	existing.Annotations = desired.Annotations
-	return nil
-}
-
-func mutateStatefulSet(existing, desired *appsv1.StatefulSet) error {
-	existing.Spec = desired.Spec
-	existing.Labels = desired.Labels
-	existing.Annotations = desired.Annotations
-	return nil
 }
