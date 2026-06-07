@@ -38,7 +38,7 @@ const (
 	// DefaultBackoffLimit is the Job backoff limit.
 	DefaultBackoffLimit = int32(0)
 	// DefaultTTLSecondsAfterFinished is the Job TTL after finished.
-	DefaultTTLSecondsAfterFinished = int32(86400)
+	DefaultTTLSecondsAfterFinished = int32(30)
 	// DefaultRestartPolicy is the Job pod restart policy.
 	DefaultRestartPolicy = corev1.RestartPolicyNever
 	// DefaultMigrationTable is the default name of the migrations tracking table.

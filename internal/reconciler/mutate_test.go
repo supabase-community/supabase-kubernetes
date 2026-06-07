@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -212,6 +213,62 @@ var _ = Describe("Mutate functions", func() {
 			Expect(*existing.Spec.Replicas).To(Equal(int32(5)))
 			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
+		})
+	})
+
+	Context("MutateJob", func() {
+		It("should copy Spec, Labels and Annotations while preserving the selector and generated template labels", func() {
+			existing := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      map[string]string{"old-label": "value"},
+					Annotations: map[string]string{"old-anno": "value"},
+				},
+				Spec: batchv1.JobSpec{
+					Parallelism: int32Ptr(1),
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"generated": "selector"},
+					},
+					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"controller-uid":                     "abc-123",
+								"job-name":                           "my-job",
+								"batch.kubernetes.io/controller-uid": "abc-123",
+								"batch.kubernetes.io/job-name":       "my-job",
+							},
+						},
+					},
+				},
+			}
+			desired := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      map[string]string{"new-label": "value"},
+					Annotations: map[string]string{"new-anno": "value"},
+				},
+				Spec: batchv1.JobSpec{
+					Parallelism: int32Ptr(3),
+					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"app.kubernetes.io/component": "migration",
+							},
+						},
+					},
+				},
+			}
+
+			err := MutateJob()(existing, desired)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*existing.Spec.Parallelism).To(Equal(int32(3)))
+			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
+			Expect(existing.Spec.Selector).NotTo(BeNil())
+			Expect(existing.Spec.Selector.MatchLabels).To(HaveKeyWithValue("generated", "selector"))
+			Expect(existing.Spec.Template.Labels).To(HaveKeyWithValue("controller-uid", "abc-123"))
+			Expect(existing.Spec.Template.Labels).To(HaveKeyWithValue("job-name", "my-job"))
+			Expect(existing.Spec.Template.Labels).To(HaveKeyWithValue("batch.kubernetes.io/controller-uid", "abc-123"))
+			Expect(existing.Spec.Template.Labels).To(HaveKeyWithValue("batch.kubernetes.io/job-name", "my-job"))
+			Expect(existing.Spec.Template.Labels).To(HaveKeyWithValue("app.kubernetes.io/component", "migration"))
 		})
 	})
 })

@@ -17,7 +17,10 @@ limitations under the License.
 package reconciler
 
 import (
+	"maps"
+
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -81,6 +84,29 @@ func MutateStatefulSet() func(existing, desired *appsv1.StatefulSet) error {
 func MutateDeployment() func(existing, desired *appsv1.Deployment) error {
 	return func(existing, desired *appsv1.Deployment) error {
 		existing.Spec = desired.Spec
+		existing.Labels = desired.Labels
+		existing.Annotations = desired.Annotations
+		return nil
+	}
+}
+
+// MutateJob returns a mutateFn that copies Spec, Labels and
+// Annotations from desired to existing, preserving the generated
+// selector and template labels because they are injected by the
+// API server and must not be overwritten.
+func MutateJob() func(existing, desired *batchv1.Job) error {
+	return func(existing, desired *batchv1.Job) error {
+		selector := existing.Spec.Selector.DeepCopy()
+
+		// Merge template labels so auto-generated keys
+		// (controller-uid, job-name, etc.) are preserved.
+		templateLabels := make(map[string]string, len(existing.Spec.Template.Labels)+len(desired.Spec.Template.Labels))
+		maps.Copy(templateLabels, existing.Spec.Template.Labels)
+		maps.Copy(templateLabels, desired.Spec.Template.Labels)
+
+		existing.Spec = desired.Spec
+		existing.Spec.Selector = selector
+		existing.Spec.Template.Labels = templateLabels
 		existing.Labels = desired.Labels
 		existing.Annotations = desired.Annotations
 		return nil
