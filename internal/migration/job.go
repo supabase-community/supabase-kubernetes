@@ -17,16 +17,16 @@ limitations under the License.
 package migration
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"maps"
-
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // JobName returns the name of the Job that applies migrations.
@@ -35,98 +35,104 @@ func JobName(migrationName string) string {
 }
 
 // BuildJob constructs the migration Job.
-func BuildJob(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase, image, batchHash string) *batchv1.Job {
-	backoffLimit := int32(0)
-	ttlSecondsAfterFinished := int32(86400)
-	configMapName := ConfigMapName(migration.Name)
-
-	script := assets.MigrationApplyScript
-
-	env := make([]corev1.EnvVar, 0, 8+len(migration.Spec.Env))
-	env = append(env,
-		helper.EnvVarFromSecret("PGPASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
-		helper.EnvVarFromSecret("POSTGRES_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
-		helper.EnvVar("PGHOST", db.Host),
-		helper.EnvVar("PGPORT", fmt.Sprintf("%d", db.Port)),
-		helper.EnvVar("PGUSER", db.User),
-		helper.EnvVar("POSTGRES_USER", db.User),
-		helper.EnvVar("PGDATABASE", db.DBName),
-		helper.EnvVar("MIGRATION_HASH", batchHash),
-	)
-	env = append(env, migration.Spec.Env...)
-
-	container := corev1.Container{
-		Name:            Component,
-		Image:           image,
-		ImagePullPolicy: migration.Spec.ImagePullPolicy,
-		Command:         []string{"/bin/sh", "-c"},
-		Args:            []string{script},
-		Env:             env,
-		Resources:       migration.Spec.Resources,
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "migration-sql",
-				MountPath: "/migrations",
-				ReadOnly:  true,
-			},
-		},
-	}
-
-	if migration.Spec.ContainerSecurityContext != nil {
-		container.SecurityContext = migration.Spec.ContainerSecurityContext
-	}
-
-	podLabels := maps.Clone(migration.Spec.PodLabels)
-	if podLabels == nil {
-		podLabels = map[string]string{}
-	}
-
-	podAnnotations := maps.Clone(migration.Spec.PodAnnotations)
-	if podAnnotations == nil {
-		podAnnotations = map[string]string{}
-	}
-
-	podSpec := corev1.PodSpec{
-		RestartPolicy:                 corev1.RestartPolicyNever,
-		Containers:                    []corev1.Container{container},
-		NodeSelector:                  migration.Spec.NodeSelector,
-		Affinity:                      migration.Spec.Affinity,
-		Tolerations:                   migration.Spec.Tolerations,
-		PriorityClassName:             migration.Spec.PriorityClassName,
-		TerminationGracePeriodSeconds: migration.Spec.TerminationGracePeriodSeconds,
-		Volumes: []corev1.Volume{
-			{
-				Name: "migration-sql",
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: configMapName,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if migration.Spec.PodSecurityContext != nil {
-		podSpec.SecurityContext = migration.Spec.PodSecurityContext
-	}
+func BuildJob(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) *batchv1.Job {
+	backoffLimit := DefaultBackoffLimit
+	ttlSecondsAfterFinished := DefaultTTLSecondsAfterFinished
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      JobName(migration.Name),
 			Namespace: migration.Namespace,
+			Labels:    DefaultLabels(migration.Name),
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            &backoffLimit,
 			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      podLabels,
-					Annotations: podAnnotations,
+					Labels:      PodLabels(migration),
+					Annotations: PodAnnotations(migration),
 				},
-				Spec: podSpec,
+				Spec: PodSpec(migration, db),
 			},
 		},
 	}
+}
+
+// PodLabels returns the labels for the Migration pod, merging defaults with user-provided pod labels.
+func PodLabels(migration *supabasev1alpha1.Migration) map[string]string {
+	labels := DefaultLabels(migration.Name)
+	maps.Copy(labels, migration.Spec.PodLabels)
+	return labels
+}
+
+// PodAnnotations returns the annotations for the Migration pod, merging defaults with user-provided pod annotations.
+func PodAnnotations(migration *supabasev1alpha1.Migration) map[string]string {
+	annotations := map[string]string{}
+	maps.Copy(annotations, migration.Spec.PodAnnotations)
+	return annotations
+}
+
+// PodSpec constructs the PodSpec for a Migration pod.
+func PodSpec(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) corev1.PodSpec {
+	return corev1.PodSpec{
+		RestartPolicy: DefaultRestartPolicy,
+		Containers:    []corev1.Container{MainContainer(migration, db)},
+		Volumes: []corev1.Volume{
+			{
+				Name: DefaultVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: ConfigMapName(migration.Name),
+						},
+					},
+				},
+			},
+		},
+		NodeSelector:                  migration.Spec.NodeSelector,
+		Tolerations:                   migration.Spec.Tolerations,
+		Affinity:                      migration.Spec.Affinity,
+		PriorityClassName:             migration.Spec.PriorityClassName,
+		TerminationGracePeriodSeconds: migration.Spec.TerminationGracePeriodSeconds,
+		SecurityContext:               migration.Spec.PodSecurityContext,
+	}
+}
+
+// MainContainer constructs the main migration container.
+func MainContainer(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
+	container := corev1.Container{
+		Name:            DefaultContainerName,
+		Image:           ResolveImage(migration),
+		ImagePullPolicy: migration.Spec.ImagePullPolicy,
+		Command:         []string{"/bin/sh", "-c"},
+		Args:            []string{assets.MigrationApplyScript},
+		Env: []corev1.EnvVar{
+			helper.EnvVarFromSecret("PGPASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
+			helper.EnvVar("PGHOST", db.Host),
+			helper.EnvVar("PGPORT", fmt.Sprintf("%d", db.Port)),
+			helper.EnvVar("PGUSER", db.User),
+			helper.EnvVar("PGDATABASE", db.DBName),
+			helper.EnvVar("MIGRATION_HASH", CalculateMigrationHash(migration)),
+			helper.EnvVar("MIGRATION_TABLE", DefaultMigrationTable),
+			helper.EnvVar("MIGRATION_BATCH_PATH", DefaultMigrationMountPath+"/"+DefaultConfigMapKey),
+		},
+		Resources:       migration.Spec.Resources,
+		SecurityContext: migration.Spec.ContainerSecurityContext,
+		VolumeMounts:    []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultMigrationMountPath, ReadOnly: true}},
+	}
+	container.Env = append(container.Env, migration.Spec.Env...)
+
+	return container
+}
+
+// CalculateMigrationHash computes a SHA-256 hash over the ordered migration SQLs.
+func CalculateMigrationHash(migration *supabasev1alpha1.Migration) string {
+	h := sha256.New()
+	for _, entry := range migration.Spec.Migrations {
+		// Delimiter ensures concatenation is unambiguous
+		h.Write([]byte(entry.SQL))
+		h.Write([]byte("\x00MIGRATION\x00"))
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

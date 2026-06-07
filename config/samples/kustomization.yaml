@@ -9,7 +9,7 @@ labels:
 
 resources:
   - singledatabase.yaml
-  # - migration.yaml
+  - migration.yaml
   # - project.yaml
   # - meta.yaml
   # - rest.yaml

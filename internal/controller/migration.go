@@ -35,7 +35,6 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/database"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	migpkg "github.com/supabase-community/supabase-kubernetes/internal/migration"
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
@@ -46,13 +45,6 @@ type MigrationReconciler struct {
 	Scheme          *runtime.Scheme
 	Recorder        events.EventRecorder
 	RequeueInterval time.Duration
-}
-
-func (r *MigrationReconciler) resolveMigrationImage(migration *supabasev1alpha1.Migration) string {
-	if migration.Spec.Image != "" {
-		return migration.Spec.Image
-	}
-	return images.Resolve(migration.Spec.Version, images.ComponentMigration)
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete
@@ -95,7 +87,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
-	batchHash := migpkg.CalculateBatchHash(migration.Spec.Migrations)
+	batchHash := migpkg.CalculateMigrationHash(migration)
 
 	// If already applied with the same hash, nothing to do
 	if migration.Status.AppliedHash == batchHash {
@@ -109,7 +101,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Ensure ConfigMap exists
 	configMapName := migpkg.ConfigMapName(migration.Name)
-	if err := r.ensureConfigMap(ctx, migration, configMapName, batchHash); err != nil {
+	if err := r.ensureConfigMap(ctx, migration, configMapName); err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap for migration", "configmap", configMapName)
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "ConfigMapFailed", "ConfigMapCreationFailed", "Failed to ensure ConfigMap: %s", err.Error())
 		reconciler.SetNotReady(migration, "ConfigMapFailed", fmt.Sprintf("Failed to create ConfigMap: %s", err.Error()))
@@ -117,9 +109,6 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 	r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMapCreated", "ConfigMap %s ensured", configMapName)
-
-	// Resolve migration image
-	image := r.resolveMigrationImage(migration)
 
 	// Check if job exists
 	jobName := migpkg.JobName(migration.Name)
@@ -135,7 +124,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		// Job does not exist, create it
 		logger.Info("Creating migration job", "job", jobName, "hash", batchHash)
-		job = migpkg.BuildJob(migration, db, image, batchHash)
+		job = migpkg.BuildJob(migration, db)
 		if err := controllerutil.SetControllerReference(migration, job, r.Scheme); err != nil {
 			return ctrl.Result{}, fmt.Errorf("setting owner reference on job: %w", err)
 		}
@@ -239,7 +228,7 @@ func (r *MigrationReconciler) resolveDatabaseRef(ctx context.Context, migration 
 	return db, true, nil
 }
 
-func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *supabasev1alpha1.Migration, name string, batchHash string) error {
+func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *supabasev1alpha1.Migration, name string) error {
 	cm := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: migration.Namespace}, cm)
 	if err == nil {
@@ -249,7 +238,7 @@ func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *su
 		return err
 	}
 
-	cm = migpkg.BuildConfigMap(migration, name, batchHash)
+	cm = migpkg.BuildConfigMap(migration)
 
 	if err := controllerutil.SetControllerReference(migration, cm, r.Scheme); err != nil {
 		return fmt.Errorf("setting owner reference on configmap: %w", err)

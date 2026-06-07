@@ -186,7 +186,7 @@ var _ = Describe("Migration Controller", func() {
 			}
 			Expect(hashEnv).NotTo(BeNil())
 			Expect(hashEnv.Value).NotTo(BeEmpty())
-			expectedHash := migpkg.CalculateBatchHash(migration.Spec.Migrations)
+			expectedHash := migpkg.CalculateMigrationHash(migration)
 			Expect(hashEnv.Value).To(Equal(expectedHash))
 
 			By("Checking that exactly one ConfigMap was created")
@@ -265,7 +265,7 @@ var _ = Describe("Migration Controller", func() {
 			firstJob.Status.Succeeded = 1
 			Expect(k8sClient.Status().Update(ctx, firstJob)).To(Succeed())
 
-			expectedHash := migpkg.CalculateBatchHash(firstMigration.Spec.Migrations)
+			expectedHash := migpkg.CalculateMigrationHash(firstMigration)
 
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, migrationNamespacedName, firstMigration)).To(Succeed())
