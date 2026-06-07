@@ -155,13 +155,11 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 		return nil, fmt.Errorf("building secret: %w", err)
 	}
 
-	mutateFn := func(existing, desired client.Object) error {
-		e := existing.(*corev1.Secret)
-		d := desired.(*corev1.Secret)
-		if _, ok := e.Data[singledatabase.DefaultSecretPasswordKey]; ok {
+	mutateFn := func(existing, desired *corev1.Secret) error {
+		if _, ok := existing.Data[singledatabase.DefaultSecretPasswordKey]; ok {
 			return nil
 		}
-		e.Data[singledatabase.DefaultSecretPasswordKey] = d.Data[singledatabase.DefaultSecretPasswordKey]
+		existing.Data[singledatabase.DefaultSecretPasswordKey] = desired.Data[singledatabase.DefaultSecretPasswordKey]
 		return nil
 	}
 	obj, _, err := reconciler.EnsureResource(ctx, r.Client, desired, db, mutateFn)
@@ -169,15 +167,13 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 		return nil, fmt.Errorf("ensuring secret: %w", err)
 	}
 
-	return obj.(*corev1.Secret), nil
+	return obj, nil
 }
 
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	pvc := singledatabase.BuildPVC(db)
-	mutateFn := func(existing, desired client.Object) error {
-		e := existing.(*corev1.PersistentVolumeClaim)
-		d := desired.(*corev1.PersistentVolumeClaim)
-		e.Spec.Resources = d.Spec.Resources
+	mutateFn := func(existing, desired *corev1.PersistentVolumeClaim) error {
+		existing.Spec.Resources = desired.Spec.Resources
 		return nil
 	}
 	var owner client.Object = db
@@ -190,14 +186,12 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1
 
 func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	svc := singledatabase.BuildService(db)
-	mutateFn := func(existing, desired client.Object) error {
-		e := existing.(*corev1.Service)
-		d := desired.(*corev1.Service)
-		e.Spec.Ports = d.Spec.Ports
-		e.Spec.Selector = d.Spec.Selector
-		e.Spec.Type = d.Spec.Type
-		e.Labels = d.Labels
-		e.Annotations = d.Annotations
+	mutateFn := func(existing, desired *corev1.Service) error {
+		existing.Spec.Ports = desired.Spec.Ports
+		existing.Spec.Selector = desired.Spec.Selector
+		existing.Spec.Type = desired.Spec.Type
+		existing.Labels = desired.Labels
+		existing.Annotations = desired.Annotations
 		return nil
 	}
 	_, _, err := reconciler.EnsureResource(ctx, r.Client, svc, db, mutateFn)
@@ -206,12 +200,10 @@ func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supaba
 
 func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (*corev1.ConfigMap, error) {
 	cm := singledatabase.BuildConfigMap(db)
-	mutateFn := func(existing, desired client.Object) error {
-		e := existing.(*corev1.ConfigMap)
-		d := desired.(*corev1.ConfigMap)
-		e.Data = d.Data
-		e.Labels = d.Labels
-		e.Annotations = d.Annotations
+	mutateFn := func(existing, desired *corev1.ConfigMap) error {
+		existing.Data = desired.Data
+		existing.Labels = desired.Labels
+		existing.Annotations = desired.Annotations
 		return nil
 	}
 	obj, _, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateFn)
@@ -219,17 +211,15 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 		return nil, fmt.Errorf("ensuring configmap: %w", err)
 	}
 
-	return obj.(*corev1.ConfigMap), nil
+	return obj, nil
 }
 
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
 	sts := singledatabase.BuildStatefulSet(db, secretHash, configMapHash)
-	mutateFn := func(existing, desired client.Object) error {
-		e := existing.(*appsv1.StatefulSet)
-		d := desired.(*appsv1.StatefulSet)
-		e.Spec = d.Spec
-		e.Labels = d.Labels
-		e.Annotations = d.Annotations
+	mutateFn := func(existing, desired *appsv1.StatefulSet) error {
+		existing.Spec = desired.Spec
+		existing.Labels = desired.Labels
+		existing.Annotations = desired.Annotations
 		return nil
 	}
 	_, _, err := reconciler.EnsureResource(ctx, r.Client, sts, db, mutateFn)

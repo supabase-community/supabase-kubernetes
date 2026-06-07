@@ -45,13 +45,13 @@ const (
 //
 // The object is then updated if any changes were made.
 // When owner is not nil, SetControllerReference is applied automatically.
-func EnsureResource(
+func EnsureResource[T client.Object](
 	ctx context.Context,
 	c client.Client,
-	desired client.Object,
+	desired T,
 	owner client.Object,
-	mutateFn func(existing, desired client.Object) error,
-) (client.Object, Result, error) {
+	mutateFn func(existing, desired T) error,
+) (T, Result, error) {
 	logger := log.FromContext(ctx).WithValues(
 		"kind", fmt.Sprintf("%T", desired),
 		"name", desired.GetName(),
@@ -60,19 +60,21 @@ func EnsureResource(
 
 	if owner != nil {
 		if err := controllerutil.SetControllerReference(owner, desired, c.Scheme()); err != nil {
-			return nil, "", fmt.Errorf("setting owner reference: %w", err)
+			var zero T
+			return zero, "", fmt.Errorf("setting owner reference: %w", err)
 		}
 	}
 
 	// Keep a copy of the original desired state because the pointer passed to
 	// CreateOrUpdate is overwritten when the object already exists in the cluster.
-	original := desired.DeepCopyObject().(client.Object)
+	original := desired.DeepCopyObject().(T)
 
 	result, err := controllerutil.CreateOrUpdate(ctx, c, desired, func() error {
 		return mutateFn(desired, original)
 	})
 	if err != nil {
-		return nil, "", err
+		var zero T
+		return zero, "", err
 	}
 
 	switch result {

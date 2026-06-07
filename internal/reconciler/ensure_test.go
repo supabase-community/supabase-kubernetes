@@ -51,7 +51,7 @@ var _ = Describe("EnsureResource", func() {
 				Data: map[string]string{"key": "value"},
 			}
 
-			obj, res, err := EnsureResource(ctx, c, desired, nil, func(existing, desired client.Object) error {
+			obj, res, err := EnsureResource(ctx, c, desired, nil, func(existing, desired *corev1.ConfigMap) error {
 				return nil
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -74,10 +74,9 @@ var _ = Describe("EnsureResource", func() {
 				},
 			}
 
-			obj, res, err := EnsureResource(ctx, c, desired, nil, func(existing, desired client.Object) error {
-				svc := existing.(*corev1.Service)
-				if svc.Spec.Ports == nil {
-					svc.Spec.Ports = []corev1.ServicePort{{Port: 80}}
+			obj, res, err := EnsureResource(ctx, c, desired, nil, func(existing, desired *corev1.Service) error {
+				if existing.Spec.Ports == nil {
+					existing.Spec.Ports = []corev1.ServicePort{{Port: 80}}
 				}
 				return nil
 			})
@@ -111,10 +110,8 @@ var _ = Describe("EnsureResource", func() {
 				Data: map[string]string{"key": "new-value"},
 			}
 
-			obj, res, err := EnsureResource(ctx, c, desired, nil, func(existing, desired client.Object) error {
-				cm := existing.(*corev1.ConfigMap)
-				want := desired.(*corev1.ConfigMap)
-				cm.Data = want.Data
+			obj, res, err := EnsureResource(ctx, c, desired, nil, func(existing, desired *corev1.ConfigMap) error {
+				existing.Data = desired.Data
 				return nil
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -144,10 +141,8 @@ var _ = Describe("EnsureResource", func() {
 				Data: map[string]string{"key": "value"},
 			}
 
-			obj, res, err := EnsureResource(ctx, c, desired, nil, func(existing, desired client.Object) error {
-				cm := existing.(*corev1.ConfigMap)
-				want := desired.(*corev1.ConfigMap)
-				cm.Data = want.Data
+			obj, res, err := EnsureResource(ctx, c, desired, nil, func(existing, desired *corev1.ConfigMap) error {
+				existing.Data = desired.Data
 				return nil
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -176,11 +171,10 @@ var _ = Describe("EnsureResource", func() {
 			var receivedLabels map[string]string
 			var receivedData map[string]string
 
-			obj, _, err := EnsureResource(ctx, c, desired, nil, func(existing, desired client.Object) error {
-				cm := existing.(*corev1.ConfigMap)
-				receivedLabels = cm.Labels
-				receivedData = cm.Data
-				cm.Data = map[string]string{"key": "new"}
+			obj, _, err := EnsureResource(ctx, c, desired, nil, func(existing, desired *corev1.ConfigMap) error {
+				receivedLabels = existing.Labels
+				receivedData = existing.Data
+				existing.Data = map[string]string{"key": "new"}
 				return nil
 			})
 			Expect(obj).NotTo(BeNil())
@@ -208,10 +202,8 @@ var _ = Describe("EnsureResource", func() {
 				Data: map[string]string{"key": "new"},
 			}
 
-			obj, _, err := EnsureResource(ctx, c, desired, nil, func(existing, desired client.Object) error {
-				cm := existing.(*corev1.ConfigMap)
-				want := desired.(*corev1.ConfigMap)
-				cm.Data = want.Data
+			obj, _, err := EnsureResource(ctx, c, desired, nil, func(existing, desired *corev1.ConfigMap) error {
+				existing.Data = desired.Data
 				return nil
 			})
 			Expect(obj).NotTo(BeNil())
@@ -242,7 +234,7 @@ var _ = Describe("EnsureResource", func() {
 				Data: map[string]string{"key": "value"},
 			}
 
-			obj, _, err := EnsureResource(ctx, c, desired, owner, func(existing, desired client.Object) error {
+			obj, _, err := EnsureResource(ctx, c, desired, owner, func(existing, desired *corev1.ConfigMap) error {
 				return nil
 			})
 			Expect(obj).NotTo(BeNil())
@@ -263,7 +255,7 @@ var _ = Describe("EnsureResource", func() {
 				Data: map[string]string{"key": "value"},
 			}
 
-			obj, _, err := EnsureResource(ctx, c, desired, nil, func(existing, desired client.Object) error {
+			obj, _, err := EnsureResource(ctx, c, desired, nil, func(existing, desired *corev1.ConfigMap) error {
 				return nil
 			})
 			Expect(obj).NotTo(BeNil())
@@ -292,7 +284,7 @@ var _ = Describe("EnsureResource", func() {
 				},
 			}
 
-			obj, _, err := EnsureResource(ctx, c, desired, owner, func(existing, desired client.Object) error {
+			obj, _, err := EnsureResource(ctx, c, desired, owner, func(existing, desired *corev1.ConfigMap) error {
 				return nil
 			})
 			Expect(obj).To(BeNil())
