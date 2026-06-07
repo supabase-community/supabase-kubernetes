@@ -71,8 +71,6 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	r.Recorder.Eventf(singleDB, nil, corev1.EventTypeNormal, "Reconciling", "Reconciling", "Starting reconciliation of SingleDatabase %s", singleDB.Name)
-
 	secret, err := r.ensureSecret(ctx, singleDB)
 	if err != nil {
 		logger.Error(err, "Failed to ensure Secret")
@@ -147,7 +145,6 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	r.Recorder.Eventf(singleDB, nil, corev1.EventTypeNormal, "Reconciled", "Reconciled", "SingleDatabase %s is ready", singleDB.Name)
 	logger.Info("Reconciliation completed successfully")
 	return ctrl.Result{}, nil
 }
@@ -172,7 +169,6 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 		return nil, fmt.Errorf("ensuring secret: %w", err)
 	}
 
-	r.Recorder.Eventf(db, nil, corev1.EventTypeNormal, "SecretCreated", "SecretCreated", "Created credentials Secret %s", singledatabase.SecretName(db.Name))
 	return obj.(*corev1.Secret), nil
 }
 
@@ -223,7 +219,6 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 		return nil, fmt.Errorf("ensuring configmap: %w", err)
 	}
 
-	r.Recorder.Eventf(db, nil, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMapCreated", "Created config %s", singledatabase.ConfigMapName(db.Name))
 	return obj.(*corev1.ConfigMap), nil
 }
 
