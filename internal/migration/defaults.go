@@ -29,8 +29,6 @@ const (
 	DefaultComponent = "migration"
 	// DefaultManagedBy is the value for the managed-by label.
 	DefaultManagedBy = "supabase-operator"
-	// DefaultDatabaseUser is the default database user for migration jobs.
-	DefaultDatabaseUser = "supabase_admin"
 	// DefaultContainerName is the name of the migration container.
 	DefaultContainerName = "migration"
 	// DefaultVolumeName is the name of the migration SQL volume.
