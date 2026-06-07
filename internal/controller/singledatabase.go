@@ -178,9 +178,48 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 		return fmt.Errorf("building secret: %w", err)
 	}
 
-	_, err = reconciler.EnsureResource(ctx, r.Client, desired, db, reconciler.MutateSecret(singledatabase.DefaultSecretPasswordKey))
+	logger := log.FromContext(ctx).WithValues(
+		"name", desired.GetName(),
+		"namespace", desired.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, desired, db, reconciler.MutateSecret(singledatabase.DefaultSecretPasswordKey))
 	if err != nil {
 		return fmt.Errorf("ensuring secret: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Secret")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Secret")
+	default:
+		logger.V(1).Info("Secret unchanged")
+	}
+
+	return nil
+}
+
+func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
+	cm := singledatabase.BuildConfigMap(db)
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", cm.GetName(),
+		"namespace", cm.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, cm, db, reconciler.MutateConfigMap())
+	if err != nil {
+		return fmt.Errorf("ensuring configmap: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created ConfigMap")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated ConfigMap")
+	default:
+		logger.V(1).Info("ConfigMap unchanged")
 	}
 
 	return nil
@@ -192,21 +231,49 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1
 	if db.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyRetain {
 		owner = nil
 	}
-	_, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, reconciler.MutatePVC())
-	return err
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", pvc.GetName(),
+		"namespace", pvc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, reconciler.MutatePVC())
+	if err != nil {
+		return fmt.Errorf("ensuring pvc: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created PVC")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated PVC")
+	default:
+		logger.V(1).Info("PVC unchanged")
+	}
+
+	return nil
 }
 
 func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	svc := singledatabase.BuildService(db)
-	_, err := reconciler.EnsureResource(ctx, r.Client, svc, db, reconciler.MutateService())
-	return err
-}
 
-func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
-	cm := singledatabase.BuildConfigMap(db)
-	_, err := reconciler.EnsureResource(ctx, r.Client, cm, db, reconciler.MutateConfigMap())
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, db, reconciler.MutateService())
 	if err != nil {
-		return fmt.Errorf("ensuring configmap: %w", err)
+		return fmt.Errorf("ensuring service: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Service")
+	default:
+		logger.V(1).Info("Service unchanged")
 	}
 
 	return nil
@@ -214,8 +281,27 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
 	sts := singledatabase.BuildStatefulSet(db, secretHash, configMapHash)
-	_, err := reconciler.EnsureResource(ctx, r.Client, sts, db, reconciler.MutateStatefulSet())
-	return err
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", sts.GetName(),
+		"namespace", sts.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, sts, db, reconciler.MutateStatefulSet())
+	if err != nil {
+		return fmt.Errorf("ensuring statefulset: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created StatefulSet")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated StatefulSet")
+	default:
+		logger.V(1).Info("StatefulSet unchanged")
+	}
+
+	return nil
 }
 
 func (r *SingleDatabaseReconciler) setCondition(
