@@ -34,6 +34,7 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	migpkg "github.com/supabase-community/supabase-kubernetes/internal/migration"
+	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
 
 var _ = Describe("Migration Controller", func() {
@@ -118,7 +119,7 @@ var _ = Describe("Migration Controller", func() {
 			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the Migration resource with multiple migrations")
@@ -205,7 +206,7 @@ var _ = Describe("Migration Controller", func() {
 				g.Expect(k8sClient.Get(ctx, migrationNamespacedName, migration)).To(Succeed())
 				g.Expect(migration.Status.AppliedHash).To(Equal(expectedHash))
 				g.Expect(migration.Status.AppliedAt).NotTo(BeNil())
-				g.Expect(meta.IsStatusConditionTrue(migration.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(migration.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Verifying that job and configmap are cleaned up after success")
@@ -230,7 +231,7 @@ var _ = Describe("Migration Controller", func() {
 			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the first Migration resource")
@@ -307,7 +308,7 @@ var _ = Describe("Migration Controller", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: secondMigrationName, Namespace: "default"}, secondMigration)).To(Succeed())
 				g.Expect(secondMigration.Status.AppliedHash).To(Equal(expectedHash))
-				g.Expect(meta.IsStatusConditionTrue(secondMigration.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(secondMigration.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 		})
 	})
@@ -391,7 +392,7 @@ var _ = Describe("Migration Controller", func() {
 			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the Migration resource")
@@ -430,7 +431,7 @@ var _ = Describe("Migration Controller", func() {
 			By("Verifying migration status shows failure condition")
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, migrationNamespacedName, migration)).To(Succeed())
-				cond := meta.FindStatusCondition(migration.Status.Conditions, ConditionTypeReady)
+				cond := meta.FindStatusCondition(migration.Status.Conditions, reconciler.ConditionTypeReady)
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(cond.Reason).To(Equal("MigrationFailed"))
@@ -515,7 +516,7 @@ var _ = Describe("Migration Controller", func() {
 			singleDB := &supabasev1alpha1.SingleDatabase{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, singleDBNamespacedName, singleDB)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(singleDB.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the Migration resource")

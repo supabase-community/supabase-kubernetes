@@ -24,8 +24,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -90,7 +88,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureSecret(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure Secret")
-		r.setCondition(singleDB, metav1.ConditionFalse, "SecretFailed", err.Error())
+		reconciler.SetNotReady(singleDB, "SecretFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after secret failure")
 		}
@@ -99,7 +97,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureConfigMap(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap")
-		r.setCondition(singleDB, metav1.ConditionFalse, "ConfigMapFailed", err.Error())
+		reconciler.SetNotReady(singleDB, "ConfigMapFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after ConfigMap failure")
 		}
@@ -123,7 +121,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensurePVC(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure PVC")
-		r.setCondition(singleDB, metav1.ConditionFalse, "PVCFailed", err.Error())
+		reconciler.SetNotReady(singleDB, "PVCFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after PVC failure")
 		}
@@ -132,7 +130,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureService(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure Service")
-		r.setCondition(singleDB, metav1.ConditionFalse, "ServiceFailed", err.Error())
+		reconciler.SetNotReady(singleDB, "ServiceFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after Service failure")
 		}
@@ -141,7 +139,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if err := r.ensureStatefulSet(ctx, singleDB, secretHash, configMapHash); err != nil {
 		logger.Error(err, "Failed to ensure StatefulSet")
-		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetFailed", err.Error())
+		reconciler.SetNotReady(singleDB, "StatefulSetFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet failure")
 		}
@@ -151,7 +149,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	sts := &appsv1.StatefulSet{}
 	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(singleDB.Name), Namespace: singleDB.Namespace}, sts); err != nil {
 		logger.Error(err, "Failed to get StatefulSet")
-		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetGetFailed", err.Error())
+		reconciler.SetNotReady(singleDB, "StatefulSetGetFailed", err.Error())
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet get failure")
 		}
@@ -160,7 +158,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
 		logger.Info("Waiting for StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", *sts.Spec.Replicas)
-		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetNotReady", "Waiting for StatefulSet pods to be ready")
+		reconciler.SetNotReady(singleDB, "StatefulSetNotReady", "Waiting for StatefulSet pods to be ready")
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet not ready")
 		}
@@ -308,21 +306,6 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *su
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) setCondition(
-	db *supabasev1alpha1.SingleDatabase,
-	status metav1.ConditionStatus,
-	reason string,
-	message string,
-) {
-	meta.SetStatusCondition(&db.Status.Conditions, metav1.Condition{
-		Type:               ConditionTypeReady,
-		Status:             status,
-		ObservedGeneration: db.Generation,
-		Reason:             reason,
-		Message:            message,
-	})
-}
-
 func (r *SingleDatabaseReconciler) updateStatus(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		latest := &supabasev1alpha1.SingleDatabase{}
@@ -347,7 +330,6 @@ func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supa
 		},
 	}
 
-	r.setCondition(singleDB, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
-
+	reconciler.SetReady(singleDB, "ReconcileSucceeded", "All resources reconciled successfully")
 	return r.updateStatus(ctx, singleDB)
 }

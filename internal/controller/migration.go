@@ -24,7 +24,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,6 +38,7 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/database"
 	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	migpkg "github.com/supabase-community/supabase-kubernetes/internal/migration"
+	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
 
 // MigrationReconciler reconciles a Migration object
@@ -84,12 +84,12 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		logger.Error(err, "Failed to resolve database reference")
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "DatabaseResolutionFailed", "DatabaseResolutionFailed", "Failed to resolve database reference: %s", err.Error())
-		r.setCondition(migration, metav1.ConditionFalse, "DatabaseResolutionFailed", err.Error())
+		reconciler.SetNotReady(migration, "DatabaseResolutionFailed", err.Error())
 		_ = r.updateStatus(ctx, migration)
 		return ctrl.Result{}, err
 	}
 	if !dbReady {
-		r.setCondition(migration, metav1.ConditionFalse, "DatabaseNotReady", "Waiting for database to be ready")
+		reconciler.SetNotReady(migration, "DatabaseNotReady", "Waiting for database to be ready")
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status")
 		}
@@ -100,7 +100,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// If already applied with the same hash, nothing to do
 	if migration.Status.AppliedHash == batchHash {
-		r.setCondition(migration, metav1.ConditionTrue, "AllMigrationsApplied", "Migration batch already applied")
+		reconciler.SetReady(migration, "AllMigrationsApplied", "Migration batch already applied")
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status")
 			return ctrl.Result{}, err
@@ -113,7 +113,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err := r.ensureConfigMap(ctx, migration, configMapName, batchHash); err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap for migration", "configmap", configMapName)
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "ConfigMapFailed", "ConfigMapCreationFailed", "Failed to ensure ConfigMap: %s", err.Error())
-		r.setCondition(migration, metav1.ConditionFalse, "ConfigMapFailed", fmt.Sprintf("Failed to create ConfigMap: %s", err.Error()))
+		reconciler.SetNotReady(migration, "ConfigMapFailed", fmt.Sprintf("Failed to create ConfigMap: %s", err.Error()))
 		_ = r.updateStatus(ctx, migration)
 		return ctrl.Result{}, err
 	}
@@ -143,13 +143,13 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := r.Create(ctx, job); err != nil {
 			logger.Error(err, "Failed to create migration job", "job", jobName)
 			r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "JobCreationFailed", "JobCreationFailed", "Failed to create migration job: %s", err.Error())
-			r.setCondition(migration, metav1.ConditionFalse, "JobCreationFailed", fmt.Sprintf("Failed to create job: %s", err.Error()))
+			reconciler.SetNotReady(migration, "JobCreationFailed", fmt.Sprintf("Failed to create job: %s", err.Error()))
 			_ = r.updateStatus(ctx, migration)
 			return ctrl.Result{}, err
 		}
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "JobCreated", "JobCreated", "Migration job %s created", jobName)
 
-		r.setCondition(migration, metav1.ConditionFalse, "Migrating", "Running migration batch")
+		reconciler.SetNotReady(migration, "Migrating", "Running migration batch")
 		_ = r.updateStatus(ctx, migration)
 		// Stop processing, wait for job to complete (requeue via Owns)
 		return ctrl.Result{}, nil
@@ -161,7 +161,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		migration.Status.AppliedHash = batchHash
 		now := metav1.Now()
 		migration.Status.AppliedAt = &now
-		r.setCondition(migration, metav1.ConditionTrue, "AllMigrationsApplied", "All migrations applied successfully")
+		reconciler.SetReady(migration, "AllMigrationsApplied", "All migrations applied successfully")
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "MigrationsApplied", "MigrationsApplied", "Migration batch applied successfully (hash: %s)", batchHash)
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status after success")
@@ -175,7 +175,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if job.Status.Failed > 0 {
 		logger.Info("Migration batch failed", "job", jobName, "hash", batchHash)
-		r.setCondition(migration, metav1.ConditionFalse, "MigrationFailed", "Migration batch failed")
+		reconciler.SetNotReady(migration, "MigrationFailed", "Migration batch failed")
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "MigrationFailed", "MigrationFailed", "Migration batch failed (job: %s)", jobName)
 		if err := r.updateStatus(ctx, migration); err != nil {
 			logger.Error(err, "Failed to update status after failure")
@@ -186,7 +186,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Job is still running
-	r.setCondition(migration, metav1.ConditionFalse, "Migrating", "Running migration batch")
+	reconciler.SetNotReady(migration, "Migrating", "Running migration batch")
 	_ = r.updateStatus(ctx, migration)
 	return ctrl.Result{}, nil
 }
@@ -269,21 +269,6 @@ func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *su
 	}
 
 	return r.Create(ctx, cm)
-}
-
-func (r *MigrationReconciler) setCondition(
-	migration *supabasev1alpha1.Migration,
-	status metav1.ConditionStatus,
-	reason string,
-	message string,
-) {
-	meta.SetStatusCondition(&migration.Status.Conditions, metav1.Condition{
-		Type:               ConditionTypeReady,
-		Status:             status,
-		ObservedGeneration: migration.Generation,
-		Reason:             reason,
-		Message:            message,
-	})
 }
 
 // SetupWithManager sets up the controller with the Manager.

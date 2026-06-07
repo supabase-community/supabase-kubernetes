@@ -80,3 +80,8 @@ type ProjectList struct {
 func init() {
 	SchemeBuilder.Register(&Project{}, &ProjectList{})
 }
+
+// GetConditions returns a pointer to the status conditions slice.
+func (p *Project) GetConditions() *[]metav1.Condition {
+	return &p.Status.Conditions
+}

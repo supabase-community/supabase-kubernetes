@@ -17,12 +17,12 @@ limitations under the License.
 package project
 
 import (
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
 
 const (
@@ -53,11 +53,5 @@ func (r *Reconciler) setCondition(
 	reason string,
 	message string,
 ) {
-	meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{
-		Type:               conditionType,
-		Status:             status,
-		ObservedGeneration: project.Generation,
-		Reason:             reason,
-		Message:            message,
-	})
+	reconciler.SetCondition(project, conditionType, status, reason, message)
 }

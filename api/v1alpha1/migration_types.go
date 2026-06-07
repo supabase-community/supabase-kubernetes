@@ -104,3 +104,8 @@ type MigrationList struct {
 func init() {
 	SchemeBuilder.Register(&Migration{}, &MigrationList{})
 }
+
+// GetConditions returns a pointer to the status conditions slice.
+func (m *Migration) GetConditions() *[]metav1.Condition {
+	return &m.Status.Conditions
+}

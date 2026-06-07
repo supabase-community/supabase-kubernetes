@@ -49,13 +49,13 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	projectpkg "github.com/supabase-community/supabase-kubernetes/internal/project"
+	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
 
 const (
 	DefaultJWTExpiry = 24 * time.Hour * 365 * 10
 
 	ConditionTypeSecretsReady      = "SecretsReady"
-	ConditionTypeReady             = "Ready"
 	ConditionTypeDatabaseReady     = "DatabaseReady"
 	ConditionTypeMigrationReady    = "MigrationReady"
 	ConditionTypeJWTSettingsReady  = "JWTSettingsReady"
@@ -120,8 +120,8 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if err := r.ensureAllSecrets(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure secrets")
-		r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "SecretGenerationFailed", err.Error())
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "SecretsNotReady", "Generated secrets are not ready")
+		reconciler.SetCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "SecretGenerationFailed", err.Error())
+		reconciler.SetNotReady(project, "SecretsNotReady", "Generated secrets are not ready")
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after secret failure")
 		}
@@ -131,8 +131,8 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	db, err := r.resolveDatabaseRef(ctx, project)
 	if err != nil {
 		logger.Error(err, "Failed to resolve database reference")
-		r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "DatabaseResolutionFailed", err.Error())
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "DatabaseNotReady", "Database reference could not be resolved")
+		reconciler.SetCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "DatabaseResolutionFailed", err.Error())
+		reconciler.SetNotReady(project, "DatabaseNotReady", "Database reference could not be resolved")
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after database resolution failure")
 		}
@@ -144,73 +144,73 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	migrationResult, err := r.ensureMigration(ctx, project)
 	if err != nil {
 		logger.Error(err, "Failed to ensure migration")
-		r.setCondition(project, ConditionTypeMigrationReady, metav1.ConditionFalse, "MigrationFailed", err.Error())
-		r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "MigrationNotReady", "Database migration failed")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "MigrationNotReady", "Built-in migration failed or not ready")
+		reconciler.SetCondition(project, ConditionTypeMigrationReady, metav1.ConditionFalse, "MigrationFailed", err.Error())
+		reconciler.SetCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "MigrationNotReady", "Database migration failed")
+		reconciler.SetNotReady(project, "MigrationNotReady", "Built-in migration failed or not ready")
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after migration failure")
 		}
 		return ctrl.Result{}, err
 	}
 	if migrationResult.RequeueAfter > 0 {
-		r.setCondition(project, ConditionTypeMigrationReady, metav1.ConditionFalse, "MigrationInProgress", "Built-in migration is running")
-		r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "MigrationInProgress", "Waiting for built-in migration to complete")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "MigrationNotReady", "Waiting for built-in migration to complete")
+		reconciler.SetCondition(project, ConditionTypeMigrationReady, metav1.ConditionFalse, "MigrationInProgress", "Built-in migration is running")
+		reconciler.SetCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "MigrationInProgress", "Waiting for built-in migration to complete")
+		reconciler.SetNotReady(project, "MigrationNotReady", "Waiting for built-in migration to complete")
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status while migration in progress")
 		}
 		return migrationResult, nil
 	}
 
-	r.setCondition(project, ConditionTypeMigrationReady, metav1.ConditionTrue, "MigrationApplied", "Built-in migration applied successfully")
-	r.setCondition(project, ConditionTypeDatabaseReady, metav1.ConditionTrue, "DatabaseResolved", "Database reference resolved and migration applied")
-	r.setCondition(project, ConditionTypeSecretsReady, metav1.ConditionTrue, "AllSecretsReady", "All generated secrets are present and complete")
+	reconciler.SetCondition(project, ConditionTypeMigrationReady, metav1.ConditionTrue, "MigrationApplied", "Built-in migration applied successfully")
+	reconciler.SetCondition(project, ConditionTypeDatabaseReady, metav1.ConditionTrue, "DatabaseResolved", "Database reference resolved and migration applied")
+	reconciler.SetCondition(project, ConditionTypeSecretsReady, metav1.ConditionTrue, "AllSecretsReady", "All generated secrets are present and complete")
 
 	jwtResult, err := r.ensureJWTSettings(ctx, project)
 	if err != nil {
 		logger.Error(err, "Failed to ensure JWT settings")
-		r.setCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionFalse, "JWTSettingsFailed", err.Error())
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "JWTSettingsNotReady", err.Error())
+		reconciler.SetCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionFalse, "JWTSettingsFailed", err.Error())
+		reconciler.SetNotReady(project, "JWTSettingsNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after JWT settings failure")
 		}
 		return ctrl.Result{}, err
 	}
 	if jwtResult.RequeueAfter > 0 {
-		r.setCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionFalse, "JWTSettingsInProgress", "Waiting for JWT settings sync to complete")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "JWTSettingsNotReady", "Waiting for JWT settings sync to complete")
+		reconciler.SetCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionFalse, "JWTSettingsInProgress", "Waiting for JWT settings sync to complete")
+		reconciler.SetNotReady(project, "JWTSettingsNotReady", "Waiting for JWT settings sync to complete")
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status while JWT settings in progress")
 		}
 		return jwtResult, nil
 	}
 
-	r.setCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionTrue, "JWTSettingsApplied", "JWT settings applied successfully")
+	reconciler.SetCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionTrue, "JWTSettingsApplied", "JWT settings applied successfully")
 
 	passwordSyncResult, err := r.ensurePasswordSync(ctx, project)
 	if err != nil {
 		logger.Error(err, "Failed to ensure password sync")
-		r.setCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionFalse, "PasswordSyncFailed", err.Error())
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "PasswordSyncNotReady", err.Error())
+		reconciler.SetCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionFalse, "PasswordSyncFailed", err.Error())
+		reconciler.SetNotReady(project, "PasswordSyncNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after password sync failure")
 		}
 		return ctrl.Result{}, err
 	}
 	if passwordSyncResult.RequeueAfter > 0 {
-		r.setCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionFalse, "PasswordSyncInProgress", "Waiting for password sync to complete")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "PasswordSyncNotReady", "Waiting for password sync to complete")
+		reconciler.SetCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionFalse, "PasswordSyncInProgress", "Waiting for password sync to complete")
+		reconciler.SetNotReady(project, "PasswordSyncNotReady", "Waiting for password sync to complete")
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status while password sync in progress")
 		}
 		return passwordSyncResult, nil
 	}
 
-	r.setCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionTrue, "PasswordSyncApplied", "Password sync applied successfully")
+	reconciler.SetCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionTrue, "PasswordSyncApplied", "Password sync applied successfully")
 
 	if err := r.projectReconciler().EnsureRest(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Rest")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "RestNotReady", err.Error())
+		reconciler.SetNotReady(project, "RestNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update Project status")
 		}
@@ -219,7 +219,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if err := r.projectReconciler().EnsureMeta(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Meta")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "MetaNotReady", err.Error())
+		reconciler.SetNotReady(project, "MetaNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update Project status")
 		}
@@ -228,7 +228,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if err := r.projectReconciler().EnsureRealtime(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Realtime")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "RealtimeNotReady", err.Error())
+		reconciler.SetNotReady(project, "RealtimeNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update Project status")
 		}
@@ -237,14 +237,14 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if err := r.projectReconciler().EnsureAuth(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Auth")
-		r.setCondition(project, ConditionTypeReady, metav1.ConditionFalse, "AuthNotReady", err.Error())
+		reconciler.SetNotReady(project, "AuthNotReady", err.Error())
 		if statusErr := r.updateProjectStatus(ctx, project); statusErr != nil {
 			logger.Error(statusErr, "Failed to update Project status")
 		}
 		return ctrl.Result{}, err
 	}
 
-	r.setCondition(project, ConditionTypeReady, metav1.ConditionTrue, "ReconcileSucceeded", "All resources reconciled successfully")
+	reconciler.SetReady(project, "ReconcileSucceeded", "All resources reconciled successfully")
 	if err := r.updateProjectStatus(ctx, project); err != nil {
 		logger.Error(err, "Failed to update Project status")
 		return ctrl.Result{}, err
@@ -356,23 +356,6 @@ func (r *ProjectReconciler) ensureSecret(
 	return nil
 }
 
-// setCondition sets a status condition on the Project.
-func (r *ProjectReconciler) setCondition(
-	project *supabasev1alpha1.Project,
-	conditionType string,
-	status metav1.ConditionStatus,
-	reason string,
-	message string,
-) {
-	meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{
-		Type:               conditionType,
-		Status:             status,
-		ObservedGeneration: project.Generation,
-		Reason:             reason,
-		Message:            message,
-	})
-}
-
 // updateProjectStatus re-fetches the resource and applies the current status with retry on conflict.
 func (r *ProjectReconciler) updateProjectStatus(ctx context.Context, project *supabasev1alpha1.Project) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -459,7 +442,7 @@ func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *supaba
 			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 		}
 
-		cond := meta.FindStatusCondition(migration.Status.Conditions, ConditionTypeReady)
+		cond := meta.FindStatusCondition(migration.Status.Conditions, reconciler.ConditionTypeReady)
 		if cond != nil && cond.Status == metav1.ConditionTrue {
 			appliedHashes = append(appliedHashes, migration.Status.AppliedHash)
 			continue

@@ -36,6 +36,7 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	projectpkg "github.com/supabase-community/supabase-kubernetes/internal/project"
+	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
 
 //nolint:unparam // timeout is always the same in current test suite
@@ -108,7 +109,7 @@ func simulateMigrationSuccess(projectName string, timeout, interval time.Duratio
 
 	// If the migration is already applied (e.g. reused from a previous test
 	// that has not been garbage-collected yet), skip job simulation.
-	if meta.IsStatusConditionTrue(migration.Status.Conditions, ConditionTypeReady) {
+	if meta.IsStatusConditionTrue(migration.Status.Conditions, reconciler.ConditionTypeReady) {
 		return
 	}
 
@@ -176,7 +177,7 @@ var _ = Describe("Project Controller", func() {
 				created := &supabasev1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeSecretsReady)).To(BeTrue())
-				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 		})
 
@@ -224,7 +225,7 @@ var _ = Describe("Project Controller", func() {
 			project := &supabasev1alpha1.Project{}
 			Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
 			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeSecretsReady)).To(BeTrue())
-			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 		})
 
 		It("should generate expected shared keys secret format", func() {
@@ -251,7 +252,7 @@ var _ = Describe("Project Controller", func() {
 			Eventually(func(g Gomega) {
 				created := &supabasev1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 		})
 
@@ -269,7 +270,7 @@ var _ = Describe("Project Controller", func() {
 		It("should not create component workloads", func() {
 			project := &supabasev1alpha1.Project{}
 			Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
-			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 		})
 	})
 
@@ -353,7 +354,7 @@ var _ = Describe("Project Controller", func() {
 			Eventually(func(g Gomega) {
 				created := &supabasev1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 		})
 
@@ -371,7 +372,7 @@ var _ = Describe("Project Controller", func() {
 		It("should reconcile successfully with SingleDatabase reference", func() {
 			project := &supabasev1alpha1.Project{}
 			Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
-			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 		})
 	})
 
@@ -463,7 +464,7 @@ var _ = Describe("Project Controller", func() {
 			Eventually(func(g Gomega) {
 				created := &supabasev1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, created)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(created.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 		})
 

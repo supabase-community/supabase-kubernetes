@@ -66,3 +66,8 @@ type SingleDatabaseList struct {
 func init() {
 	SchemeBuilder.Register(&SingleDatabase{}, &SingleDatabaseList{})
 }
+
+// GetConditions returns a pointer to the status conditions slice.
+func (s *SingleDatabase) GetConditions() *[]metav1.Condition {
+	return &s.Status.Conditions
+}

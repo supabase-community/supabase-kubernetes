@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 	"github.com/supabase-community/supabase-kubernetes/internal/singledatabase"
 )
 
@@ -121,7 +122,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			Eventually(func(g Gomega) {
 				db := &supabasev1alpha1.SingleDatabase{}
 				g.Expect(k8sClient.Get(ctx, dbKey, db)).To(Succeed())
-				g.Expect(meta.IsStatusConditionTrue(db.Status.Conditions, ConditionTypeReady)).To(BeTrue())
+				g.Expect(meta.IsStatusConditionTrue(db.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 		})
 
