@@ -48,6 +48,19 @@ type SingleDatabaseReconciler struct {
 	RequeueInterval time.Duration
 }
 
+// SetupWithManager sets up the controller with the Manager.
+func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&supabasev1alpha1.SingleDatabase{}).
+		Owns(&corev1.Secret{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&appsv1.StatefulSet{}).
+		Named("singledatabase").
+		Complete(r)
+}
+
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/finalizers,verbs=update
@@ -155,14 +168,7 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 		return nil, fmt.Errorf("building secret: %w", err)
 	}
 
-	mutateFn := func(existing, desired *corev1.Secret) error {
-		if _, ok := existing.Data[singledatabase.DefaultSecretPasswordKey]; ok {
-			return nil
-		}
-		existing.Data[singledatabase.DefaultSecretPasswordKey] = desired.Data[singledatabase.DefaultSecretPasswordKey]
-		return nil
-	}
-	obj, _, err := reconciler.EnsureResource(ctx, r.Client, desired, db, mutateFn)
+	obj, _, err := reconciler.EnsureResource(ctx, r.Client, desired, db, mutateSecret)
 	if err != nil {
 		return nil, fmt.Errorf("ensuring secret: %w", err)
 	}
@@ -172,41 +178,23 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	pvc := singledatabase.BuildPVC(db)
-	mutateFn := func(existing, desired *corev1.PersistentVolumeClaim) error {
-		existing.Spec.Resources = desired.Spec.Resources
-		return nil
-	}
 	var owner client.Object = db
 	if db.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyRetain {
 		owner = nil
 	}
-	_, _, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, mutateFn)
+	_, _, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, mutatePVC)
 	return err
 }
 
 func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
 	svc := singledatabase.BuildService(db)
-	mutateFn := func(existing, desired *corev1.Service) error {
-		existing.Spec.Ports = desired.Spec.Ports
-		existing.Spec.Selector = desired.Spec.Selector
-		existing.Spec.Type = desired.Spec.Type
-		existing.Labels = desired.Labels
-		existing.Annotations = desired.Annotations
-		return nil
-	}
-	_, _, err := reconciler.EnsureResource(ctx, r.Client, svc, db, mutateFn)
+	_, _, err := reconciler.EnsureResource(ctx, r.Client, svc, db, mutateService)
 	return err
 }
 
 func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) (*corev1.ConfigMap, error) {
 	cm := singledatabase.BuildConfigMap(db)
-	mutateFn := func(existing, desired *corev1.ConfigMap) error {
-		existing.Data = desired.Data
-		existing.Labels = desired.Labels
-		existing.Annotations = desired.Annotations
-		return nil
-	}
-	obj, _, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateFn)
+	obj, _, err := reconciler.EnsureResource(ctx, r.Client, cm, db, mutateConfigMap)
 	if err != nil {
 		return nil, fmt.Errorf("ensuring configmap: %w", err)
 	}
@@ -216,13 +204,7 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 
 func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
 	sts := singledatabase.BuildStatefulSet(db, secretHash, configMapHash)
-	mutateFn := func(existing, desired *appsv1.StatefulSet) error {
-		existing.Spec = desired.Spec
-		existing.Labels = desired.Labels
-		existing.Annotations = desired.Annotations
-		return nil
-	}
-	_, _, err := reconciler.EnsureResource(ctx, r.Client, sts, db, mutateFn)
+	_, _, err := reconciler.EnsureResource(ctx, r.Client, sts, db, mutateStatefulSet)
 	return err
 }
 
@@ -270,15 +252,38 @@ func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supa
 	return r.updateStatus(ctx, singleDB)
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&supabasev1alpha1.SingleDatabase{}).
-		Owns(&corev1.Secret{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Service{}).
-		Owns(&corev1.PersistentVolumeClaim{}).
-		Owns(&appsv1.StatefulSet{}).
-		Named("singledatabase").
-		Complete(r)
+func mutateSecret(existing, desired *corev1.Secret) error {
+	if _, ok := existing.Data[singledatabase.DefaultSecretPasswordKey]; ok {
+		return nil
+	}
+	existing.Data[singledatabase.DefaultSecretPasswordKey] = desired.Data[singledatabase.DefaultSecretPasswordKey]
+	return nil
+}
+
+func mutatePVC(existing, desired *corev1.PersistentVolumeClaim) error {
+	existing.Spec.Resources = desired.Spec.Resources
+	return nil
+}
+
+func mutateService(existing, desired *corev1.Service) error {
+	existing.Spec.Ports = desired.Spec.Ports
+	existing.Spec.Selector = desired.Spec.Selector
+	existing.Spec.Type = desired.Spec.Type
+	existing.Labels = desired.Labels
+	existing.Annotations = desired.Annotations
+	return nil
+}
+
+func mutateConfigMap(existing, desired *corev1.ConfigMap) error {
+	existing.Data = desired.Data
+	existing.Labels = desired.Labels
+	existing.Annotations = desired.Annotations
+	return nil
+}
+
+func mutateStatefulSet(existing, desired *appsv1.StatefulSet) error {
+	existing.Spec = desired.Spec
+	existing.Labels = desired.Labels
+	existing.Annotations = desired.Annotations
+	return nil
 }
