@@ -72,7 +72,11 @@ func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile handles the reconciliation loop for SingleDatabase resources.
 func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx).WithValues(
+		"name", req.Name,
+		"namespace", req.Namespace,
+	)
+	logger.Info("Starting SingleDatabase reconciliation")
 
 	singleDB := &supabasev1alpha1.SingleDatabase{}
 	if err := r.Get(ctx, req.NamespacedName, singleDB); err != nil {
@@ -158,7 +162,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		logger.Info("Waiting for StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", *sts.Spec.Replicas)
 		r.setCondition(singleDB, metav1.ConditionFalse, "StatefulSetNotReady", "Waiting for StatefulSet pods to be ready")
 		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status while waiting for StatefulSet")
+			logger.Error(statusErr, "Failed to update status after StatefulSet not ready")
 		}
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
