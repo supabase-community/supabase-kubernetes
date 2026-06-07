@@ -43,13 +43,11 @@ func MutatePVC() func(existing, desired *corev1.PersistentVolumeClaim) error {
 	}
 }
 
-// MutateService returns a mutateFn that copies Ports, Selector, Type, Labels
-// and Annotations from desired to existing.
+// MutateService returns a mutateFn that copies Spec, Labels and Annotations
+// from desired to existing.
 func MutateService() func(existing, desired *corev1.Service) error {
 	return func(existing, desired *corev1.Service) error {
-		existing.Spec.Ports = desired.Spec.Ports
-		existing.Spec.Selector = desired.Spec.Selector
-		existing.Spec.Type = desired.Spec.Type
+		existing.Spec = desired.Spec
 		existing.Labels = desired.Labels
 		existing.Annotations = desired.Annotations
 		return nil
