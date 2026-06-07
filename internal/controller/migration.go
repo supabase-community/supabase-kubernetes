@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
-	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -85,12 +84,12 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(err, "Failed to resolve database reference")
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "DatabaseResolutionFailed", "DatabaseResolutionFailed", "Failed to resolve database reference: %s", err.Error())
 		reconciler.SetNotReady(migration, "DatabaseResolutionFailed", err.Error())
-		_ = r.updateStatus(ctx, migration)
+		_ = reconciler.UpdateStatus(ctx, r.Client, migration)
 		return ctrl.Result{}, err
 	}
 	if !dbReady {
 		reconciler.SetNotReady(migration, "DatabaseNotReady", "Waiting for database to be ready")
-		if err := r.updateStatus(ctx, migration); err != nil {
+		if err := reconciler.UpdateStatus(ctx, r.Client, migration); err != nil {
 			logger.Error(err, "Failed to update status")
 		}
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
@@ -101,7 +100,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// If already applied with the same hash, nothing to do
 	if migration.Status.AppliedHash == batchHash {
 		reconciler.SetReady(migration, "AllMigrationsApplied", "Migration batch already applied")
-		if err := r.updateStatus(ctx, migration); err != nil {
+		if err := reconciler.UpdateStatus(ctx, r.Client, migration); err != nil {
 			logger.Error(err, "Failed to update status")
 			return ctrl.Result{}, err
 		}
@@ -114,7 +113,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(err, "Failed to ensure ConfigMap for migration", "configmap", configMapName)
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "ConfigMapFailed", "ConfigMapCreationFailed", "Failed to ensure ConfigMap: %s", err.Error())
 		reconciler.SetNotReady(migration, "ConfigMapFailed", fmt.Sprintf("Failed to create ConfigMap: %s", err.Error()))
-		_ = r.updateStatus(ctx, migration)
+		_ = reconciler.UpdateStatus(ctx, r.Client, migration)
 		return ctrl.Result{}, err
 	}
 	r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "ConfigMapCreated", "ConfigMapCreated", "ConfigMap %s ensured", configMapName)
@@ -144,13 +143,13 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			logger.Error(err, "Failed to create migration job", "job", jobName)
 			r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "JobCreationFailed", "JobCreationFailed", "Failed to create migration job: %s", err.Error())
 			reconciler.SetNotReady(migration, "JobCreationFailed", fmt.Sprintf("Failed to create job: %s", err.Error()))
-			_ = r.updateStatus(ctx, migration)
+			_ = reconciler.UpdateStatus(ctx, r.Client, migration)
 			return ctrl.Result{}, err
 		}
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "JobCreated", "JobCreated", "Migration job %s created", jobName)
 
 		reconciler.SetNotReady(migration, "Migrating", "Running migration batch")
-		_ = r.updateStatus(ctx, migration)
+		_ = reconciler.UpdateStatus(ctx, r.Client, migration)
 		// Stop processing, wait for job to complete (requeue via Owns)
 		return ctrl.Result{}, nil
 	}
@@ -163,7 +162,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		migration.Status.AppliedAt = &now
 		reconciler.SetReady(migration, "AllMigrationsApplied", "All migrations applied successfully")
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeNormal, "MigrationsApplied", "MigrationsApplied", "Migration batch applied successfully (hash: %s)", batchHash)
-		if err := r.updateStatus(ctx, migration); err != nil {
+		if err := reconciler.UpdateStatus(ctx, r.Client, migration); err != nil {
 			logger.Error(err, "Failed to update status after success")
 			r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "StatusUpdateFailed", "StatusUpdateFailed", "Failed to update status: %s", err.Error())
 			return ctrl.Result{}, err
@@ -177,7 +176,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Info("Migration batch failed", "job", jobName, "hash", batchHash)
 		reconciler.SetNotReady(migration, "MigrationFailed", "Migration batch failed")
 		r.Recorder.Eventf(migration, nil, corev1.EventTypeWarning, "MigrationFailed", "MigrationFailed", "Migration batch failed (job: %s)", jobName)
-		if err := r.updateStatus(ctx, migration); err != nil {
+		if err := reconciler.UpdateStatus(ctx, r.Client, migration); err != nil {
 			logger.Error(err, "Failed to update status after failure")
 			return ctrl.Result{}, err
 		}
@@ -187,20 +186,8 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Job is still running
 	reconciler.SetNotReady(migration, "Migrating", "Running migration batch")
-	_ = r.updateStatus(ctx, migration)
+	_ = reconciler.UpdateStatus(ctx, r.Client, migration)
 	return ctrl.Result{}, nil
-}
-
-// updateStatus re-fetches the resource and applies the current status with retry on conflict.
-func (r *MigrationReconciler) updateStatus(ctx context.Context, migration *supabasev1alpha1.Migration) error {
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		latest := &supabasev1alpha1.Migration{}
-		if err := r.Get(ctx, types.NamespacedName{Name: migration.Name, Namespace: migration.Namespace}, latest); err != nil {
-			return err
-		}
-		latest.Status = migration.Status
-		return r.Status().Update(ctx, latest)
-	})
 }
 
 func (r *MigrationReconciler) cleanupResources(ctx context.Context, migration *supabasev1alpha1.Migration) {

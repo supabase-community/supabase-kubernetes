@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
-	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -89,7 +88,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.ensureSecret(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure Secret")
 		reconciler.SetNotReady(singleDB, "SecretFailed", err.Error())
-		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after secret failure")
 		}
 		return ctrl.Result{}, err
@@ -98,31 +97,31 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.ensureConfigMap(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure ConfigMap")
 		reconciler.SetNotReady(singleDB, "ConfigMapFailed", err.Error())
-		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after ConfigMap failure")
 		}
 		return ctrl.Result{}, err
 	}
 
-	secret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(singleDB.Name), Namespace: singleDB.Namespace}, secret); err != nil {
+	sc := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(singleDB.Name), Namespace: singleDB.Namespace}, sc); err != nil {
 		logger.Error(err, "Failed to get Secret")
 		return ctrl.Result{}, err
 	}
 
-	configMap := &corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.ConfigMapName(singleDB.Name), Namespace: singleDB.Namespace}, configMap); err != nil {
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.ConfigMapName(singleDB.Name), Namespace: singleDB.Namespace}, cm); err != nil {
 		logger.Error(err, "Failed to get ConfigMap")
 		return ctrl.Result{}, err
 	}
 
-	secretHash := helper.SecretHash(secret)
-	configMapHash := helper.ConfigMapHash(configMap)
+	secretHash := helper.SecretHash(sc)
+	configMapHash := helper.ConfigMapHash(cm)
 
 	if err := r.ensurePVC(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure PVC")
 		reconciler.SetNotReady(singleDB, "PVCFailed", err.Error())
-		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after PVC failure")
 		}
 		return ctrl.Result{}, err
@@ -131,7 +130,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.ensureService(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure Service")
 		reconciler.SetNotReady(singleDB, "ServiceFailed", err.Error())
-		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after Service failure")
 		}
 		return ctrl.Result{}, err
@@ -140,7 +139,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.ensureStatefulSet(ctx, singleDB, secretHash, configMapHash); err != nil {
 		logger.Error(err, "Failed to ensure StatefulSet")
 		reconciler.SetNotReady(singleDB, "StatefulSetFailed", err.Error())
-		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet failure")
 		}
 		return ctrl.Result{}, err
@@ -150,7 +149,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(singleDB.Name), Namespace: singleDB.Namespace}, sts); err != nil {
 		logger.Error(err, "Failed to get StatefulSet")
 		reconciler.SetNotReady(singleDB, "StatefulSetGetFailed", err.Error())
-		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet get failure")
 		}
 		return ctrl.Result{}, err
@@ -159,13 +158,13 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
 		logger.Info("Waiting for StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", *sts.Spec.Replicas)
 		reconciler.SetNotReady(singleDB, "StatefulSetNotReady", "Waiting for StatefulSet pods to be ready")
-		if statusErr := r.updateStatus(ctx, singleDB); statusErr != nil {
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet not ready")
 		}
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
-	if err := r.markReady(ctx, singleDB, configMap); err != nil {
+	if err := r.markReady(ctx, singleDB, cm); err != nil {
 		logger.Error(err, "Failed to update SingleDatabase status")
 		return ctrl.Result{}, err
 	}
@@ -174,18 +173,18 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
-	desired, err := singledatabase.BuildSecret(db)
+func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
+	sc, err := singledatabase.BuildSecret(singleDB)
 	if err != nil {
 		return fmt.Errorf("building secret: %w", err)
 	}
 
 	logger := log.FromContext(ctx).WithValues(
-		"name", desired.GetName(),
-		"namespace", desired.GetNamespace(),
+		"name", sc.GetName(),
+		"namespace", sc.GetNamespace(),
 	)
 
-	result, err := reconciler.EnsureResource(ctx, r.Client, desired, db, reconciler.MutateSecret(singledatabase.DefaultSecretPasswordKey))
+	result, err := reconciler.EnsureResource(ctx, r.Client, sc, singleDB, reconciler.MutateSecret(singledatabase.DefaultSecretPasswordKey))
 	if err != nil {
 		return fmt.Errorf("ensuring secret: %w", err)
 	}
@@ -202,15 +201,15 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabas
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
-	cm := singledatabase.BuildConfigMap(db)
+func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
+	cm := singledatabase.BuildConfigMap(singleDB)
 
 	logger := log.FromContext(ctx).WithValues(
 		"name", cm.GetName(),
 		"namespace", cm.GetNamespace(),
 	)
 
-	result, err := reconciler.EnsureResource(ctx, r.Client, cm, db, reconciler.MutateConfigMap())
+	result, err := reconciler.EnsureResource(ctx, r.Client, cm, singleDB, reconciler.MutateConfigMap())
 	if err != nil {
 		return fmt.Errorf("ensuring configmap: %w", err)
 	}
@@ -227,10 +226,10 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, db *supa
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
-	pvc := singledatabase.BuildPVC(db)
-	var owner client.Object = db
-	if db.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyRetain {
+func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
+	pvc := singledatabase.BuildPVC(singleDB)
+	var owner client.Object = singleDB
+	if singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyRetain {
 		owner = nil
 	}
 
@@ -256,15 +255,15 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
-	svc := singledatabase.BuildService(db)
+func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
+	svc := singledatabase.BuildService(singleDB)
 
 	logger := log.FromContext(ctx).WithValues(
 		"name", svc.GetName(),
 		"namespace", svc.GetNamespace(),
 	)
 
-	result, err := reconciler.EnsureResource(ctx, r.Client, svc, db, reconciler.MutateService())
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, singleDB, reconciler.MutateService())
 	if err != nil {
 		return fmt.Errorf("ensuring service: %w", err)
 	}
@@ -281,15 +280,15 @@ func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supaba
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
-	sts := singledatabase.BuildStatefulSet(db, secretHash, configMapHash)
+func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
+	sts := singledatabase.BuildStatefulSet(singleDB, secretHash, configMapHash)
 
 	logger := log.FromContext(ctx).WithValues(
 		"name", sts.GetName(),
 		"namespace", sts.GetNamespace(),
 	)
 
-	result, err := reconciler.EnsureResource(ctx, r.Client, sts, db, reconciler.MutateStatefulSet())
+	result, err := reconciler.EnsureResource(ctx, r.Client, sts, singleDB, reconciler.MutateStatefulSet())
 	if err != nil {
 		return fmt.Errorf("ensuring statefulset: %w", err)
 	}
@@ -306,17 +305,6 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *su
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) updateStatus(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		latest := &supabasev1alpha1.SingleDatabase{}
-		if err := r.Get(ctx, types.NamespacedName{Name: db.Name, Namespace: db.Namespace}, latest); err != nil {
-			return err
-		}
-		latest.Status = db.Status
-		return r.Status().Update(ctx, latest)
-	})
-}
-
 func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, configMap *corev1.ConfigMap) error {
 	port, _ := strconv.Atoi(configMap.Data[singledatabase.DefaultConfigMapKeyPort])
 	singleDB.Status.ResolvedDatabase = &supabasev1alpha1.ResolvedDatabase{
@@ -331,5 +319,5 @@ func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supa
 	}
 
 	reconciler.SetReady(singleDB, "ReconcileSucceeded", "All resources reconciled successfully")
-	return r.updateStatus(ctx, singleDB)
+	return reconciler.UpdateStatus(ctx, r.Client, singleDB)
 }

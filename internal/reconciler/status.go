@@ -17,8 +17,13 @@ limitations under the License.
 package reconciler
 
 import (
+	"context"
+	"reflect"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -52,4 +57,23 @@ func SetReady[T ConditionedObject](obj T, reason, message string) {
 // SetNotReady sets the Ready condition to False on the provided object.
 func SetNotReady[T ConditionedObject](obj T, reason, message string) {
 	SetCondition(obj, ConditionTypeReady, metav1.ConditionFalse, reason, message)
+}
+
+// UpdateStatus re-fetches the resource and applies the current status with retry on conflict.
+func UpdateStatus[T client.Object](ctx context.Context, c client.Client, obj T) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest := obj.DeepCopyObject().(T)
+		if err := c.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, latest); err != nil {
+			return err
+		}
+		copyStatus(obj, latest)
+		return c.Status().Update(ctx, latest)
+	})
+}
+
+func copyStatus[T any](from, to T) {
+	fromVal := reflect.ValueOf(from).Elem()
+	toVal := reflect.ValueOf(to).Elem()
+	statusField := fromVal.FieldByName("Status")
+	toVal.FieldByName("Status").Set(statusField)
 }
