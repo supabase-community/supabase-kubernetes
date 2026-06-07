@@ -22,7 +22,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Result represents the outcome of an EnsureResource call.
@@ -52,12 +51,6 @@ func EnsureResource[T client.Object](
 	owner client.Object,
 	mutateFn func(existing, desired T) error,
 ) (Result, error) {
-	logger := log.FromContext(ctx).WithValues(
-		"kind", fmt.Sprintf("%T", desired),
-		"name", desired.GetName(),
-		"namespace", desired.GetNamespace(),
-	)
-
 	if owner != nil {
 		if err := controllerutil.SetControllerReference(owner, desired, c.Scheme()); err != nil {
 			return "", fmt.Errorf("setting owner reference: %w", err)
@@ -77,13 +70,10 @@ func EnsureResource[T client.Object](
 
 	switch result {
 	case controllerutil.OperationResultCreated:
-		logger.Info("Created resource")
 		return ResultCreated, nil
 	case controllerutil.OperationResultUpdated:
-		logger.V(1).Info("Updated resource")
 		return ResultUpdated, nil
 	default:
-		logger.V(1).Info("Resource unchanged")
 		return ResultUnchanged, nil
 	}
 }
