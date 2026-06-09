@@ -5,13 +5,10 @@ metadata:
 spec:
   # image overrides the default database image
   # image: "supabase/postgres:17.6.1.084"
-  # defaults to 10Gi if omitted
   # storage:
   #   accessModes:
   #     - ReadWriteOnce
-  #   resources:
-  #     requests:
-  #       storage: 20Gi
+  #   size: 20Gi
   #   deletionPolicy: Retain
   # probes:
   #   startup:

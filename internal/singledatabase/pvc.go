@@ -45,18 +45,16 @@ func BuildPVC(db *supabasev1alpha1.SingleDatabase) *corev1.PersistentVolumeClaim
 	}
 }
 
-// AccessModes returns the desired access modes, defaulting to ReadWriteOnce.
+// AccessModes returns the desired access modes.
 func AccessModes(db *supabasev1alpha1.SingleDatabase) []corev1.PersistentVolumeAccessMode {
-	if len(db.Spec.Storage.AccessModes) > 0 {
-		return db.Spec.Storage.AccessModes
-	}
-	return DefaultStorageAccessModes()
+	return db.Spec.Storage.AccessModes
 }
 
-// StorageResources returns the PVC resource requirements, defaulting to 10Gi.
+// StorageResources returns the PVC resource requirements from the spec size.
 func StorageResources(db *supabasev1alpha1.SingleDatabase) corev1.VolumeResourceRequirements {
-	if db.Spec.Storage.Resources.Requests != nil || db.Spec.Storage.Resources.Limits != nil {
-		return db.Spec.Storage.Resources
+	return corev1.VolumeResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceStorage: db.Spec.Storage.Size,
+		},
 	}
-	return DefaultStorageResources()
 }

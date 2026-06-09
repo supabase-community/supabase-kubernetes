@@ -18,7 +18,22 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
+
+// VolumeClaim defines the desired characteristics of a persistent volume claim.
+type VolumeClaim struct {
+	// +kubebuilder:validation:Required
+	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes"`
+	// +optional
+	StorageClassName *string `json:"storageClassName,omitempty"`
+	// +kubebuilder:validation:Required
+	Size resource.Quantity `json:"size"`
+	// +kubebuilder:validation:Enum=Delete;Retain
+	// +kubebuilder:default=Delete
+	// +optional
+	DeletionPolicy DeletionPolicy `json:"deletionPolicy,omitempty"`
+}
 
 // DeletionPolicy defines the deletion behavior for the PVC.
 // +kubebuilder:validation:Enum=Delete;Retain
@@ -46,20 +61,6 @@ type ResolvedDatabase struct {
 	DBName      string       `json:"dbName"`
 	User        string       `json:"user,omitempty"`
 	PasswordRef SecretKeyRef `json:"passwordRef"`
-}
-
-// VolumeClaim defines the desired characteristics of a persistent volume claim.
-type VolumeClaim struct {
-	// +optional
-	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
-	// +optional
-	StorageClassName *string `json:"storageClassName,omitempty"`
-	// +kubebuilder:validation:Required
-	Resources corev1.VolumeResourceRequirements `json:"resources"`
-	// +kubebuilder:validation:Enum=Delete;Retain
-	// +kubebuilder:default=Delete
-	// +optional
-	DeletionPolicy DeletionPolicy `json:"deletionPolicy,omitempty"`
 }
 
 // ServiceSpec defines the configuration for a component Service.

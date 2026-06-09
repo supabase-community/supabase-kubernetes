@@ -24,7 +24,7 @@ import (
 type SingleDatabaseSpec struct {
 	WorkloadConfig `json:",inline"`
 
-	// +optional
+	// +kubebuilder:validation:Required
 	Storage VolumeClaim `json:"storage,omitempty"`
 }
 

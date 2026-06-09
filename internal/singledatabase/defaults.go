@@ -92,13 +92,9 @@ func DefaultLabels(instanceName string) map[string]string {
 	}
 }
 
-// DefaultStorageResources returns the default storage resource requirements.
-func DefaultStorageResources() corev1.VolumeResourceRequirements {
-	return corev1.VolumeResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceStorage: resource.MustParse(DefaultStorageSize),
-		},
-	}
+// DefaultStorageSizeQuantity returns the default storage size as a resource.Quantity.
+func DefaultStorageSizeQuantity() resource.Quantity {
+	return resource.MustParse(DefaultStorageSize)
 }
 
 // DefaultStorageAccessModes returns the default storage access modes.

@@ -34,13 +34,6 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/singledatabase"
 )
 
-func testSingleDatabaseMinimal(name string) *supabasev1alpha1.SingleDatabase {
-	return &supabasev1alpha1.SingleDatabase{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
-		Spec:       supabasev1alpha1.SingleDatabaseSpec{},
-	}
-}
-
 var _ = Describe("SingleDatabase Controller", func() {
 	const timeout = 30 * time.Second
 	const interval = 250 * time.Millisecond
@@ -55,11 +48,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 				Spec: supabasev1alpha1.SingleDatabaseSpec{
 					Storage: supabasev1alpha1.VolumeClaim{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.VolumeResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: resource.MustParse("1Gi"),
-							},
-						},
+						Size:        resource.MustParse("1Gi"),
 					},
 				},
 			}
@@ -176,31 +165,4 @@ var _ = Describe("SingleDatabase Controller", func() {
 		})
 	})
 
-	Context("When creating a SingleDatabase without storage resources", func() {
-		const dbName = "test-singledatabase-default-storage"
-		dbKey := types.NamespacedName{Name: dbName, Namespace: "default"}
-
-		BeforeEach(func() {
-			db := testSingleDatabaseMinimal(dbName)
-			Expect(k8sClient.Create(ctx, db)).To(Succeed())
-		})
-
-		AfterEach(func() {
-			db := &supabasev1alpha1.SingleDatabase{}
-			if err := k8sClient.Get(ctx, dbKey, db); err == nil {
-				Expect(k8sClient.Delete(ctx, db)).To(Succeed())
-			}
-		})
-
-		It("Should default storage to 10Gi", func() {
-			pvc := &corev1.PersistentVolumeClaim{}
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.PVCName(dbName), Namespace: "default"}, pvc)).To(Succeed())
-			}, timeout, interval).Should(Succeed())
-
-			storage := pvc.Spec.Resources.Requests.Storage()
-			Expect(storage).NotTo(BeNil())
-			Expect(storage.String()).To(Equal("10Gi"))
-		})
-	})
 })
