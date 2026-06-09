@@ -2130,7 +2130,7 @@ spec:
                       - Delete
                       - Retain
                     default: Delete
-                    description: PVCDeletionPolicy defines the deletion behavior for
+                    description: DeletionPolicy defines the deletion behavior for
                       the PVC.
                     type: string
                   resources:

@@ -20,13 +20,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// PVCDeletionPolicy defines the deletion behavior for the PVC.
+// DeletionPolicy defines the deletion behavior for the PVC.
 // +kubebuilder:validation:Enum=Delete;Retain
-type PVCDeletionPolicy string
+type DeletionPolicy string
 
 const (
-	PVCDeletionPolicyDelete PVCDeletionPolicy = "Delete"
-	PVCDeletionPolicyRetain PVCDeletionPolicy = "Retain"
+	DeletionPolicyDelete DeletionPolicy = "Delete"
+	DeletionPolicyRetain DeletionPolicy = "Retain"
 )
 
 // SecretKeyRef is a reference to a specific key in a Kubernetes Secret.
@@ -69,7 +69,7 @@ type VolumeClaim struct {
 	// +kubebuilder:validation:Enum=Delete;Retain
 	// +kubebuilder:default=Delete
 	// +optional
-	DeletionPolicy PVCDeletionPolicy `json:"deletionPolicy,omitempty"`
+	DeletionPolicy DeletionPolicy `json:"deletionPolicy,omitempty"`
 }
 
 // ServiceSpec defines the configuration for a component Service.

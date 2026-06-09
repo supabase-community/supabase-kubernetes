@@ -229,7 +229,7 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, singleDB
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
 	pvc := singledatabase.BuildPVC(singleDB)
 	var owner client.Object = singleDB
-	if singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.PVCDeletionPolicyRetain {
+	if singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.DeletionPolicyRetain {
 		owner = nil
 	}
 
