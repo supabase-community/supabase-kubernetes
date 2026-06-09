@@ -508,6 +508,11 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    ## Deployment strategy. Set to {type: Recreate} when using persistence.snippets
+    ## with a ReadWriteOnce PVC: the chart's default RollingUpdate causes a
+    ## Multi-Attach error because the new pod is scheduled before the old one
+    ## releases the volume. Studio is single-replica so the brief gap is fine.
+    strategy: {}
 
   vector:
     enabled: true
