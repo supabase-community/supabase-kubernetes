@@ -25,7 +25,7 @@ type SingleDatabaseSpec struct {
 	WorkloadConfig `json:",inline"`
 
 	// +optional
-	Storage VolumeClaimTemplateSpec `json:"storage,omitempty"`
+	Storage VolumeClaim `json:"storage,omitempty"`
 }
 
 // SingleDatabaseStatus defines the observed state of SingleDatabase.

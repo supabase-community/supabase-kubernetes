@@ -56,7 +56,7 @@ var _ = Describe("Migration Controller", func() {
 				},
 				Spec: supabasev1alpha1.SingleDatabaseSpec{
 
-					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
+					Storage: supabasev1alpha1.VolumeClaim{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
 							Requests: corev1.ResourceList{

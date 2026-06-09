@@ -58,8 +58,8 @@ type ComponentProbes struct {
 	Liveness *corev1.Probe `json:"liveness,omitempty"`
 }
 
-// VolumeClaimTemplateSpec defines the desired characteristics of a persistent volume claim.
-type VolumeClaimTemplateSpec struct {
+// VolumeClaim defines the desired characteristics of a persistent volume claim.
+type VolumeClaim struct {
 	// +optional
 	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
 	// +optional

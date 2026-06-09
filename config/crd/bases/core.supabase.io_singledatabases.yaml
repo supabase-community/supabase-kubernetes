@@ -2114,8 +2114,8 @@ spec:
                     type: string
                 type: object
               storage:
-                description: VolumeClaimTemplateSpec defines the desired characteristics
-                  of a persistent volume claim.
+                description: VolumeClaim defines the desired characteristics of a
+                  persistent volume claim.
                 properties:
                   accessModes:
                     items:
