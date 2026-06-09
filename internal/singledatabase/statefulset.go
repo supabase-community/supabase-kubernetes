@@ -155,28 +155,16 @@ func PasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Conta
 }
 
 // StartupProbe returns the startup probe for the database container.
-// When db.Spec.Probes is nil or db.Spec.Probes.Startup is nil, a default pg_isready probe is returned.
 func StartupProbe(db *supabasev1alpha1.SingleDatabase) *corev1.Probe {
-	if db.Spec.Probes != nil && db.Spec.Probes.Startup != nil {
-		return db.Spec.Probes.Startup
-	}
 	return DefaultStartupProbe()
 }
 
 // ReadinessProbe returns the readiness probe for the database container.
-// When db.Spec.Probes is nil or db.Spec.Probes.Readiness is nil, a default pg_isready probe is returned.
 func ReadinessProbe(db *supabasev1alpha1.SingleDatabase) *corev1.Probe {
-	if db.Spec.Probes != nil && db.Spec.Probes.Readiness != nil {
-		return db.Spec.Probes.Readiness
-	}
 	return DefaultReadinessProbe()
 }
 
 // LivenessProbe returns the liveness probe for the database container.
-// When db.Spec.Probes is nil or db.Spec.Probes.Liveness is nil, a default pg_isready probe is returned.
 func LivenessProbe(db *supabasev1alpha1.SingleDatabase) *corev1.Probe {
-	if db.Spec.Probes != nil && db.Spec.Probes.Liveness != nil {
-		return db.Spec.Probes.Liveness
-	}
 	return DefaultLivenessProbe()
 }

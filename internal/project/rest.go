@@ -281,18 +281,6 @@ func (r *Reconciler) buildRestContainer(project *supabasev1alpha1.Project, db *s
 	}
 
 	container.Env = append(container.Env, rest.Env...)
-	if rest.Probes != nil {
-		if rest.Probes.Startup != nil {
-			container.StartupProbe = rest.Probes.Startup
-		}
-		if rest.Probes.Readiness != nil {
-			container.ReadinessProbe = rest.Probes.Readiness
-		}
-		if rest.Probes.Liveness != nil {
-			container.LivenessProbe = rest.Probes.Liveness
-		}
-	}
-
 	return container
 }
 

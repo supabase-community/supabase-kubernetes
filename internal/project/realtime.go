@@ -265,18 +265,6 @@ func (r *Reconciler) buildRealtimeContainer(project *supabasev1alpha1.Project, d
 	}
 	container.Env = append(container.Env, rt.Env...)
 
-	if rt.Probes != nil {
-		if rt.Probes.Startup != nil {
-			container.StartupProbe = rt.Probes.Startup
-		}
-		if rt.Probes.Readiness != nil {
-			container.ReadinessProbe = rt.Probes.Readiness
-		}
-		if rt.Probes.Liveness != nil {
-			container.LivenessProbe = rt.Probes.Liveness
-		}
-	}
-
 	return container
 }
 

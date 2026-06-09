@@ -48,16 +48,6 @@ type ResolvedDatabase struct {
 	PasswordRef SecretKeyRef `json:"passwordRef"`
 }
 
-// ComponentProbes defines custom probe overrides for a component.
-type ComponentProbes struct {
-	// +optional
-	Startup *corev1.Probe `json:"startup,omitempty"`
-	// +optional
-	Readiness *corev1.Probe `json:"readiness,omitempty"`
-	// +optional
-	Liveness *corev1.Probe `json:"liveness,omitempty"`
-}
-
 // VolumeClaim defines the desired characteristics of a persistent volume claim.
 type VolumeClaim struct {
 	// +optional
@@ -140,10 +130,6 @@ type WorkloadConfig struct {
 	// priorityClassName defines the priority class for the pod
 	// +optional
 	PriorityClassName string `json:"priorityClassName,omitempty"`
-
-	// probes defines custom probe overrides for the component
-	// +optional
-	Probes *ComponentProbes `json:"probes,omitempty"`
 
 	// resources defines compute resource requirements
 	// +optional

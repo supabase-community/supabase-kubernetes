@@ -411,18 +411,6 @@ func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *s
 		SecurityContext: auth.ContainerSecurityContext,
 	}
 
-	if auth.Probes != nil {
-		if auth.Probes.Startup != nil {
-			container.StartupProbe = auth.Probes.Startup
-		}
-		if auth.Probes.Readiness != nil {
-			container.ReadinessProbe = auth.Probes.Readiness
-		}
-		if auth.Probes.Liveness != nil {
-			container.LivenessProbe = auth.Probes.Liveness
-		}
-	}
-
 	return container
 }
 

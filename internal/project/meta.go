@@ -253,18 +253,6 @@ func (r *Reconciler) buildMetaContainer(project *supabasev1alpha1.Project, db *s
 	}
 	container.Env = append(container.Env, m.Env...)
 
-	if m.Probes != nil {
-		if m.Probes.Startup != nil {
-			container.StartupProbe = m.Probes.Startup
-		}
-		if m.Probes.Readiness != nil {
-			container.ReadinessProbe = m.Probes.Readiness
-		}
-		if m.Probes.Liveness != nil {
-			container.LivenessProbe = m.Probes.Liveness
-		}
-	}
-
 	return container
 }
 
