@@ -458,8 +458,8 @@ func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *supa
 	}
 
 	expirySeconds := int32(3600)
-	if project.Spec.JWTExpirySeconds != nil {
-		expirySeconds = *project.Spec.JWTExpirySeconds
+	if project.Spec.JWTExpSec != nil {
+		expirySeconds = *project.Spec.JWTExpSec
 	}
 
 	currentHash := r.calculateJWTSettingsHash(jwtSecret.Data["jwt-secret"], expirySeconds)

@@ -3,7 +3,7 @@ kind: Project
 metadata:
   name: supabase
 spec:
-  jwtExpirySeconds: 1800
+  jwtExpSec: 1800
   http:
     protocol: "http"
     hostname: "api.supabase.local"

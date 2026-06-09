@@ -2457,8 +2457,7 @@ spec:
                 - hostname
                 - protocol
                 type: object
-              jwtExpirySeconds:
-                default: 3600
+              jwtExpSec:
                 format: int32
                 minimum: 1
                 type: integer

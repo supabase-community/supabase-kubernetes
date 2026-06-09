@@ -22,10 +22,9 @@ import (
 
 // ProjectSpec defines the desired state of a Supabase deployment.
 type ProjectSpec struct {
-	// +kubebuilder:default=3600
 	// +kubebuilder:validation:Minimum=1
 	// +optional
-	JWTExpirySeconds *int32 `json:"jwtExpirySeconds,omitempty"`
+	JWTExpSec *int32 `json:"jwtExpSec,omitempty"`
 
 	// +kubebuilder:validation:Required
 	HTTP HTTPConfig `json:"http"`

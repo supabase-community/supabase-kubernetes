@@ -235,8 +235,8 @@ func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *s
 	}
 
 	jwtExpiry := "3600"
-	if project.Spec.JWTExpirySeconds != nil {
-		jwtExpiry = strconv.Itoa(int(*project.Spec.JWTExpirySeconds))
+	if project.Spec.JWTExpSec != nil {
+		jwtExpiry = strconv.Itoa(int(*project.Spec.JWTExpSec))
 	}
 
 	projectJWTSecret := fmt.Sprintf("%s-jwt", project.Name)
