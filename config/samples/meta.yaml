@@ -1,5 +1,0 @@
-apiVersion: core.supabase.io/v1alpha1
-kind: Meta
-metadata:
-  name: supabase
-spec:

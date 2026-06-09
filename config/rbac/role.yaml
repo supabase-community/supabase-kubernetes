@@ -64,12 +64,8 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
-  - auths
-  - meta
   - migrations
   - projects
-  - realtimes
-  - rests
   - singledatabases
   verbs:
   - create
@@ -82,22 +78,18 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
-  - auths/status
-  - meta/status
-  - migrations/status
-  - projects/status
-  - realtimes/status
-  - rests/status
-  - singledatabases/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - core.supabase.io
-  resources:
   - migrations/finalizers
   - projects/finalizers
   - singledatabases/finalizers
   verbs:
+  - update
+- apiGroups:
+  - core.supabase.io
+  resources:
+  - migrations/status
+  - projects/status
+  - singledatabases/status
+  verbs:
+  - get
+  - patch
   - update

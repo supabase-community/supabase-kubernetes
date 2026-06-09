@@ -34,24 +34,19 @@ type ProjectSpec struct {
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 	// +optional
-	RestRef *RestRef `json:"restRef,omitempty"`
+	Rest *RestSpec `json:"rest,omitempty"`
 	// +optional
-	MetaRef *MetaRef `json:"metaRef,omitempty"`
+	Meta *MetaSpec `json:"meta,omitempty"`
 	// +optional
-	RealtimeRef *RealtimeRef `json:"realtimeRef,omitempty"`
+	Realtime *RealtimeSpec `json:"realtime,omitempty"`
 	// +optional
-	AuthRef *AuthRef `json:"authRef,omitempty"`
+	Auth *AuthSpec `json:"auth,omitempty"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.
 type ProjectStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	// +optional
-	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
-	// AppliedMigrationHash is the SHA-256 hash of the built-in migration batch that was successfully applied.
-	// +optional
-	AppliedMigrationHash string `json:"appliedMigrationHash,omitempty"`
 }
 
 // +kubebuilder:object:root=true

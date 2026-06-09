@@ -1,8 +1,0 @@
-apiVersion: core.supabase.io/v1alpha1
-kind: Rest
-metadata:
-  name: supabase
-spec:
-  # dbSchemas: "public,storage,graphql_public"
-  # dbMaxRows: 1000
-  # dbExtraSearchPath: "public"

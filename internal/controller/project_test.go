@@ -397,13 +397,13 @@ var _ = Describe("Project Controller", func() {
 			}
 		})
 
-		It("should not recreate Migration if AppliedMigrationHash is set", func() {
+		It("should not recreate Migration once applied", func() {
 			simulateMigrationSuccess(projectName, timeout, interval)
 
 			Eventually(func(g Gomega) {
 				project := &supabasev1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
-				g.Expect(project.Status.AppliedMigrationHash).NotTo(BeEmpty())
+				g.Expect(meta.IsStatusConditionTrue(project.Status.Conditions, ConditionTypeMigrationReady)).To(BeTrue())
 			}, timeout, interval).Should(Succeed())
 
 			project := &supabasev1alpha1.Project{}
@@ -425,7 +425,7 @@ var _ = Describe("Project Controller", func() {
 		})
 	})
 
-	Context("When creating a Project with component refs", func() {
+	Context("When creating a Project with inline components", func() {
 		const projectName = "component-project"
 		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
 
@@ -433,29 +433,17 @@ var _ = Describe("Project Controller", func() {
 			Expect(k8sClient.Create(ctx, testSingleDatabase("test-db"))).To(Succeed())
 			simulateSingleDatabaseReady("test-db", timeout, interval)
 
-			rest := &supabasev1alpha1.Rest{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-rest", Namespace: "default"},
-				Spec:       supabasev1alpha1.RestSpec{},
-			}
-			Expect(k8sClient.Create(ctx, rest)).To(Succeed())
-
-			auth := &supabasev1alpha1.Auth{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-auth", Namespace: "default"},
-				Spec: supabasev1alpha1.AuthSpec{
-					SiteURL:                "http://localhost:3000",
-					DisableSignup:          false,
-					EnableEmailSignup:      true,
-					EnableAnonymousUsers:   false,
-					EnableEmailAutoconfirm: false,
-					EnablePhoneSignup:      false,
-					EnablePhoneAutoconfirm: false,
-				},
-			}
-			Expect(k8sClient.Create(ctx, auth)).To(Succeed())
-
 			project := validProject(projectName)
-			project.Spec.RestRef = &supabasev1alpha1.RestRef{Kind: "Rest", Name: "test-rest"}
-			project.Spec.AuthRef = &supabasev1alpha1.AuthRef{Kind: "Auth", Name: "test-auth"}
+			project.Spec.Rest = &supabasev1alpha1.RestSpec{}
+			project.Spec.Auth = &supabasev1alpha1.AuthSpec{
+				SiteURL:                "http://localhost:3000",
+				DisableSignup:          false,
+				EnableEmailSignup:      true,
+				EnableAnonymousUsers:   false,
+				EnableEmailAutoconfirm: false,
+				EnablePhoneSignup:      false,
+				EnablePhoneAutoconfirm: false,
+			}
 			Expect(k8sClient.Create(ctx, project)).To(Succeed())
 
 			simulateMigrationSuccess(projectName, timeout, interval)
@@ -477,27 +465,19 @@ var _ = Describe("Project Controller", func() {
 			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-db", Namespace: "default"}, extDB); err == nil {
 				Expect(k8sClient.Delete(ctx, extDB)).To(Succeed())
 			}
-			rest := &supabasev1alpha1.Rest{}
-			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-rest", Namespace: "default"}, rest); err == nil {
-				Expect(k8sClient.Delete(ctx, rest)).To(Succeed())
-			}
-			auth := &supabasev1alpha1.Auth{}
-			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-auth", Namespace: "default"}, auth); err == nil {
-				Expect(k8sClient.Delete(ctx, auth)).To(Succeed())
-			}
 		})
 
 		It("should create Rest Deployment and Service", func() {
 			Eventually(func(g Gomega) {
 				dep := &appsv1.Deployment{}
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-rest-rest", Namespace: "default"}, dep)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-rest", Namespace: "default"}, dep)).To(Succeed())
 				g.Expect(dep.Spec.Template.Spec.Containers).To(HaveLen(1))
 				g.Expect(dep.Spec.Template.Spec.Containers[0].Name).To(Equal("rest"))
 			}, timeout, interval).Should(Succeed())
 
 			Eventually(func(g Gomega) {
 				svc := &corev1.Service{}
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-rest-rest", Namespace: "default"}, svc)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-rest", Namespace: "default"}, svc)).To(Succeed())
 				g.Expect(svc.Spec.Ports).To(HaveLen(1))
 				g.Expect(svc.Spec.Ports[0].Port).To(Equal(int32(3000)))
 			}, timeout, interval).Should(Succeed())
@@ -506,14 +486,14 @@ var _ = Describe("Project Controller", func() {
 		It("should create Auth Deployment and Service", func() {
 			Eventually(func(g Gomega) {
 				dep := &appsv1.Deployment{}
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-auth-auth", Namespace: "default"}, dep)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-auth", Namespace: "default"}, dep)).To(Succeed())
 				g.Expect(dep.Spec.Template.Spec.Containers).To(HaveLen(1))
 				g.Expect(dep.Spec.Template.Spec.Containers[0].Name).To(Equal("auth"))
 			}, timeout, interval).Should(Succeed())
 
 			Eventually(func(g Gomega) {
 				svc := &corev1.Service{}
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-auth-auth", Namespace: "default"}, svc)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: projectName + "-auth", Namespace: "default"}, svc)).To(Succeed())
 				g.Expect(svc.Spec.Ports).To(HaveLen(1))
 				g.Expect(svc.Spec.Ports[0].Port).To(Equal(int32(9999)))
 			}, timeout, interval).Should(Succeed())
@@ -524,45 +504,6 @@ var _ = Describe("Project Controller", func() {
 			Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
 			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, projectpkg.ConditionTypeRestReady)).To(BeTrue())
 			Expect(meta.IsStatusConditionTrue(project.Status.Conditions, projectpkg.ConditionTypeAuthReady)).To(BeTrue())
-		})
-	})
-
-	Context("When creating a Project with a missing component ref", func() {
-		const projectName = "missing-component-project"
-		projectKey := types.NamespacedName{Name: projectName, Namespace: "default"}
-
-		BeforeEach(func() {
-			Expect(k8sClient.Create(ctx, testSingleDatabase("test-db"))).To(Succeed())
-			simulateSingleDatabaseReady("test-db", timeout, interval)
-
-			project := validProject(projectName)
-			project.Spec.RestRef = &supabasev1alpha1.RestRef{Kind: "Rest", Name: "missing-rest"}
-			Expect(k8sClient.Create(ctx, project)).To(Succeed())
-			simulateMigrationSuccess(projectName, timeout, interval)
-			simulateJWTSyncSuccess(projectName, timeout, interval)
-			simulatePasswordSyncSuccess(projectName, timeout, interval)
-		})
-
-		AfterEach(func() {
-			project := &supabasev1alpha1.Project{}
-			if err := k8sClient.Get(ctx, projectKey, project); err == nil {
-				Expect(k8sClient.Delete(ctx, project)).To(Succeed())
-			}
-			extDB := &supabasev1alpha1.SingleDatabase{}
-			if err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-db", Namespace: "default"}, extDB); err == nil {
-				Expect(k8sClient.Delete(ctx, extDB)).To(Succeed())
-			}
-		})
-
-		It("should set RestReady condition to False", func() {
-			Eventually(func(g Gomega) {
-				project := &supabasev1alpha1.Project{}
-				g.Expect(k8sClient.Get(ctx, projectKey, project)).To(Succeed())
-				cond := meta.FindStatusCondition(project.Status.Conditions, projectpkg.ConditionTypeRestReady)
-				g.Expect(cond).NotTo(BeNil())
-				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal("ComponentNotFound"))
-			}, timeout, interval).Should(Succeed())
 		})
 	})
 })

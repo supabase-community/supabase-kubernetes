@@ -24,9 +24,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -37,34 +35,22 @@ import (
 )
 
 // EnsureRest reconciles the Rest Deployment and Service for a Project.
-func (r *Reconciler) EnsureRest(ctx context.Context, project *supabasev1alpha1.Project) error {
+func (r *Reconciler) EnsureRest(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
 	logger := log.FromContext(ctx)
-	ref := project.Spec.RestRef
-	if ref == nil {
+	rest := project.Spec.Rest
+	if rest == nil {
 		return nil
 	}
 
-	rest := &supabasev1alpha1.Rest{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, rest); err != nil {
-		if apierrors.IsNotFound(err) {
-			r.setCondition(project, ConditionTypeRestReady, metav1.ConditionFalse, "ComponentNotFound",
-				fmt.Sprintf("Rest %q not found", ref.Name))
-			logger.Error(err, "Rest resource not found", "rest", ref.Name)
-			return fmt.Errorf("rest %q not found", ref.Name)
-		}
-		logger.Error(err, "Failed to get Rest", "rest", ref.Name)
-		return err
-	}
+	image := r.resolveRestImage(project)
 
-	image := r.resolveRestImage(rest, project)
-
-	if err := r.ensureRestService(ctx, project, rest); err != nil {
+	if err := r.ensureRestService(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Rest Service")
 		r.setCondition(project, ConditionTypeRestReady, metav1.ConditionFalse, "ServiceFailed", err.Error())
 		return err
 	}
 
-	if err := r.ensureRestDeployment(ctx, project, rest, image); err != nil {
+	if err := r.ensureRestDeployment(ctx, project, db, image); err != nil {
 		logger.Error(err, "Failed to ensure Rest Deployment")
 		r.setCondition(project, ConditionTypeRestReady, metav1.ConditionFalse, "DeploymentFailed", err.Error())
 		return err
@@ -75,21 +61,22 @@ func (r *Reconciler) EnsureRest(ctx context.Context, project *supabasev1alpha1.P
 	return nil
 }
 
-func (r *Reconciler) resolveRestImage(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) string {
-	if rest.Spec.Image != "" {
-		return rest.Spec.Image
+func (r *Reconciler) resolveRestImage(project *supabasev1alpha1.Project) string {
+	if project.Spec.Rest.Image != "" {
+		return project.Spec.Rest.Image
 	}
 	return images.Resolve(project.Spec.Version, images.ComponentRest)
 }
 
-func restResourceName(rest *supabasev1alpha1.Rest) string {
-	return rest.Name + "-rest"
+func restResourceName(project *supabasev1alpha1.Project) string {
+	return project.Name + "-rest"
 }
 
-func (r *Reconciler) ensureRestService(ctx context.Context, project *supabasev1alpha1.Project, rest *supabasev1alpha1.Rest) error {
-	logger := log.FromContext(ctx).WithValues("service", restResourceName(rest))
+func (r *Reconciler) ensureRestService(ctx context.Context, project *supabasev1alpha1.Project) error {
+	logger := log.FromContext(ctx).WithValues("service", restResourceName(project))
+	rest := project.Spec.Rest
 
-	svcSpec := rest.Spec.Service
+	svcSpec := rest.Service
 	if svcSpec == nil {
 		svcSpec = &supabasev1alpha1.ServiceSpec{}
 	}
@@ -103,14 +90,14 @@ func (r *Reconciler) ensureRestService(ctx context.Context, project *supabasev1a
 
 	desired := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        restResourceName(rest),
-			Namespace:   rest.Namespace,
-			Labels:      r.labelsForRest(rest, project),
+			Name:        restResourceName(project),
+			Namespace:   project.Namespace,
+			Labels:      r.labelsForRest(project),
 			Annotations: maps.Clone(svcSpec.Annotations),
 		},
 		Spec: corev1.ServiceSpec{
 			Type:     svcType,
-			Selector: r.selectorLabelsForRest(rest),
+			Selector: r.selectorLabelsForRest(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "http",
@@ -127,9 +114,9 @@ func (r *Reconciler) ensureRestService(ctx context.Context, project *supabasev1a
 	}
 
 	existing := &corev1.Service{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, namespacedName(desired.Name, desired.Namespace), existing)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if !clientIsNotFound(err) {
 			return fmt.Errorf("getting service: %w", err)
 		}
 		logger.Info("Creating Service")
@@ -153,24 +140,25 @@ func (r *Reconciler) ensureRestService(ctx context.Context, project *supabasev1a
 	return nil
 }
 
-func (r *Reconciler) ensureRestDeployment(ctx context.Context, project *supabasev1alpha1.Project, rest *supabasev1alpha1.Rest, image string) error {
-	logger := log.FromContext(ctx).WithValues("deployment", restResourceName(rest))
+func (r *Reconciler) ensureRestDeployment(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, image string) error {
+	logger := log.FromContext(ctx).WithValues("deployment", restResourceName(project))
+	rest := project.Spec.Rest
 
 	replicas := int32(1)
-	if rest.Spec.Replicas != nil {
-		replicas = *rest.Spec.Replicas
+	if rest.Replicas != nil {
+		replicas = *rest.Replicas
 	}
 
-	labels := r.labelsForRest(rest, project)
-	selectorLabels := r.selectorLabelsForRest(rest)
+	labels := r.labelsForRest(project)
+	selectorLabels := r.selectorLabelsForRest(project)
 
 	podLabels := maps.Clone(selectorLabels)
-	maps.Copy(podLabels, rest.Spec.PodLabels)
+	maps.Copy(podLabels, rest.PodLabels)
 
 	desired := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      restResourceName(rest),
-			Namespace: rest.Namespace,
+			Name:      restResourceName(project),
+			Namespace: project.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -181,24 +169,24 @@ func (r *Reconciler) ensureRestDeployment(ctx context.Context, project *supabase
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      podLabels,
-					Annotations: rest.Spec.PodAnnotations,
+					Annotations: rest.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:          rest.Spec.Affinity,
-					NodeSelector:      rest.Spec.NodeSelector,
-					Tolerations:       rest.Spec.Tolerations,
-					PriorityClassName: rest.Spec.PriorityClassName,
-					SecurityContext:   rest.Spec.PodSecurityContext,
+					Affinity:          rest.Affinity,
+					NodeSelector:      rest.NodeSelector,
+					Tolerations:       rest.Tolerations,
+					PriorityClassName: rest.PriorityClassName,
+					SecurityContext:   rest.PodSecurityContext,
 					Containers: []corev1.Container{
-						r.buildRestContainer(rest, project, image),
+						r.buildRestContainer(project, db, image),
 					},
 				},
 			},
 		},
 	}
 
-	if rest.Spec.TerminationGracePeriodSeconds != nil {
-		desired.Spec.Template.Spec.TerminationGracePeriodSeconds = rest.Spec.TerminationGracePeriodSeconds
+	if rest.TerminationGracePeriodSeconds != nil {
+		desired.Spec.Template.Spec.TerminationGracePeriodSeconds = rest.TerminationGracePeriodSeconds
 	}
 
 	if err := controllerutil.SetControllerReference(project, desired, r.Scheme); err != nil {
@@ -206,9 +194,9 @@ func (r *Reconciler) ensureRestDeployment(ctx context.Context, project *supabase
 	}
 
 	existing := &appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, namespacedName(desired.Name, desired.Namespace), existing)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if !clientIsNotFound(err) {
 			return fmt.Errorf("getting deployment: %w", err)
 		}
 		logger.Info("Creating Deployment")
@@ -231,23 +219,24 @@ func (r *Reconciler) ensureRestDeployment(ctx context.Context, project *supabase
 	return nil
 }
 
-func (r *Reconciler) buildRestContainer(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project, image string) corev1.Container {
-	resolved := project.Status.ResolvedDatabase
+func (r *Reconciler) buildRestContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, image string) corev1.Container {
+	rest := project.Spec.Rest
+	resolved := db
 	if resolved == nil {
 		resolved = &supabasev1alpha1.ResolvedDatabase{}
 	}
 
-	dbSchemas := rest.Spec.DBSchemas
+	dbSchemas := rest.DBSchemas
 	if dbSchemas == "" {
 		dbSchemas = "public,storage,graphql_public"
 	}
 
 	dbMaxRows := int32(1000)
-	if rest.Spec.DBMaxRows != nil {
-		dbMaxRows = *rest.Spec.DBMaxRows
+	if rest.DBMaxRows != nil {
+		dbMaxRows = *rest.DBMaxRows
 	}
 
-	dbExtraSearchPath := rest.Spec.DBExtraSearchPath
+	dbExtraSearchPath := rest.DBExtraSearchPath
 	if dbExtraSearchPath == "" {
 		dbExtraSearchPath = "public"
 	}
@@ -262,7 +251,7 @@ func (r *Reconciler) buildRestContainer(rest *supabasev1alpha1.Rest, project *su
 	container := corev1.Container{
 		Name:            "rest",
 		Image:           image,
-		ImagePullPolicy: rest.Spec.ImagePullPolicy,
+		ImagePullPolicy: rest.ImagePullPolicy,
 		Command:         []string{"postgrest"},
 		Ports: []corev1.ContainerPort{
 			{
@@ -288,39 +277,39 @@ func (r *Reconciler) buildRestContainer(rest *supabasev1alpha1.Rest, project *su
 			helper.EnvVar("PGRST_DB_USE_LEGACY_GUCS", "false"),
 			helper.EnvVar("PGRST_APP_SETTINGS_JWT_EXP", jwtExpiry),
 		},
-		Resources:       rest.Spec.Resources,
-		SecurityContext: rest.Spec.ContainerSecurityContext,
+		Resources:       rest.Resources,
+		SecurityContext: rest.ContainerSecurityContext,
 	}
 
-	container.Env = append(container.Env, rest.Spec.Env...)
-	if rest.Spec.Probes != nil {
-		if rest.Spec.Probes.Startup != nil {
-			container.StartupProbe = rest.Spec.Probes.Startup
+	container.Env = append(container.Env, rest.Env...)
+	if rest.Probes != nil {
+		if rest.Probes.Startup != nil {
+			container.StartupProbe = rest.Probes.Startup
 		}
-		if rest.Spec.Probes.Readiness != nil {
-			container.ReadinessProbe = rest.Spec.Probes.Readiness
+		if rest.Probes.Readiness != nil {
+			container.ReadinessProbe = rest.Probes.Readiness
 		}
-		if rest.Spec.Probes.Liveness != nil {
-			container.LivenessProbe = rest.Spec.Probes.Liveness
+		if rest.Probes.Liveness != nil {
+			container.LivenessProbe = rest.Probes.Liveness
 		}
 	}
 
 	return container
 }
 
-func (r *Reconciler) labelsForRest(rest *supabasev1alpha1.Rest, project *supabasev1alpha1.Project) map[string]string {
+func (r *Reconciler) labelsForRest(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "rest",
-		"app.kubernetes.io/instance":   rest.Name,
+		"app.kubernetes.io/instance":   project.Name,
 		"app.kubernetes.io/component":  "rest",
 		"app.kubernetes.io/managed-by": "supabase-operator",
 		"app.kubernetes.io/part-of":    project.Name,
 	}
 }
 
-func (r *Reconciler) selectorLabelsForRest(rest *supabasev1alpha1.Rest) map[string]string {
+func (r *Reconciler) selectorLabelsForRest(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "rest",
-		"app.kubernetes.io/instance": rest.Name,
+		"app.kubernetes.io/instance": project.Name,
 	}
 }

@@ -17,8 +17,10 @@ limitations under the License.
 package project
 
 import (
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
@@ -54,4 +56,12 @@ func (r *Reconciler) setCondition(
 	message string,
 ) {
 	reconciler.SetCondition(project, conditionType, status, reason, message)
+}
+
+func namespacedName(name, namespace string) types.NamespacedName {
+	return types.NamespacedName{Name: name, Namespace: namespace}
+}
+
+func clientIsNotFound(err error) bool {
+	return apierrors.IsNotFound(err)
 }

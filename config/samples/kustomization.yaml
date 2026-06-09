@@ -11,7 +11,3 @@ resources:
   - singledatabase.yaml
   - migration.yaml
   # - project.yaml
-  # - meta.yaml
-  # - rest.yaml
-  # - realtime.yaml
-  # - auth.yaml

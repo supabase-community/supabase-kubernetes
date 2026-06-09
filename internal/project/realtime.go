@@ -24,9 +24,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -37,34 +35,22 @@ import (
 )
 
 // EnsureRealtime reconciles the Realtime Deployment and Service for a Project.
-func (r *Reconciler) EnsureRealtime(ctx context.Context, project *supabasev1alpha1.Project) error {
+func (r *Reconciler) EnsureRealtime(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
 	logger := log.FromContext(ctx)
-	ref := project.Spec.RealtimeRef
-	if ref == nil {
+	rt := project.Spec.Realtime
+	if rt == nil {
 		return nil
 	}
 
-	rt := &supabasev1alpha1.Realtime{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, rt); err != nil {
-		if apierrors.IsNotFound(err) {
-			r.setCondition(project, ConditionTypeRealtimeReady, metav1.ConditionFalse, "ComponentNotFound",
-				fmt.Sprintf("Realtime %q not found", ref.Name))
-			logger.Error(err, "Realtime resource not found", "realtime", ref.Name)
-			return fmt.Errorf("realtime %q not found", ref.Name)
-		}
-		logger.Error(err, "Failed to get Realtime", "realtime", ref.Name)
-		return err
-	}
+	image := r.resolveRealtimeImage(project)
 
-	image := r.resolveRealtimeImage(rt, project)
-
-	if err := r.ensureRealtimeService(ctx, project, rt); err != nil {
+	if err := r.ensureRealtimeService(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Realtime Service")
 		r.setCondition(project, ConditionTypeRealtimeReady, metav1.ConditionFalse, "ServiceFailed", err.Error())
 		return err
 	}
 
-	if err := r.ensureRealtimeDeployment(ctx, project, rt, image); err != nil {
+	if err := r.ensureRealtimeDeployment(ctx, project, db, image); err != nil {
 		logger.Error(err, "Failed to ensure Realtime Deployment")
 		r.setCondition(project, ConditionTypeRealtimeReady, metav1.ConditionFalse, "DeploymentFailed", err.Error())
 		return err
@@ -75,21 +61,22 @@ func (r *Reconciler) EnsureRealtime(ctx context.Context, project *supabasev1alph
 	return nil
 }
 
-func (r *Reconciler) resolveRealtimeImage(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) string {
-	if rt.Spec.Image != "" {
-		return rt.Spec.Image
+func (r *Reconciler) resolveRealtimeImage(project *supabasev1alpha1.Project) string {
+	if project.Spec.Realtime.Image != "" {
+		return project.Spec.Realtime.Image
 	}
 	return images.Resolve(project.Spec.Version, images.ComponentRealtime)
 }
 
-func realtimeResourceName(rt *supabasev1alpha1.Realtime) string {
-	return rt.Name + "-realtime"
+func realtimeResourceName(project *supabasev1alpha1.Project) string {
+	return project.Name + "-realtime"
 }
 
-func (r *Reconciler) ensureRealtimeService(ctx context.Context, project *supabasev1alpha1.Project, rt *supabasev1alpha1.Realtime) error {
-	logger := log.FromContext(ctx).WithValues("service", realtimeResourceName(rt))
+func (r *Reconciler) ensureRealtimeService(ctx context.Context, project *supabasev1alpha1.Project) error {
+	logger := log.FromContext(ctx).WithValues("service", realtimeResourceName(project))
+	rt := project.Spec.Realtime
 
-	svcSpec := rt.Spec.Service
+	svcSpec := rt.Service
 	if svcSpec == nil {
 		svcSpec = &supabasev1alpha1.ServiceSpec{}
 	}
@@ -103,14 +90,14 @@ func (r *Reconciler) ensureRealtimeService(ctx context.Context, project *supabas
 
 	desired := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        realtimeResourceName(rt),
-			Namespace:   rt.Namespace,
-			Labels:      r.labelsForRealtime(rt, project),
+			Name:        realtimeResourceName(project),
+			Namespace:   project.Namespace,
+			Labels:      r.labelsForRealtime(project),
 			Annotations: maps.Clone(svcSpec.Annotations),
 		},
 		Spec: corev1.ServiceSpec{
 			Type:     svcType,
-			Selector: r.selectorLabelsForRealtime(rt),
+			Selector: r.selectorLabelsForRealtime(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "http",
@@ -127,9 +114,9 @@ func (r *Reconciler) ensureRealtimeService(ctx context.Context, project *supabas
 	}
 
 	existing := &corev1.Service{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, namespacedName(desired.Name, desired.Namespace), existing)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if !clientIsNotFound(err) {
 			return fmt.Errorf("getting service: %w", err)
 		}
 		logger.Info("Creating Service")
@@ -153,24 +140,25 @@ func (r *Reconciler) ensureRealtimeService(ctx context.Context, project *supabas
 	return nil
 }
 
-func (r *Reconciler) ensureRealtimeDeployment(ctx context.Context, project *supabasev1alpha1.Project, rt *supabasev1alpha1.Realtime, image string) error {
-	logger := log.FromContext(ctx).WithValues("deployment", realtimeResourceName(rt))
+func (r *Reconciler) ensureRealtimeDeployment(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, image string) error {
+	logger := log.FromContext(ctx).WithValues("deployment", realtimeResourceName(project))
+	rt := project.Spec.Realtime
 
 	replicas := int32(1)
-	if rt.Spec.Replicas != nil {
-		replicas = *rt.Spec.Replicas
+	if rt.Replicas != nil {
+		replicas = *rt.Replicas
 	}
 
-	labels := r.labelsForRealtime(rt, project)
-	selectorLabels := r.selectorLabelsForRealtime(rt)
+	labels := r.labelsForRealtime(project)
+	selectorLabels := r.selectorLabelsForRealtime(project)
 
 	podLabels := maps.Clone(selectorLabels)
-	maps.Copy(podLabels, rt.Spec.PodLabels)
+	maps.Copy(podLabels, rt.PodLabels)
 
 	desired := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      realtimeResourceName(rt),
-			Namespace: rt.Namespace,
+			Name:      realtimeResourceName(project),
+			Namespace: project.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -181,24 +169,24 @@ func (r *Reconciler) ensureRealtimeDeployment(ctx context.Context, project *supa
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      podLabels,
-					Annotations: rt.Spec.PodAnnotations,
+					Annotations: rt.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:          rt.Spec.Affinity,
-					NodeSelector:      rt.Spec.NodeSelector,
-					Tolerations:       rt.Spec.Tolerations,
-					PriorityClassName: rt.Spec.PriorityClassName,
-					SecurityContext:   rt.Spec.PodSecurityContext,
+					Affinity:          rt.Affinity,
+					NodeSelector:      rt.NodeSelector,
+					Tolerations:       rt.Tolerations,
+					PriorityClassName: rt.PriorityClassName,
+					SecurityContext:   rt.PodSecurityContext,
 					Containers: []corev1.Container{
-						r.buildRealtimeContainer(rt, project, image),
+						r.buildRealtimeContainer(project, db, image),
 					},
 				},
 			},
 		},
 	}
 
-	if rt.Spec.TerminationGracePeriodSeconds != nil {
-		desired.Spec.Template.Spec.TerminationGracePeriodSeconds = rt.Spec.TerminationGracePeriodSeconds
+	if rt.TerminationGracePeriodSeconds != nil {
+		desired.Spec.Template.Spec.TerminationGracePeriodSeconds = rt.TerminationGracePeriodSeconds
 	}
 
 	if err := controllerutil.SetControllerReference(project, desired, r.Scheme); err != nil {
@@ -206,9 +194,9 @@ func (r *Reconciler) ensureRealtimeDeployment(ctx context.Context, project *supa
 	}
 
 	existing := &appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, namespacedName(desired.Name, desired.Namespace), existing)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if !clientIsNotFound(err) {
 			return fmt.Errorf("getting deployment: %w", err)
 		}
 		logger.Info("Creating Deployment")
@@ -231,8 +219,9 @@ func (r *Reconciler) ensureRealtimeDeployment(ctx context.Context, project *supa
 	return nil
 }
 
-func (r *Reconciler) buildRealtimeContainer(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project, image string) corev1.Container {
-	resolved := project.Status.ResolvedDatabase
+func (r *Reconciler) buildRealtimeContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, image string) corev1.Container {
+	rt := project.Spec.Realtime
+	resolved := db
 	if resolved == nil {
 		resolved = &supabasev1alpha1.ResolvedDatabase{}
 	}
@@ -243,7 +232,7 @@ func (r *Reconciler) buildRealtimeContainer(rt *supabasev1alpha1.Realtime, proje
 	container := corev1.Container{
 		Name:            "realtime",
 		Image:           image,
-		ImagePullPolicy: rt.Spec.ImagePullPolicy,
+		ImagePullPolicy: rt.ImagePullPolicy,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "http",
@@ -272,39 +261,39 @@ func (r *Reconciler) buildRealtimeContainer(rt *supabasev1alpha1.Realtime, proje
 			helper.EnvVar("RUN_JANITOR", "true"),
 			helper.EnvVar("DISABLE_HEALTHCHECK_LOGGING", "true"),
 		},
-		Resources:       rt.Spec.Resources,
-		SecurityContext: rt.Spec.ContainerSecurityContext,
+		Resources:       rt.Resources,
+		SecurityContext: rt.ContainerSecurityContext,
 	}
-	container.Env = append(container.Env, rt.Spec.Env...)
+	container.Env = append(container.Env, rt.Env...)
 
-	if rt.Spec.Probes != nil {
-		if rt.Spec.Probes.Startup != nil {
-			container.StartupProbe = rt.Spec.Probes.Startup
+	if rt.Probes != nil {
+		if rt.Probes.Startup != nil {
+			container.StartupProbe = rt.Probes.Startup
 		}
-		if rt.Spec.Probes.Readiness != nil {
-			container.ReadinessProbe = rt.Spec.Probes.Readiness
+		if rt.Probes.Readiness != nil {
+			container.ReadinessProbe = rt.Probes.Readiness
 		}
-		if rt.Spec.Probes.Liveness != nil {
-			container.LivenessProbe = rt.Spec.Probes.Liveness
+		if rt.Probes.Liveness != nil {
+			container.LivenessProbe = rt.Probes.Liveness
 		}
 	}
 
 	return container
 }
 
-func (r *Reconciler) labelsForRealtime(rt *supabasev1alpha1.Realtime, project *supabasev1alpha1.Project) map[string]string {
+func (r *Reconciler) labelsForRealtime(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "realtime",
-		"app.kubernetes.io/instance":   rt.Name,
+		"app.kubernetes.io/instance":   project.Name,
 		"app.kubernetes.io/component":  "realtime",
 		"app.kubernetes.io/managed-by": "supabase-operator",
 		"app.kubernetes.io/part-of":    project.Name,
 	}
 }
 
-func (r *Reconciler) selectorLabelsForRealtime(rt *supabasev1alpha1.Realtime) map[string]string {
+func (r *Reconciler) selectorLabelsForRealtime(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "realtime",
-		"app.kubernetes.io/instance": rt.Name,
+		"app.kubernetes.io/instance": project.Name,
 	}
 }

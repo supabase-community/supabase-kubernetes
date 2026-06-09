@@ -25,9 +25,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -38,34 +36,22 @@ import (
 )
 
 // EnsureAuth reconciles the Auth Deployment and Service for a Project.
-func (r *Reconciler) EnsureAuth(ctx context.Context, project *supabasev1alpha1.Project) error {
+func (r *Reconciler) EnsureAuth(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
 	logger := log.FromContext(ctx)
-	ref := project.Spec.AuthRef
-	if ref == nil {
+	auth := project.Spec.Auth
+	if auth == nil {
 		return nil
 	}
 
-	auth := &supabasev1alpha1.Auth{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, auth); err != nil {
-		if apierrors.IsNotFound(err) {
-			r.setCondition(project, ConditionTypeAuthReady, metav1.ConditionFalse, "ComponentNotFound",
-				fmt.Sprintf("Auth %q not found", ref.Name))
-			logger.Error(err, "Auth resource not found", "auth", ref.Name)
-			return fmt.Errorf("auth %q not found", ref.Name)
-		}
-		logger.Error(err, "Failed to get Auth", "auth", ref.Name)
-		return err
-	}
+	image := r.resolveAuthImage(project)
 
-	image := r.resolveAuthImage(auth, project)
-
-	if err := r.ensureAuthService(ctx, project, auth); err != nil {
+	if err := r.ensureAuthService(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Auth Service")
 		r.setCondition(project, ConditionTypeAuthReady, metav1.ConditionFalse, "ServiceFailed", err.Error())
 		return err
 	}
 
-	if err := r.ensureAuthDeployment(ctx, project, auth, image); err != nil {
+	if err := r.ensureAuthDeployment(ctx, project, db, image); err != nil {
 		logger.Error(err, "Failed to ensure Auth Deployment")
 		r.setCondition(project, ConditionTypeAuthReady, metav1.ConditionFalse, "DeploymentFailed", err.Error())
 		return err
@@ -76,15 +62,15 @@ func (r *Reconciler) EnsureAuth(ctx context.Context, project *supabasev1alpha1.P
 	return nil
 }
 
-func (r *Reconciler) resolveAuthImage(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project) string {
-	if auth.Spec.Image != "" {
-		return auth.Spec.Image
+func (r *Reconciler) resolveAuthImage(project *supabasev1alpha1.Project) string {
+	if project.Spec.Auth.Image != "" {
+		return project.Spec.Auth.Image
 	}
 	return images.Resolve(project.Spec.Version, images.ComponentAuth)
 }
 
-func authResourceName(auth *supabasev1alpha1.Auth) string {
-	return auth.Name + "-auth"
+func authResourceName(project *supabasev1alpha1.Project) string {
+	return project.Name + "-auth"
 }
 
 func apiExternalURL(project *supabasev1alpha1.Project) string {
@@ -95,10 +81,11 @@ func apiExternalURL(project *supabasev1alpha1.Project) string {
 	return url
 }
 
-func (r *Reconciler) ensureAuthService(ctx context.Context, project *supabasev1alpha1.Project, auth *supabasev1alpha1.Auth) error {
-	logger := log.FromContext(ctx).WithValues("service", authResourceName(auth))
+func (r *Reconciler) ensureAuthService(ctx context.Context, project *supabasev1alpha1.Project) error {
+	logger := log.FromContext(ctx).WithValues("service", authResourceName(project))
+	auth := project.Spec.Auth
 
-	svcSpec := auth.Spec.Service
+	svcSpec := auth.Service
 	if svcSpec == nil {
 		svcSpec = &supabasev1alpha1.ServiceSpec{}
 	}
@@ -112,14 +99,14 @@ func (r *Reconciler) ensureAuthService(ctx context.Context, project *supabasev1a
 
 	desired := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        authResourceName(auth),
-			Namespace:   auth.Namespace,
-			Labels:      r.labelsForAuth(auth, project),
+			Name:        authResourceName(project),
+			Namespace:   project.Namespace,
+			Labels:      r.labelsForAuth(project),
 			Annotations: maps.Clone(svcSpec.Annotations),
 		},
 		Spec: corev1.ServiceSpec{
 			Type:     svcType,
-			Selector: r.selectorLabelsForAuth(auth),
+			Selector: r.selectorLabelsForAuth(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "http",
@@ -136,9 +123,9 @@ func (r *Reconciler) ensureAuthService(ctx context.Context, project *supabasev1a
 	}
 
 	existing := &corev1.Service{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, namespacedName(desired.Name, desired.Namespace), existing)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if !clientIsNotFound(err) {
 			return fmt.Errorf("getting service: %w", err)
 		}
 		logger.Info("Creating Service")
@@ -162,24 +149,25 @@ func (r *Reconciler) ensureAuthService(ctx context.Context, project *supabasev1a
 	return nil
 }
 
-func (r *Reconciler) ensureAuthDeployment(ctx context.Context, project *supabasev1alpha1.Project, auth *supabasev1alpha1.Auth, image string) error {
-	logger := log.FromContext(ctx).WithValues("deployment", authResourceName(auth))
+func (r *Reconciler) ensureAuthDeployment(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, image string) error {
+	logger := log.FromContext(ctx).WithValues("deployment", authResourceName(project))
+	auth := project.Spec.Auth
 
 	replicas := int32(1)
-	if auth.Spec.Replicas != nil {
-		replicas = *auth.Spec.Replicas
+	if auth.Replicas != nil {
+		replicas = *auth.Replicas
 	}
 
-	labels := r.labelsForAuth(auth, project)
-	selectorLabels := r.selectorLabelsForAuth(auth)
+	labels := r.labelsForAuth(project)
+	selectorLabels := r.selectorLabelsForAuth(project)
 
 	podLabels := maps.Clone(selectorLabels)
-	maps.Copy(podLabels, auth.Spec.PodLabels)
+	maps.Copy(podLabels, auth.PodLabels)
 
 	desired := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      authResourceName(auth),
-			Namespace: auth.Namespace,
+			Name:      authResourceName(project),
+			Namespace: project.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -190,24 +178,24 @@ func (r *Reconciler) ensureAuthDeployment(ctx context.Context, project *supabase
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      podLabels,
-					Annotations: auth.Spec.PodAnnotations,
+					Annotations: auth.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:          auth.Spec.Affinity,
-					NodeSelector:      auth.Spec.NodeSelector,
-					Tolerations:       auth.Spec.Tolerations,
-					PriorityClassName: auth.Spec.PriorityClassName,
-					SecurityContext:   auth.Spec.PodSecurityContext,
+					Affinity:          auth.Affinity,
+					NodeSelector:      auth.NodeSelector,
+					Tolerations:       auth.Tolerations,
+					PriorityClassName: auth.PriorityClassName,
+					SecurityContext:   auth.PodSecurityContext,
 					Containers: []corev1.Container{
-						r.buildAuthContainer(auth, project, image),
+						r.buildAuthContainer(project, db, image),
 					},
 				},
 			},
 		},
 	}
 
-	if auth.Spec.TerminationGracePeriodSeconds != nil {
-		desired.Spec.Template.Spec.TerminationGracePeriodSeconds = auth.Spec.TerminationGracePeriodSeconds
+	if auth.TerminationGracePeriodSeconds != nil {
+		desired.Spec.Template.Spec.TerminationGracePeriodSeconds = auth.TerminationGracePeriodSeconds
 	}
 
 	if err := controllerutil.SetControllerReference(project, desired, r.Scheme); err != nil {
@@ -215,9 +203,9 @@ func (r *Reconciler) ensureAuthDeployment(ctx context.Context, project *supabase
 	}
 
 	existing := &appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, namespacedName(desired.Name, desired.Namespace), existing)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if !clientIsNotFound(err) {
 			return fmt.Errorf("getting deployment: %w", err)
 		}
 		logger.Info("Creating Deployment")
@@ -240,8 +228,9 @@ func (r *Reconciler) ensureAuthDeployment(ctx context.Context, project *supabase
 	return nil
 }
 
-func (r *Reconciler) buildAuthContainer(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project, image string) corev1.Container {
-	resolved := project.Status.ResolvedDatabase
+func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, image string) corev1.Container {
+	auth := project.Spec.Auth
+	resolved := db
 	if resolved == nil {
 		resolved = &supabasev1alpha1.ResolvedDatabase{}
 	}
@@ -260,37 +249,37 @@ func (r *Reconciler) buildAuthContainer(auth *supabasev1alpha1.Auth, project *su
 		helper.EnvVarFromSecret("GOTRUE_JWT_KEYS", projectJWTSecret, "jwt-keys"),
 	}
 
-	if auth.Spec.SMTP != nil {
+	if auth.SMTP != nil {
 		env = append(env, helper.EnvVarFromSecret("GOTRUE_SMTP_PASS",
-			auth.Spec.SMTP.PasswordRef.Name, auth.Spec.SMTP.PasswordRef.Key))
+			auth.SMTP.PasswordRef.Name, auth.SMTP.PasswordRef.Key))
 	}
 
-	if auth.Spec.SAML != nil && auth.Spec.SAML.Enabled {
+	if auth.SAML != nil && auth.SAML.Enabled {
 		env = append(env, helper.EnvVarFromSecret("GOTRUE_SAML_PRIVATE_KEY",
 			fmt.Sprintf("%s-keys", project.Name), "saml-private-key"))
 	}
 
-	if auth.Spec.OAuth != nil {
-		if auth.Spec.OAuth.Google != nil {
+	if auth.OAuth != nil {
+		if auth.OAuth.Google != nil {
 			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_GOOGLE_SECRET",
-				auth.Spec.OAuth.Google.SecretRef.Name, auth.Spec.OAuth.Google.SecretRef.Key))
+				auth.OAuth.Google.SecretRef.Name, auth.OAuth.Google.SecretRef.Key))
 		}
-		if auth.Spec.OAuth.GitHub != nil {
+		if auth.OAuth.GitHub != nil {
 			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_GITHUB_SECRET",
-				auth.Spec.OAuth.GitHub.SecretRef.Name, auth.Spec.OAuth.GitHub.SecretRef.Key))
+				auth.OAuth.GitHub.SecretRef.Name, auth.OAuth.GitHub.SecretRef.Key))
 		}
-		if auth.Spec.OAuth.Azure != nil {
+		if auth.OAuth.Azure != nil {
 			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_AZURE_SECRET",
-				auth.Spec.OAuth.Azure.SecretRef.Name, auth.Spec.OAuth.Azure.SecretRef.Key))
+				auth.OAuth.Azure.SecretRef.Name, auth.OAuth.Azure.SecretRef.Key))
 		}
 	}
 
-	if auth.Spec.SMS != nil {
+	if auth.SMS != nil {
 		env = append(env, helper.EnvVarFromSecret("GOTRUE_SMS_TWILIO_AUTH_TOKEN",
-			auth.Spec.SMS.TwilioAuthTokenRef.Name, auth.Spec.SMS.TwilioAuthTokenRef.Key))
+			auth.SMS.TwilioAuthTokenRef.Name, auth.SMS.TwilioAuthTokenRef.Key))
 	}
 
-	env = append(env, auth.Spec.Env...)
+	env = append(env, auth.Env...)
 
 	env = append(env,
 		helper.EnvVar("GOTRUE_API_HOST", "0.0.0.0"),
@@ -303,114 +292,114 @@ func (r *Reconciler) buildAuthContainer(auth *supabasev1alpha1.Auth, project *su
 			resolved.Port,
 			resolved.DBName,
 		)),
-		helper.EnvVar("GOTRUE_SITE_URL", auth.Spec.SiteURL),
-		helper.EnvVar("GOTRUE_DISABLE_SIGNUP", strconv.FormatBool(auth.Spec.DisableSignup)),
+		helper.EnvVar("GOTRUE_SITE_URL", auth.SiteURL),
+		helper.EnvVar("GOTRUE_DISABLE_SIGNUP", strconv.FormatBool(auth.DisableSignup)),
 		helper.EnvVar("GOTRUE_JWT_ADMIN_ROLES", "service_role"),
 		helper.EnvVar("GOTRUE_JWT_AUD", "authenticated"),
 		helper.EnvVar("GOTRUE_JWT_DEFAULT_GROUP_NAME", "authenticated"),
 		helper.EnvVar("GOTRUE_JWT_EXP", jwtExpiry),
 		helper.EnvVar("GOTRUE_JWT_ISSUER", fmt.Sprintf("%s/auth/v1", externalURL)),
-		helper.EnvVar("GOTRUE_EXTERNAL_EMAIL_ENABLED", strconv.FormatBool(auth.Spec.EnableEmailSignup)),
-		helper.EnvVar("GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED", strconv.FormatBool(auth.Spec.EnableAnonymousUsers)),
-		helper.EnvVar("GOTRUE_MAILER_AUTOCONFIRM", strconv.FormatBool(auth.Spec.EnableEmailAutoconfirm)),
+		helper.EnvVar("GOTRUE_EXTERNAL_EMAIL_ENABLED", strconv.FormatBool(auth.EnableEmailSignup)),
+		helper.EnvVar("GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED", strconv.FormatBool(auth.EnableAnonymousUsers)),
+		helper.EnvVar("GOTRUE_MAILER_AUTOCONFIRM", strconv.FormatBool(auth.EnableEmailAutoconfirm)),
 		helper.EnvVar("GOTRUE_MAILER_URLPATHS_INVITE", "/auth/v1/verify"),
 		helper.EnvVar("GOTRUE_MAILER_URLPATHS_CONFIRMATION", "/auth/v1/verify"),
 		helper.EnvVar("GOTRUE_MAILER_URLPATHS_RECOVERY", "/auth/v1/verify"),
 		helper.EnvVar("GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE", "/auth/v1/verify"),
-		helper.EnvVar("GOTRUE_EXTERNAL_PHONE_ENABLED", strconv.FormatBool(auth.Spec.EnablePhoneSignup)),
-		helper.EnvVar("GOTRUE_SMS_AUTOCONFIRM", strconv.FormatBool(auth.Spec.EnablePhoneAutoconfirm)),
+		helper.EnvVar("GOTRUE_EXTERNAL_PHONE_ENABLED", strconv.FormatBool(auth.EnablePhoneSignup)),
+		helper.EnvVar("GOTRUE_SMS_AUTOCONFIRM", strconv.FormatBool(auth.EnablePhoneAutoconfirm)),
 	)
 
-	if len(auth.Spec.AdditionalRedirectURLs) > 0 {
-		env = append(env, helper.EnvVar("GOTRUE_URI_ALLOW_LIST", strings.Join(auth.Spec.AdditionalRedirectURLs, ",")))
+	if len(auth.AdditionalRedirectURLs) > 0 {
+		env = append(env, helper.EnvVar("GOTRUE_URI_ALLOW_LIST", strings.Join(auth.AdditionalRedirectURLs, ",")))
 	}
 
-	if auth.Spec.SkipNonceCheck != nil {
-		env = append(env, helper.EnvVar("GOTRUE_EXTERNAL_SKIP_NONCE_CHECK", strconv.FormatBool(*auth.Spec.SkipNonceCheck)))
+	if auth.SkipNonceCheck != nil {
+		env = append(env, helper.EnvVar("GOTRUE_EXTERNAL_SKIP_NONCE_CHECK", strconv.FormatBool(*auth.SkipNonceCheck)))
 	}
 
-	if auth.Spec.MailerSecureEmailChangeEnabled != nil {
-		env = append(env, helper.EnvVar("GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED", strconv.FormatBool(*auth.Spec.MailerSecureEmailChangeEnabled)))
+	if auth.MailerSecureEmailChangeEnabled != nil {
+		env = append(env, helper.EnvVar("GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED", strconv.FormatBool(*auth.MailerSecureEmailChangeEnabled)))
 	}
 
-	if auth.Spec.SMTP != nil {
+	if auth.SMTP != nil {
 		env = append(env,
-			helper.EnvVar("GOTRUE_SMTP_HOST", auth.Spec.SMTP.Host),
-			helper.EnvVar("GOTRUE_SMTP_PORT", strconv.Itoa(int(auth.Spec.SMTP.Port))),
-			helper.EnvVar("GOTRUE_SMTP_USER", auth.Spec.SMTP.User),
-			helper.EnvVar("GOTRUE_SMTP_ADMIN_EMAIL", auth.Spec.SMTP.AdminEmail),
-			helper.EnvVar("GOTRUE_SMTP_SENDER_NAME", auth.Spec.SMTP.SenderName),
+			helper.EnvVar("GOTRUE_SMTP_HOST", auth.SMTP.Host),
+			helper.EnvVar("GOTRUE_SMTP_PORT", strconv.Itoa(int(auth.SMTP.Port))),
+			helper.EnvVar("GOTRUE_SMTP_USER", auth.SMTP.User),
+			helper.EnvVar("GOTRUE_SMTP_ADMIN_EMAIL", auth.SMTP.AdminEmail),
+			helper.EnvVar("GOTRUE_SMTP_SENDER_NAME", auth.SMTP.SenderName),
 		)
-		if auth.Spec.SMTP.MaxFrequency != "" {
-			env = append(env, helper.EnvVar("GOTRUE_SMTP_MAX_FREQUENCY", auth.Spec.SMTP.MaxFrequency))
+		if auth.SMTP.MaxFrequency != "" {
+			env = append(env, helper.EnvVar("GOTRUE_SMTP_MAX_FREQUENCY", auth.SMTP.MaxFrequency))
 		}
 	}
 
-	if auth.Spec.OAuth != nil {
-		if auth.Spec.OAuth.Google != nil {
+	if auth.OAuth != nil {
+		if auth.OAuth.Google != nil {
 			env = append(env,
-				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_ENABLED", strconv.FormatBool(auth.Spec.OAuth.Google.Enabled)),
-				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID", auth.Spec.OAuth.Google.ClientID),
+				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_ENABLED", strconv.FormatBool(auth.OAuth.Google.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID", auth.OAuth.Google.ClientID),
 				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
 		}
-		if auth.Spec.OAuth.GitHub != nil {
+		if auth.OAuth.GitHub != nil {
 			env = append(env,
-				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_ENABLED", strconv.FormatBool(auth.Spec.OAuth.GitHub.Enabled)),
-				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", auth.Spec.OAuth.GitHub.ClientID),
+				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_ENABLED", strconv.FormatBool(auth.OAuth.GitHub.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", auth.OAuth.GitHub.ClientID),
 				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
 		}
-		if auth.Spec.OAuth.Azure != nil {
+		if auth.OAuth.Azure != nil {
 			env = append(env,
-				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_ENABLED", strconv.FormatBool(auth.Spec.OAuth.Azure.Enabled)),
-				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_CLIENT_ID", auth.Spec.OAuth.Azure.ClientID),
+				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_ENABLED", strconv.FormatBool(auth.OAuth.Azure.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_CLIENT_ID", auth.OAuth.Azure.ClientID),
 				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
 		}
 	}
 
-	if auth.Spec.SMS != nil {
+	if auth.SMS != nil {
 		env = append(env,
-			helper.EnvVar("GOTRUE_SMS_PROVIDER", auth.Spec.SMS.Provider),
-			helper.EnvVar("GOTRUE_SMS_OTP_EXP", strconv.Itoa(int(auth.Spec.SMS.OTPExp))),
-			helper.EnvVar("GOTRUE_SMS_OTP_LENGTH", strconv.Itoa(int(auth.Spec.SMS.OTPLength))),
-			helper.EnvVar("GOTRUE_SMS_TEMPLATE", auth.Spec.SMS.Template),
-			helper.EnvVar("GOTRUE_SMS_TWILIO_ACCOUNT_SID", auth.Spec.SMS.TwilioAccountSID),
-			helper.EnvVar("GOTRUE_SMS_TWILIO_MESSAGE_SERVICE_SID", auth.Spec.SMS.TwilioMessageServiceSID),
-			helper.EnvVar("GOTRUE_SMS_MAX_FREQUENCY", auth.Spec.SMS.MaxFrequency),
+			helper.EnvVar("GOTRUE_SMS_PROVIDER", auth.SMS.Provider),
+			helper.EnvVar("GOTRUE_SMS_OTP_EXP", strconv.Itoa(int(auth.SMS.OTPExp))),
+			helper.EnvVar("GOTRUE_SMS_OTP_LENGTH", strconv.Itoa(int(auth.SMS.OTPLength))),
+			helper.EnvVar("GOTRUE_SMS_TEMPLATE", auth.SMS.Template),
+			helper.EnvVar("GOTRUE_SMS_TWILIO_ACCOUNT_SID", auth.SMS.TwilioAccountSID),
+			helper.EnvVar("GOTRUE_SMS_TWILIO_MESSAGE_SERVICE_SID", auth.SMS.TwilioMessageServiceSID),
+			helper.EnvVar("GOTRUE_SMS_MAX_FREQUENCY", auth.SMS.MaxFrequency),
 		)
 	}
 
-	if auth.Spec.MFA != nil {
+	if auth.MFA != nil {
 		env = append(env,
-			helper.EnvVar("GOTRUE_MFA_TOTP_ENROLL_ENABLED", strconv.FormatBool(auth.Spec.MFA.TOTPEnrollEnabled)),
-			helper.EnvVar("GOTRUE_MFA_TOTP_VERIFY_ENABLED", strconv.FormatBool(auth.Spec.MFA.TOTPVerifyEnabled)),
-			helper.EnvVar("GOTRUE_MFA_PHONE_ENROLL_ENABLED", strconv.FormatBool(auth.Spec.MFA.PhoneEnrollEnabled)),
-			helper.EnvVar("GOTRUE_MFA_PHONE_VERIFY_ENABLED", strconv.FormatBool(auth.Spec.MFA.PhoneVerifyEnabled)),
+			helper.EnvVar("GOTRUE_MFA_TOTP_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.TOTPEnrollEnabled)),
+			helper.EnvVar("GOTRUE_MFA_TOTP_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.TOTPVerifyEnabled)),
+			helper.EnvVar("GOTRUE_MFA_PHONE_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.PhoneEnrollEnabled)),
+			helper.EnvVar("GOTRUE_MFA_PHONE_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.PhoneVerifyEnabled)),
 		)
-		if auth.Spec.MFA.MaxEnrolledFactors > 0 {
-			env = append(env, helper.EnvVar("GOTRUE_MFA_MAX_ENROLLED_FACTORS", strconv.Itoa(int(auth.Spec.MFA.MaxEnrolledFactors))))
+		if auth.MFA.MaxEnrolledFactors > 0 {
+			env = append(env, helper.EnvVar("GOTRUE_MFA_MAX_ENROLLED_FACTORS", strconv.Itoa(int(auth.MFA.MaxEnrolledFactors))))
 		}
 	}
 
-	if auth.Spec.SAML != nil {
+	if auth.SAML != nil {
 		env = append(env,
-			helper.EnvVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(auth.Spec.SAML.Enabled)),
-			helper.EnvVar("GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS", strconv.FormatBool(auth.Spec.SAML.AllowEncryptedAssertions)),
+			helper.EnvVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(auth.SAML.Enabled)),
+			helper.EnvVar("GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS", strconv.FormatBool(auth.SAML.AllowEncryptedAssertions)),
 		)
-		if auth.Spec.SAML.RelayStateValidityPeriod != "" {
-			env = append(env, helper.EnvVar("GOTRUE_SAML_RELAY_STATE_VALIDITY_PERIOD", auth.Spec.SAML.RelayStateValidityPeriod))
+		if auth.SAML.RelayStateValidityPeriod != "" {
+			env = append(env, helper.EnvVar("GOTRUE_SAML_RELAY_STATE_VALIDITY_PERIOD", auth.SAML.RelayStateValidityPeriod))
 		}
-		if auth.Spec.SAML.RateLimitAssertion > 0 {
-			env = append(env, helper.EnvVar("GOTRUE_SAML_RATE_LIMIT_ASSERTIONS", strconv.Itoa(int(auth.Spec.SAML.RateLimitAssertion))))
+		if auth.SAML.RateLimitAssertion > 0 {
+			env = append(env, helper.EnvVar("GOTRUE_SAML_RATE_LIMIT_ASSERTIONS", strconv.Itoa(int(auth.SAML.RateLimitAssertion))))
 		}
 	}
 
 	container := corev1.Container{
 		Name:            "auth",
 		Image:           image,
-		ImagePullPolicy: auth.Spec.ImagePullPolicy,
+		ImagePullPolicy: auth.ImagePullPolicy,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "http",
@@ -419,38 +408,38 @@ func (r *Reconciler) buildAuthContainer(auth *supabasev1alpha1.Auth, project *su
 			},
 		},
 		Env:             env,
-		Resources:       auth.Spec.Resources,
-		SecurityContext: auth.Spec.ContainerSecurityContext,
+		Resources:       auth.Resources,
+		SecurityContext: auth.ContainerSecurityContext,
 	}
 
-	if auth.Spec.Probes != nil {
-		if auth.Spec.Probes.Startup != nil {
-			container.StartupProbe = auth.Spec.Probes.Startup
+	if auth.Probes != nil {
+		if auth.Probes.Startup != nil {
+			container.StartupProbe = auth.Probes.Startup
 		}
-		if auth.Spec.Probes.Readiness != nil {
-			container.ReadinessProbe = auth.Spec.Probes.Readiness
+		if auth.Probes.Readiness != nil {
+			container.ReadinessProbe = auth.Probes.Readiness
 		}
-		if auth.Spec.Probes.Liveness != nil {
-			container.LivenessProbe = auth.Spec.Probes.Liveness
+		if auth.Probes.Liveness != nil {
+			container.LivenessProbe = auth.Probes.Liveness
 		}
 	}
 
 	return container
 }
 
-func (r *Reconciler) labelsForAuth(auth *supabasev1alpha1.Auth, project *supabasev1alpha1.Project) map[string]string {
+func (r *Reconciler) labelsForAuth(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "auth",
-		"app.kubernetes.io/instance":   auth.Name,
+		"app.kubernetes.io/instance":   project.Name,
 		"app.kubernetes.io/component":  "auth",
 		"app.kubernetes.io/managed-by": "supabase-operator",
 		"app.kubernetes.io/part-of":    project.Name,
 	}
 }
 
-func (r *Reconciler) selectorLabelsForAuth(auth *supabasev1alpha1.Auth) map[string]string {
+func (r *Reconciler) selectorLabelsForAuth(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "auth",
-		"app.kubernetes.io/instance": auth.Name,
+		"app.kubernetes.io/instance": project.Name,
 	}
 }

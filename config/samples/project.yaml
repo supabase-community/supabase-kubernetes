@@ -12,15 +12,15 @@ spec:
   databaseRef:
     kind: SingleDatabase
     name: supabase
-  # restRef:
-  #   kind: Rest
-  #   name: supabase
-  # metaRef:
-  #   kind: Meta
-  #   name: supabase
-  # realtimeRef:
-  #   kind: Realtime
-  #   name: supabase
-  # authRef:
-  #   kind: Auth
-  #   name: supabase
+  # rest:
+  #   dbSchemas: "public,storage,graphql_public"
+  # meta: {}
+  # realtime: {}
+  # auth:
+  #   siteUrl: "http://localhost:3000"
+  #   disableSignup: false
+  #   enableEmailSignup: true
+  #   enableAnonymousUsers: false
+  #   enableEmailAutoconfirm: false
+  #   enablePhoneSignup: false
+  #   enablePhoneAutoconfirm: false

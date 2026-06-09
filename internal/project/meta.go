@@ -24,9 +24,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -37,34 +35,22 @@ import (
 )
 
 // EnsureMeta reconciles the Meta Deployment and Service for a Project.
-func (r *Reconciler) EnsureMeta(ctx context.Context, project *supabasev1alpha1.Project) error {
+func (r *Reconciler) EnsureMeta(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
 	logger := log.FromContext(ctx)
-	ref := project.Spec.MetaRef
-	if ref == nil {
+	m := project.Spec.Meta
+	if m == nil {
 		return nil
 	}
 
-	m := &supabasev1alpha1.Meta{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: project.Namespace}, m); err != nil {
-		if apierrors.IsNotFound(err) {
-			r.setCondition(project, ConditionTypeMetaReady, metav1.ConditionFalse, "ComponentNotFound",
-				fmt.Sprintf("Meta %q not found", ref.Name))
-			logger.Error(err, "Meta resource not found", "meta", ref.Name)
-			return fmt.Errorf("meta %q not found", ref.Name)
-		}
-		logger.Error(err, "Failed to get Meta", "meta", ref.Name)
-		return err
-	}
+	image := r.resolveMetaImage(project)
 
-	image := r.resolveMetaImage(m, project)
-
-	if err := r.ensureMetaService(ctx, project, m); err != nil {
+	if err := r.ensureMetaService(ctx, project); err != nil {
 		logger.Error(err, "Failed to ensure Meta Service")
 		r.setCondition(project, ConditionTypeMetaReady, metav1.ConditionFalse, "ServiceFailed", err.Error())
 		return err
 	}
 
-	if err := r.ensureMetaDeployment(ctx, project, m, image); err != nil {
+	if err := r.ensureMetaDeployment(ctx, project, db, image); err != nil {
 		logger.Error(err, "Failed to ensure Meta Deployment")
 		r.setCondition(project, ConditionTypeMetaReady, metav1.ConditionFalse, "DeploymentFailed", err.Error())
 		return err
@@ -75,21 +61,22 @@ func (r *Reconciler) EnsureMeta(ctx context.Context, project *supabasev1alpha1.P
 	return nil
 }
 
-func (r *Reconciler) resolveMetaImage(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) string {
-	if m.Spec.Image != "" {
-		return m.Spec.Image
+func (r *Reconciler) resolveMetaImage(project *supabasev1alpha1.Project) string {
+	if project.Spec.Meta.Image != "" {
+		return project.Spec.Meta.Image
 	}
 	return images.Resolve(project.Spec.Version, images.ComponentMeta)
 }
 
-func metaResourceName(m *supabasev1alpha1.Meta) string {
-	return m.Name + "-meta"
+func metaResourceName(project *supabasev1alpha1.Project) string {
+	return project.Name + "-meta"
 }
 
-func (r *Reconciler) ensureMetaService(ctx context.Context, project *supabasev1alpha1.Project, m *supabasev1alpha1.Meta) error {
-	logger := log.FromContext(ctx).WithValues("service", metaResourceName(m))
+func (r *Reconciler) ensureMetaService(ctx context.Context, project *supabasev1alpha1.Project) error {
+	logger := log.FromContext(ctx).WithValues("service", metaResourceName(project))
+	m := project.Spec.Meta
 
-	svcSpec := m.Spec.Service
+	svcSpec := m.Service
 	if svcSpec == nil {
 		svcSpec = &supabasev1alpha1.ServiceSpec{}
 	}
@@ -103,14 +90,14 @@ func (r *Reconciler) ensureMetaService(ctx context.Context, project *supabasev1a
 
 	desired := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        metaResourceName(m),
-			Namespace:   m.Namespace,
-			Labels:      r.labelsForMeta(m, project),
+			Name:        metaResourceName(project),
+			Namespace:   project.Namespace,
+			Labels:      r.labelsForMeta(project),
 			Annotations: maps.Clone(svcSpec.Annotations),
 		},
 		Spec: corev1.ServiceSpec{
 			Type:     svcType,
-			Selector: r.selectorLabelsForMeta(m),
+			Selector: r.selectorLabelsForMeta(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "http",
@@ -127,9 +114,9 @@ func (r *Reconciler) ensureMetaService(ctx context.Context, project *supabasev1a
 	}
 
 	existing := &corev1.Service{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, namespacedName(desired.Name, desired.Namespace), existing)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if !clientIsNotFound(err) {
 			return fmt.Errorf("getting service: %w", err)
 		}
 		logger.Info("Creating Service")
@@ -153,24 +140,25 @@ func (r *Reconciler) ensureMetaService(ctx context.Context, project *supabasev1a
 	return nil
 }
 
-func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabasev1alpha1.Project, m *supabasev1alpha1.Meta, image string) error {
-	logger := log.FromContext(ctx).WithValues("deployment", metaResourceName(m))
+func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, image string) error {
+	logger := log.FromContext(ctx).WithValues("deployment", metaResourceName(project))
+	m := project.Spec.Meta
 
 	replicas := int32(1)
-	if m.Spec.Replicas != nil {
-		replicas = *m.Spec.Replicas
+	if m.Replicas != nil {
+		replicas = *m.Replicas
 	}
 
-	labels := r.labelsForMeta(m, project)
-	selectorLabels := r.selectorLabelsForMeta(m)
+	labels := r.labelsForMeta(project)
+	selectorLabels := r.selectorLabelsForMeta(project)
 
 	podLabels := maps.Clone(selectorLabels)
-	maps.Copy(podLabels, m.Spec.PodLabels)
+	maps.Copy(podLabels, m.PodLabels)
 
 	desired := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      metaResourceName(m),
-			Namespace: m.Namespace,
+			Name:      metaResourceName(project),
+			Namespace: project.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -181,24 +169,24 @@ func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabase
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      podLabels,
-					Annotations: m.Spec.PodAnnotations,
+					Annotations: m.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:          m.Spec.Affinity,
-					NodeSelector:      m.Spec.NodeSelector,
-					Tolerations:       m.Spec.Tolerations,
-					PriorityClassName: m.Spec.PriorityClassName,
-					SecurityContext:   m.Spec.PodSecurityContext,
+					Affinity:          m.Affinity,
+					NodeSelector:      m.NodeSelector,
+					Tolerations:       m.Tolerations,
+					PriorityClassName: m.PriorityClassName,
+					SecurityContext:   m.PodSecurityContext,
 					Containers: []corev1.Container{
-						r.buildMetaContainer(m, project, image),
+						r.buildMetaContainer(project, db, image),
 					},
 				},
 			},
 		},
 	}
 
-	if m.Spec.TerminationGracePeriodSeconds != nil {
-		desired.Spec.Template.Spec.TerminationGracePeriodSeconds = m.Spec.TerminationGracePeriodSeconds
+	if m.TerminationGracePeriodSeconds != nil {
+		desired.Spec.Template.Spec.TerminationGracePeriodSeconds = m.TerminationGracePeriodSeconds
 	}
 
 	if err := controllerutil.SetControllerReference(project, desired, r.Scheme); err != nil {
@@ -206,9 +194,9 @@ func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabase
 	}
 
 	existing := &appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, existing)
+	err := r.Client.Get(ctx, namespacedName(desired.Name, desired.Namespace), existing)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if !clientIsNotFound(err) {
 			return fmt.Errorf("getting deployment: %w", err)
 		}
 		logger.Info("Creating Deployment")
@@ -231,8 +219,9 @@ func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabase
 	return nil
 }
 
-func (r *Reconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project, image string) corev1.Container {
-	resolved := project.Status.ResolvedDatabase
+func (r *Reconciler) buildMetaContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, image string) corev1.Container {
+	m := project.Spec.Meta
+	resolved := db
 	if resolved == nil {
 		resolved = &supabasev1alpha1.ResolvedDatabase{}
 	}
@@ -242,7 +231,7 @@ func (r *Reconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project *supab
 	container := corev1.Container{
 		Name:            "meta",
 		Image:           image,
-		ImagePullPolicy: m.Spec.ImagePullPolicy,
+		ImagePullPolicy: m.ImagePullPolicy,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "http",
@@ -260,39 +249,39 @@ func (r *Reconciler) buildMetaContainer(m *supabasev1alpha1.Meta, project *supab
 			helper.EnvVar("PG_META_DB_SSL_MODE", "disable"),
 			helper.EnvVar("PG_META_PORT", "8080"),
 		},
-		Resources:       m.Spec.Resources,
-		SecurityContext: m.Spec.ContainerSecurityContext,
+		Resources:       m.Resources,
+		SecurityContext: m.ContainerSecurityContext,
 	}
-	container.Env = append(container.Env, m.Spec.Env...)
+	container.Env = append(container.Env, m.Env...)
 
-	if m.Spec.Probes != nil {
-		if m.Spec.Probes.Startup != nil {
-			container.StartupProbe = m.Spec.Probes.Startup
+	if m.Probes != nil {
+		if m.Probes.Startup != nil {
+			container.StartupProbe = m.Probes.Startup
 		}
-		if m.Spec.Probes.Readiness != nil {
-			container.ReadinessProbe = m.Spec.Probes.Readiness
+		if m.Probes.Readiness != nil {
+			container.ReadinessProbe = m.Probes.Readiness
 		}
-		if m.Spec.Probes.Liveness != nil {
-			container.LivenessProbe = m.Spec.Probes.Liveness
+		if m.Probes.Liveness != nil {
+			container.LivenessProbe = m.Probes.Liveness
 		}
 	}
 
 	return container
 }
 
-func (r *Reconciler) labelsForMeta(m *supabasev1alpha1.Meta, project *supabasev1alpha1.Project) map[string]string {
+func (r *Reconciler) labelsForMeta(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":       "meta",
-		"app.kubernetes.io/instance":   m.Name,
+		"app.kubernetes.io/instance":   project.Name,
 		"app.kubernetes.io/component":  "meta",
 		"app.kubernetes.io/managed-by": "supabase-operator",
 		"app.kubernetes.io/part-of":    project.Name,
 	}
 }
 
-func (r *Reconciler) selectorLabelsForMeta(m *supabasev1alpha1.Meta) map[string]string {
+func (r *Reconciler) selectorLabelsForMeta(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":     "meta",
-		"app.kubernetes.io/instance": m.Name,
+		"app.kubernetes.io/instance": project.Name,
 	}
 }
