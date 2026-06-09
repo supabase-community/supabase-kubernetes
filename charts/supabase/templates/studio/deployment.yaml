@@ -73,11 +73,12 @@ spec:
               value: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.service.meta.port }}
             {{- end }}
 
-            {{- if .Values.deployment.db.enabled }}
+            {{- if and .Values.deployment.db.enabled (not (hasKey (default (dict) .Values.environment.studio) "POSTGRES_HOST")) }}
             - name: POSTGRES_HOST
               value: {{ include "supabase.db.fullname" . }}
             {{- end }}
 
+            {{- if not (hasKey (default (dict) .Values.environment.studio) "POSTGRES_DB") }}
             - name: POSTGRES_DB
               {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
               value: {{ .Values.secret.db.database | default "postgres" | quote }}
@@ -87,6 +88,7 @@ spec:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.database" . }}
               {{- end }}
+            {{- end }}
 
             - name: POSTGRES_PASSWORD
               valueFrom:
