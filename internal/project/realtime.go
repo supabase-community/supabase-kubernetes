@@ -31,7 +31,6 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
 // EnsureRealtime reconciles the Realtime Deployment and Service for a Project.
@@ -65,7 +64,7 @@ func (r *Reconciler) resolveRealtimeImage(project *supabasev1alpha1.Project) str
 	if project.Spec.Realtime.Image != "" {
 		return project.Spec.Realtime.Image
 	}
-	return images.Resolve(project.Spec.Version, images.ComponentRealtime)
+	return DefaultRealtimeImage
 }
 
 func realtimeResourceName(project *supabasev1alpha1.Project) string {

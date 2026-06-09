@@ -55,7 +55,7 @@ var _ = Describe("Migration Controller", func() {
 					Namespace: "default",
 				},
 				Spec: supabasev1alpha1.SingleDatabaseSpec{
-					Version: "2026.04.27",
+
 					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
@@ -95,7 +95,7 @@ var _ = Describe("Migration Controller", func() {
 					Namespace: "default",
 				},
 				Spec: supabasev1alpha1.MigrationSpec{
-					Version: "2026.04.27",
+
 					DatabaseRef: supabasev1alpha1.DatabaseRef{
 						Kind: "SingleDatabase",
 						Name: dbName,

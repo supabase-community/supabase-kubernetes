@@ -46,7 +46,6 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 	"github.com/supabase-community/supabase-kubernetes/internal/database"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	projectpkg "github.com/supabase-community/supabase-kubernetes/internal/project"
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
@@ -61,6 +60,8 @@ const (
 	ConditionTypePasswordSyncReady = "PasswordSyncReady"
 
 	DefaultMigrationNameSuffix = "-migration"
+
+	DefaultMigrationImage = "supabase/postgres:17.6.1.084"
 )
 
 type secretDefinition struct {
@@ -380,7 +381,6 @@ func (r *ProjectReconciler) buildMigration(project *supabasev1alpha1.Project, in
 			Namespace: project.Namespace,
 		},
 		Spec: supabasev1alpha1.MigrationSpec{
-			Version:     project.Spec.Version,
 			DatabaseRef: project.Spec.DatabaseRef,
 			Migrations:  entries,
 		},
@@ -522,7 +522,7 @@ func (r *ProjectReconciler) buildJWTSettingsJob(project *supabasev1alpha1.Projec
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 
-	image := images.Resolve(project.Spec.Version, images.ComponentMigration)
+	image := DefaultMigrationImage
 
 	env := []corev1.EnvVar{
 		helper.EnvVarFromSecret("PGPASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
@@ -644,7 +644,7 @@ func (r *ProjectReconciler) buildPasswordSyncJob(project *supabasev1alpha1.Proje
 	backoffLimit := int32(0)
 	ttlSecondsAfterFinished := int32(86400)
 
-	image := images.Resolve(project.Spec.Version, images.ComponentMigration)
+	image := DefaultMigrationImage
 
 	env := []corev1.EnvVar{
 		helper.EnvVar("PGPASSWORD", password),

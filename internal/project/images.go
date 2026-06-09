@@ -14,16 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package images
+package project
 
 const (
-	ComponentAuth      = "auth"
-	ComponentDatabase  = "database"
-	ComponentMeta      = "meta"
-	ComponentMigration = "migration"
-	ComponentRealtime  = "realtime"
-	ComponentRest      = "rest"
-
-	// DefaultVersion is the fallback version used when the requested version is not registered.
-	DefaultVersion = "2026.04.27"
+	DefaultRestImage     = "postgrest/postgrest:v14.8"
+	DefaultMetaImage     = "supabase/postgres-meta:v0.96.3"
+	DefaultRealtimeImage = "supabase/realtime:v2.76.5"
+	DefaultAuthImage     = "supabase/gotrue:v2.186.0"
 )

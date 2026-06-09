@@ -31,7 +31,6 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
 // EnsureRest reconciles the Rest Deployment and Service for a Project.
@@ -65,7 +64,7 @@ func (r *Reconciler) resolveRestImage(project *supabasev1alpha1.Project) string 
 	if project.Spec.Rest.Image != "" {
 		return project.Spec.Rest.Image
 	}
-	return images.Resolve(project.Spec.Version, images.ComponentRest)
+	return DefaultRestImage
 }
 
 func restResourceName(project *supabasev1alpha1.Project) string {

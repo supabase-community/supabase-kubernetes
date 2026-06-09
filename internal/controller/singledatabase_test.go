@@ -37,9 +37,7 @@ import (
 func testSingleDatabaseMinimal(name string) *supabasev1alpha1.SingleDatabase {
 	return &supabasev1alpha1.SingleDatabase{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
-		Spec: supabasev1alpha1.SingleDatabaseSpec{
-			Version: "2026.04.27",
-		},
+		Spec:       supabasev1alpha1.SingleDatabaseSpec{},
 	}
 }
 
@@ -55,7 +53,6 @@ var _ = Describe("SingleDatabase Controller", func() {
 			db := &supabasev1alpha1.SingleDatabase{
 				ObjectMeta: metav1.ObjectMeta{Name: dbName, Namespace: "default"},
 				Spec: supabasev1alpha1.SingleDatabaseSpec{
-					Version: "2026.04.27",
 					Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Resources: corev1.VolumeResourceRequirements{
@@ -153,11 +150,10 @@ var _ = Describe("SingleDatabase Controller", func() {
 
 			oldImage := sts.Spec.Template.Spec.Containers[0].Image
 
-			By("Updating SingleDatabase version")
+			By("Updating SingleDatabase env")
 			db := &supabasev1alpha1.SingleDatabase{}
 			Expect(k8sClient.Get(ctx, dbKey, db)).To(Succeed())
-			db.Spec.Version = "2026.04.27"
-			// Trigger a change by adding an env var since version alone isn't stored directly in a field we mutate
+			// Trigger a change by adding an env var
 			db.Spec.Env = []corev1.EnvVar{{Name: "TEST_VAR", Value: "test_value"}}
 			Expect(k8sClient.Update(ctx, db)).To(Succeed())
 

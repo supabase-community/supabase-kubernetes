@@ -24,10 +24,6 @@ import (
 type SingleDatabaseSpec struct {
 	WorkloadConfig `json:",inline"`
 
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Version string `json:"version"`
-
 	// +optional
 	Storage VolumeClaimTemplateSpec `json:"storage,omitempty"`
 }

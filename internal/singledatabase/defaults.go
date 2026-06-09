@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
 const (
@@ -51,6 +50,8 @@ const (
 	DefaultDataMountPath = "/var/lib/postgresql/data"
 	// DefaultInitContainerName is the default name for the password sync init container.
 	DefaultInitContainerName = "password-sync"
+	// DefaultDatabaseImage is the default container image for SingleDatabase.
+	DefaultDatabaseImage = "supabase/postgres:17.6.1.084"
 	// DefaultReplicas is the default number of replicas for the StatefulSet.
 	DefaultReplicas = int32(1)
 	// DefaultServiceType is the default Service type.
@@ -145,5 +146,5 @@ func ResolveImage(db *supabasev1alpha1.SingleDatabase) string {
 	if db.Spec.Image != "" {
 		return db.Spec.Image
 	}
-	return images.Resolve(db.Spec.Version, images.ComponentDatabase)
+	return DefaultDatabaseImage
 }

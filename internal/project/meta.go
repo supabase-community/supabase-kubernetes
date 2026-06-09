@@ -31,7 +31,6 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
 // EnsureMeta reconciles the Meta Deployment and Service for a Project.
@@ -65,7 +64,7 @@ func (r *Reconciler) resolveMetaImage(project *supabasev1alpha1.Project) string 
 	if project.Spec.Meta.Image != "" {
 		return project.Spec.Meta.Image
 	}
-	return images.Resolve(project.Spec.Version, images.ComponentMeta)
+	return DefaultMetaImage
 }
 
 func metaResourceName(project *supabasev1alpha1.Project) string {

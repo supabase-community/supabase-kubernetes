@@ -8890,13 +8890,9 @@ spec:
                       type: object
                     type: array
                 type: object
-              version:
-                minLength: 1
-                type: string
             required:
             - databaseRef
             - http
-            - version
             type: object
           status:
             description: ProjectStatus defines the observed state of a Supabase deployment.

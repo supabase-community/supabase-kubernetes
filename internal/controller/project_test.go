@@ -55,7 +55,6 @@ func testSingleDatabase(name string) *supabasev1alpha1.SingleDatabase {
 	return &supabasev1alpha1.SingleDatabase{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
 		Spec: supabasev1alpha1.SingleDatabaseSpec{
-			Version: "2026.04.27",
 			Storage: supabasev1alpha1.VolumeClaimTemplateSpec{
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 				Resources: corev1.VolumeResourceRequirements{
@@ -72,7 +71,6 @@ func validProject(name string) *supabasev1alpha1.Project {
 	return &supabasev1alpha1.Project{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
 		Spec: supabasev1alpha1.ProjectSpec{
-			Version: "2026.04.27",
 			HTTP: supabasev1alpha1.HTTPConfig{
 				Protocol: "https",
 				Hostname: "test.example.com",
@@ -86,7 +84,6 @@ func minimalProject(name string) *supabasev1alpha1.Project {
 	return &supabasev1alpha1.Project{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
 		Spec: supabasev1alpha1.ProjectSpec{
-			Version: "2026.04.27",
 			HTTP: supabasev1alpha1.HTTPConfig{
 				Protocol: "http",
 				Hostname: "test.example.com",

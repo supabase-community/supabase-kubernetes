@@ -18,7 +18,6 @@ package migration
 
 import (
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -45,6 +44,8 @@ const (
 	DefaultMigrationTable = "_supabase_operator_migrations"
 	// DefaultMigrationMountPath is the mount path for the migration SQL volume.
 	DefaultMigrationMountPath = "/migrations"
+	// DefaultMigrationImage is the default container image for Migration jobs.
+	DefaultMigrationImage = "supabase/postgres:17.6.1.084"
 )
 
 // DefaultLabels returns the standard labels for Migration resources.
@@ -64,5 +65,5 @@ func ResolveImage(migration *supabasev1alpha1.Migration) string {
 	if migration.Spec.Image != "" {
 		return migration.Spec.Image
 	}
-	return images.Resolve(migration.Spec.Version, images.ComponentMigration)
+	return DefaultMigrationImage
 }

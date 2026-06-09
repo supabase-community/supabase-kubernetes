@@ -20,32 +20,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MigrationEntry defines a single ordered migration step.
-type MigrationEntry struct {
-	// Name is a human-readable identifier for this migration step.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name"`
-	// SQL is the migration script to execute.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MaxLength=65536
-	SQL string `json:"sql"`
-}
-
 // MigrationSpec defines the desired state of Migration.
 // +kubebuilder:validation:XValidation:rule="self.migrations == oldSelf.migrations",message="migrations are immutable after creation"
 type MigrationSpec struct {
 	WorkloadJobConfig `json:",inline"`
 
-	// version is the Supabase version used to resolve the default migration image
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Version string `json:"version"`
-
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 
-	// Migrations is the ordered list of migration steps to apply atomically.
+	// Migrations is the ordered list of migration steps to apply.
 	// The entire array is immutable after creation.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
@@ -55,17 +38,16 @@ type MigrationSpec struct {
 
 // MigrationStatus defines the observed state of Migration.
 type MigrationStatus struct {
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// AppliedHash is the SHA-256 hash of the batch that was successfully applied.
 	// +optional
 	AppliedHash string `json:"appliedHash,omitempty"`
+
 	// AppliedAt is when the batch was successfully applied.
 	// +optional
 	AppliedAt *metav1.Time `json:"appliedAt,omitempty"`
-	// Conditions represent the current state of the Migration resource.
-	// +listType=map
-	// +listMapKey=type
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -77,19 +59,10 @@ type MigrationStatus struct {
 
 // Migration is the Schema for the migrations API.
 type Migration struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// metadata is a standard object metadata
-	// +optional
-	metav1.ObjectMeta `json:"metadata,omitzero"`
-
-	// spec defines the desired state of Migration
-	// +required
-	Spec MigrationSpec `json:"spec"`
-
-	// status defines the observed state of Migration
-	// +optional
-	Status MigrationStatus `json:"status,omitzero"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              MigrationSpec   `json:"spec,omitempty"`
+	Status            MigrationStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -97,7 +70,7 @@ type Migration struct {
 // MigrationList contains a list of Migration
 type MigrationList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitzero"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Migration `json:"items"`
 }
 
@@ -108,4 +81,17 @@ func init() {
 // GetConditions returns a pointer to the status conditions slice.
 func (m *Migration) GetConditions() *[]metav1.Condition {
 	return &m.Status.Conditions
+}
+
+// MigrationEntry defines a single ordered migration step.
+type MigrationEntry struct {
+	// Name is a human-readable identifier for this migration step.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// SQL is the migration script to execute.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MaxLength=65536
+	SQL string `json:"sql"`
 }

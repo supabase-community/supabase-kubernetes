@@ -32,7 +32,6 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
-	"github.com/supabase-community/supabase-kubernetes/internal/images"
 )
 
 // EnsureAuth reconciles the Auth Deployment and Service for a Project.
@@ -66,7 +65,7 @@ func (r *Reconciler) resolveAuthImage(project *supabasev1alpha1.Project) string 
 	if project.Spec.Auth.Image != "" {
 		return project.Spec.Auth.Image
 	}
-	return images.Resolve(project.Spec.Version, images.ComponentAuth)
+	return DefaultAuthImage
 }
 
 func authResourceName(project *supabasev1alpha1.Project) string {

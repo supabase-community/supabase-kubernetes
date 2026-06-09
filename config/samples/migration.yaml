@@ -3,7 +3,6 @@ kind: Migration
 metadata:
   name: supabase
 spec:
-  version: "2026.04.27"
   databaseRef:
     kind: SingleDatabase
     name: supabase

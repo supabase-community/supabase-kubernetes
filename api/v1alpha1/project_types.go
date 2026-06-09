@@ -22,23 +22,26 @@ import (
 
 // ProjectSpec defines the desired state of a Supabase deployment.
 type ProjectSpec struct {
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Version string `json:"version"`
 	// +kubebuilder:default=3600
 	// +kubebuilder:validation:Minimum=1
 	// +optional
 	JWTExpirySeconds *int32 `json:"jwtExpirySeconds,omitempty"`
+
 	// +kubebuilder:validation:Required
 	HTTP HTTPConfig `json:"http"`
+
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
+
 	// +optional
 	Rest *RestSpec `json:"rest,omitempty"`
+
 	// +optional
 	Meta *MetaSpec `json:"meta,omitempty"`
+
 	// +optional
 	Realtime *RealtimeSpec `json:"realtime,omitempty"`
+
 	// +optional
 	Auth *AuthSpec `json:"auth,omitempty"`
 }

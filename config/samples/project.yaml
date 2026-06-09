@@ -3,7 +3,6 @@ kind: Project
 metadata:
   name: supabase
 spec:
-  version: "2026.04.27"
   jwtExpirySeconds: 1800
   http:
     protocol: "http"
