@@ -21,10 +21,16 @@ spec:
     metadata:
       labels:
         {{- include "supabase.functions.selectorLabels" . | nindent 8 }}
-      {{- with .Values.deployment.functions.podAnnotations }}
       annotations:
+        # Roll the functions pod whenever the bundled "main" router source
+        # changes (files/functions/index.ts). Without this, chart bumps that
+        # update the router silently leave running pods on the old code.
+        # Matches the pattern already used by the vector Deployment in this
+        # chart.
+        checksum/config: {{ .Files.Get "files/functions/index.ts" | sha256sum }}
+        {{- with .Values.deployment.functions.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "supabase.functions.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.deployment.functions.automountServiceAccountToken }}

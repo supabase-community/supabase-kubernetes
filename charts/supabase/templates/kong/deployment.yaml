@@ -21,10 +21,17 @@ spec:
     metadata:
       labels:
         {{- include "supabase.kong.selectorLabels" . | nindent 8 }}
-      {{- with .Values.deployment.kong.podAnnotations }}
       annotations:
+        # Roll the Kong pod whenever its routing config changes. Without this,
+        # toggling any deployment.<svc>.enabled (which adds/removes Kong routes)
+        # silently leaves Kong running with stale config until something else
+        # forces a roll. Matches the pattern already used by the vector
+        # Deployment in this chart.
+        # https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+        checksum/config: {{ tpl (.Files.Get "files/kong/kong.yml") . | sha256sum }}
+        {{- with .Values.deployment.kong.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "supabase.kong.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.deployment.kong.automountServiceAccountToken }}
