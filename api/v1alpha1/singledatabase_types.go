@@ -24,19 +24,21 @@ import (
 type SingleDatabaseSpec struct {
 	WorkloadConfig `json:",inline"`
 
-	// service defines the configuration for the component Service
+	// Service defines the configuration for the component Service
 	// +kubebuilder:default={}
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
+	// Storage defines the persistent volume claim configuration
 	// +kubebuilder:validation:Required
-	Storage VolumeClaim `json:"storage,omitempty"`
+	Storage VolumeClaim `json:"storage"`
 }
 
 // SingleDatabaseStatus defines the observed state of SingleDatabase.
 type SingleDatabaseStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// +optional
 	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
 }

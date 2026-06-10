@@ -50,7 +50,7 @@ spec:
             description: MigrationSpec defines the desired state of Migration.
             properties:
               affinity:
-                description: affinity defines affinity scheduling rules
+                description: Affinity defines affinity scheduling rules
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -962,7 +962,7 @@ spec:
                     type: object
                 type: object
               containerSecurityContext:
-                description: containerSecurityContext holds security configuration
+                description: ContainerSecurityContext holds security configuration
                   that will be applied to the container
                 properties:
                   allowPrivilegeEscalation:
@@ -1153,13 +1153,15 @@ spec:
                     type: object
                 type: object
               databaseRef:
-                description: DatabaseRef references a database resource.
+                description: DatabaseRef references the database resource
                 properties:
                   kind:
+                    description: Kind defines the kind of database resource
                     enum:
                     - SingleDatabase
                     type: string
                   name:
+                    description: Name defines the name of the database resource
                     minLength: 1
                     type: string
                 required:
@@ -1167,7 +1169,7 @@ spec:
                 - name
                 type: object
               env:
-                description: env defines additional environment variables for the
+                description: Env defines additional environment variables for the
                   component container
                 items:
                   description: EnvVar represents an environment variable present in
@@ -1325,26 +1327,26 @@ spec:
                   type: object
                 type: array
               image:
-                description: image overrides the default component image
+                description: Image overrides the default component image
                 type: string
               imagePullPolicy:
-                description: imagePullPolicy defines the policy for if/when to pull
+                description: ImagePullPolicy defines the policy for if/when to pull
                   the container image
                 type: string
               migrations:
                 description: |-
-                  Migrations is the ordered list of migration steps to apply.
-                  The entire array is immutable after creation.
+                  Migrations is the ordered list of migration steps to apply
+                  The entire array is immutable after creation
                 items:
                   description: MigrationEntry defines a single ordered migration step.
                   properties:
                     name:
                       description: Name is a human-readable identifier for this migration
-                        step.
+                        step
                       minLength: 1
                       type: string
                     sql:
-                      description: SQL is the migration script to execute.
+                      description: SQL is the migration script to execute
                       maxLength: 65536
                       type: string
                   required:
@@ -1357,20 +1359,20 @@ spec:
               nodeSelector:
                 additionalProperties:
                   type: string
-                description: nodeSelector defines node selection constraints
+                description: NodeSelector defines node selection constraints
                 type: object
               podAnnotations:
                 additionalProperties:
                   type: string
-                description: podAnnotations defines annotations to add to the pod
+                description: PodAnnotations defines annotations to add to the pod
                 type: object
               podLabels:
                 additionalProperties:
                   type: string
-                description: podLabels defines labels to add to the pod
+                description: PodLabels defines labels to add to the pod
                 type: object
               podSecurityContext:
-                description: podSecurityContext holds pod-level security attributes
+                description: PodSecurityContext holds pod-level security attributes
                 properties:
                   appArmorProfile:
                     description: |-
@@ -1602,11 +1604,11 @@ spec:
                     type: object
                 type: object
               priorityClassName:
-                description: priorityClassName defines the priority class for the
+                description: PriorityClassName defines the priority class for the
                   pod
                 type: string
               resources:
-                description: resources defines compute resource requirements
+                description: Resources defines compute resource requirements
                 properties:
                   claims:
                     description: |-
@@ -1665,12 +1667,12 @@ spec:
                     type: object
                 type: object
               terminationGracePeriodSeconds:
-                description: terminationGracePeriodSeconds defines the grace period
+                description: TerminationGracePeriodSeconds defines the grace period
                   for pod termination
                 format: int64
                 type: integer
               tolerations:
-                description: tolerations defines pod tolerations
+                description: Tolerations defines pod tolerations
                 items:
                   description: |-
                     The pod this Toleration is attached to tolerates any taint that matches
@@ -1720,12 +1722,12 @@ spec:
             description: MigrationStatus defines the observed state of Migration.
             properties:
               appliedAt:
-                description: AppliedAt is when the batch was successfully applied.
+                description: AppliedAt is when the batch was successfully applied
                 format: date-time
                 type: string
               appliedHash:
                 description: AppliedHash is the SHA-256 hash of the batch that was
-                  successfully applied.
+                  successfully applied
                 type: string
               conditions:
                 items:

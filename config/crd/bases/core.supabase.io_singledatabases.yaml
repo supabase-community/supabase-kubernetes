@@ -47,7 +47,7 @@ spec:
             description: SingleDatabaseSpec defines the desired state of SingleDatabase.
             properties:
               affinity:
-                description: affinity defines affinity scheduling rules
+                description: Affinity defines affinity scheduling rules
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -959,7 +959,7 @@ spec:
                     type: object
                 type: object
               containerSecurityContext:
-                description: containerSecurityContext holds security configuration
+                description: ContainerSecurityContext holds security configuration
                   that will be applied to the container
                 properties:
                   allowPrivilegeEscalation:
@@ -1150,7 +1150,7 @@ spec:
                     type: object
                 type: object
               env:
-                description: env defines additional environment variables for the
+                description: Env defines additional environment variables for the
                   component container
                 items:
                   description: EnvVar represents an environment variable present in
@@ -1308,29 +1308,29 @@ spec:
                   type: object
                 type: array
               image:
-                description: image overrides the default component image
+                description: Image overrides the default component image
                 type: string
               imagePullPolicy:
-                description: imagePullPolicy defines the policy for if/when to pull
+                description: ImagePullPolicy defines the policy for if/when to pull
                   the container image
                 type: string
               nodeSelector:
                 additionalProperties:
                   type: string
-                description: nodeSelector defines node selection constraints
+                description: NodeSelector defines node selection constraints
                 type: object
               podAnnotations:
                 additionalProperties:
                   type: string
-                description: podAnnotations defines annotations to add to the pod
+                description: PodAnnotations defines annotations to add to the pod
                 type: object
               podLabels:
                 additionalProperties:
                   type: string
-                description: podLabels defines labels to add to the pod
+                description: PodLabels defines labels to add to the pod
                 type: object
               podSecurityContext:
-                description: podSecurityContext holds pod-level security attributes
+                description: PodSecurityContext holds pod-level security attributes
                 properties:
                   appArmorProfile:
                     description: |-
@@ -1562,11 +1562,11 @@ spec:
                     type: object
                 type: object
               priorityClassName:
-                description: priorityClassName defines the priority class for the
+                description: PriorityClassName defines the priority class for the
                   pod
                 type: string
               resources:
-                description: resources defines compute resource requirements
+                description: Resources defines compute resource requirements
                 properties:
                   claims:
                     description: |-
@@ -1626,20 +1626,21 @@ spec:
                 type: object
               service:
                 default: {}
-                description: service defines the configuration for the component Service
+                description: Service defines the configuration for the component Service
                 properties:
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations defines annotations to add to the Service
                     type: object
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels defines labels to add to the Service
                     type: object
                   type:
                     default: ClusterIP
-                    description: Service Type string describes ingress methods for
-                      a service
+                    description: Type defines the type of the Kubernetes Service
                     enum:
                     - ClusterIP
                     - NodePort
@@ -1647,10 +1648,11 @@ spec:
                     type: string
                 type: object
               storage:
-                description: VolumeClaim defines the desired characteristics of a
-                  persistent volume claim.
+                description: Storage defines the persistent volume claim configuration
                 properties:
                   accessModes:
+                    description: AccessModes defines the access modes for the persistent
+                      volume claim
                     items:
                       type: string
                     type: array
@@ -1664,27 +1666,30 @@ spec:
                       - Retain
                     default: Delete
                     description: DeletionPolicy defines the deletion behavior for
-                      the PVC.
+                      the persistent volume claim
                     type: string
                   size:
                     anyOf:
                     - type: integer
                     - type: string
+                    description: Size defines the size of the persistent volume claim
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
                   storageClassName:
+                    description: StorageClassName defines the storage class name for
+                      the persistent volume claim
                     type: string
                 required:
                 - accessModes
                 - size
                 type: object
               terminationGracePeriodSeconds:
-                description: terminationGracePeriodSeconds defines the grace period
+                description: TerminationGracePeriodSeconds defines the grace period
                   for pod termination
                 format: int64
                 type: integer
               tolerations:
-                description: tolerations defines pod tolerations
+                description: Tolerations defines pod tolerations
                 items:
                   description: |-
                     The pod this Toleration is attached to tolerates any taint that matches
@@ -1790,17 +1795,21 @@ spec:
                   parameters.
                 properties:
                   dbName:
+                    description: DBName defines the database name
                     type: string
                   host:
+                    description: Host defines the database host
                     type: string
                   passwordRef:
-                    description: SecretKeyRef is a reference to a specific key in
-                      a Kubernetes Secret.
+                    description: PasswordRef references the secret containing the
+                      database password
                     properties:
                       key:
+                        description: Key defines the key within the Kubernetes Secret
                         minLength: 1
                         type: string
                       name:
+                        description: Name defines the name of the Kubernetes Secret
                         minLength: 1
                         type: string
                     required:
@@ -1808,9 +1817,11 @@ spec:
                     - name
                     type: object
                   port:
+                    description: Port defines the database port
                     format: int32
                     type: integer
                   user:
+                    description: User defines the database user
                     type: string
                 required:
                 - dbName

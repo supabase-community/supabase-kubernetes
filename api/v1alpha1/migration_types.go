@@ -25,11 +25,12 @@ import (
 type MigrationSpec struct {
 	WorkloadConfig `json:",inline"`
 
+	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 
-	// Migrations is the ordered list of migration steps to apply.
-	// The entire array is immutable after creation.
+	// Migrations is the ordered list of migration steps to apply
+	// The entire array is immutable after creation
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=128
@@ -41,11 +42,11 @@ type MigrationStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// AppliedHash is the SHA-256 hash of the batch that was successfully applied.
+	// AppliedHash is the SHA-256 hash of the batch that was successfully applied
 	// +optional
 	AppliedHash string `json:"appliedHash,omitempty"`
 
-	// AppliedAt is when the batch was successfully applied.
+	// AppliedAt is when the batch was successfully applied
 	// +optional
 	AppliedAt *metav1.Time `json:"appliedAt,omitempty"`
 }
@@ -85,12 +86,12 @@ func (m *Migration) GetConditions() *[]metav1.Condition {
 
 // MigrationEntry defines a single ordered migration step.
 type MigrationEntry struct {
-	// Name is a human-readable identifier for this migration step.
+	// Name is a human-readable identifier for this migration step
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
 
-	// SQL is the migration script to execute.
+	// SQL is the migration script to execute
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxLength=65536
 	SQL string `json:"sql"`

@@ -23,15 +23,19 @@ import (
 
 // VolumeClaim defines the desired characteristics of a persistent volume claim.
 type VolumeClaim struct {
+	// AccessModes defines the access modes for the persistent volume claim
 	// +kubebuilder:validation:Required
 	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes"`
 
+	// StorageClassName defines the storage class name for the persistent volume claim
 	// +optional
 	StorageClassName *string `json:"storageClassName,omitempty"`
 
+	// Size defines the size of the persistent volume claim
 	// +kubebuilder:validation:Required
 	Size resource.Quantity `json:"size"`
 
+	// DeletionPolicy defines the deletion behavior for the persistent volume claim
 	// +kubebuilder:validation:Enum=Delete;Retain
 	// +kubebuilder:default=Delete
 	// +optional
@@ -49,10 +53,12 @@ const (
 
 // SecretKeyRef is a reference to a specific key in a Kubernetes Secret.
 type SecretKeyRef struct {
+	// Name defines the name of the Kubernetes Secret
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
 
+	// Key defines the key within the Kubernetes Secret
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
@@ -60,37 +66,52 @@ type SecretKeyRef struct {
 
 // ResolvedDatabase exposes resolved database connection parameters.
 type ResolvedDatabase struct {
-	Host        string       `json:"host"`
-	Port        int32        `json:"port"`
-	DBName      string       `json:"dbName"`
-	User        string       `json:"user,omitempty"`
+	// Host defines the database host
+	Host string `json:"host"`
+
+	// Port defines the database port
+	Port int32 `json:"port"`
+
+	// DBName defines the database name
+	DBName string `json:"dbName"`
+
+	// User defines the database user
+	User string `json:"user,omitempty"`
+
+	// PasswordRef references the secret containing the database password
 	PasswordRef SecretKeyRef `json:"passwordRef"`
 }
 
 // ServiceSpec defines the configuration for a component Service.
 type ServiceSpec struct {
+	// Type defines the type of the Kubernetes Service
 	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
 	// +kubebuilder:default=ClusterIP
 	// +optional
 	Type corev1.ServiceType `json:"type,omitempty"`
 
+	// Annotations defines annotations to add to the Service
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 
+	// Labels defines labels to add to the Service
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // HTTPConfig defines public HTTP access settings for a Project.
 type HTTPConfig struct {
+	// Protocol defines the HTTP protocol (http or https)
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=http;https
 	Protocol string `json:"protocol"`
 
+	// Hostname defines the public hostname for the Project
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Hostname string `json:"hostname"`
 
+	// Port defines the public port for the Project
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
 	// +optional
@@ -99,64 +120,67 @@ type HTTPConfig struct {
 
 // WorkloadConfig defines common workload configuration shared by all Supabase components.
 type WorkloadConfig struct {
-	// image overrides the default component image
+	// Image overrides the default component image
 	// +optional
 	Image string `json:"image,omitempty"`
 
-	// imagePullPolicy defines the policy for if/when to pull the container image
+	// ImagePullPolicy defines the policy for if/when to pull the container image
 	// +optional
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
-	// affinity defines affinity scheduling rules
+	// Affinity defines affinity scheduling rules
 	// +optional
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 
-	// containerSecurityContext holds security configuration that will be applied to the container
+	// ContainerSecurityContext holds security configuration that will be applied to the container
 	// +optional
 	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 
-	// nodeSelector defines node selection constraints
+	// NodeSelector defines node selection constraints
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// podAnnotations defines annotations to add to the pod
+	// PodAnnotations defines annotations to add to the pod
 	// +optional
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
 
-	// podLabels defines labels to add to the pod
+	// PodLabels defines labels to add to the pod
 	// +optional
 	PodLabels map[string]string `json:"podLabels,omitempty"`
 
-	// podSecurityContext holds pod-level security attributes
+	// PodSecurityContext holds pod-level security attributes
 	// +optional
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 
-	// priorityClassName defines the priority class for the pod
+	// PriorityClassName defines the priority class for the pod
 	// +optional
 	PriorityClassName string `json:"priorityClassName,omitempty"`
 
-	// resources defines compute resource requirements
+	// Resources defines compute resource requirements
 	// +optional
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
-	// terminationGracePeriodSeconds defines the grace period for pod termination
+	// TerminationGracePeriodSeconds defines the grace period for pod termination
 	// +optional
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
 
-	// tolerations defines pod tolerations
+	// Tolerations defines pod tolerations
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
-	// env defines additional environment variables for the component container
+	// Env defines additional environment variables for the component container
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // DatabaseRef references a database resource.
 type DatabaseRef struct {
+	// Kind defines the kind of database resource
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=SingleDatabase
 	Kind string `json:"kind"`
+
+	// Name defines the name of the database resource
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`

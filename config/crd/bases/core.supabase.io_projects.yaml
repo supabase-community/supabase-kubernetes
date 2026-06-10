@@ -47,16 +47,16 @@ spec:
             description: ProjectSpec defines the desired state of a Supabase deployment.
             properties:
               auth:
-                description: AuthSpec defines the desired state of the Auth component.
+                description: Auth defines the Auth component configuration
                 properties:
                   additionalRedirectUrls:
-                    description: additionalRedirectUrls is a list of additional URLs
+                    description: AdditionalRedirectURLs is a list of additional URLs
                       allowed for redirects
                     items:
                       type: string
                     type: array
                   affinity:
-                    description: affinity defines affinity scheduling rules
+                    description: Affinity defines affinity scheduling rules
                     properties:
                       nodeAffinity:
                         description: Describes node affinity scheduling rules for
@@ -975,7 +975,7 @@ spec:
                         type: object
                     type: object
                   containerSecurityContext:
-                    description: containerSecurityContext holds security configuration
+                    description: ContainerSecurityContext holds security configuration
                       that will be applied to the container
                     properties:
                       allowPrivilegeEscalation:
@@ -1168,25 +1168,25 @@ spec:
                         type: object
                     type: object
                   disableSignup:
-                    description: disableSignup disables new user signups
+                    description: DisableSignup disables new user signups
                     type: boolean
                   enableAnonymousUsers:
-                    description: enableAnonymousUsers enables anonymous user signings
+                    description: EnableAnonymousUsers enables anonymous user signings
                     type: boolean
                   enableEmailAutoconfirm:
-                    description: enableEmailAutoconfirm skips email confirmation
+                    description: EnableEmailAutoconfirm skips email confirmation
                     type: boolean
                   enableEmailSignup:
-                    description: enableEmailSignup enables email/password signups
+                    description: EnableEmailSignup enables email/password signups
                     type: boolean
                   enablePhoneAutoconfirm:
-                    description: enablePhoneAutoconfirm skips phone confirmation
+                    description: EnablePhoneAutoconfirm skips phone confirmation
                     type: boolean
                   enablePhoneSignup:
-                    description: enablePhoneSignup enables phone signups
+                    description: EnablePhoneSignup enables phone signups
                     type: boolean
                   env:
-                    description: env defines additional environment variables for
+                    description: Env defines additional environment variables for
                       the component container
                     items:
                       description: EnvVar represents an environment variable present
@@ -1345,55 +1345,71 @@ spec:
                       type: object
                     type: array
                   image:
-                    description: image overrides the default component image
+                    description: Image overrides the default component image
                     type: string
                   imagePullPolicy:
-                    description: imagePullPolicy defines the policy for if/when to
+                    description: ImagePullPolicy defines the policy for if/when to
                       pull the container image
                     type: string
                   mailerSecureEmailChangeEnabled:
-                    description: mailerSecureEmailChangeEnabled enables secure email
+                    description: MailerSecureEmailChangeEnabled enables secure email
                       change flow
                     type: boolean
                   mfa:
-                    description: mfa defines multi-factor authentication configuration
+                    description: MFA defines multi-factor authentication configuration
                     properties:
                       maxEnrolledFactors:
+                        description: MaxEnrolledFactors defines the maximum number
+                          of enrolled MFA factors
                         format: int32
                         type: integer
                       phoneEnrollEnabled:
+                        description: PhoneEnrollEnabled defines whether phone MFA
+                          enrollment is enabled
                         type: boolean
                       phoneVerifyEnabled:
+                        description: PhoneVerifyEnabled defines whether phone MFA
+                          verification is enabled
                         type: boolean
                       totpEnrollEnabled:
+                        description: TOTPEnrollEnabled defines whether TOTP enrollment
+                          is enabled
                         type: boolean
                       totpVerifyEnabled:
+                        description: TOTPVerifyEnabled defines whether TOTP verification
+                          is enabled
                         type: boolean
                     type: object
                   nodeSelector:
                     additionalProperties:
                       type: string
-                    description: nodeSelector defines node selection constraints
+                    description: NodeSelector defines node selection constraints
                     type: object
                   oauth:
-                    description: oauth defines OAuth provider configuration
+                    description: OAuth defines OAuth provider configuration
                     properties:
                       azure:
-                        description: OAuthProviderConfig defines a single OAuth provider
-                          configuration.
+                        description: Azure defines the Azure OAuth provider configuration
                         properties:
                           clientId:
+                            description: ClientID defines the OAuth client ID
                             type: string
                           enabled:
+                            description: Enabled defines whether the OAuth provider
+                              is enabled
                             type: boolean
                           secretRef:
-                            description: SecretKeyRef is a reference to a specific
-                              key in a Kubernetes Secret.
+                            description: SecretRef references the secret containing
+                              the OAuth client secret
                             properties:
                               key:
+                                description: Key defines the key within the Kubernetes
+                                  Secret
                                 minLength: 1
                                 type: string
                               name:
+                                description: Name defines the name of the Kubernetes
+                                  Secret
                                 minLength: 1
                                 type: string
                             required:
@@ -1406,21 +1422,27 @@ spec:
                         - secretRef
                         type: object
                       github:
-                        description: OAuthProviderConfig defines a single OAuth provider
-                          configuration.
+                        description: GitHub defines the GitHub OAuth provider configuration
                         properties:
                           clientId:
+                            description: ClientID defines the OAuth client ID
                             type: string
                           enabled:
+                            description: Enabled defines whether the OAuth provider
+                              is enabled
                             type: boolean
                           secretRef:
-                            description: SecretKeyRef is a reference to a specific
-                              key in a Kubernetes Secret.
+                            description: SecretRef references the secret containing
+                              the OAuth client secret
                             properties:
                               key:
+                                description: Key defines the key within the Kubernetes
+                                  Secret
                                 minLength: 1
                                 type: string
                               name:
+                                description: Name defines the name of the Kubernetes
+                                  Secret
                                 minLength: 1
                                 type: string
                             required:
@@ -1433,21 +1455,27 @@ spec:
                         - secretRef
                         type: object
                       google:
-                        description: OAuthProviderConfig defines a single OAuth provider
-                          configuration.
+                        description: Google defines the Google OAuth provider configuration
                         properties:
                           clientId:
+                            description: ClientID defines the OAuth client ID
                             type: string
                           enabled:
+                            description: Enabled defines whether the OAuth provider
+                              is enabled
                             type: boolean
                           secretRef:
-                            description: SecretKeyRef is a reference to a specific
-                              key in a Kubernetes Secret.
+                            description: SecretRef references the secret containing
+                              the OAuth client secret
                             properties:
                               key:
+                                description: Key defines the key within the Kubernetes
+                                  Secret
                                 minLength: 1
                                 type: string
                               name:
+                                description: Name defines the name of the Kubernetes
+                                  Secret
                                 minLength: 1
                                 type: string
                             required:
@@ -1463,16 +1491,16 @@ spec:
                   podAnnotations:
                     additionalProperties:
                       type: string
-                    description: podAnnotations defines annotations to add to the
+                    description: PodAnnotations defines annotations to add to the
                       pod
                     type: object
                   podLabels:
                     additionalProperties:
                       type: string
-                    description: podLabels defines labels to add to the pod
+                    description: PodLabels defines labels to add to the pod
                     type: object
                   podSecurityContext:
-                    description: podSecurityContext holds pod-level security attributes
+                    description: PodSecurityContext holds pod-level security attributes
                     properties:
                       appArmorProfile:
                         description: |-
@@ -1704,17 +1732,17 @@ spec:
                         type: object
                     type: object
                   priorityClassName:
-                    description: priorityClassName defines the priority class for
+                    description: PriorityClassName defines the priority class for
                       the pod
                     type: string
                   replicas:
                     default: 1
-                    description: replicas defines the number of component instances
+                    description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
                     type: integer
                   resources:
-                    description: resources defines compute resource requirements
+                    description: Resources defines compute resource requirements
                     properties:
                       claims:
                         description: |-
@@ -1773,37 +1801,47 @@ spec:
                         type: object
                     type: object
                   saml:
-                    description: saml defines SAML authentication configuration
+                    description: SAML defines SAML authentication configuration
                     properties:
                       allowEncryptedAssertions:
+                        description: AllowEncryptedAssertions defines whether encrypted
+                          SAML assertions are allowed
                         type: boolean
                       enabled:
+                        description: Enabled defines whether SAML authentication is
+                          enabled
                         type: boolean
                       rateLimitAssertion:
+                        description: RateLimitAssertion defines the rate limit for
+                          SAML assertions
                         format: int32
                         type: integer
                       relayStateValidityPeriod:
+                        description: RelayStateValidityPeriod defines the validity
+                          period for the relay state
                         type: string
                     required:
                     - enabled
                     type: object
                   service:
                     default: {}
-                    description: service defines the configuration for the component
+                    description: Service defines the configuration for the component
                       Service
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations defines annotations to add to the
+                          Service
                         type: object
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels defines labels to add to the Service
                         type: object
                       type:
                         default: ClusterIP
-                        description: Service Type string describes ingress methods
-                          for a service
+                        description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
                         - NodePort
@@ -1811,37 +1849,47 @@ spec:
                         type: string
                     type: object
                   siteUrl:
-                    description: siteUrl is the base URL of your site used for email
+                    description: SiteURL is the base URL of your site used for email
                       links and redirects
                     type: string
                   skipNonceCheck:
-                    description: skipNonceCheck skips nonce check for external providers
+                    description: SkipNonceCheck skips nonce check for external providers
                     type: boolean
                   sms:
-                    description: sms defines SMS provider configuration
+                    description: SMS defines SMS provider configuration
                     properties:
                       maxFrequency:
+                        description: MaxFrequency defines the maximum frequency for
+                          sending SMS messages
                         type: string
                       otpExp:
+                        description: OTPExp defines the OTP expiration time in seconds
                         format: int32
                         type: integer
                       otpLength:
+                        description: OTPLength defines the length of the OTP
                         format: int32
                         type: integer
                       provider:
+                        description: Provider defines the SMS provider name
                         type: string
                       template:
+                        description: Template defines the SMS message template
                         type: string
                       twilioAccountSid:
+                        description: TwilioAccountSID defines the Twilio account SID
                         type: string
                       twilioAuthTokenRef:
-                        description: SecretKeyRef is a reference to a specific key
-                          in a Kubernetes Secret.
+                        description: TwilioAuthTokenRef references the secret containing
+                          the Twilio auth token
                         properties:
                           key:
+                            description: Key defines the key within the Kubernetes
+                              Secret
                             minLength: 1
                             type: string
                           name:
+                            description: Name defines the name of the Kubernetes Secret
                             minLength: 1
                             type: string
                         required:
@@ -1849,6 +1897,8 @@ spec:
                         - name
                         type: object
                       twilioMessageServiceSid:
+                        description: TwilioMessageServiceSID defines the Twilio message
+                          service SID
                         type: string
                     required:
                     - maxFrequency
@@ -1861,22 +1911,29 @@ spec:
                     - twilioMessageServiceSid
                     type: object
                   smtp:
-                    description: smtp defines SMTP configuration for sending emails
+                    description: SMTP defines SMTP configuration for sending emails
                     properties:
                       adminEmail:
+                        description: AdminEmail defines the admin email address
                         type: string
                       host:
+                        description: Host defines the SMTP server host
                         type: string
                       maxFrequency:
+                        description: MaxFrequency defines the maximum frequency for
+                          sending emails
                         type: string
                       passwordRef:
-                        description: SecretKeyRef is a reference to a specific key
-                          in a Kubernetes Secret.
+                        description: PasswordRef references the secret containing
+                          the SMTP password
                         properties:
                           key:
+                            description: Key defines the key within the Kubernetes
+                              Secret
                             minLength: 1
                             type: string
                           name:
+                            description: Name defines the name of the Kubernetes Secret
                             minLength: 1
                             type: string
                         required:
@@ -1884,11 +1941,15 @@ spec:
                         - name
                         type: object
                       port:
+                        description: Port defines the SMTP server port
                         format: int32
                         type: integer
                       senderName:
+                        description: SenderName defines the display name for outgoing
+                          emails
                         type: string
                       user:
+                        description: User defines the SMTP authentication user
                         type: string
                     required:
                     - adminEmail
@@ -1899,12 +1960,12 @@ spec:
                     - user
                     type: object
                   terminationGracePeriodSeconds:
-                    description: terminationGracePeriodSeconds defines the grace period
+                    description: TerminationGracePeriodSeconds defines the grace period
                       for pod termination
                     format: int64
                     type: integer
                   tolerations:
-                    description: tolerations defines pod tolerations
+                    description: Tolerations defines pod tolerations
                     items:
                       description: |-
                         The pod this Toleration is attached to tolerates any taint that matches
@@ -1953,13 +2014,15 @@ spec:
                 - siteUrl
                 type: object
               databaseRef:
-                description: DatabaseRef references a database resource.
+                description: DatabaseRef references the database resource
                 properties:
                   kind:
+                    description: Kind defines the kind of database resource
                     enum:
                     - SingleDatabase
                     type: string
                   name:
+                    description: Name defines the name of the database resource
                     minLength: 1
                     type: string
                 required:
@@ -1967,18 +2030,20 @@ spec:
                 - name
                 type: object
               http:
-                description: HTTPConfig defines public HTTP access settings for a
-                  Project.
+                description: HTTP defines the public HTTP access settings
                 properties:
                   hostname:
+                    description: Hostname defines the public hostname for the Project
                     minLength: 1
                     type: string
                   port:
+                    description: Port defines the public port for the Project
                     format: int32
                     maximum: 65535
                     minimum: 1
                     type: integer
                   protocol:
+                    description: Protocol defines the HTTP protocol (http or https)
                     enum:
                     - http
                     - https
@@ -1988,14 +2053,15 @@ spec:
                 - protocol
                 type: object
               jwtExpSec:
+                description: JWTExpSec defines the JWT expiration time in seconds
                 format: int32
                 minimum: 1
                 type: integer
               meta:
-                description: MetaSpec defines the desired state of the Meta component.
+                description: Meta defines the Meta component configuration
                 properties:
                   affinity:
-                    description: affinity defines affinity scheduling rules
+                    description: Affinity defines affinity scheduling rules
                     properties:
                       nodeAffinity:
                         description: Describes node affinity scheduling rules for
@@ -2914,7 +2980,7 @@ spec:
                         type: object
                     type: object
                   containerSecurityContext:
-                    description: containerSecurityContext holds security configuration
+                    description: ContainerSecurityContext holds security configuration
                       that will be applied to the container
                     properties:
                       allowPrivilegeEscalation:
@@ -3107,7 +3173,7 @@ spec:
                         type: object
                     type: object
                   env:
-                    description: env defines additional environment variables for
+                    description: Env defines additional environment variables for
                       the component container
                     items:
                       description: EnvVar represents an environment variable present
@@ -3266,30 +3332,30 @@ spec:
                       type: object
                     type: array
                   image:
-                    description: image overrides the default component image
+                    description: Image overrides the default component image
                     type: string
                   imagePullPolicy:
-                    description: imagePullPolicy defines the policy for if/when to
+                    description: ImagePullPolicy defines the policy for if/when to
                       pull the container image
                     type: string
                   nodeSelector:
                     additionalProperties:
                       type: string
-                    description: nodeSelector defines node selection constraints
+                    description: NodeSelector defines node selection constraints
                     type: object
                   podAnnotations:
                     additionalProperties:
                       type: string
-                    description: podAnnotations defines annotations to add to the
+                    description: PodAnnotations defines annotations to add to the
                       pod
                     type: object
                   podLabels:
                     additionalProperties:
                       type: string
-                    description: podLabels defines labels to add to the pod
+                    description: PodLabels defines labels to add to the pod
                     type: object
                   podSecurityContext:
-                    description: podSecurityContext holds pod-level security attributes
+                    description: PodSecurityContext holds pod-level security attributes
                     properties:
                       appArmorProfile:
                         description: |-
@@ -3521,17 +3587,17 @@ spec:
                         type: object
                     type: object
                   priorityClassName:
-                    description: priorityClassName defines the priority class for
+                    description: PriorityClassName defines the priority class for
                       the pod
                     type: string
                   replicas:
                     default: 1
-                    description: replicas defines the number of component instances
+                    description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
                     type: integer
                   resources:
-                    description: resources defines compute resource requirements
+                    description: Resources defines compute resource requirements
                     properties:
                       claims:
                         description: |-
@@ -3591,21 +3657,23 @@ spec:
                     type: object
                   service:
                     default: {}
-                    description: service defines the configuration for the component
+                    description: Service defines the configuration for the component
                       Service
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations defines annotations to add to the
+                          Service
                         type: object
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels defines labels to add to the Service
                         type: object
                       type:
                         default: ClusterIP
-                        description: Service Type string describes ingress methods
-                          for a service
+                        description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
                         - NodePort
@@ -3613,12 +3681,12 @@ spec:
                         type: string
                     type: object
                   terminationGracePeriodSeconds:
-                    description: terminationGracePeriodSeconds defines the grace period
+                    description: TerminationGracePeriodSeconds defines the grace period
                       for pod termination
                     format: int64
                     type: integer
                   tolerations:
-                    description: tolerations defines pod tolerations
+                    description: Tolerations defines pod tolerations
                     items:
                       description: |-
                         The pod this Toleration is attached to tolerates any taint that matches
@@ -3659,11 +3727,10 @@ spec:
                     type: array
                 type: object
               realtime:
-                description: RealtimeSpec defines the desired state of the Realtime
-                  component.
+                description: Realtime defines the Realtime component configuration
                 properties:
                   affinity:
-                    description: affinity defines affinity scheduling rules
+                    description: Affinity defines affinity scheduling rules
                     properties:
                       nodeAffinity:
                         description: Describes node affinity scheduling rules for
@@ -4582,7 +4649,7 @@ spec:
                         type: object
                     type: object
                   containerSecurityContext:
-                    description: containerSecurityContext holds security configuration
+                    description: ContainerSecurityContext holds security configuration
                       that will be applied to the container
                     properties:
                       allowPrivilegeEscalation:
@@ -4775,7 +4842,7 @@ spec:
                         type: object
                     type: object
                   env:
-                    description: env defines additional environment variables for
+                    description: Env defines additional environment variables for
                       the component container
                     items:
                       description: EnvVar represents an environment variable present
@@ -4934,30 +5001,30 @@ spec:
                       type: object
                     type: array
                   image:
-                    description: image overrides the default component image
+                    description: Image overrides the default component image
                     type: string
                   imagePullPolicy:
-                    description: imagePullPolicy defines the policy for if/when to
+                    description: ImagePullPolicy defines the policy for if/when to
                       pull the container image
                     type: string
                   nodeSelector:
                     additionalProperties:
                       type: string
-                    description: nodeSelector defines node selection constraints
+                    description: NodeSelector defines node selection constraints
                     type: object
                   podAnnotations:
                     additionalProperties:
                       type: string
-                    description: podAnnotations defines annotations to add to the
+                    description: PodAnnotations defines annotations to add to the
                       pod
                     type: object
                   podLabels:
                     additionalProperties:
                       type: string
-                    description: podLabels defines labels to add to the pod
+                    description: PodLabels defines labels to add to the pod
                     type: object
                   podSecurityContext:
-                    description: podSecurityContext holds pod-level security attributes
+                    description: PodSecurityContext holds pod-level security attributes
                     properties:
                       appArmorProfile:
                         description: |-
@@ -5189,17 +5256,17 @@ spec:
                         type: object
                     type: object
                   priorityClassName:
-                    description: priorityClassName defines the priority class for
+                    description: PriorityClassName defines the priority class for
                       the pod
                     type: string
                   replicas:
                     default: 1
-                    description: replicas defines the number of component instances
+                    description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
                     type: integer
                   resources:
-                    description: resources defines compute resource requirements
+                    description: Resources defines compute resource requirements
                     properties:
                       claims:
                         description: |-
@@ -5259,21 +5326,23 @@ spec:
                     type: object
                   service:
                     default: {}
-                    description: service defines the configuration for the component
+                    description: Service defines the configuration for the component
                       Service
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations defines annotations to add to the
+                          Service
                         type: object
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels defines labels to add to the Service
                         type: object
                       type:
                         default: ClusterIP
-                        description: Service Type string describes ingress methods
-                          for a service
+                        description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
                         - NodePort
@@ -5281,12 +5350,12 @@ spec:
                         type: string
                     type: object
                   terminationGracePeriodSeconds:
-                    description: terminationGracePeriodSeconds defines the grace period
+                    description: TerminationGracePeriodSeconds defines the grace period
                       for pod termination
                     format: int64
                     type: integer
                   tolerations:
-                    description: tolerations defines pod tolerations
+                    description: Tolerations defines pod tolerations
                     items:
                       description: |-
                         The pod this Toleration is attached to tolerates any taint that matches
@@ -5327,10 +5396,10 @@ spec:
                     type: array
                 type: object
               rest:
-                description: RestSpec defines the desired state of the Rest component.
+                description: Rest defines the Rest component configuration
                 properties:
                   affinity:
-                    description: affinity defines affinity scheduling rules
+                    description: Affinity defines affinity scheduling rules
                     properties:
                       nodeAffinity:
                         description: Describes node affinity scheduling rules for
@@ -6249,7 +6318,7 @@ spec:
                         type: object
                     type: object
                   containerSecurityContext:
-                    description: containerSecurityContext holds security configuration
+                    description: ContainerSecurityContext holds security configuration
                       that will be applied to the container
                     properties:
                       allowPrivilegeEscalation:
@@ -6443,22 +6512,22 @@ spec:
                     type: object
                   dbExtraSearchPath:
                     default: public
-                    description: dbExtraSearchPath defines the schemas to add to the
+                    description: DBExtraSearchPath defines the schemas to add to the
                       search path of every request
                     type: string
                   dbMaxRows:
                     default: 1000
-                    description: dbMaxRows defines the maximum number of rows returned
+                    description: DBMaxRows defines the maximum number of rows returned
                       from a view, table, or stored procedure
                     format: int32
                     minimum: 1
                     type: integer
                   dbSchemas:
                     default: public,storage,graphql_public
-                    description: dbSchemas defines the schemas exposed by PostgREST
+                    description: DBSchemas defines the schemas exposed by PostgREST
                     type: string
                   env:
-                    description: env defines additional environment variables for
+                    description: Env defines additional environment variables for
                       the component container
                     items:
                       description: EnvVar represents an environment variable present
@@ -6617,30 +6686,30 @@ spec:
                       type: object
                     type: array
                   image:
-                    description: image overrides the default component image
+                    description: Image overrides the default component image
                     type: string
                   imagePullPolicy:
-                    description: imagePullPolicy defines the policy for if/when to
+                    description: ImagePullPolicy defines the policy for if/when to
                       pull the container image
                     type: string
                   nodeSelector:
                     additionalProperties:
                       type: string
-                    description: nodeSelector defines node selection constraints
+                    description: NodeSelector defines node selection constraints
                     type: object
                   podAnnotations:
                     additionalProperties:
                       type: string
-                    description: podAnnotations defines annotations to add to the
+                    description: PodAnnotations defines annotations to add to the
                       pod
                     type: object
                   podLabels:
                     additionalProperties:
                       type: string
-                    description: podLabels defines labels to add to the pod
+                    description: PodLabels defines labels to add to the pod
                     type: object
                   podSecurityContext:
-                    description: podSecurityContext holds pod-level security attributes
+                    description: PodSecurityContext holds pod-level security attributes
                     properties:
                       appArmorProfile:
                         description: |-
@@ -6872,17 +6941,17 @@ spec:
                         type: object
                     type: object
                   priorityClassName:
-                    description: priorityClassName defines the priority class for
+                    description: PriorityClassName defines the priority class for
                       the pod
                     type: string
                   replicas:
                     default: 1
-                    description: replicas defines the number of component instances
+                    description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
                     type: integer
                   resources:
-                    description: resources defines compute resource requirements
+                    description: Resources defines compute resource requirements
                     properties:
                       claims:
                         description: |-
@@ -6942,21 +7011,23 @@ spec:
                     type: object
                   service:
                     default: {}
-                    description: service defines the configuration for the component
+                    description: Service defines the configuration for the component
                       Service
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations defines annotations to add to the
+                          Service
                         type: object
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels defines labels to add to the Service
                         type: object
                       type:
                         default: ClusterIP
-                        description: Service Type string describes ingress methods
-                          for a service
+                        description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
                         - NodePort
@@ -6964,12 +7035,12 @@ spec:
                         type: string
                     type: object
                   terminationGracePeriodSeconds:
-                    description: terminationGracePeriodSeconds defines the grace period
+                    description: TerminationGracePeriodSeconds defines the grace period
                       for pod termination
                     format: int64
                     type: integer
                   tolerations:
-                    description: tolerations defines pod tolerations
+                    description: Tolerations defines pod tolerations
                     items:
                       description: |-
                         The pod this Toleration is attached to tolerates any taint that matches

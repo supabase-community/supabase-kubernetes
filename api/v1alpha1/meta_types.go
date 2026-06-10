@@ -20,13 +20,13 @@ package v1alpha1
 type MetaSpec struct {
 	WorkloadConfig `json:",inline"`
 
-	// replicas defines the number of component instances
+	// Replicas defines the number of component instances
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// service defines the configuration for the component Service
+	// Service defines the configuration for the component Service
 	// +kubebuilder:default={}
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`

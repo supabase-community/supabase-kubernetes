@@ -22,25 +22,32 @@ import (
 
 // ProjectSpec defines the desired state of a Supabase deployment.
 type ProjectSpec struct {
+	// JWTExpSec defines the JWT expiration time in seconds
 	// +kubebuilder:validation:Minimum=1
 	// +optional
 	JWTExpSec *int32 `json:"jwtExpSec,omitempty"`
 
+	// HTTP defines the public HTTP access settings
 	// +kubebuilder:validation:Required
 	HTTP HTTPConfig `json:"http"`
 
+	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 
+	// Rest defines the Rest component configuration
 	// +optional
 	Rest *RestSpec `json:"rest,omitempty"`
 
+	// Meta defines the Meta component configuration
 	// +optional
 	Meta *MetaSpec `json:"meta,omitempty"`
 
+	// Realtime defines the Realtime component configuration
 	// +optional
 	Realtime *RealtimeSpec `json:"realtime,omitempty"`
 
+	// Auth defines the Auth component configuration
 	// +optional
 	Auth *AuthSpec `json:"auth,omitempty"`
 }
