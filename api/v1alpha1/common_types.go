@@ -25,10 +25,13 @@ import (
 type VolumeClaim struct {
 	// +kubebuilder:validation:Required
 	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes"`
+
 	// +optional
 	StorageClassName *string `json:"storageClassName,omitempty"`
+
 	// +kubebuilder:validation:Required
 	Size resource.Quantity `json:"size"`
+
 	// +kubebuilder:validation:Enum=Delete;Retain
 	// +kubebuilder:default=Delete
 	// +optional
@@ -49,6 +52,7 @@ type SecretKeyRef struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
+
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
@@ -66,10 +70,13 @@ type ResolvedDatabase struct {
 // ServiceSpec defines the configuration for a component Service.
 type ServiceSpec struct {
 	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
-	// +optional
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=ClusterIP
 	Type corev1.ServiceType `json:"type,omitempty"`
+
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
+
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
@@ -79,12 +86,14 @@ type HTTPConfig struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=http;https
 	Protocol string `json:"protocol"`
+
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Hostname string `json:"hostname"`
+
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
-	// +optional
 	Port *int32 `json:"port,omitempty"`
 }
 
