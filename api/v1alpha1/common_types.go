@@ -70,8 +70,8 @@ type ResolvedDatabase struct {
 // ServiceSpec defines the configuration for a component Service.
 type ServiceSpec struct {
 	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
-	// +kubebuilder:validation:Required
 	// +kubebuilder:default=ClusterIP
+	// +optional
 	Type corev1.ServiceType `json:"type,omitempty"`
 
 	// +optional
@@ -91,79 +91,14 @@ type HTTPConfig struct {
 	// +kubebuilder:validation:MinLength=1
 	Hostname string `json:"hostname"`
 
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
+	// +optional
 	Port *int32 `json:"port,omitempty"`
 }
 
 // WorkloadConfig defines common workload configuration shared by all Supabase components.
 type WorkloadConfig struct {
-	// image overrides the default component image
-	// +optional
-	Image string `json:"image,omitempty"`
-
-	// imagePullPolicy defines the policy for if/when to pull the container image
-	// +optional
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-
-	// replicas defines the number of component instances
-	// +kubebuilder:default=1
-	// +kubebuilder:validation:Minimum=0
-	// +optional
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// affinity defines affinity scheduling rules
-	// +optional
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-
-	// containerSecurityContext holds security configuration that will be applied to the container
-	// +optional
-	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
-
-	// nodeSelector defines node selection constraints
-	// +optional
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	// podAnnotations defines annotations to add to the pod
-	// +optional
-	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
-
-	// podLabels defines labels to add to the pod
-	// +optional
-	PodLabels map[string]string `json:"podLabels,omitempty"`
-
-	// podSecurityContext holds pod-level security attributes
-	// +optional
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-
-	// priorityClassName defines the priority class for the pod
-	// +optional
-	PriorityClassName string `json:"priorityClassName,omitempty"`
-
-	// resources defines compute resource requirements
-	// +optional
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-
-	// service defines the configuration for the component Service
-	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
-
-	// terminationGracePeriodSeconds defines the grace period for pod termination
-	// +optional
-	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
-
-	// tolerations defines pod tolerations
-	// +optional
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-
-	// env defines additional environment variables for the component container
-	// +optional
-	Env []corev1.EnvVar `json:"env,omitempty"`
-}
-
-// WorkloadJobConfig defines common workload configuration for Job-based resources.
-type WorkloadJobConfig struct {
 	// image overrides the default component image
 	// +optional
 	Image string `json:"image,omitempty"`
@@ -231,6 +166,16 @@ type DatabaseRef struct {
 type RestSpec struct {
 	WorkloadConfig `json:",inline"`
 
+	// replicas defines the number of component instances
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// service defines the configuration for the component Service
+	// +optional
+	Service *ServiceSpec `json:"service,omitempty"`
+
 	// dbSchemas defines the schemas exposed by PostgREST
 	// +kubebuilder:default="public,storage,graphql_public"
 	// +optional
@@ -251,11 +196,31 @@ type RestSpec struct {
 // MetaSpec defines the desired state of the Meta component.
 type MetaSpec struct {
 	WorkloadConfig `json:",inline"`
+
+	// replicas defines the number of component instances
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// service defines the configuration for the component Service
+	// +optional
+	Service *ServiceSpec `json:"service,omitempty"`
 }
 
 // RealtimeSpec defines the desired state of the Realtime component.
 type RealtimeSpec struct {
 	WorkloadConfig `json:",inline"`
+
+	// replicas defines the number of component instances
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// service defines the configuration for the component Service
+	// +optional
+	Service *ServiceSpec `json:"service,omitempty"`
 }
 
 // SMTPConfig defines SMTP settings for GoTrue.
@@ -345,6 +310,16 @@ type SAMLConfig struct {
 // AuthSpec defines the desired state of the Auth component.
 type AuthSpec struct {
 	WorkloadConfig `json:",inline"`
+
+	// replicas defines the number of component instances
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// service defines the configuration for the component Service
+	// +optional
+	Service *ServiceSpec `json:"service,omitempty"`
 
 	// siteUrl is the base URL of your site used for email links and redirects
 	// +kubebuilder:validation:Required

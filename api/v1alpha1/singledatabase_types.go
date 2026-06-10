@@ -24,6 +24,10 @@ import (
 type SingleDatabaseSpec struct {
 	WorkloadConfig `json:",inline"`
 
+	// service defines the configuration for the component Service
+	// +optional
+	Service *ServiceSpec `json:"service,omitempty"`
+
 	// +kubebuilder:validation:Required
 	Storage VolumeClaim `json:"storage,omitempty"`
 }

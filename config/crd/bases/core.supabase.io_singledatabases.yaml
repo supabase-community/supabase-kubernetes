@@ -1565,12 +1565,6 @@ spec:
                 description: priorityClassName defines the priority class for the
                   pod
                 type: string
-              replicas:
-                default: 1
-                description: replicas defines the number of component instances
-                format: int32
-                minimum: 0
-                type: integer
               resources:
                 description: resources defines compute resource requirements
                 properties:
@@ -1642,6 +1636,7 @@ spec:
                       type: string
                     type: object
                   type:
+                    default: ClusterIP
                     description: Service Type string describes ingress methods for
                       a service
                     enum:

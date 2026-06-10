@@ -23,7 +23,7 @@ import (
 // MigrationSpec defines the desired state of Migration.
 // +kubebuilder:validation:XValidation:rule="self.migrations == oldSelf.migrations",message="migrations are immutable after creation"
 type MigrationSpec struct {
-	WorkloadJobConfig `json:",inline"`
+	WorkloadConfig `json:",inline"`
 
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`

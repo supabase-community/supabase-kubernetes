@@ -1800,6 +1800,7 @@ spec:
                           type: string
                         type: object
                       type:
+                        default: ClusterIP
                         description: Service Type string describes ingress methods
                           for a service
                         enum:
@@ -3600,6 +3601,7 @@ spec:
                           type: string
                         type: object
                       type:
+                        default: ClusterIP
                         description: Service Type string describes ingress methods
                           for a service
                         enum:
@@ -5266,6 +5268,7 @@ spec:
                           type: string
                         type: object
                       type:
+                        default: ClusterIP
                         description: Service Type string describes ingress methods
                           for a service
                         enum:
@@ -6947,6 +6950,7 @@ spec:
                           type: string
                         type: object
                       type:
+                        default: ClusterIP
                         description: Service Type string describes ingress methods
                           for a service
                         enum:
