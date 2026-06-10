@@ -25,6 +25,7 @@ type SingleDatabaseSpec struct {
 	WorkloadConfig `json:",inline"`
 
 	// service defines the configuration for the component Service
+	// +kubebuilder:default={}
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 

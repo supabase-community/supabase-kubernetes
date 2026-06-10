@@ -27,6 +27,7 @@ type RealtimeSpec struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// service defines the configuration for the component Service
+	// +kubebuilder:default={}
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 }

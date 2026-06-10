@@ -1788,6 +1788,7 @@ spec:
                     - enabled
                     type: object
                   service:
+                    default: {}
                     description: service defines the configuration for the component
                       Service
                     properties:
@@ -3589,6 +3590,7 @@ spec:
                         type: object
                     type: object
                   service:
+                    default: {}
                     description: service defines the configuration for the component
                       Service
                     properties:
@@ -5256,6 +5258,7 @@ spec:
                         type: object
                     type: object
                   service:
+                    default: {}
                     description: service defines the configuration for the component
                       Service
                     properties:
@@ -6938,6 +6941,7 @@ spec:
                         type: object
                     type: object
                   service:
+                    default: {}
                     description: service defines the configuration for the component
                       Service
                     properties:
