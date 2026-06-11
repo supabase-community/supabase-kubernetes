@@ -174,7 +174,7 @@ func (r *Reconciler) ensureRealtimeDeployment(ctx context.Context, project *supa
 					Affinity:        rt.Affinity,
 					NodeSelector:    rt.NodeSelector,
 					Tolerations:     rt.Tolerations,
-					SecurityContext: rt.PodSecurityContext,
+					SecurityContext: rt.SecurityContext,
 					Containers: []corev1.Container{
 						r.buildRealtimeContainer(project, db, image),
 					},
@@ -261,7 +261,6 @@ func (r *Reconciler) buildRealtimeContainer(project *supabasev1alpha1.Project, d
 			helper.EnvVar("RUN_JANITOR", "true"),
 			helper.EnvVar("DISABLE_HEALTHCHECK_LOGGING", "true"),
 		},
-		SecurityContext: rt.ContainerSecurityContext,
 	}
 	if rt.ImagePullPolicy != nil {
 		container.ImagePullPolicy = *rt.ImagePullPolicy
@@ -269,7 +268,6 @@ func (r *Reconciler) buildRealtimeContainer(project *supabasev1alpha1.Project, d
 	if rt.Resources != nil {
 		container.Resources = *rt.Resources
 	}
-	container.Env = append(container.Env, rt.Env...)
 
 	return container
 }

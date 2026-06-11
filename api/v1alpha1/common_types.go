@@ -135,10 +135,6 @@ type WorkloadConfig struct {
 	// +optional
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 
-	// ContainerSecurityContext holds security configuration that will be applied to the container
-	// +optional
-	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
-
 	// NodeSelector defines node selection constraints
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
@@ -151,9 +147,9 @@ type WorkloadConfig struct {
 	// +optional
 	PodLabels map[string]string `json:"podLabels,omitempty"`
 
-	// PodSecurityContext holds pod-level security attributes
+	// SecurityContext holds pod-level security attributes
 	// +optional
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
 
 	// PriorityClassName defines the priority class for the pod
 	// +optional
@@ -170,10 +166,6 @@ type WorkloadConfig struct {
 	// Tolerations defines pod tolerations
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-
-	// Env defines additional environment variables for the component container
-	// +optional
-	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // DatabaseRef references a database resource.

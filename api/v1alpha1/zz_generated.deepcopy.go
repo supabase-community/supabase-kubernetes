@@ -844,11 +844,6 @@ func (in *WorkloadConfig) DeepCopyInto(out *WorkloadConfig) {
 		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.ContainerSecurityContext != nil {
-		in, out := &in.ContainerSecurityContext, &out.ContainerSecurityContext
-		*out = new(v1.SecurityContext)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
 		*out = make(map[string]string, len(*in))
@@ -870,8 +865,8 @@ func (in *WorkloadConfig) DeepCopyInto(out *WorkloadConfig) {
 			(*out)[key] = val
 		}
 	}
-	if in.PodSecurityContext != nil {
-		in, out := &in.PodSecurityContext, &out.PodSecurityContext
+	if in.SecurityContext != nil {
+		in, out := &in.SecurityContext, &out.SecurityContext
 		*out = new(v1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
@@ -893,13 +888,6 @@ func (in *WorkloadConfig) DeepCopyInto(out *WorkloadConfig) {
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
 		*out = make([]v1.Toleration, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
-	if in.Env != nil {
-		in, out := &in.Env, &out.Env
-		*out = make([]v1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

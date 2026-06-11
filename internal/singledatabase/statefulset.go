@@ -94,7 +94,7 @@ func PodSpec(db *supabasev1alpha1.SingleDatabase) corev1.PodSpec {
 		Tolerations:                   db.Spec.Tolerations,
 		Affinity:                      db.Spec.Affinity,
 		TerminationGracePeriodSeconds: db.Spec.TerminationGracePeriodSeconds,
-		SecurityContext:               db.Spec.PodSecurityContext,
+		SecurityContext:               db.Spec.SecurityContext,
 	}
 	if db.Spec.PriorityClassName != nil {
 		podSpec.PriorityClassName = *db.Spec.PriorityClassName
@@ -127,11 +127,10 @@ func MainContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 			helper.EnvVar("POSTGRES_HOST", DefaultPostgresHost),
 			helper.EnvVar("PGHOST", DefaultPostgresHost),
 		},
-		StartupProbe:    StartupProbe(db),
-		ReadinessProbe:  ReadinessProbe(db),
-		LivenessProbe:   LivenessProbe(db),
-		SecurityContext: db.Spec.ContainerSecurityContext,
-		VolumeMounts:    []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultDataMountPath}},
+		StartupProbe:   StartupProbe(db),
+		ReadinessProbe: ReadinessProbe(db),
+		LivenessProbe:  LivenessProbe(db),
+		VolumeMounts:   []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultDataMountPath}},
 	}
 	if db.Spec.ImagePullPolicy != nil {
 		container.ImagePullPolicy = *db.Spec.ImagePullPolicy
@@ -139,7 +138,6 @@ func MainContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 	if db.Spec.Resources != nil {
 		container.Resources = *db.Spec.Resources
 	}
-	container.Env = append(container.Env, db.Spec.Env...)
 
 	return container
 }

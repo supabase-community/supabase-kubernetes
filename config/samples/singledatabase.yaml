@@ -10,20 +10,6 @@ spec:
   #     - ReadWriteOnce
   #   size: 20Gi
   #   deletionPolicy: Retain
-  # probes:
-  #   startup:
-  #     exec:
-  #       command: ["pg_isready", "-U", "postgres"]
-  #     periodSeconds: 10
-  #     failureThreshold: 30
-  #   readiness:
-  #     exec:
-  #       command: ["pg_isready", "-U", "postgres"]
-  #     periodSeconds: 10
-  #   liveness:
-  #     exec:
-  #       command: ["pg_isready", "-U", "postgres"]
-  #     periodSeconds: 20
   # nodeSelector:
   #   kubernetes.io/os: linux
   # tolerations:
@@ -37,8 +23,7 @@ spec:
   #   tier: database
   # imagePullPolicy: IfNotPresent
   # terminationGracePeriodSeconds: 120
-  # podSecurityContext:
+  # securityContext:
   #   runAsNonRoot: true
   #   runAsUser: 999
-  # containerSecurityContext:
-  #   allowPrivilegeEscalation: false
+  #   fsGroup: 999

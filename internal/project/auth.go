@@ -183,7 +183,7 @@ func (r *Reconciler) ensureAuthDeployment(ctx context.Context, project *supabase
 					Affinity:        auth.Affinity,
 					NodeSelector:    auth.NodeSelector,
 					Tolerations:     auth.Tolerations,
-					SecurityContext: auth.PodSecurityContext,
+					SecurityContext: auth.SecurityContext,
 					Containers: []corev1.Container{
 						r.buildAuthContainer(project, db, image),
 					},
@@ -304,8 +304,7 @@ func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *s
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Env:             env,
-		SecurityContext: auth.ContainerSecurityContext,
+		Env: env,
 	}
 	if auth.ImagePullPolicy != nil {
 		container.ImagePullPolicy = *auth.ImagePullPolicy

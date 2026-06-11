@@ -174,7 +174,7 @@ func (r *Reconciler) ensureRestDeployment(ctx context.Context, project *supabase
 					Affinity:        rest.Affinity,
 					NodeSelector:    rest.NodeSelector,
 					Tolerations:     rest.Tolerations,
-					SecurityContext: rest.PodSecurityContext,
+					SecurityContext: rest.SecurityContext,
 					Containers: []corev1.Container{
 						r.buildRestContainer(project, db, image),
 					},
@@ -283,7 +283,6 @@ func (r *Reconciler) buildRestContainer(project *supabasev1alpha1.Project, db *s
 			helper.EnvVar("PGRST_DB_USE_LEGACY_GUCS", "false"),
 			helper.EnvVar("PGRST_APP_SETTINGS_JWT_EXP", jwtExpiry),
 		},
-		SecurityContext: rest.ContainerSecurityContext,
 	}
 	if rest.ImagePullPolicy != nil {
 		container.ImagePullPolicy = *rest.ImagePullPolicy
@@ -292,7 +291,6 @@ func (r *Reconciler) buildRestContainer(project *supabasev1alpha1.Project, db *s
 		container.Resources = *rest.Resources
 	}
 
-	container.Env = append(container.Env, rest.Env...)
 	return container
 }
 

@@ -174,7 +174,7 @@ func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabase
 					Affinity:        m.Affinity,
 					NodeSelector:    m.NodeSelector,
 					Tolerations:     m.Tolerations,
-					SecurityContext: m.PodSecurityContext,
+					SecurityContext: m.SecurityContext,
 					Containers: []corev1.Container{
 						r.buildMetaContainer(project, db, image),
 					},
@@ -249,7 +249,6 @@ func (r *Reconciler) buildMetaContainer(project *supabasev1alpha1.Project, db *s
 			helper.EnvVar("PG_META_DB_SSL_MODE", "disable"),
 			helper.EnvVar("PG_META_PORT", "8080"),
 		},
-		SecurityContext: m.ContainerSecurityContext,
 	}
 	if m.ImagePullPolicy != nil {
 		container.ImagePullPolicy = *m.ImagePullPolicy
@@ -257,7 +256,6 @@ func (r *Reconciler) buildMetaContainer(project *supabasev1alpha1.Project, db *s
 	if m.Resources != nil {
 		container.Resources = *m.Resources
 	}
-	container.Env = append(container.Env, m.Env...)
 
 	return container
 }

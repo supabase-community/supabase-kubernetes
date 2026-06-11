@@ -94,7 +94,7 @@ func PodSpec(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.Resolve
 		Tolerations:                   migration.Spec.Tolerations,
 		Affinity:                      migration.Spec.Affinity,
 		TerminationGracePeriodSeconds: migration.Spec.TerminationGracePeriodSeconds,
-		SecurityContext:               migration.Spec.PodSecurityContext,
+		SecurityContext:               migration.Spec.SecurityContext,
 	}
 	if migration.Spec.PriorityClassName != nil {
 		podSpec.PriorityClassName = *migration.Spec.PriorityClassName
@@ -119,8 +119,7 @@ func MainContainer(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.R
 			helper.EnvVar("MIGRATION_TABLE", DefaultMigrationTable),
 			helper.EnvVar("MIGRATION_BATCH_PATH", DefaultMigrationMountPath+"/"+DefaultConfigMapKey),
 		},
-		SecurityContext: migration.Spec.ContainerSecurityContext,
-		VolumeMounts:    []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultMigrationMountPath, ReadOnly: true}},
+		VolumeMounts: []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultMigrationMountPath, ReadOnly: true}},
 	}
 	if migration.Spec.ImagePullPolicy != nil {
 		container.ImagePullPolicy = *migration.Spec.ImagePullPolicy
@@ -128,7 +127,6 @@ func MainContainer(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.R
 	if migration.Spec.Resources != nil {
 		container.Resources = *migration.Spec.Resources
 	}
-	container.Env = append(container.Env, migration.Spec.Env...)
 
 	return container
 }

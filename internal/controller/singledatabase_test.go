@@ -139,26 +139,18 @@ var _ = Describe("SingleDatabase Controller", func() {
 
 			oldImage := sts.Spec.Template.Spec.Containers[0].Image
 
-			By("Updating SingleDatabase env")
+			By("Updating SingleDatabase pod labels")
 			db := &supabasev1alpha1.SingleDatabase{}
 			Expect(k8sClient.Get(ctx, dbKey, db)).To(Succeed())
-			// Trigger a change by adding an env var
-			db.Spec.Env = []corev1.EnvVar{{Name: "TEST_VAR", Value: "test_value"}}
+			// Trigger a change by adding a pod label
+			db.Spec.PodLabels = map[string]string{"test-label": "test-value"}
 			Expect(k8sClient.Update(ctx, db)).To(Succeed())
 
-			By("Waiting for StatefulSet to be updated with new env var")
+			By("Waiting for StatefulSet to be updated with new pod label")
 			Eventually(func(g Gomega) {
 				updated := &appsv1.StatefulSet{}
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, updated)).To(Succeed())
-				container := updated.Spec.Template.Spec.Containers[0]
-				var found bool
-				for _, env := range container.Env {
-					if env.Name == "TEST_VAR" && env.Value == "test_value" {
-						found = true
-						break
-					}
-				}
-				g.Expect(found).To(BeTrue())
+				g.Expect(updated.Spec.Template.Labels).To(HaveKeyWithValue("test-label", "test-value"))
 			}, timeout, interval).Should(Succeed())
 
 			_ = oldImage
