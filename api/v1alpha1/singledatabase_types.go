@@ -52,7 +52,7 @@ type SingleDatabaseStatus struct {
 type SingleDatabase struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              SingleDatabaseSpec   `json:"spec,omitempty"`
+	Spec              SingleDatabaseSpec   `json:"spec"`
 	Status            SingleDatabaseStatus `json:"status,omitempty"`
 }
 

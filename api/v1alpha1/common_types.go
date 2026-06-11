@@ -66,18 +66,23 @@ type SecretKeyRef struct {
 // ResolvedDatabase exposes resolved database connection parameters.
 type ResolvedDatabase struct {
 	// Host defines the database host
+	// +kubebuilder:validation:Required
 	Host string `json:"host"`
 
 	// Port defines the database port
+	// +kubebuilder:validation:Required
 	Port int32 `json:"port"`
 
 	// DBName defines the database name
+	// +kubebuilder:validation:Required
 	DBName string `json:"dbName"`
 
 	// User defines the database user
-	User string `json:"user,omitempty"`
+	// +kubebuilder:validation:Required
+	User string `json:"user"`
 
 	// PasswordRef references the secret containing the database password
+	// +kubebuilder:validation:Required
 	PasswordRef SecretKeyRef `json:"passwordRef"`
 }
 

@@ -1823,8 +1823,11 @@ spec:
                 - host
                 - passwordRef
                 - port
+                - user
                 type: object
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

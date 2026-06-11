@@ -62,7 +62,7 @@ type MigrationStatus struct {
 type Migration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              MigrationSpec   `json:"spec,omitempty"`
+	Spec              MigrationSpec   `json:"spec"`
 	Status            MigrationStatus `json:"status,omitempty"`
 }
 
