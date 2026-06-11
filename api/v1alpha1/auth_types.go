@@ -21,13 +21,11 @@ type AuthSpec struct {
 	WorkloadConfig `json:",inline"`
 
 	// Replicas defines the number of component instances
-	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Service defines the configuration for the component Service
-	// +kubebuilder:default={}
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
@@ -120,7 +118,7 @@ type SMTPConfig struct {
 
 	// MaxFrequency defines the maximum frequency for sending emails
 	// +optional
-	MaxFrequency string `json:"maxFrequency,omitempty"`
+	MaxFrequency *string `json:"maxFrequency,omitempty"`
 }
 
 // OAuthProviderConfig defines a single OAuth provider configuration.
@@ -192,40 +190,40 @@ type SMSConfig struct {
 type MFAConfig struct {
 	// TOTPEnrollEnabled defines whether TOTP enrollment is enabled
 	// +optional
-	TOTPEnrollEnabled bool `json:"totpEnrollEnabled,omitempty"`
+	TOTPEnrollEnabled *bool `json:"totpEnrollEnabled,omitempty"`
 
 	// TOTPVerifyEnabled defines whether TOTP verification is enabled
 	// +optional
-	TOTPVerifyEnabled bool `json:"totpVerifyEnabled,omitempty"`
+	TOTPVerifyEnabled *bool `json:"totpVerifyEnabled,omitempty"`
 
 	// PhoneEnrollEnabled defines whether phone MFA enrollment is enabled
 	// +optional
-	PhoneEnrollEnabled bool `json:"phoneEnrollEnabled,omitempty"`
+	PhoneEnrollEnabled *bool `json:"phoneEnrollEnabled,omitempty"`
 
 	// PhoneVerifyEnabled defines whether phone MFA verification is enabled
 	// +optional
-	PhoneVerifyEnabled bool `json:"phoneVerifyEnabled,omitempty"`
+	PhoneVerifyEnabled *bool `json:"phoneVerifyEnabled,omitempty"`
 
 	// MaxEnrolledFactors defines the maximum number of enrolled MFA factors
 	// +optional
-	MaxEnrolledFactors int32 `json:"maxEnrolledFactors,omitempty"`
+	MaxEnrolledFactors *int32 `json:"maxEnrolledFactors,omitempty"`
 }
 
 // SAMLConfig defines SAML authentication settings.
 type SAMLConfig struct {
 	// Enabled defines whether SAML authentication is enabled
 	// +kubebuilder:validation:Required
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 
 	// AllowEncryptedAssertions defines whether encrypted SAML assertions are allowed
 	// +optional
-	AllowEncryptedAssertions bool `json:"allowEncryptedAssertions,omitempty"`
+	AllowEncryptedAssertions *bool `json:"allowEncryptedAssertions,omitempty"`
 
 	// RelayStateValidityPeriod defines the validity period for the relay state
 	// +optional
-	RelayStateValidityPeriod string `json:"relayStateValidityPeriod,omitempty"`
+	RelayStateValidityPeriod *string `json:"relayStateValidityPeriod,omitempty"`
 
 	// RateLimitAssertion defines the rate limit for SAML assertions
 	// +optional
-	RateLimitAssertion int32 `json:"rateLimitAssertion,omitempty"`
+	RateLimitAssertion *int32 `json:"rateLimitAssertion,omitempty"`
 }

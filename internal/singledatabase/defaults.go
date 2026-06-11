@@ -139,8 +139,17 @@ func DefaultLivenessProbe() *corev1.Probe {
 // If db.Spec.Image is set, it returns that value directly.
 // Otherwise, it resolves the image from the version/component registry.
 func ResolveImage(db *supabasev1alpha1.SingleDatabase) string {
-	if db.Spec.Image != "" {
-		return db.Spec.Image
+	if db.Spec.Image != nil && *db.Spec.Image != "" {
+		return *db.Spec.Image
 	}
 	return DefaultDatabaseImage
+}
+
+// DefaultStorage returns the default PVC configuration when the user
+// does not provide spec.storage.
+func DefaultStorage() *supabasev1alpha1.VolumeClaim {
+	return &supabasev1alpha1.VolumeClaim{
+		AccessModes: DefaultStorageAccessModes(),
+		Size:        DefaultStorageSizeQuantity(),
+	}
 }

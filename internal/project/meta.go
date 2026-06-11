@@ -61,8 +61,8 @@ func (r *Reconciler) EnsureMeta(ctx context.Context, project *supabasev1alpha1.P
 }
 
 func (r *Reconciler) resolveMetaImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Meta.Image != "" {
-		return project.Spec.Meta.Image
+	if project.Spec.Meta.Image != nil && *project.Spec.Meta.Image != "" {
+		return *project.Spec.Meta.Image
 	}
 	return DefaultMetaImage
 }
@@ -81,8 +81,8 @@ func (r *Reconciler) ensureMetaService(ctx context.Context, project *supabasev1a
 	}
 
 	svcType := corev1.ServiceTypeClusterIP
-	if svcSpec.Type != "" {
-		svcType = svcSpec.Type
+	if svcSpec.Type != nil && *svcSpec.Type != "" {
+		svcType = *svcSpec.Type
 	}
 
 	port := int32(8080)
@@ -171,17 +171,19 @@ func (r *Reconciler) ensureMetaDeployment(ctx context.Context, project *supabase
 					Annotations: m.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:          m.Affinity,
-					NodeSelector:      m.NodeSelector,
-					Tolerations:       m.Tolerations,
-					PriorityClassName: m.PriorityClassName,
-					SecurityContext:   m.PodSecurityContext,
+					Affinity:        m.Affinity,
+					NodeSelector:    m.NodeSelector,
+					Tolerations:     m.Tolerations,
+					SecurityContext: m.PodSecurityContext,
 					Containers: []corev1.Container{
 						r.buildMetaContainer(project, db, image),
 					},
 				},
 			},
 		},
+	}
+	if m.PriorityClassName != nil {
+		desired.Spec.Template.Spec.PriorityClassName = *m.PriorityClassName
 	}
 
 	if m.TerminationGracePeriodSeconds != nil {
@@ -228,9 +230,8 @@ func (r *Reconciler) buildMetaContainer(project *supabasev1alpha1.Project, db *s
 	projectKeysSecret := fmt.Sprintf("%s-keys", project.Name)
 
 	container := corev1.Container{
-		Name:            "meta",
-		Image:           image,
-		ImagePullPolicy: m.ImagePullPolicy,
+		Name:  "meta",
+		Image: image,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "http",
@@ -248,8 +249,13 @@ func (r *Reconciler) buildMetaContainer(project *supabasev1alpha1.Project, db *s
 			helper.EnvVar("PG_META_DB_SSL_MODE", "disable"),
 			helper.EnvVar("PG_META_PORT", "8080"),
 		},
-		Resources:       m.Resources,
 		SecurityContext: m.ContainerSecurityContext,
+	}
+	if m.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *m.ImagePullPolicy
+	}
+	if m.Resources != nil {
+		container.Resources = *m.Resources
 	}
 	container.Env = append(container.Env, m.Env...)
 

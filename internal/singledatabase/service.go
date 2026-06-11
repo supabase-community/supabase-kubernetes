@@ -57,8 +57,8 @@ func BuildService(db *supabasev1alpha1.SingleDatabase) *corev1.Service {
 
 // ServiceType returns the Service type, defaulting when unset.
 func ServiceType(db *supabasev1alpha1.SingleDatabase) corev1.ServiceType {
-	if db.Spec.Service != nil && db.Spec.Service.Type != "" {
-		return db.Spec.Service.Type
+	if db.Spec.Service != nil && db.Spec.Service.Type != nil && *db.Spec.Service.Type != "" {
+		return *db.Spec.Service.Type
 	}
 	return DefaultServiceType
 }

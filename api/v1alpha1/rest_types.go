@@ -21,29 +21,24 @@ type RestSpec struct {
 	WorkloadConfig `json:",inline"`
 
 	// Replicas defines the number of component instances
-	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Service defines the configuration for the component Service
-	// +kubebuilder:default={}
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
 	// DBSchemas defines the schemas exposed by PostgREST
-	// +kubebuilder:default="public,storage,graphql_public"
 	// +optional
-	DBSchemas string `json:"dbSchemas,omitempty"`
+	DBSchemas *string `json:"dbSchemas,omitempty"`
 
 	// DBMaxRows defines the maximum number of rows returned from a view, table, or stored procedure
-	// +kubebuilder:default=1000
 	// +kubebuilder:validation:Minimum=1
 	// +optional
 	DBMaxRows *int32 `json:"dbMaxRows,omitempty"`
 
 	// DBExtraSearchPath defines the schemas to add to the search path of every request
-	// +kubebuilder:default="public"
 	// +optional
-	DBExtraSearchPath string `json:"dbExtraSearchPath,omitempty"`
+	DBExtraSearchPath *string `json:"dbExtraSearchPath,omitempty"`
 }

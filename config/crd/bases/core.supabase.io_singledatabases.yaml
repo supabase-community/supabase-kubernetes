@@ -1625,7 +1625,6 @@ spec:
                     type: object
                 type: object
               service:
-                default: {}
                 description: Service defines the configuration for the component Service
                 properties:
                   annotations:
@@ -1639,7 +1638,6 @@ spec:
                     description: Labels defines labels to add to the Service
                     type: object
                   type:
-                    default: ClusterIP
                     description: Type defines the type of the Kubernetes Service
                     enum:
                     - ClusterIP
@@ -1664,7 +1662,6 @@ spec:
                     - enum:
                       - Delete
                       - Retain
-                    default: Delete
                     description: DeletionPolicy defines the deletion behavior for
                       the persistent volume claim
                     type: string
@@ -1728,8 +1725,6 @@ spec:
                       type: string
                   type: object
                 type: array
-            required:
-            - storage
             type: object
           status:
             description: SingleDatabaseStatus defines the observed state of SingleDatabase.

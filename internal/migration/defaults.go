@@ -62,8 +62,8 @@ func DefaultLabels(instanceName string) map[string]string {
 // If migration.Spec.Image is set, it returns that value directly.
 // Otherwise, it resolves the image from the version/component registry.
 func ResolveImage(migration *supabasev1alpha1.Migration) string {
-	if migration.Spec.Image != "" {
-		return migration.Spec.Image
+	if migration.Spec.Image != nil && *migration.Spec.Image != "" {
+		return *migration.Spec.Image
 	}
 	return DefaultMigrationImage
 }

@@ -31,6 +31,10 @@ func PVCName(dbName string) string {
 
 // BuildPVC constructs the PersistentVolumeClaim for a SingleDatabase.
 func BuildPVC(db *supabasev1alpha1.SingleDatabase) *corev1.PersistentVolumeClaim {
+	storage := db.Spec.Storage
+	if storage == nil {
+		storage = DefaultStorage()
+	}
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      PVCName(db.Name),
@@ -38,8 +42,8 @@ func BuildPVC(db *supabasev1alpha1.SingleDatabase) *corev1.PersistentVolumeClaim
 			Labels:    DefaultLabels(db.Name),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: db.Spec.Storage.StorageClassName,
-			AccessModes:      AccessModes(db),
+			StorageClassName: storage.StorageClassName,
+			AccessModes:      storage.AccessModes,
 			Resources:        StorageResources(db),
 		},
 	}
@@ -47,11 +51,21 @@ func BuildPVC(db *supabasev1alpha1.SingleDatabase) *corev1.PersistentVolumeClaim
 
 // AccessModes returns the desired access modes.
 func AccessModes(db *supabasev1alpha1.SingleDatabase) []corev1.PersistentVolumeAccessMode {
+	if db.Spec.Storage == nil {
+		return DefaultStorageAccessModes()
+	}
 	return db.Spec.Storage.AccessModes
 }
 
 // StorageResources returns the PVC resource requirements from the spec size.
 func StorageResources(db *supabasev1alpha1.SingleDatabase) corev1.VolumeResourceRequirements {
+	if db.Spec.Storage == nil {
+		return corev1.VolumeResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: DefaultStorageSizeQuantity(),
+			},
+		}
+	}
 	return corev1.VolumeResourceRequirements{
 		Requests: corev1.ResourceList{
 			corev1.ResourceStorage: db.Spec.Storage.Size,

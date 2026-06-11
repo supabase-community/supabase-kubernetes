@@ -46,7 +46,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			db := &supabasev1alpha1.SingleDatabase{
 				ObjectMeta: metav1.ObjectMeta{Name: dbName, Namespace: "default"},
 				Spec: supabasev1alpha1.SingleDatabaseSpec{
-					Storage: supabasev1alpha1.VolumeClaim{
+					Storage: &supabasev1alpha1.VolumeClaim{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 						Size:        resource.MustParse("1Gi"),
 					},

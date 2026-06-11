@@ -61,8 +61,8 @@ func (r *Reconciler) EnsureRest(ctx context.Context, project *supabasev1alpha1.P
 }
 
 func (r *Reconciler) resolveRestImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Rest.Image != "" {
-		return project.Spec.Rest.Image
+	if project.Spec.Rest.Image != nil && *project.Spec.Rest.Image != "" {
+		return *project.Spec.Rest.Image
 	}
 	return DefaultRestImage
 }
@@ -81,8 +81,8 @@ func (r *Reconciler) ensureRestService(ctx context.Context, project *supabasev1a
 	}
 
 	svcType := corev1.ServiceTypeClusterIP
-	if svcSpec.Type != "" {
-		svcType = svcSpec.Type
+	if svcSpec.Type != nil && *svcSpec.Type != "" {
+		svcType = *svcSpec.Type
 	}
 
 	port := int32(3000)
@@ -171,17 +171,19 @@ func (r *Reconciler) ensureRestDeployment(ctx context.Context, project *supabase
 					Annotations: rest.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:          rest.Affinity,
-					NodeSelector:      rest.NodeSelector,
-					Tolerations:       rest.Tolerations,
-					PriorityClassName: rest.PriorityClassName,
-					SecurityContext:   rest.PodSecurityContext,
+					Affinity:        rest.Affinity,
+					NodeSelector:    rest.NodeSelector,
+					Tolerations:     rest.Tolerations,
+					SecurityContext: rest.PodSecurityContext,
 					Containers: []corev1.Container{
 						r.buildRestContainer(project, db, image),
 					},
 				},
 			},
 		},
+	}
+	if rest.PriorityClassName != nil {
+		desired.Spec.Template.Spec.PriorityClassName = *rest.PriorityClassName
 	}
 
 	if rest.TerminationGracePeriodSeconds != nil {
@@ -225,7 +227,10 @@ func (r *Reconciler) buildRestContainer(project *supabasev1alpha1.Project, db *s
 		resolved = &supabasev1alpha1.ResolvedDatabase{}
 	}
 
-	dbSchemas := rest.DBSchemas
+	dbSchemas := "public,storage,graphql_public"
+	if rest.DBSchemas != nil {
+		dbSchemas = *rest.DBSchemas
+	}
 	if dbSchemas == "" {
 		dbSchemas = "public,storage,graphql_public"
 	}
@@ -235,7 +240,10 @@ func (r *Reconciler) buildRestContainer(project *supabasev1alpha1.Project, db *s
 		dbMaxRows = *rest.DBMaxRows
 	}
 
-	dbExtraSearchPath := rest.DBExtraSearchPath
+	dbExtraSearchPath := "public"
+	if rest.DBExtraSearchPath != nil {
+		dbExtraSearchPath = *rest.DBExtraSearchPath
+	}
 	if dbExtraSearchPath == "" {
 		dbExtraSearchPath = "public"
 	}
@@ -248,10 +256,9 @@ func (r *Reconciler) buildRestContainer(project *supabasev1alpha1.Project, db *s
 	projectJWTSecret := fmt.Sprintf("%s-jwt", project.Name)
 
 	container := corev1.Container{
-		Name:            "rest",
-		Image:           image,
-		ImagePullPolicy: rest.ImagePullPolicy,
-		Command:         []string{"postgrest"},
+		Name:    "rest",
+		Image:   image,
+		Command: []string{"postgrest"},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "http",
@@ -276,8 +283,13 @@ func (r *Reconciler) buildRestContainer(project *supabasev1alpha1.Project, db *s
 			helper.EnvVar("PGRST_DB_USE_LEGACY_GUCS", "false"),
 			helper.EnvVar("PGRST_APP_SETTINGS_JWT_EXP", jwtExpiry),
 		},
-		Resources:       rest.Resources,
 		SecurityContext: rest.ContainerSecurityContext,
+	}
+	if rest.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *rest.ImagePullPolicy
+	}
+	if rest.Resources != nil {
+		container.Resources = *rest.Resources
 	}
 
 	container.Env = append(container.Env, rest.Env...)

@@ -75,7 +75,7 @@ func PodAnnotations(migration *supabasev1alpha1.Migration) map[string]string {
 
 // PodSpec constructs the PodSpec for a Migration pod.
 func PodSpec(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) corev1.PodSpec {
-	return corev1.PodSpec{
+	podSpec := corev1.PodSpec{
 		RestartPolicy: DefaultRestartPolicy,
 		Containers:    []corev1.Container{MainContainer(migration, db)},
 		Volumes: []corev1.Volume{
@@ -93,20 +93,22 @@ func PodSpec(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.Resolve
 		NodeSelector:                  migration.Spec.NodeSelector,
 		Tolerations:                   migration.Spec.Tolerations,
 		Affinity:                      migration.Spec.Affinity,
-		PriorityClassName:             migration.Spec.PriorityClassName,
 		TerminationGracePeriodSeconds: migration.Spec.TerminationGracePeriodSeconds,
 		SecurityContext:               migration.Spec.PodSecurityContext,
 	}
+	if migration.Spec.PriorityClassName != nil {
+		podSpec.PriorityClassName = *migration.Spec.PriorityClassName
+	}
+	return podSpec
 }
 
 // MainContainer constructs the main migration container.
 func MainContainer(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	container := corev1.Container{
-		Name:            DefaultContainerName,
-		Image:           ResolveImage(migration),
-		ImagePullPolicy: migration.Spec.ImagePullPolicy,
-		Command:         []string{"/bin/sh", "-c"},
-		Args:            []string{assets.MigrationApplyScript},
+		Name:    DefaultContainerName,
+		Image:   ResolveImage(migration),
+		Command: []string{"/bin/sh", "-c"},
+		Args:    []string{assets.MigrationApplyScript},
 		Env: []corev1.EnvVar{
 			helper.EnvVarFromSecret("PGPASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 			helper.EnvVar("PGHOST", db.Host),
@@ -117,9 +119,14 @@ func MainContainer(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.R
 			helper.EnvVar("MIGRATION_TABLE", DefaultMigrationTable),
 			helper.EnvVar("MIGRATION_BATCH_PATH", DefaultMigrationMountPath+"/"+DefaultConfigMapKey),
 		},
-		Resources:       migration.Spec.Resources,
 		SecurityContext: migration.Spec.ContainerSecurityContext,
 		VolumeMounts:    []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultMigrationMountPath, ReadOnly: true}},
+	}
+	if migration.Spec.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *migration.Spec.ImagePullPolicy
+	}
+	if migration.Spec.Resources != nil {
+		container.Resources = *migration.Spec.Resources
 	}
 	container.Env = append(container.Env, migration.Spec.Env...)
 

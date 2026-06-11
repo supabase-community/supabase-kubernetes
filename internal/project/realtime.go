@@ -61,8 +61,8 @@ func (r *Reconciler) EnsureRealtime(ctx context.Context, project *supabasev1alph
 }
 
 func (r *Reconciler) resolveRealtimeImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Realtime.Image != "" {
-		return project.Spec.Realtime.Image
+	if project.Spec.Realtime.Image != nil && *project.Spec.Realtime.Image != "" {
+		return *project.Spec.Realtime.Image
 	}
 	return DefaultRealtimeImage
 }
@@ -81,8 +81,8 @@ func (r *Reconciler) ensureRealtimeService(ctx context.Context, project *supabas
 	}
 
 	svcType := corev1.ServiceTypeClusterIP
-	if svcSpec.Type != "" {
-		svcType = svcSpec.Type
+	if svcSpec.Type != nil && *svcSpec.Type != "" {
+		svcType = *svcSpec.Type
 	}
 
 	port := int32(4000)
@@ -171,17 +171,19 @@ func (r *Reconciler) ensureRealtimeDeployment(ctx context.Context, project *supa
 					Annotations: rt.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:          rt.Affinity,
-					NodeSelector:      rt.NodeSelector,
-					Tolerations:       rt.Tolerations,
-					PriorityClassName: rt.PriorityClassName,
-					SecurityContext:   rt.PodSecurityContext,
+					Affinity:        rt.Affinity,
+					NodeSelector:    rt.NodeSelector,
+					Tolerations:     rt.Tolerations,
+					SecurityContext: rt.PodSecurityContext,
 					Containers: []corev1.Container{
 						r.buildRealtimeContainer(project, db, image),
 					},
 				},
 			},
 		},
+	}
+	if rt.PriorityClassName != nil {
+		desired.Spec.Template.Spec.PriorityClassName = *rt.PriorityClassName
 	}
 
 	if rt.TerminationGracePeriodSeconds != nil {
@@ -229,9 +231,8 @@ func (r *Reconciler) buildRealtimeContainer(project *supabasev1alpha1.Project, d
 	projectKeysSecret := fmt.Sprintf("%s-keys", project.Name)
 
 	container := corev1.Container{
-		Name:            "realtime",
-		Image:           image,
-		ImagePullPolicy: rt.ImagePullPolicy,
+		Name:  "realtime",
+		Image: image,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "http",
@@ -260,8 +261,13 @@ func (r *Reconciler) buildRealtimeContainer(project *supabasev1alpha1.Project, d
 			helper.EnvVar("RUN_JANITOR", "true"),
 			helper.EnvVar("DISABLE_HEALTHCHECK_LOGGING", "true"),
 		},
-		Resources:       rt.Resources,
 		SecurityContext: rt.ContainerSecurityContext,
+	}
+	if rt.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *rt.ImagePullPolicy
+	}
+	if rt.Resources != nil {
+		container.Resources = *rt.Resources
 	}
 	container.Env = append(container.Env, rt.Env...)
 

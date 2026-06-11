@@ -1736,7 +1736,6 @@ spec:
                       the pod
                     type: string
                   replicas:
-                    default: 1
                     description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
@@ -1824,7 +1823,6 @@ spec:
                     - enabled
                     type: object
                   service:
-                    default: {}
                     description: Service defines the configuration for the component
                       Service
                     properties:
@@ -1840,7 +1838,6 @@ spec:
                         description: Labels defines labels to add to the Service
                         type: object
                       type:
-                        default: ClusterIP
                         description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
@@ -3591,7 +3588,6 @@ spec:
                       the pod
                     type: string
                   replicas:
-                    default: 1
                     description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
@@ -3656,7 +3652,6 @@ spec:
                         type: object
                     type: object
                   service:
-                    default: {}
                     description: Service defines the configuration for the component
                       Service
                     properties:
@@ -3672,7 +3667,6 @@ spec:
                         description: Labels defines labels to add to the Service
                         type: object
                       type:
-                        default: ClusterIP
                         description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
@@ -5260,7 +5254,6 @@ spec:
                       the pod
                     type: string
                   replicas:
-                    default: 1
                     description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
@@ -5325,7 +5318,6 @@ spec:
                         type: object
                     type: object
                   service:
-                    default: {}
                     description: Service defines the configuration for the component
                       Service
                     properties:
@@ -5341,7 +5333,6 @@ spec:
                         description: Labels defines labels to add to the Service
                         type: object
                       type:
-                        default: ClusterIP
                         description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
@@ -6511,19 +6502,16 @@ spec:
                         type: object
                     type: object
                   dbExtraSearchPath:
-                    default: public
                     description: DBExtraSearchPath defines the schemas to add to the
                       search path of every request
                     type: string
                   dbMaxRows:
-                    default: 1000
                     description: DBMaxRows defines the maximum number of rows returned
                       from a view, table, or stored procedure
                     format: int32
                     minimum: 1
                     type: integer
                   dbSchemas:
-                    default: public,storage,graphql_public
                     description: DBSchemas defines the schemas exposed by PostgREST
                     type: string
                   env:
@@ -6945,7 +6933,6 @@ spec:
                       the pod
                     type: string
                   replicas:
-                    default: 1
                     description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
@@ -7010,7 +6997,6 @@ spec:
                         type: object
                     type: object
                   service:
-                    default: {}
                     description: Service defines the configuration for the component
                       Service
                     properties:
@@ -7026,7 +7012,6 @@ spec:
                         description: Labels defines labels to add to the Service
                         type: object
                       type:
-                        default: ClusterIP
                         description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP

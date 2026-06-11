@@ -37,9 +37,8 @@ type VolumeClaim struct {
 
 	// DeletionPolicy defines the deletion behavior for the persistent volume claim
 	// +kubebuilder:validation:Enum=Delete;Retain
-	// +kubebuilder:default=Delete
 	// +optional
-	DeletionPolicy DeletionPolicy `json:"deletionPolicy,omitempty"`
+	DeletionPolicy *DeletionPolicy `json:"deletionPolicy,omitempty"`
 }
 
 // DeletionPolicy defines the deletion behavior for the PVC.
@@ -86,9 +85,8 @@ type ResolvedDatabase struct {
 type ServiceSpec struct {
 	// Type defines the type of the Kubernetes Service
 	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
-	// +kubebuilder:default=ClusterIP
 	// +optional
-	Type corev1.ServiceType `json:"type,omitempty"`
+	Type *corev1.ServiceType `json:"type,omitempty"`
 
 	// Annotations defines annotations to add to the Service
 	// +optional
@@ -122,11 +120,11 @@ type HTTPConfig struct {
 type WorkloadConfig struct {
 	// Image overrides the default component image
 	// +optional
-	Image string `json:"image,omitempty"`
+	Image *string `json:"image,omitempty"`
 
 	// ImagePullPolicy defines the policy for if/when to pull the container image
 	// +optional
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy *corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
 	// Affinity defines affinity scheduling rules
 	// +optional
@@ -154,11 +152,11 @@ type WorkloadConfig struct {
 
 	// PriorityClassName defines the priority class for the pod
 	// +optional
-	PriorityClassName string `json:"priorityClassName,omitempty"`
+	PriorityClassName *string `json:"priorityClassName,omitempty"`
 
 	// Resources defines compute resource requirements
 	// +optional
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// TerminationGracePeriodSeconds defines the grace period for pod termination
 	// +optional

@@ -62,8 +62,8 @@ func (r *Reconciler) EnsureAuth(ctx context.Context, project *supabasev1alpha1.P
 }
 
 func (r *Reconciler) resolveAuthImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Auth.Image != "" {
-		return project.Spec.Auth.Image
+	if project.Spec.Auth.Image != nil && *project.Spec.Auth.Image != "" {
+		return *project.Spec.Auth.Image
 	}
 	return DefaultAuthImage
 }
@@ -90,8 +90,8 @@ func (r *Reconciler) ensureAuthService(ctx context.Context, project *supabasev1a
 	}
 
 	svcType := corev1.ServiceTypeClusterIP
-	if svcSpec.Type != "" {
-		svcType = svcSpec.Type
+	if svcSpec.Type != nil && *svcSpec.Type != "" {
+		svcType = *svcSpec.Type
 	}
 
 	port := int32(AuthPort)
@@ -180,17 +180,19 @@ func (r *Reconciler) ensureAuthDeployment(ctx context.Context, project *supabase
 					Annotations: auth.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:          auth.Affinity,
-					NodeSelector:      auth.NodeSelector,
-					Tolerations:       auth.Tolerations,
-					PriorityClassName: auth.PriorityClassName,
-					SecurityContext:   auth.PodSecurityContext,
+					Affinity:        auth.Affinity,
+					NodeSelector:    auth.NodeSelector,
+					Tolerations:     auth.Tolerations,
+					SecurityContext: auth.PodSecurityContext,
 					Containers: []corev1.Container{
 						r.buildAuthContainer(project, db, image),
 					},
 				},
 			},
 		},
+	}
+	if auth.PriorityClassName != nil {
+		desired.Spec.Template.Spec.PriorityClassName = *auth.PriorityClassName
 	}
 
 	if auth.TerminationGracePeriodSeconds != nil {
@@ -248,38 +250,7 @@ func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *s
 		helper.EnvVarFromSecret("GOTRUE_JWT_KEYS", projectJWTSecret, "jwt-keys"),
 	}
 
-	if auth.SMTP != nil {
-		env = append(env, helper.EnvVarFromSecret("GOTRUE_SMTP_PASS",
-			auth.SMTP.PasswordRef.Name, auth.SMTP.PasswordRef.Key))
-	}
-
-	if auth.SAML != nil && auth.SAML.Enabled {
-		env = append(env, helper.EnvVarFromSecret("GOTRUE_SAML_PRIVATE_KEY",
-			fmt.Sprintf("%s-keys", project.Name), "saml-private-key"))
-	}
-
-	if auth.OAuth != nil {
-		if auth.OAuth.Google != nil {
-			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_GOOGLE_SECRET",
-				auth.OAuth.Google.SecretRef.Name, auth.OAuth.Google.SecretRef.Key))
-		}
-		if auth.OAuth.GitHub != nil {
-			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_GITHUB_SECRET",
-				auth.OAuth.GitHub.SecretRef.Name, auth.OAuth.GitHub.SecretRef.Key))
-		}
-		if auth.OAuth.Azure != nil {
-			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_AZURE_SECRET",
-				auth.OAuth.Azure.SecretRef.Name, auth.OAuth.Azure.SecretRef.Key))
-		}
-	}
-
-	if auth.SMS != nil {
-		env = append(env, helper.EnvVarFromSecret("GOTRUE_SMS_TWILIO_AUTH_TOKEN",
-			auth.SMS.TwilioAuthTokenRef.Name, auth.SMS.TwilioAuthTokenRef.Key))
-	}
-
-	env = append(env, auth.Env...)
-
+	env = append(env, r.buildAuthSecretEnv(auth, project)...)
 	env = append(env,
 		helper.EnvVar("GOTRUE_API_HOST", "0.0.0.0"),
 		helper.EnvVar("GOTRUE_API_PORT", "9999"),
@@ -321,6 +292,70 @@ func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *s
 		env = append(env, helper.EnvVar("GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED", strconv.FormatBool(*auth.MailerSecureEmailChangeEnabled)))
 	}
 
+	env = append(env, r.buildAuthSMTPMFAEnv(auth, externalURL)...)
+
+	container := corev1.Container{
+		Name:  "auth",
+		Image: image,
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          "http",
+				ContainerPort: AuthPort,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		Env:             env,
+		SecurityContext: auth.ContainerSecurityContext,
+	}
+	if auth.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *auth.ImagePullPolicy
+	}
+	if auth.Resources != nil {
+		container.Resources = *auth.Resources
+	}
+
+	return container
+}
+
+func (r *Reconciler) buildAuthSecretEnv(auth *supabasev1alpha1.AuthSpec, project *supabasev1alpha1.Project) []corev1.EnvVar {
+	env := []corev1.EnvVar{}
+
+	if auth.SMTP != nil {
+		env = append(env, helper.EnvVarFromSecret("GOTRUE_SMTP_PASS",
+			auth.SMTP.PasswordRef.Name, auth.SMTP.PasswordRef.Key))
+	}
+
+	if auth.SAML != nil && auth.SAML.Enabled {
+		env = append(env, helper.EnvVarFromSecret("GOTRUE_SAML_PRIVATE_KEY",
+			fmt.Sprintf("%s-keys", project.Name), "saml-private-key"))
+	}
+
+	if auth.OAuth != nil {
+		if auth.OAuth.Google != nil {
+			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_GOOGLE_SECRET",
+				auth.OAuth.Google.SecretRef.Name, auth.OAuth.Google.SecretRef.Key))
+		}
+		if auth.OAuth.GitHub != nil {
+			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_GITHUB_SECRET",
+				auth.OAuth.GitHub.SecretRef.Name, auth.OAuth.GitHub.SecretRef.Key))
+		}
+		if auth.OAuth.Azure != nil {
+			env = append(env, helper.EnvVarFromSecret("GOTRUE_EXTERNAL_AZURE_SECRET",
+				auth.OAuth.Azure.SecretRef.Name, auth.OAuth.Azure.SecretRef.Key))
+		}
+	}
+
+	if auth.SMS != nil {
+		env = append(env, helper.EnvVarFromSecret("GOTRUE_SMS_TWILIO_AUTH_TOKEN",
+			auth.SMS.TwilioAuthTokenRef.Name, auth.SMS.TwilioAuthTokenRef.Key))
+	}
+
+	return env
+}
+
+func (r *Reconciler) buildAuthSMTPMFAEnv(auth *supabasev1alpha1.AuthSpec, externalURL string) []corev1.EnvVar {
+	env := []corev1.EnvVar{}
+
 	if auth.SMTP != nil {
 		env = append(env,
 			helper.EnvVar("GOTRUE_SMTP_HOST", auth.SMTP.Host),
@@ -329,8 +364,8 @@ func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *s
 			helper.EnvVar("GOTRUE_SMTP_ADMIN_EMAIL", auth.SMTP.AdminEmail),
 			helper.EnvVar("GOTRUE_SMTP_SENDER_NAME", auth.SMTP.SenderName),
 		)
-		if auth.SMTP.MaxFrequency != "" {
-			env = append(env, helper.EnvVar("GOTRUE_SMTP_MAX_FREQUENCY", auth.SMTP.MaxFrequency))
+		if auth.SMTP.MaxFrequency != nil && *auth.SMTP.MaxFrequency != "" {
+			env = append(env, helper.EnvVar("GOTRUE_SMTP_MAX_FREQUENCY", *auth.SMTP.MaxFrequency))
 		}
 	}
 
@@ -372,46 +407,30 @@ func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *s
 
 	if auth.MFA != nil {
 		env = append(env,
-			helper.EnvVar("GOTRUE_MFA_TOTP_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.TOTPEnrollEnabled)),
-			helper.EnvVar("GOTRUE_MFA_TOTP_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.TOTPVerifyEnabled)),
-			helper.EnvVar("GOTRUE_MFA_PHONE_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.PhoneEnrollEnabled)),
-			helper.EnvVar("GOTRUE_MFA_PHONE_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.PhoneVerifyEnabled)),
+			helper.EnvVar("GOTRUE_MFA_TOTP_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.TOTPEnrollEnabled != nil && *auth.MFA.TOTPEnrollEnabled)),
+			helper.EnvVar("GOTRUE_MFA_TOTP_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.TOTPVerifyEnabled != nil && *auth.MFA.TOTPVerifyEnabled)),
+			helper.EnvVar("GOTRUE_MFA_PHONE_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.PhoneEnrollEnabled != nil && *auth.MFA.PhoneEnrollEnabled)),
+			helper.EnvVar("GOTRUE_MFA_PHONE_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.PhoneVerifyEnabled != nil && *auth.MFA.PhoneVerifyEnabled)),
 		)
-		if auth.MFA.MaxEnrolledFactors > 0 {
-			env = append(env, helper.EnvVar("GOTRUE_MFA_MAX_ENROLLED_FACTORS", strconv.Itoa(int(auth.MFA.MaxEnrolledFactors))))
+		if auth.MFA.MaxEnrolledFactors != nil {
+			env = append(env, helper.EnvVar("GOTRUE_MFA_MAX_ENROLLED_FACTORS", strconv.Itoa(int(*auth.MFA.MaxEnrolledFactors))))
 		}
 	}
 
 	if auth.SAML != nil {
 		env = append(env,
 			helper.EnvVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(auth.SAML.Enabled)),
-			helper.EnvVar("GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS", strconv.FormatBool(auth.SAML.AllowEncryptedAssertions)),
+			helper.EnvVar("GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS", strconv.FormatBool(auth.SAML.AllowEncryptedAssertions != nil && *auth.SAML.AllowEncryptedAssertions)),
 		)
-		if auth.SAML.RelayStateValidityPeriod != "" {
-			env = append(env, helper.EnvVar("GOTRUE_SAML_RELAY_STATE_VALIDITY_PERIOD", auth.SAML.RelayStateValidityPeriod))
+		if auth.SAML.RelayStateValidityPeriod != nil && *auth.SAML.RelayStateValidityPeriod != "" {
+			env = append(env, helper.EnvVar("GOTRUE_SAML_RELAY_STATE_VALIDITY_PERIOD", *auth.SAML.RelayStateValidityPeriod))
 		}
-		if auth.SAML.RateLimitAssertion > 0 {
-			env = append(env, helper.EnvVar("GOTRUE_SAML_RATE_LIMIT_ASSERTIONS", strconv.Itoa(int(auth.SAML.RateLimitAssertion))))
+		if auth.SAML.RateLimitAssertion != nil {
+			env = append(env, helper.EnvVar("GOTRUE_SAML_RATE_LIMIT_ASSERTIONS", strconv.Itoa(int(*auth.SAML.RateLimitAssertion))))
 		}
 	}
 
-	container := corev1.Container{
-		Name:            "auth",
-		Image:           image,
-		ImagePullPolicy: auth.ImagePullPolicy,
-		Ports: []corev1.ContainerPort{
-			{
-				Name:          "http",
-				ContainerPort: AuthPort,
-				Protocol:      corev1.ProtocolTCP,
-			},
-		},
-		Env:             env,
-		Resources:       auth.Resources,
-		SecurityContext: auth.ContainerSecurityContext,
-	}
-
-	return container
+	return env
 }
 
 func (r *Reconciler) labelsForAuth(project *supabasev1alpha1.Project) map[string]string {

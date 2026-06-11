@@ -85,6 +85,8 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
+	r.defaultStorage(singleDB)
+
 	if err := r.ensureSecret(ctx, singleDB); err != nil {
 		logger.Error(err, "Failed to ensure Secret")
 		reconciler.SetNotReady(singleDB, "SecretFailed", err.Error())
@@ -229,7 +231,8 @@ func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, singleDB
 func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
 	pvc := singledatabase.BuildPVC(singleDB)
 	var owner client.Object = singleDB
-	if singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.DeletionPolicyRetain {
+	if singleDB.Spec.Storage.DeletionPolicy != nil &&
+		*singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.DeletionPolicyRetain {
 		owner = nil
 	}
 
@@ -303,6 +306,12 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 	}
 
 	return nil
+}
+
+func (r *SingleDatabaseReconciler) defaultStorage(singleDB *supabasev1alpha1.SingleDatabase) {
+	if singleDB.Spec.Storage == nil {
+		singleDB.Spec.Storage = singledatabase.DefaultStorage()
+	}
 }
 
 func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, configMap *corev1.ConfigMap) error {

@@ -77,7 +77,7 @@ func PodAnnotations(db *supabasev1alpha1.SingleDatabase, secretHash, configMapHa
 
 // PodSpec constructs the PodSpec for a SingleDatabase pod.
 func PodSpec(db *supabasev1alpha1.SingleDatabase) corev1.PodSpec {
-	return corev1.PodSpec{
+	podSpec := corev1.PodSpec{
 		InitContainers: []corev1.Container{PasswordSyncInitContainer(db)},
 		Containers:     []corev1.Container{MainContainer(db)},
 		Volumes: []corev1.Volume{
@@ -93,10 +93,13 @@ func PodSpec(db *supabasev1alpha1.SingleDatabase) corev1.PodSpec {
 		NodeSelector:                  db.Spec.NodeSelector,
 		Tolerations:                   db.Spec.Tolerations,
 		Affinity:                      db.Spec.Affinity,
-		PriorityClassName:             db.Spec.PriorityClassName,
 		TerminationGracePeriodSeconds: db.Spec.TerminationGracePeriodSeconds,
 		SecurityContext:               db.Spec.PodSecurityContext,
 	}
+	if db.Spec.PriorityClassName != nil {
+		podSpec.PriorityClassName = *db.Spec.PriorityClassName
+	}
+	return podSpec
 }
 
 // MainContainer constructs the main PostgreSQL container for a SingleDatabase.
@@ -105,9 +108,8 @@ func MainContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 	configMapName := ConfigMapName(db.Name)
 
 	container := corev1.Container{
-		Name:            DefaultComponent,
-		Image:           ResolveImage(db),
-		ImagePullPolicy: db.Spec.ImagePullPolicy,
+		Name:  DefaultComponent,
+		Image: ResolveImage(db),
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          DefaultContainerPortName,
@@ -128,9 +130,14 @@ func MainContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 		StartupProbe:    StartupProbe(db),
 		ReadinessProbe:  ReadinessProbe(db),
 		LivenessProbe:   LivenessProbe(db),
-		Resources:       db.Spec.Resources,
 		SecurityContext: db.Spec.ContainerSecurityContext,
 		VolumeMounts:    []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultDataMountPath}},
+	}
+	if db.Spec.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *db.Spec.ImagePullPolicy
+	}
+	if db.Spec.Resources != nil {
+		container.Resources = *db.Spec.Resources
 	}
 	container.Env = append(container.Env, db.Spec.Env...)
 
@@ -140,11 +147,10 @@ func MainContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 // PasswordSyncInitContainer constructs the init container that synchronizes
 // the PostgreSQL password on disk with the Secret value.
 func PasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
-	return corev1.Container{
-		Name:            DefaultInitContainerName,
-		Image:           ResolveImage(db),
-		ImagePullPolicy: db.Spec.ImagePullPolicy,
-		Command:         []string{"sh", "-c", assets.SingleDatabasePasswordSyncScript},
+	container := corev1.Container{
+		Name:    DefaultInitContainerName,
+		Image:   ResolveImage(db),
+		Command: []string{"sh", "-c", assets.SingleDatabasePasswordSyncScript},
 		Env: []corev1.EnvVar{
 			helper.EnvVarFromSecret("PGPASSWORD", SecretName(db.Name), DefaultSecretPasswordKey),
 		},
@@ -152,6 +158,10 @@ func PasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Conta
 			{Name: DefaultVolumeName, MountPath: DefaultDataMountPath},
 		},
 	}
+	if db.Spec.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *db.Spec.ImagePullPolicy
+	}
+	return container
 }
 
 // StartupProbe returns the startup probe for the database container.
