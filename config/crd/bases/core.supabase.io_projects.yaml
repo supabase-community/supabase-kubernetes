@@ -1521,39 +1521,45 @@ spec:
                       template:
                         description: Template defines the SMS message template
                         type: string
-                      twilioAccountSid:
-                        description: TwilioAccountSID defines the Twilio account SID
-                        type: string
-                      twilioAuthTokenRef:
-                        description: TwilioAuthTokenRef references the secret containing
-                          the Twilio auth token
+                      twilio:
+                        description: Twilio defines the Twilio provider configuration
                         properties:
-                          key:
-                            description: Key defines the key within the Kubernetes
-                              Secret
-                            minLength: 1
+                          accountSid:
+                            description: AccountSID defines the Twilio account SID
                             type: string
-                          name:
-                            description: Name defines the name of the Kubernetes Secret
-                            minLength: 1
+                          authTokenRef:
+                            description: AuthTokenRef references the secret containing
+                              the Twilio auth token
+                            properties:
+                              key:
+                                description: Key defines the key within the Kubernetes
+                                  Secret
+                                minLength: 1
+                                type: string
+                              name:
+                                description: Name defines the name of the Kubernetes
+                                  Secret
+                                minLength: 1
+                                type: string
+                            required:
+                            - key
+                            - name
+                            type: object
+                          messageServiceSid:
+                            description: MessageServiceSID defines the Twilio message
+                              service SID
                             type: string
                         required:
-                        - key
-                        - name
+                        - accountSid
+                        - authTokenRef
+                        - messageServiceSid
                         type: object
-                      twilioMessageServiceSid:
-                        description: TwilioMessageServiceSID defines the Twilio message
-                          service SID
-                        type: string
                     required:
                     - maxFrequency
                     - otpExp
                     - otpLength
                     - provider
                     - template
-                    - twilioAccountSid
-                    - twilioAuthTokenRef
-                    - twilioMessageServiceSid
                     type: object
                   smtp:
                     description: SMTP defines SMTP configuration for sending emails

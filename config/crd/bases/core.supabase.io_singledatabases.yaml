@@ -1306,15 +1306,11 @@ spec:
                       type: string
                     type: array
                   deletionPolicy:
-                    allOf:
-                    - enum:
-                      - Delete
-                      - Retain
-                    - enum:
-                      - Delete
-                      - Retain
                     description: DeletionPolicy defines the deletion behavior for
                       the persistent volume claim
+                    enum:
+                    - Delete
+                    - Retain
                     type: string
                   size:
                     anyOf:
@@ -1465,6 +1461,8 @@ spec:
                   port:
                     description: Port defines the database port
                     format: int32
+                    maximum: 65535
+                    minimum: 1
                     type: integer
                   user:
                     description: User defines the database user

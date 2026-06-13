@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	projectpkg "github.com/supabase-community/supabase-kubernetes/internal/project"
@@ -430,12 +431,12 @@ var _ = Describe("Project Controller", func() {
 			project.Spec.Rest = &supabasev1alpha1.RestSpec{}
 			project.Spec.Auth = &supabasev1alpha1.AuthSpec{
 				SiteURL:                "http://localhost:3000",
-				DisableSignup:          false,
-				EnableEmailSignup:      true,
-				EnableAnonymousUsers:   false,
-				EnableEmailAutoconfirm: false,
-				EnablePhoneSignup:      false,
-				EnablePhoneAutoconfirm: false,
+				DisableSignup:          ptr.To(false),
+				EnableEmailSignup:      ptr.To(true),
+				EnableAnonymousUsers:   ptr.To(false),
+				EnableEmailAutoconfirm: ptr.To(false),
+				EnablePhoneSignup:      ptr.To(false),
+				EnablePhoneAutoconfirm: ptr.To(false),
 			}
 			Expect(k8sClient.Create(ctx, project)).To(Succeed())
 

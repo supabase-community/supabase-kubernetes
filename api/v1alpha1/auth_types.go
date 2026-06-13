@@ -39,27 +39,27 @@ type AuthSpec struct {
 
 	// DisableSignup disables new user signups
 	// +kubebuilder:validation:Required
-	DisableSignup bool `json:"disableSignup"`
+	DisableSignup *bool `json:"disableSignup"`
 
 	// EnableEmailSignup enables email/password signups
 	// +kubebuilder:validation:Required
-	EnableEmailSignup bool `json:"enableEmailSignup"`
+	EnableEmailSignup *bool `json:"enableEmailSignup"`
 
 	// EnableAnonymousUsers enables anonymous user signings
 	// +kubebuilder:validation:Required
-	EnableAnonymousUsers bool `json:"enableAnonymousUsers"`
+	EnableAnonymousUsers *bool `json:"enableAnonymousUsers"`
 
 	// EnableEmailAutoconfirm skips email confirmation
 	// +kubebuilder:validation:Required
-	EnableEmailAutoconfirm bool `json:"enableEmailAutoconfirm"`
+	EnableEmailAutoconfirm *bool `json:"enableEmailAutoconfirm"`
 
 	// EnablePhoneSignup enables phone signups
 	// +kubebuilder:validation:Required
-	EnablePhoneSignup bool `json:"enablePhoneSignup"`
+	EnablePhoneSignup *bool `json:"enablePhoneSignup"`
 
 	// EnablePhoneAutoconfirm skips phone confirmation
 	// +kubebuilder:validation:Required
-	EnablePhoneAutoconfirm bool `json:"enablePhoneAutoconfirm"`
+	EnablePhoneAutoconfirm *bool `json:"enablePhoneAutoconfirm"`
 
 	// SkipNonceCheck skips nonce check for external providers
 	// +optional
@@ -125,7 +125,7 @@ type SMTPConfig struct {
 type OAuthProviderConfig struct {
 	// Enabled defines whether the OAuth provider is enabled
 	// +kubebuilder:validation:Required
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 
 	// ClientID defines the OAuth client ID
 	// +kubebuilder:validation:Required
@@ -173,17 +173,24 @@ type SMSConfig struct {
 	// +kubebuilder:validation:Required
 	Template string `json:"template"`
 
-	// TwilioAccountSID defines the Twilio account SID
-	// +kubebuilder:validation:Required
-	TwilioAccountSID string `json:"twilioAccountSid"`
+	// Twilio defines the Twilio provider configuration
+	// +optional
+	Twilio *TwilioConfig `json:"twilio,omitempty"`
+}
 
-	// TwilioAuthTokenRef references the secret containing the Twilio auth token
+// TwilioConfig defines Twilio provider settings.
+type TwilioConfig struct {
+	// AccountSID defines the Twilio account SID
 	// +kubebuilder:validation:Required
-	TwilioAuthTokenRef SecretKeyRef `json:"twilioAuthTokenRef"`
+	AccountSID string `json:"accountSid"`
 
-	// TwilioMessageServiceSID defines the Twilio message service SID
+	// AuthTokenRef references the secret containing the Twilio auth token
 	// +kubebuilder:validation:Required
-	TwilioMessageServiceSID string `json:"twilioMessageServiceSid"`
+	AuthTokenRef SecretKeyRef `json:"authTokenRef"`
+
+	// MessageServiceSID defines the Twilio message service SID
+	// +kubebuilder:validation:Required
+	MessageServiceSID string `json:"messageServiceSid"`
 }
 
 // MFAConfig defines multi-factor authentication settings.
@@ -213,7 +220,7 @@ type MFAConfig struct {
 type SAMLConfig struct {
 	// Enabled defines whether SAML authentication is enabled
 	// +kubebuilder:validation:Required
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 
 	// AllowEncryptedAssertions defines whether encrypted SAML assertions are allowed
 	// +optional

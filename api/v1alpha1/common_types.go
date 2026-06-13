@@ -36,7 +36,6 @@ type VolumeClaim struct {
 	Size resource.Quantity `json:"size"`
 
 	// DeletionPolicy defines the deletion behavior for the persistent volume claim
-	// +kubebuilder:validation:Enum=Delete;Retain
 	// +optional
 	DeletionPolicy *DeletionPolicy `json:"deletionPolicy,omitempty"`
 }
@@ -71,6 +70,8 @@ type ResolvedDatabase struct {
 
 	// Port defines the database port
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
 	Port int32 `json:"port"`
 
 	// DBName defines the database name
