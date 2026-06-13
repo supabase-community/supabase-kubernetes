@@ -53,6 +53,22 @@ spec:
       priorityClassName: {{ . }}
       {{- end }}
       initContainers:
+        - name: init-pgsodium
+          image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.db.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Initializing pgsodium persistent config directory..."
+              if [ -z "$(ls -A /mnt/pgsodium 2>/dev/null)" ]; then
+                echo "pgsodium volume is empty, copying default postgresql-custom files..."
+                cp -a /etc/postgresql-custom/. /mnt/pgsodium/
+              else
+                echo "pgsodium volume already initialized, skipping copy"
+              fi
+          volumeMounts:
+            - mountPath: /mnt/pgsodium
+              name: pgsodium
         - name: init-db
           image: "{{ .Values.image.db.repository }}:{{ .Values.image.db.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.db.pullPolicy }}
@@ -132,6 +148,10 @@ spec:
           volumeMounts:
             - mountPath: /docker-entrypoint-initdb.d
               name: initdb-scripts-data
+            {{- if .Values.persistence.pgsodium.enabled }}
+            - mountPath: /etc/postgresql-custom
+              name: pgsodium
+            {{- end }}
             {{- with .Values.deployment.db.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -171,6 +191,11 @@ spec:
         - name: custom-migrations
           configMap:
             name: {{ include "supabase.db.fullname" . }}-migrations
+        {{- if .Values.persistence.pgsodium.enabled }}
+        - name: pgsodium
+          persistentVolumeClaim:
+            claimName: {{ include "supabase.pvc.name" (dict "root" $ "name" "pgsodium") }}
+        {{- end }}
         {{- with .Values.deployment.db.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}

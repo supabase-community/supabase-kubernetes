@@ -842,6 +842,15 @@ persistence:
     accessModes:
       - ReadWriteOnce
 
+  pgsodium:
+    enabled: true
+    storageClassName: ""
+    # existingClaim: ""
+    annotations: {}
+    size: 100Mi
+    accessModes:
+      - ReadWriteOnce
+
 service:
   analytics:
     type: ClusterIP
