@@ -21,16 +21,18 @@ type AuthSpec struct {
 	WorkloadConfig `json:",inline"`
 
 	// Replicas defines the number of component instances
-	// +kubebuilder:validation:Minimum=0
 	// +optional
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Service defines the configuration for the component Service
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
-	// SiteURL is the base URL of your site used for email links and redirects
+	// SiteURL is the base URL of the site used for email links and redirects
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	SiteURL string `json:"siteUrl"`
 
 	// AdditionalRedirectURLs is a list of additional URLs allowed for redirects
@@ -38,28 +40,34 @@ type AuthSpec struct {
 	AdditionalRedirectURLs []string `json:"additionalRedirectUrls,omitempty"`
 
 	// DisableSignup disables new user signups
-	// +kubebuilder:validation:Required
-	DisableSignup *bool `json:"disableSignup"`
+	// +optional
+	// +kubebuilder:default=false
+	DisableSignup *bool `json:"disableSignup,omitempty"`
 
 	// EnableEmailSignup enables email/password signups
-	// +kubebuilder:validation:Required
-	EnableEmailSignup *bool `json:"enableEmailSignup"`
+	// +optional
+	// +kubebuilder:default=true
+	EnableEmailSignup *bool `json:"enableEmailSignup,omitempty"`
 
 	// EnableAnonymousUsers enables anonymous user signings
-	// +kubebuilder:validation:Required
-	EnableAnonymousUsers *bool `json:"enableAnonymousUsers"`
+	// +optional
+	// +kubebuilder:default=false
+	EnableAnonymousUsers *bool `json:"enableAnonymousUsers,omitempty"`
 
 	// EnableEmailAutoconfirm skips email confirmation
-	// +kubebuilder:validation:Required
-	EnableEmailAutoconfirm *bool `json:"enableEmailAutoconfirm"`
+	// +optional
+	// +kubebuilder:default=false
+	EnableEmailAutoconfirm *bool `json:"enableEmailAutoconfirm,omitempty"`
 
 	// EnablePhoneSignup enables phone signups
-	// +kubebuilder:validation:Required
-	EnablePhoneSignup *bool `json:"enablePhoneSignup"`
+	// +optional
+	// +kubebuilder:default=true
+	EnablePhoneSignup *bool `json:"enablePhoneSignup,omitempty"`
 
 	// EnablePhoneAutoconfirm skips phone confirmation
-	// +kubebuilder:validation:Required
-	EnablePhoneAutoconfirm *bool `json:"enablePhoneAutoconfirm"`
+	// +optional
+	// +kubebuilder:default=true
+	EnablePhoneAutoconfirm *bool `json:"enablePhoneAutoconfirm,omitempty"`
 
 	// SkipNonceCheck skips nonce check for external providers
 	// +optional
@@ -94,14 +102,18 @@ type AuthSpec struct {
 type SMTPConfig struct {
 	// Host defines the SMTP server host
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	Host string `json:"host"`
 
 	// Port defines the SMTP server port
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
 	Port int32 `json:"port"`
 
 	// User defines the SMTP authentication user
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	User string `json:"user"`
 
 	// PasswordRef references the secret containing the SMTP password
@@ -110,10 +122,12 @@ type SMTPConfig struct {
 
 	// SenderName defines the display name for outgoing emails
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	SenderName string `json:"senderName"`
 
 	// AdminEmail defines the admin email address
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	AdminEmail string `json:"adminEmail"`
 
 	// MaxFrequency defines the maximum frequency for sending emails
@@ -124,11 +138,13 @@ type SMTPConfig struct {
 // OAuthProviderConfig defines a single OAuth provider configuration.
 type OAuthProviderConfig struct {
 	// Enable defines whether the OAuth provider is enabled
-	// +kubebuilder:validation:Required
-	Enable *bool `json:"enable"`
+	// +optional
+	// +kubebuilder:default=true
+	Enable *bool `json:"enable,omitempty"`
 
 	// ClientID defines the OAuth client ID
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	ClientID string `json:"clientId"`
 
 	// SecretRef references the secret containing the OAuth client secret
@@ -155,22 +171,28 @@ type OAuthConfig struct {
 type SMSConfig struct {
 	// Provider defines the SMS provider name
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	Provider string `json:"provider"`
 
 	// OTPExp defines the OTP expiration time in seconds
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
 	OTPExp int32 `json:"otpExp"`
 
 	// OTPLength defines the length of the OTP
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=4
+	// +kubebuilder:validation:Maximum=10
 	OTPLength int32 `json:"otpLength"`
 
 	// MaxFrequency defines the maximum frequency for sending SMS messages
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	MaxFrequency string `json:"maxFrequency"`
 
 	// Template defines the SMS message template
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	Template string `json:"template"`
 
 	// Twilio defines the Twilio provider configuration
@@ -182,6 +204,7 @@ type SMSConfig struct {
 type TwilioConfig struct {
 	// AccountSID defines the Twilio account SID
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	AccountSID string `json:"accountSid"`
 
 	// AuthTokenRef references the secret containing the Twilio auth token
@@ -190,6 +213,7 @@ type TwilioConfig struct {
 
 	// MessageServiceSID defines the Twilio message service SID
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	MessageServiceSID string `json:"messageServiceSid"`
 }
 
@@ -213,14 +237,16 @@ type MFAConfig struct {
 
 	// MaxEnrolledFactors defines the maximum number of enrolled MFA factors
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	MaxEnrolledFactors *int32 `json:"maxEnrolledFactors,omitempty"`
 }
 
 // SAMLConfig defines SAML authentication settings.
 type SAMLConfig struct {
 	// Enable defines whether SAML authentication is enabled
-	// +kubebuilder:validation:Required
-	Enable *bool `json:"enable"`
+	// +optional
+	// +kubebuilder:default=true
+	Enable *bool `json:"enable,omitempty"`
 
 	// AllowEncryptedAssertions defines whether encrypted SAML assertions are allowed
 	// +optional
@@ -232,5 +258,6 @@ type SAMLConfig struct {
 
 	// RateLimitAssertion defines the rate limit for SAML assertions
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	RateLimitAssertion *int32 `json:"rateLimitAssertion,omitempty"`
 }

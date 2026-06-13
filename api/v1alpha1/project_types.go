@@ -23,8 +23,9 @@ import (
 // ProjectSpec defines the desired state of a Supabase deployment.
 type ProjectSpec struct {
 	// JWTExpSec defines the JWT expiration time in seconds
-	// +kubebuilder:validation:Minimum=1
 	// +optional
+	// +kubebuilder:default=3600
+	// +kubebuilder:validation:Minimum=1
 	JWTExpSec *int32 `json:"jwtExpSec,omitempty"`
 
 	// HTTP defines the public HTTP access settings
@@ -54,6 +55,7 @@ type ProjectSpec struct {
 
 // ProjectStatus defines the observed state of a Supabase deployment.
 type ProjectStatus struct {
+	// Conditions represent the latest available observations of the Project's state
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }

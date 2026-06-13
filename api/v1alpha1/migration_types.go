@@ -39,6 +39,7 @@ type MigrationSpec struct {
 
 // MigrationStatus defines the observed state of Migration.
 type MigrationStatus struct {
+	// Conditions represent the latest available observations of the Migration's state
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
@@ -68,7 +69,7 @@ type Migration struct {
 
 // +kubebuilder:object:root=true
 
-// MigrationList contains a list of Migration
+// MigrationList contains a list of Migration.
 type MigrationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -89,10 +90,12 @@ type MigrationEntry struct {
 	// Name is a human-readable identifier for this migration step
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
 	Name string `json:"name"`
 
 	// SQL is the migration script to execute
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=65536
 	SQL string `json:"sql"`
 }

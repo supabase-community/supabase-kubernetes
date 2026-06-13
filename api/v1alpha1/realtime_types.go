@@ -21,8 +21,9 @@ type RealtimeSpec struct {
 	WorkloadConfig `json:",inline"`
 
 	// Replicas defines the number of component instances
-	// +kubebuilder:validation:Minimum=0
 	// +optional
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Service defines the configuration for the component Service

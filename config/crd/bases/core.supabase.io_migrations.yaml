@@ -968,9 +968,11 @@ spec:
                     description: Kind defines the kind of database resource
                     enum:
                     - SingleDatabase
+                    minLength: 1
                     type: string
                   name:
                     description: Name defines the name of the database resource
+                    maxLength: 253
                     minLength: 1
                     type: string
                 required:
@@ -994,11 +996,13 @@ spec:
                     name:
                       description: Name is a human-readable identifier for this migration
                         step
+                      maxLength: 128
                       minLength: 1
                       type: string
                     sql:
                       description: SQL is the migration script to execute
                       maxLength: 65536
+                      minLength: 1
                       type: string
                   required:
                   - name
@@ -1367,6 +1371,8 @@ spec:
             - migrations
             type: object
             x-kubernetes-validations:
+            - message: databaseRef is immutable after creation
+              rule: self.databaseRef == oldSelf.databaseRef
             - message: migrations are immutable after creation
               rule: self.migrations == oldSelf.migrations
           status:
@@ -1381,6 +1387,8 @@ spec:
                   successfully applied
                 type: string
               conditions:
+                description: Conditions represent the latest available observations
+                  of the Migration's state
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

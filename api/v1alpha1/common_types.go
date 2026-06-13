@@ -37,6 +37,8 @@ type VolumeClaim struct {
 
 	// DeletionPolicy defines the deletion behavior for the persistent volume claim
 	// +optional
+	// +kubebuilder:default=Delete
+	// +kubebuilder:validation:Enum=Delete;Retain
 	DeletionPolicy *DeletionPolicy `json:"deletionPolicy,omitempty"`
 }
 
@@ -45,7 +47,10 @@ type VolumeClaim struct {
 type DeletionPolicy string
 
 const (
+	// DeletionPolicyDelete removes the PVC when the owner is deleted.
 	DeletionPolicyDelete DeletionPolicy = "Delete"
+
+	// DeletionPolicyRetain keeps the PVC after the owner is deleted.
 	DeletionPolicyRetain DeletionPolicy = "Retain"
 )
 
@@ -54,11 +59,13 @@ type SecretKeyRef struct {
 	// Name defines the name of the Kubernetes Secret
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name"`
 
 	// Key defines the key within the Kubernetes Secret
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Key string `json:"key"`
 }
 
@@ -90,8 +97,9 @@ type ResolvedDatabase struct {
 // ServiceSpec defines the configuration for a component Service.
 type ServiceSpec struct {
 	// Type defines the type of the Kubernetes Service
-	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
 	// +optional
+	// +kubebuilder:default=ClusterIP
+	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
 	Type *corev1.ServiceType `json:"type,omitempty"`
 
 	// Annotations defines annotations to add to the Service
@@ -116,9 +124,9 @@ type HTTPConfig struct {
 	Hostname string `json:"hostname"`
 
 	// Port defines the public port for the Project
+	// +optional
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
-	// +optional
 	Port *int32 `json:"port,omitempty"`
 }
 
@@ -173,11 +181,13 @@ type WorkloadConfig struct {
 type DatabaseRef struct {
 	// Kind defines the kind of database resource
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Enum=SingleDatabase
 	Kind string `json:"kind"`
 
 	// Name defines the name of the database resource
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name"`
 }

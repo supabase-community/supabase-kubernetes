@@ -35,9 +35,11 @@ type SingleDatabaseSpec struct {
 
 // SingleDatabaseStatus defines the observed state of SingleDatabase.
 type SingleDatabaseStatus struct {
+	// Conditions represent the latest available observations of the SingleDatabase's state
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// ResolvedDatabase exposes the resolved database connection parameters
 	// +optional
 	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
 }

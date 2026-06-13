@@ -975,25 +975,32 @@ spec:
                         type: object
                     type: object
                   disableSignup:
+                    default: false
                     description: DisableSignup disables new user signups
                     type: boolean
                   enableAnonymousUsers:
+                    default: false
                     description: EnableAnonymousUsers enables anonymous user signings
                     type: boolean
                   enableEmailAutoconfirm:
+                    default: false
                     description: EnableEmailAutoconfirm skips email confirmation
                     type: boolean
                   enableEmailSignup:
+                    default: false
                     description: EnableEmailSignup enables email/password signups
                     type: boolean
                   enableMailerSecureEmailChange:
+                    default: false
                     description: EnableMailerSecureEmailChange enables secure email
                       change flow
                     type: boolean
                   enablePhoneAutoconfirm:
+                    default: false
                     description: EnablePhoneAutoconfirm skips phone confirmation
                     type: boolean
                   enablePhoneSignup:
+                    default: false
                     description: EnablePhoneSignup enables phone signups
                     type: boolean
                   image:
@@ -1007,18 +1014,22 @@ spec:
                     description: MFA defines multi-factor authentication configuration
                     properties:
                       enablePhoneEnroll:
+                        default: false
                         description: EnablePhoneEnroll defines whether phone MFA enrollment
                           is enabled
                         type: boolean
                       enablePhoneVerify:
+                        default: false
                         description: EnablePhoneVerify defines whether phone MFA verification
                           is enabled
                         type: boolean
                       enableTotpEnroll:
+                        default: false
                         description: EnableTOTPEnroll defines whether TOTP enrollment
                           is enabled
                         type: boolean
                       enableTotpVerify:
+                        default: false
                         description: EnableTOTPVerify defines whether TOTP verification
                           is enabled
                         type: boolean
@@ -1026,6 +1037,7 @@ spec:
                         description: MaxEnrolledFactors defines the maximum number
                           of enrolled MFA factors
                         format: int32
+                        minimum: 1
                         type: integer
                     type: object
                   nodeSelector:
@@ -1041,8 +1053,10 @@ spec:
                         properties:
                           clientId:
                             description: ClientID defines the OAuth client ID
+                            minLength: 1
                             type: string
                           enable:
+                            default: false
                             description: Enable defines whether the OAuth provider
                               is enabled
                             type: boolean
@@ -1053,11 +1067,13 @@ spec:
                               key:
                                 description: Key defines the key within the Kubernetes
                                   Secret
+                                maxLength: 253
                                 minLength: 1
                                 type: string
                               name:
                                 description: Name defines the name of the Kubernetes
                                   Secret
+                                maxLength: 253
                                 minLength: 1
                                 type: string
                             required:
@@ -1066,7 +1082,6 @@ spec:
                             type: object
                         required:
                         - clientId
-                        - enable
                         - secretRef
                         type: object
                       github:
@@ -1074,8 +1089,10 @@ spec:
                         properties:
                           clientId:
                             description: ClientID defines the OAuth client ID
+                            minLength: 1
                             type: string
                           enable:
+                            default: false
                             description: Enable defines whether the OAuth provider
                               is enabled
                             type: boolean
@@ -1086,11 +1103,13 @@ spec:
                               key:
                                 description: Key defines the key within the Kubernetes
                                   Secret
+                                maxLength: 253
                                 minLength: 1
                                 type: string
                               name:
                                 description: Name defines the name of the Kubernetes
                                   Secret
+                                maxLength: 253
                                 minLength: 1
                                 type: string
                             required:
@@ -1099,7 +1118,6 @@ spec:
                             type: object
                         required:
                         - clientId
-                        - enable
                         - secretRef
                         type: object
                       google:
@@ -1107,8 +1125,10 @@ spec:
                         properties:
                           clientId:
                             description: ClientID defines the OAuth client ID
+                            minLength: 1
                             type: string
                           enable:
+                            default: false
                             description: Enable defines whether the OAuth provider
                               is enabled
                             type: boolean
@@ -1119,11 +1139,13 @@ spec:
                               key:
                                 description: Key defines the key within the Kubernetes
                                   Secret
+                                maxLength: 253
                                 minLength: 1
                                 type: string
                               name:
                                 description: Name defines the name of the Kubernetes
                                   Secret
+                                maxLength: 253
                                 minLength: 1
                                 type: string
                             required:
@@ -1132,7 +1154,6 @@ spec:
                             type: object
                         required:
                         - clientId
-                        - enable
                         - secretRef
                         type: object
                     type: object
@@ -1152,6 +1173,7 @@ spec:
                       the pod
                     type: string
                   replicas:
+                    default: 1
                     description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
@@ -1219,10 +1241,12 @@ spec:
                     description: SAML defines SAML authentication configuration
                     properties:
                       allowEncryptedAssertions:
+                        default: false
                         description: AllowEncryptedAssertions defines whether encrypted
                           SAML assertions are allowed
                         type: boolean
                       enable:
+                        default: false
                         description: Enable defines whether SAML authentication is
                           enabled
                         type: boolean
@@ -1230,13 +1254,12 @@ spec:
                         description: RateLimitAssertion defines the rate limit for
                           SAML assertions
                         format: int32
+                        minimum: 1
                         type: integer
                       relayStateValidityPeriod:
                         description: RelayStateValidityPeriod defines the validity
                           period for the relay state
                         type: string
-                    required:
-                    - enable
                     type: object
                   securityContext:
                     description: SecurityContext holds pod-level security attributes
@@ -1486,6 +1509,7 @@ spec:
                         description: Labels defines labels to add to the Service
                         type: object
                       type:
+                        default: ClusterIP
                         description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
@@ -1494,10 +1518,12 @@ spec:
                         type: string
                     type: object
                   siteUrl:
-                    description: SiteURL is the base URL of your site used for email
+                    description: SiteURL is the base URL of the site used for email
                       links and redirects
+                    minLength: 1
                     type: string
                   skipNonceCheck:
+                    default: false
                     description: SkipNonceCheck skips nonce check for external providers
                     type: boolean
                   sms:
@@ -1506,26 +1532,34 @@ spec:
                       maxFrequency:
                         description: MaxFrequency defines the maximum frequency for
                           sending SMS messages
+                        minLength: 1
                         type: string
                       otpExp:
                         description: OTPExp defines the OTP expiration time in seconds
                         format: int32
+                        minimum: 1
                         type: integer
                       otpLength:
                         description: OTPLength defines the length of the OTP
                         format: int32
+                        maximum: 10
+                        minimum: 4
                         type: integer
                       provider:
                         description: Provider defines the SMS provider name
+                        minLength: 1
                         type: string
                       template:
                         description: Template defines the SMS message template
+                        maxLength: 1024
+                        minLength: 1
                         type: string
                       twilio:
                         description: Twilio defines the Twilio provider configuration
                         properties:
                           accountSid:
                             description: AccountSID defines the Twilio account SID
+                            minLength: 1
                             type: string
                           authTokenRef:
                             description: AuthTokenRef references the secret containing
@@ -1534,11 +1568,13 @@ spec:
                               key:
                                 description: Key defines the key within the Kubernetes
                                   Secret
+                                maxLength: 253
                                 minLength: 1
                                 type: string
                               name:
                                 description: Name defines the name of the Kubernetes
                                   Secret
+                                maxLength: 253
                                 minLength: 1
                                 type: string
                             required:
@@ -1548,6 +1584,7 @@ spec:
                           messageServiceSid:
                             description: MessageServiceSID defines the Twilio message
                               service SID
+                            minLength: 1
                             type: string
                         required:
                         - accountSid
@@ -1566,9 +1603,11 @@ spec:
                     properties:
                       adminEmail:
                         description: AdminEmail defines the admin email address
+                        minLength: 1
                         type: string
                       host:
                         description: Host defines the SMTP server host
+                        minLength: 1
                         type: string
                       maxFrequency:
                         description: MaxFrequency defines the maximum frequency for
@@ -1581,10 +1620,12 @@ spec:
                           key:
                             description: Key defines the key within the Kubernetes
                               Secret
+                            maxLength: 253
                             minLength: 1
                             type: string
                           name:
                             description: Name defines the name of the Kubernetes Secret
+                            maxLength: 253
                             minLength: 1
                             type: string
                         required:
@@ -1594,13 +1635,17 @@ spec:
                       port:
                         description: Port defines the SMTP server port
                         format: int32
+                        maximum: 65535
+                        minimum: 1
                         type: integer
                       senderName:
                         description: SenderName defines the display name for outgoing
                           emails
+                        minLength: 1
                         type: string
                       user:
                         description: User defines the SMTP authentication user
+                        minLength: 1
                         type: string
                     required:
                     - adminEmail
@@ -1656,12 +1701,6 @@ spec:
                       type: object
                     type: array
                 required:
-                - disableSignup
-                - enableAnonymousUsers
-                - enableEmailAutoconfirm
-                - enableEmailSignup
-                - enablePhoneAutoconfirm
-                - enablePhoneSignup
                 - siteUrl
                 type: object
               databaseRef:
@@ -1671,9 +1710,11 @@ spec:
                     description: Kind defines the kind of database resource
                     enum:
                     - SingleDatabase
+                    minLength: 1
                     type: string
                   name:
                     description: Name defines the name of the database resource
+                    maxLength: 253
                     minLength: 1
                     type: string
                 required:
@@ -1694,6 +1735,7 @@ spec:
                     minimum: 1
                     type: integer
                   protocol:
+                    default: https
                     description: Protocol defines the HTTP protocol (http or https)
                     enum:
                     - http
@@ -1704,6 +1746,7 @@ spec:
                 - protocol
                 type: object
               jwtExpSec:
+                default: 3600
                 description: JWTExpSec defines the JWT expiration time in seconds
                 format: int32
                 minimum: 1
@@ -2658,6 +2701,7 @@ spec:
                       the pod
                     type: string
                   replicas:
+                    default: 1
                     description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
@@ -2969,6 +3013,7 @@ spec:
                         description: Labels defines labels to add to the Service
                         type: object
                       type:
+                        default: ClusterIP
                         description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
@@ -3972,6 +4017,7 @@ spec:
                       the pod
                     type: string
                   replicas:
+                    default: 1
                     description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
@@ -4283,6 +4329,7 @@ spec:
                         description: Labels defines labels to add to the Service
                         type: object
                       type:
+                        default: ClusterIP
                         description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
@@ -5259,16 +5306,19 @@ spec:
                         type: object
                     type: object
                   dbExtraSearchPath:
+                    default: public
                     description: DBExtraSearchPath defines the schemas to add to the
                       search path of every request
                     type: string
                   dbMaxRows:
+                    default: 1000
                     description: DBMaxRows defines the maximum number of rows returned
                       from a view, table, or stored procedure
                     format: int32
                     minimum: 1
                     type: integer
                   dbSchemas:
+                    default: public,storage,graphql_public
                     description: DBSchemas defines the schemas exposed by PostgREST
                     type: string
                   image:
@@ -5299,6 +5349,7 @@ spec:
                       the pod
                     type: string
                   replicas:
+                    default: 1
                     description: Replicas defines the number of component instances
                     format: int32
                     minimum: 0
@@ -5610,6 +5661,7 @@ spec:
                         description: Labels defines labels to add to the Service
                         type: object
                       type:
+                        default: ClusterIP
                         description: Type defines the type of the Kubernetes Service
                         enum:
                         - ClusterIP
@@ -5671,6 +5723,8 @@ spec:
             description: ProjectStatus defines the observed state of a Supabase deployment.
             properties:
               conditions:
+                description: Conditions represent the latest available observations
+                  of the Project's state
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

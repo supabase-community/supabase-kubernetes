@@ -1289,6 +1289,7 @@ spec:
                     description: Labels defines labels to add to the Service
                     type: object
                   type:
+                    default: ClusterIP
                     description: Type defines the type of the Kubernetes Service
                     enum:
                     - ClusterIP
@@ -1306,11 +1307,16 @@ spec:
                       type: string
                     type: array
                   deletionPolicy:
+                    allOf:
+                    - enum:
+                      - Delete
+                      - Retain
+                    - enum:
+                      - Delete
+                      - Retain
+                    default: Delete
                     description: DeletionPolicy defines the deletion behavior for
                       the persistent volume claim
-                    enum:
-                    - Delete
-                    - Retain
                     type: string
                   size:
                     anyOf:
@@ -1377,6 +1383,8 @@ spec:
             description: SingleDatabaseStatus defines the observed state of SingleDatabase.
             properties:
               conditions:
+                description: Conditions represent the latest available observations
+                  of the SingleDatabase's state
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -1433,8 +1441,8 @@ spec:
                   type: object
                 type: array
               resolvedDatabase:
-                description: ResolvedDatabase exposes resolved database connection
-                  parameters.
+                description: ResolvedDatabase exposes the resolved database connection
+                  parameters
                 properties:
                   dbName:
                     description: DBName defines the database name
@@ -1448,10 +1456,12 @@ spec:
                     properties:
                       key:
                         description: Key defines the key within the Kubernetes Secret
+                        maxLength: 253
                         minLength: 1
                         type: string
                       name:
                         description: Name defines the name of the Kubernetes Secret
+                        maxLength: 253
                         minLength: 1
                         type: string
                     required:
