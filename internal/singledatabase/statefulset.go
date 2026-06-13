@@ -148,7 +148,8 @@ func PasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Conta
 	container := corev1.Container{
 		Name:    DefaultInitContainerName,
 		Image:   ResolveImage(db),
-		Command: []string{"sh", "-c", assets.SingleDatabasePasswordSyncScript},
+		Command: []string{"sh", "-c"},
+		Args:    []string{assets.SingleDatabasePasswordSyncScript},
 		Env: []corev1.EnvVar{
 			helper.EnvVarFromSecret("PGPASSWORD", SecretName(db), DefaultSecretPasswordKey),
 		},
