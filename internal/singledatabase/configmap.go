@@ -26,15 +26,15 @@ import (
 )
 
 // ConfigMapName returns the name of the ConfigMap for a SingleDatabase.
-func ConfigMapName(dbName string) string {
-	return fmt.Sprintf("%s-db", dbName)
+func ConfigMapName(db *supabasev1alpha1.SingleDatabase) string {
+	return fmt.Sprintf("%s-db", db.Name)
 }
 
 // BuildConfigMap constructs the ConfigMap for a SingleDatabase.
 func BuildConfigMap(db *supabasev1alpha1.SingleDatabase) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ConfigMapName(db.Name),
+			Name:      ConfigMapName(db),
 			Namespace: db.Namespace,
 			Labels:    DefaultLabels(db.Name),
 		},

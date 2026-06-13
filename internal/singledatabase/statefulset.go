@@ -29,8 +29,8 @@ import (
 )
 
 // StatefulSetName returns the name of the StatefulSet for a SingleDatabase.
-func StatefulSetName(dbName string) string {
-	return fmt.Sprintf("%s-db", dbName)
+func StatefulSetName(db *supabasev1alpha1.SingleDatabase) string {
+	return fmt.Sprintf("%s-db", db.Name)
 }
 
 // BuildStatefulSet constructs the StatefulSet for a SingleDatabase.
@@ -39,14 +39,14 @@ func BuildStatefulSet(db *supabasev1alpha1.SingleDatabase, secretHash, configMap
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      StatefulSetName(db.Name),
+			Name:      StatefulSetName(db),
 			Namespace: db.Namespace,
 			Labels:    DefaultLabels(db.Name),
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas:    &replicas,
 			Selector:    &metav1.LabelSelector{MatchLabels: DefaultLabels(db.Name)},
-			ServiceName: ServiceName(db.Name),
+			ServiceName: ServiceName(db),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      PodLabels(db),
@@ -85,7 +85,7 @@ func PodSpec(db *supabasev1alpha1.SingleDatabase) corev1.PodSpec {
 				Name: DefaultVolumeName,
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: PVCName(db.Name),
+						ClaimName: PVCName(db),
 					},
 				},
 			},
@@ -104,8 +104,8 @@ func PodSpec(db *supabasev1alpha1.SingleDatabase) corev1.PodSpec {
 
 // MainContainer constructs the main PostgreSQL container for a SingleDatabase.
 func MainContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
-	secretName := SecretName(db.Name)
-	configMapName := ConfigMapName(db.Name)
+	secretName := SecretName(db)
+	configMapName := ConfigMapName(db)
 
 	container := corev1.Container{
 		Name:  DefaultComponent,
@@ -150,7 +150,7 @@ func PasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Conta
 		Image:   ResolveImage(db),
 		Command: []string{"sh", "-c", assets.SingleDatabasePasswordSyncScript},
 		Env: []corev1.EnvVar{
-			helper.EnvVarFromSecret("PGPASSWORD", SecretName(db.Name), DefaultSecretPasswordKey),
+			helper.EnvVarFromSecret("PGPASSWORD", SecretName(db), DefaultSecretPasswordKey),
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: DefaultVolumeName, MountPath: DefaultDataMountPath},

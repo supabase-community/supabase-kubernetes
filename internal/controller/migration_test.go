@@ -46,6 +46,8 @@ var _ = Describe("Migration Controller", func() {
 		const migrationName = "test-migration"
 		dbKey := types.NamespacedName{Name: dbName, Namespace: "default"}
 		migrationKey := types.NamespacedName{Name: migrationName, Namespace: "default"}
+		dbOnly := &supabasev1alpha1.SingleDatabase{ObjectMeta: metav1.ObjectMeta{Name: dbName}}
+		migrationOnly := &supabasev1alpha1.Migration{ObjectMeta: metav1.ObjectMeta{Name: migrationName}}
 
 		BeforeEach(func() {
 			By("Creating a SingleDatabase")
@@ -68,7 +70,7 @@ var _ = Describe("Migration Controller", func() {
 			sts := &appsv1.StatefulSet{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
-					Name:      singledatabase.StatefulSetName(dbName),
+					Name:      singledatabase.StatefulSetName(dbOnly),
 					Namespace: "default",
 				}, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
@@ -110,14 +112,14 @@ var _ = Describe("Migration Controller", func() {
 		AfterEach(func() {
 			By("Cleaning up Job")
 			job := &batchv1.Job{}
-			if err := k8sClient.Get(ctx, types.NamespacedName{Name: migration.JobName(migrationName), Namespace: "default"}, job); err == nil {
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: migration.JobName(migrationOnly), Namespace: "default"}, job); err == nil {
 				background := metav1.DeletePropagationBackground
 				Expect(k8sClient.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &background})).To(Succeed())
 			}
 
 			By("Cleaning up ConfigMap")
 			cm := &corev1.ConfigMap{}
-			if err := k8sClient.Get(ctx, types.NamespacedName{Name: migration.ConfigMapName(migrationName), Namespace: "default"}, cm); err == nil {
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: migration.ConfigMapName(migrationOnly), Namespace: "default"}, cm); err == nil {
 				Expect(k8sClient.Delete(ctx, cm)).To(Succeed())
 			}
 
@@ -139,7 +141,7 @@ var _ = Describe("Migration Controller", func() {
 			cm := &corev1.ConfigMap{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
-					Name:      migration.ConfigMapName(migrationName),
+					Name:      migration.ConfigMapName(migrationOnly),
 					Namespace: "default",
 				}, cm)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
@@ -149,7 +151,7 @@ var _ = Describe("Migration Controller", func() {
 			job := &batchv1.Job{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
-					Name:      migration.JobName(migrationName),
+					Name:      migration.JobName(migrationOnly),
 					Namespace: "default",
 				}, job)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
@@ -161,7 +163,7 @@ var _ = Describe("Migration Controller", func() {
 			job := &batchv1.Job{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
-					Name:      migration.JobName(migrationName),
+					Name:      migration.JobName(migrationOnly),
 					Namespace: "default",
 				}, job)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
@@ -184,7 +186,7 @@ var _ = Describe("Migration Controller", func() {
 			cm := &corev1.ConfigMap{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
-					Name:      migration.ConfigMapName(migrationName),
+					Name:      migration.ConfigMapName(migrationOnly),
 					Namespace: "default",
 				}, cm)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
@@ -196,7 +198,7 @@ var _ = Describe("Migration Controller", func() {
 			Eventually(func(g Gomega) {
 				recreated := &corev1.ConfigMap{}
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
-					Name:      migration.ConfigMapName(migrationName),
+					Name:      migration.ConfigMapName(migrationOnly),
 					Namespace: "default",
 				}, recreated)).To(Succeed())
 				g.Expect(recreated.Data["batch.sql"]).To(Equal(oldData))
@@ -208,7 +210,7 @@ var _ = Describe("Migration Controller", func() {
 			job := &batchv1.Job{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{
-					Name:      migration.JobName(migrationName),
+					Name:      migration.JobName(migrationOnly),
 					Namespace: "default",
 				}, job)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
@@ -232,7 +234,7 @@ var _ = Describe("Migration Controller", func() {
 			Eventually(func(g Gomega) {
 				j := &batchv1.Job{}
 				err := k8sClient.Get(ctx, types.NamespacedName{
-					Name:      migration.JobName(migrationName),
+					Name:      migration.JobName(migrationOnly),
 					Namespace: "default",
 				}, j)
 				g.Expect(err).To(HaveOccurred())
@@ -242,7 +244,7 @@ var _ = Describe("Migration Controller", func() {
 			Consistently(func(g Gomega) {
 				j := &batchv1.Job{}
 				err := k8sClient.Get(ctx, types.NamespacedName{
-					Name:      migration.JobName(migrationName),
+					Name:      migration.JobName(migrationOnly),
 					Namespace: "default",
 				}, j)
 				g.Expect(err).To(HaveOccurred())

@@ -30,8 +30,8 @@ import (
 )
 
 // JobName returns the name of the Job that applies migrations.
-func JobName(migrationName string) string {
-	return fmt.Sprintf("%s-apply", migrationName)
+func JobName(migration *supabasev1alpha1.Migration) string {
+	return fmt.Sprintf("%s-apply", migration.Name)
 }
 
 // BuildJob constructs the migration Job.
@@ -41,7 +41,7 @@ func BuildJob(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.Resolv
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      JobName(migration.Name),
+			Name:      JobName(migration),
 			Namespace: migration.Namespace,
 			Labels:    DefaultLabels(migration.Name),
 		},
@@ -84,7 +84,7 @@ func PodSpec(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.Resolve
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: ConfigMapName(migration.Name),
+							Name: ConfigMapName(migration),
 						},
 					},
 				},

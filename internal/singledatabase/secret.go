@@ -26,8 +26,8 @@ import (
 )
 
 // SecretName returns the name of the credentials Secret for a SingleDatabase.
-func SecretName(dbName string) string {
-	return fmt.Sprintf("%s-db", dbName)
+func SecretName(db *supabasev1alpha1.SingleDatabase) string {
+	return fmt.Sprintf("%s-db", db.Name)
 }
 
 // BuildSecret constructs the credentials Secret for a SingleDatabase.
@@ -39,7 +39,7 @@ func BuildSecret(db *supabasev1alpha1.SingleDatabase) (*corev1.Secret, error) {
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      SecretName(db.Name),
+			Name:      SecretName(db),
 			Namespace: db.Namespace,
 			Labels:    DefaultLabels(db.Name),
 		},

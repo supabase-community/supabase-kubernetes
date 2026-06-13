@@ -41,6 +41,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 	Context("When creating a SingleDatabase", func() {
 		const dbName = "test-singledatabase"
 		dbKey := types.NamespacedName{Name: dbName, Namespace: "default"}
+		dbOnly := &supabasev1alpha1.SingleDatabase{ObjectMeta: metav1.ObjectMeta{Name: dbName}}
 
 		BeforeEach(func() {
 			db := &supabasev1alpha1.SingleDatabase{
@@ -66,20 +67,20 @@ var _ = Describe("SingleDatabase Controller", func() {
 			By("Checking that Secret was created")
 			secret := &corev1.Secret{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbName), Namespace: "default"}, secret)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbOnly), Namespace: "default"}, secret)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 			Expect(secret.Data).To(HaveKey("password"))
 
 			By("Checking that PVC was created")
 			pvc := &corev1.PersistentVolumeClaim{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.PVCName(dbName), Namespace: "default"}, pvc)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.PVCName(dbOnly), Namespace: "default"}, pvc)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
 			By("Checking that Service was created")
 			svc := &corev1.Service{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.ServiceName(dbName), Namespace: "default"}, svc)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.ServiceName(dbOnly), Namespace: "default"}, svc)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 			Expect(svc.Spec.Ports).To(HaveLen(1))
 			Expect(svc.Spec.Ports[0].Port).To(Equal(int32(5432)))
@@ -87,7 +88,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			By("Checking that StatefulSet was created")
 			sts := &appsv1.StatefulSet{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, sts)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbOnly), Namespace: "default"}, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 			Expect(sts.Spec.Template.Spec.Containers).To(HaveLen(1))
 			Expect(sts.Spec.Template.Spec.InitContainers).To(HaveLen(1))
@@ -97,7 +98,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			By("Simulating StatefulSet readiness")
 			sts := &appsv1.StatefulSet{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, sts)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbOnly), Namespace: "default"}, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
 			sts.Status.Replicas = 1
@@ -116,7 +117,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			By("Waiting for Secret to be created")
 			secret := &corev1.Secret{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbName), Namespace: "default"}, secret)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbOnly), Namespace: "default"}, secret)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
 			oldPassword := string(secret.Data["password"])
@@ -125,7 +126,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			By("Waiting for Secret to be recreated with new password")
 			Eventually(func(g Gomega) {
 				recreated := &corev1.Secret{}
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbName), Namespace: "default"}, recreated)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(dbOnly), Namespace: "default"}, recreated)).To(Succeed())
 				g.Expect(string(recreated.Data["password"])).NotTo(Equal(oldPassword))
 			}, timeout, interval).Should(Succeed())
 		})
@@ -134,7 +135,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			By("Waiting for StatefulSet to be created")
 			sts := &appsv1.StatefulSet{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, sts)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbOnly), Namespace: "default"}, sts)).To(Succeed())
 			}, timeout, interval).Should(Succeed())
 
 			oldImage := sts.Spec.Template.Spec.Containers[0].Image
@@ -149,7 +150,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			By("Waiting for StatefulSet to be updated with new pod label")
 			Eventually(func(g Gomega) {
 				updated := &appsv1.StatefulSet{}
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbName), Namespace: "default"}, updated)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(dbOnly), Namespace: "default"}, updated)).To(Succeed())
 				g.Expect(updated.Spec.Template.Labels).To(HaveKeyWithValue("test-label", "test-value"))
 			}, timeout, interval).Should(Succeed())
 

@@ -106,13 +106,13 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	sc := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(singleDB.Name), Namespace: singleDB.Namespace}, sc); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(singleDB), Namespace: singleDB.Namespace}, sc); err != nil {
 		logger.Error(err, "Failed to get Secret")
 		return ctrl.Result{}, err
 	}
 
 	cm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.ConfigMapName(singleDB.Name), Namespace: singleDB.Namespace}, cm); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.ConfigMapName(singleDB), Namespace: singleDB.Namespace}, cm); err != nil {
 		logger.Error(err, "Failed to get ConfigMap")
 		return ctrl.Result{}, err
 	}
@@ -148,7 +148,7 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	sts := &appsv1.StatefulSet{}
-	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(singleDB.Name), Namespace: singleDB.Namespace}, sts); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(singleDB), Namespace: singleDB.Namespace}, sts); err != nil {
 		logger.Error(err, "Failed to get StatefulSet")
 		reconciler.SetNotReady(singleDB, "StatefulSetGetFailed", err.Error())
 		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
@@ -317,12 +317,12 @@ func (r *SingleDatabaseReconciler) defaultStorage(singleDB *supabasev1alpha1.Sin
 func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, configMap *corev1.ConfigMap) error {
 	port, _ := strconv.Atoi(configMap.Data[singledatabase.DefaultConfigMapKeyPort])
 	singleDB.Status.ResolvedDatabase = &supabasev1alpha1.ResolvedDatabase{
-		Host:   fmt.Sprintf("%s.%s.svc.cluster.local", singledatabase.ServiceName(singleDB.Name), singleDB.Namespace),
+		Host:   fmt.Sprintf("%s.%s.svc.cluster.local", singledatabase.ServiceName(singleDB), singleDB.Namespace),
 		Port:   int32(port),
 		DBName: configMap.Data[singledatabase.DefaultConfigMapKeyDatabase],
 		User:   configMap.Data[singledatabase.DefaultConfigMapKeyUser],
 		PasswordRef: supabasev1alpha1.SecretKeyRef{
-			Name: singledatabase.SecretName(singleDB.Name),
+			Name: singledatabase.SecretName(singleDB),
 			Key:  singledatabase.DefaultSecretPasswordKey,
 		},
 	}

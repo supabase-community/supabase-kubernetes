@@ -27,15 +27,15 @@ import (
 )
 
 // ServiceName returns the name of the Service for a SingleDatabase.
-func ServiceName(dbName string) string {
-	return fmt.Sprintf("%s-db", dbName)
+func ServiceName(db *supabasev1alpha1.SingleDatabase) string {
+	return fmt.Sprintf("%s-db", db.Name)
 }
 
 // BuildService constructs the Service for a SingleDatabase.
 func BuildService(db *supabasev1alpha1.SingleDatabase) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        ServiceName(db.Name),
+			Name:        ServiceName(db),
 			Namespace:   db.Namespace,
 			Labels:      ServiceLabels(db),
 			Annotations: ServiceAnnotations(db),

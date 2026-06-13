@@ -124,7 +124,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	job := &batchv1.Job{}
-	if err := r.Get(ctx, types.NamespacedName{Name: migrationpkg.JobName(migration.Name), Namespace: migration.Namespace}, job); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: migrationpkg.JobName(migration), Namespace: migration.Namespace}, job); err != nil {
 		logger.Error(err, "Failed to get Job")
 		reconciler.SetNotReady(migration, "JobGetFailed", err.Error())
 		if statusErr := reconciler.UpdateStatus(ctx, r.Client, migration); statusErr != nil {

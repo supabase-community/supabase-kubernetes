@@ -26,15 +26,15 @@ import (
 )
 
 // ConfigMapName returns the name of the ConfigMap that holds the migration SQL.
-func ConfigMapName(migrationName string) string {
-	return fmt.Sprintf("%s-sql", migrationName)
+func ConfigMapName(migration *supabasev1alpha1.Migration) string {
+	return fmt.Sprintf("%s-sql", migration.Name)
 }
 
 // BuildConfigMap constructs the ConfigMap containing the batched SQL migrations.
 func BuildConfigMap(migration *supabasev1alpha1.Migration) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ConfigMapName(migration.Name),
+			Name:      ConfigMapName(migration),
 			Namespace: migration.Namespace,
 			Labels:    DefaultLabels(migration.Name),
 		},

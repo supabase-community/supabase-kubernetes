@@ -25,8 +25,8 @@ import (
 )
 
 // PVCName returns the name of the data PersistentVolumeClaim for a SingleDatabase.
-func PVCName(dbName string) string {
-	return fmt.Sprintf("%s-db", dbName)
+func PVCName(db *supabasev1alpha1.SingleDatabase) string {
+	return fmt.Sprintf("%s-db", db.Name)
 }
 
 // BuildPVC constructs the PersistentVolumeClaim for a SingleDatabase.
@@ -37,7 +37,7 @@ func BuildPVC(db *supabasev1alpha1.SingleDatabase) *corev1.PersistentVolumeClaim
 	}
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      PVCName(db.Name),
+			Name:      PVCName(db),
 			Namespace: db.Namespace,
 			Labels:    DefaultLabels(db.Name),
 		},
