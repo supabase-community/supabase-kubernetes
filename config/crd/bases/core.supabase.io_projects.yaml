@@ -986,6 +986,10 @@ spec:
                   enableEmailSignup:
                     description: EnableEmailSignup enables email/password signups
                     type: boolean
+                  enableMailerSecureEmailChange:
+                    description: EnableMailerSecureEmailChange enables secure email
+                      change flow
+                    type: boolean
                   enablePhoneAutoconfirm:
                     description: EnablePhoneAutoconfirm skips phone confirmation
                     type: boolean
@@ -999,34 +1003,30 @@ spec:
                     description: ImagePullPolicy defines the policy for if/when to
                       pull the container image
                     type: string
-                  mailerSecureEmailChangeEnabled:
-                    description: MailerSecureEmailChangeEnabled enables secure email
-                      change flow
-                    type: boolean
                   mfa:
                     description: MFA defines multi-factor authentication configuration
                     properties:
+                      enablePhoneEnroll:
+                        description: EnablePhoneEnroll defines whether phone MFA enrollment
+                          is enabled
+                        type: boolean
+                      enablePhoneVerify:
+                        description: EnablePhoneVerify defines whether phone MFA verification
+                          is enabled
+                        type: boolean
+                      enableTotpEnroll:
+                        description: EnableTOTPEnroll defines whether TOTP enrollment
+                          is enabled
+                        type: boolean
+                      enableTotpVerify:
+                        description: EnableTOTPVerify defines whether TOTP verification
+                          is enabled
+                        type: boolean
                       maxEnrolledFactors:
                         description: MaxEnrolledFactors defines the maximum number
                           of enrolled MFA factors
                         format: int32
                         type: integer
-                      phoneEnrollEnabled:
-                        description: PhoneEnrollEnabled defines whether phone MFA
-                          enrollment is enabled
-                        type: boolean
-                      phoneVerifyEnabled:
-                        description: PhoneVerifyEnabled defines whether phone MFA
-                          verification is enabled
-                        type: boolean
-                      totpEnrollEnabled:
-                        description: TOTPEnrollEnabled defines whether TOTP enrollment
-                          is enabled
-                        type: boolean
-                      totpVerifyEnabled:
-                        description: TOTPVerifyEnabled defines whether TOTP verification
-                          is enabled
-                        type: boolean
                     type: object
                   nodeSelector:
                     additionalProperties:
@@ -1042,8 +1042,8 @@ spec:
                           clientId:
                             description: ClientID defines the OAuth client ID
                             type: string
-                          enabled:
-                            description: Enabled defines whether the OAuth provider
+                          enable:
+                            description: Enable defines whether the OAuth provider
                               is enabled
                             type: boolean
                           secretRef:
@@ -1066,7 +1066,7 @@ spec:
                             type: object
                         required:
                         - clientId
-                        - enabled
+                        - enable
                         - secretRef
                         type: object
                       github:
@@ -1075,8 +1075,8 @@ spec:
                           clientId:
                             description: ClientID defines the OAuth client ID
                             type: string
-                          enabled:
-                            description: Enabled defines whether the OAuth provider
+                          enable:
+                            description: Enable defines whether the OAuth provider
                               is enabled
                             type: boolean
                           secretRef:
@@ -1099,7 +1099,7 @@ spec:
                             type: object
                         required:
                         - clientId
-                        - enabled
+                        - enable
                         - secretRef
                         type: object
                       google:
@@ -1108,8 +1108,8 @@ spec:
                           clientId:
                             description: ClientID defines the OAuth client ID
                             type: string
-                          enabled:
-                            description: Enabled defines whether the OAuth provider
+                          enable:
+                            description: Enable defines whether the OAuth provider
                               is enabled
                             type: boolean
                           secretRef:
@@ -1132,7 +1132,7 @@ spec:
                             type: object
                         required:
                         - clientId
-                        - enabled
+                        - enable
                         - secretRef
                         type: object
                     type: object
@@ -1222,8 +1222,8 @@ spec:
                         description: AllowEncryptedAssertions defines whether encrypted
                           SAML assertions are allowed
                         type: boolean
-                      enabled:
-                        description: Enabled defines whether SAML authentication is
+                      enable:
+                        description: Enable defines whether SAML authentication is
                           enabled
                         type: boolean
                       rateLimitAssertion:
@@ -1236,7 +1236,7 @@ spec:
                           period for the relay state
                         type: string
                     required:
-                    - enabled
+                    - enable
                     type: object
                   securityContext:
                     description: SecurityContext holds pod-level security attributes

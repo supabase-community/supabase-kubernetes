@@ -65,9 +65,9 @@ type AuthSpec struct {
 	// +optional
 	SkipNonceCheck *bool `json:"skipNonceCheck,omitempty"`
 
-	// MailerSecureEmailChangeEnabled enables secure email change flow
+	// EnableMailerSecureEmailChange enables secure email change flow
 	// +optional
-	MailerSecureEmailChangeEnabled *bool `json:"mailerSecureEmailChangeEnabled,omitempty"`
+	EnableMailerSecureEmailChange *bool `json:"enableMailerSecureEmailChange,omitempty"`
 
 	// SMTP defines SMTP configuration for sending emails
 	// +optional
@@ -123,9 +123,9 @@ type SMTPConfig struct {
 
 // OAuthProviderConfig defines a single OAuth provider configuration.
 type OAuthProviderConfig struct {
-	// Enabled defines whether the OAuth provider is enabled
+	// Enable defines whether the OAuth provider is enabled
 	// +kubebuilder:validation:Required
-	Enabled *bool `json:"enabled"`
+	Enable *bool `json:"enable"`
 
 	// ClientID defines the OAuth client ID
 	// +kubebuilder:validation:Required
@@ -195,21 +195,21 @@ type TwilioConfig struct {
 
 // MFAConfig defines multi-factor authentication settings.
 type MFAConfig struct {
-	// TOTPEnrollEnabled defines whether TOTP enrollment is enabled
+	// EnableTOTPEnroll defines whether TOTP enrollment is enabled
 	// +optional
-	TOTPEnrollEnabled *bool `json:"totpEnrollEnabled,omitempty"`
+	EnableTOTPEnroll *bool `json:"enableTotpEnroll,omitempty"`
 
-	// TOTPVerifyEnabled defines whether TOTP verification is enabled
+	// EnableTOTPVerify defines whether TOTP verification is enabled
 	// +optional
-	TOTPVerifyEnabled *bool `json:"totpVerifyEnabled,omitempty"`
+	EnableTOTPVerify *bool `json:"enableTotpVerify,omitempty"`
 
-	// PhoneEnrollEnabled defines whether phone MFA enrollment is enabled
+	// EnablePhoneEnroll defines whether phone MFA enrollment is enabled
 	// +optional
-	PhoneEnrollEnabled *bool `json:"phoneEnrollEnabled,omitempty"`
+	EnablePhoneEnroll *bool `json:"enablePhoneEnroll,omitempty"`
 
-	// PhoneVerifyEnabled defines whether phone MFA verification is enabled
+	// EnablePhoneVerify defines whether phone MFA verification is enabled
 	// +optional
-	PhoneVerifyEnabled *bool `json:"phoneVerifyEnabled,omitempty"`
+	EnablePhoneVerify *bool `json:"enablePhoneVerify,omitempty"`
 
 	// MaxEnrolledFactors defines the maximum number of enrolled MFA factors
 	// +optional
@@ -218,9 +218,9 @@ type MFAConfig struct {
 
 // SAMLConfig defines SAML authentication settings.
 type SAMLConfig struct {
-	// Enabled defines whether SAML authentication is enabled
+	// Enable defines whether SAML authentication is enabled
 	// +kubebuilder:validation:Required
-	Enabled *bool `json:"enabled"`
+	Enable *bool `json:"enable"`
 
 	// AllowEncryptedAssertions defines whether encrypted SAML assertions are allowed
 	// +optional

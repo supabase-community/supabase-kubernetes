@@ -288,8 +288,8 @@ func (r *Reconciler) buildAuthContainer(project *supabasev1alpha1.Project, db *s
 		env = append(env, helper.EnvVar("GOTRUE_EXTERNAL_SKIP_NONCE_CHECK", strconv.FormatBool(*auth.SkipNonceCheck)))
 	}
 
-	if auth.MailerSecureEmailChangeEnabled != nil {
-		env = append(env, helper.EnvVar("GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED", strconv.FormatBool(*auth.MailerSecureEmailChangeEnabled)))
+	if auth.EnableMailerSecureEmailChange != nil {
+		env = append(env, helper.EnvVar("GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED", strconv.FormatBool(*auth.EnableMailerSecureEmailChange)))
 	}
 
 	env = append(env, r.buildAuthSMTPMFAEnv(auth, externalURL)...)
@@ -324,7 +324,7 @@ func (r *Reconciler) buildAuthSecretEnv(auth *supabasev1alpha1.AuthSpec, project
 			auth.SMTP.PasswordRef.Name, auth.SMTP.PasswordRef.Key))
 	}
 
-	if auth.SAML != nil && *auth.SAML.Enabled {
+	if auth.SAML != nil && *auth.SAML.Enable {
 		env = append(env, helper.EnvVarFromSecret("GOTRUE_SAML_PRIVATE_KEY",
 			fmt.Sprintf("%s-keys", project.Name), "saml-private-key"))
 	}
@@ -371,21 +371,21 @@ func (r *Reconciler) buildAuthSMTPMFAEnv(auth *supabasev1alpha1.AuthSpec, extern
 	if auth.OAuth != nil {
 		if auth.OAuth.Google != nil {
 			env = append(env,
-				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_ENABLED", strconv.FormatBool(*auth.OAuth.Google.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_ENABLED", strconv.FormatBool(*auth.OAuth.Google.Enable)),
 				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID", auth.OAuth.Google.ClientID),
 				helper.EnvVar("GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
 		}
 		if auth.OAuth.GitHub != nil {
 			env = append(env,
-				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_ENABLED", strconv.FormatBool(*auth.OAuth.GitHub.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_ENABLED", strconv.FormatBool(*auth.OAuth.GitHub.Enable)),
 				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", auth.OAuth.GitHub.ClientID),
 				helper.EnvVar("GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
 		}
 		if auth.OAuth.Azure != nil {
 			env = append(env,
-				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_ENABLED", strconv.FormatBool(*auth.OAuth.Azure.Enabled)),
+				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_ENABLED", strconv.FormatBool(*auth.OAuth.Azure.Enable)),
 				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_CLIENT_ID", auth.OAuth.Azure.ClientID),
 				helper.EnvVar("GOTRUE_EXTERNAL_AZURE_REDIRECT_URI", fmt.Sprintf("%s/auth/v1/callback", externalURL)),
 			)
@@ -410,10 +410,10 @@ func (r *Reconciler) buildAuthSMTPMFAEnv(auth *supabasev1alpha1.AuthSpec, extern
 
 	if auth.MFA != nil {
 		env = append(env,
-			helper.EnvVar("GOTRUE_MFA_TOTP_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.TOTPEnrollEnabled != nil && *auth.MFA.TOTPEnrollEnabled)),
-			helper.EnvVar("GOTRUE_MFA_TOTP_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.TOTPVerifyEnabled != nil && *auth.MFA.TOTPVerifyEnabled)),
-			helper.EnvVar("GOTRUE_MFA_PHONE_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.PhoneEnrollEnabled != nil && *auth.MFA.PhoneEnrollEnabled)),
-			helper.EnvVar("GOTRUE_MFA_PHONE_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.PhoneVerifyEnabled != nil && *auth.MFA.PhoneVerifyEnabled)),
+			helper.EnvVar("GOTRUE_MFA_TOTP_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.EnableTOTPEnroll != nil && *auth.MFA.EnableTOTPEnroll)),
+			helper.EnvVar("GOTRUE_MFA_TOTP_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.EnableTOTPVerify != nil && *auth.MFA.EnableTOTPVerify)),
+			helper.EnvVar("GOTRUE_MFA_PHONE_ENROLL_ENABLED", strconv.FormatBool(auth.MFA.EnablePhoneEnroll != nil && *auth.MFA.EnablePhoneEnroll)),
+			helper.EnvVar("GOTRUE_MFA_PHONE_VERIFY_ENABLED", strconv.FormatBool(auth.MFA.EnablePhoneVerify != nil && *auth.MFA.EnablePhoneVerify)),
 		)
 		if auth.MFA.MaxEnrolledFactors != nil {
 			env = append(env, helper.EnvVar("GOTRUE_MFA_MAX_ENROLLED_FACTORS", strconv.Itoa(int(*auth.MFA.MaxEnrolledFactors))))
@@ -422,7 +422,7 @@ func (r *Reconciler) buildAuthSMTPMFAEnv(auth *supabasev1alpha1.AuthSpec, extern
 
 	if auth.SAML != nil {
 		env = append(env,
-			helper.EnvVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(*auth.SAML.Enabled)),
+			helper.EnvVar("GOTRUE_SAML_ENABLED", strconv.FormatBool(*auth.SAML.Enable)),
 			helper.EnvVar("GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS", strconv.FormatBool(auth.SAML.AllowEncryptedAssertions != nil && *auth.SAML.AllowEncryptedAssertions)),
 		)
 		if auth.SAML.RelayStateValidityPeriod != nil && *auth.SAML.RelayStateValidityPeriod != "" {
