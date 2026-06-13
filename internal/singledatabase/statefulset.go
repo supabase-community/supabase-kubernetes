@@ -127,9 +127,9 @@ func MainContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 			helper.EnvVar("POSTGRES_HOST", DefaultPostgresHost),
 			helper.EnvVar("PGHOST", DefaultPostgresHost),
 		},
-		StartupProbe:   StartupProbe(db),
-		ReadinessProbe: ReadinessProbe(db),
-		LivenessProbe:  LivenessProbe(db),
+		StartupProbe:   DefaultStartupProbe(),
+		ReadinessProbe: DefaultReadinessProbe(),
+		LivenessProbe:  DefaultLivenessProbe(),
 		VolumeMounts:   []corev1.VolumeMount{{Name: DefaultVolumeName, MountPath: DefaultDataMountPath}},
 	}
 	if db.Spec.ImagePullPolicy != nil {
@@ -160,19 +160,4 @@ func PasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Conta
 		container.ImagePullPolicy = *db.Spec.ImagePullPolicy
 	}
 	return container
-}
-
-// StartupProbe returns the startup probe for the database container.
-func StartupProbe(db *supabasev1alpha1.SingleDatabase) *corev1.Probe {
-	return DefaultStartupProbe()
-}
-
-// ReadinessProbe returns the readiness probe for the database container.
-func ReadinessProbe(db *supabasev1alpha1.SingleDatabase) *corev1.Probe {
-	return DefaultReadinessProbe()
-}
-
-// LivenessProbe returns the liveness probe for the database container.
-func LivenessProbe(db *supabasev1alpha1.SingleDatabase) *corev1.Probe {
-	return DefaultLivenessProbe()
 }
