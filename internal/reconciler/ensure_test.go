@@ -22,6 +22,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -281,5 +283,135 @@ var _ = Describe("EnsureResource", func() {
 			})
 			Expect(err).To(HaveOccurred())
 		})
+	})
+})
+
+var _ = Describe("DeleteResourceIfExists", func() {
+	var (
+		ctx context.Context
+		c   client.Client
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		c = fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	})
+
+	It("should delete an existing resource", func() {
+		existing := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cm",
+				Namespace: "default",
+			},
+		}
+		Expect(c.Create(ctx, existing)).To(Succeed())
+
+		err := DeleteResourceIfExists(ctx, c, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cm",
+				Namespace: "default",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		found := &corev1.ConfigMap{}
+		Expect(c.Get(ctx, client.ObjectKey{Name: "test-cm", Namespace: "default"}, found)).To(MatchError(ContainSubstring("not found")))
+	})
+
+	It("should succeed when the resource does not exist", func() {
+		err := DeleteResourceIfExists(ctx, c, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "missing-cm",
+				Namespace: "default",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+	})
+})
+
+var _ = Describe("Typed delete helpers", func() {
+	var (
+		ctx context.Context
+		c   client.Client
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		c = fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	})
+
+	It("deletes a ConfigMap by name and namespace", func() {
+		Expect(c.Create(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "cm", Namespace: "default"},
+		})).To(Succeed())
+
+		Expect(DeleteConfigMapIfExists(ctx, c, "cm", "default")).To(Succeed())
+
+		found := &corev1.ConfigMap{}
+		Expect(c.Get(ctx, client.ObjectKey{Name: "cm", Namespace: "default"}, found)).To(MatchError(ContainSubstring("not found")))
+	})
+
+	It("deletes a Secret by name and namespace", func() {
+		Expect(c.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: "default"},
+		})).To(Succeed())
+
+		Expect(DeleteSecretIfExists(ctx, c, "secret", "default")).To(Succeed())
+
+		found := &corev1.Secret{}
+		Expect(c.Get(ctx, client.ObjectKey{Name: "secret", Namespace: "default"}, found)).To(MatchError(ContainSubstring("not found")))
+	})
+
+	It("deletes a Service by name and namespace", func() {
+		Expect(c.Create(ctx, &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "svc", Namespace: "default"},
+		})).To(Succeed())
+
+		Expect(DeleteServiceIfExists(ctx, c, "svc", "default")).To(Succeed())
+
+		found := &corev1.Service{}
+		Expect(c.Get(ctx, client.ObjectKey{Name: "svc", Namespace: "default"}, found)).To(MatchError(ContainSubstring("not found")))
+	})
+
+	It("deletes a PersistentVolumeClaim by name and namespace", func() {
+		Expect(c.Create(ctx, &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{Name: "pvc", Namespace: "default"},
+		})).To(Succeed())
+
+		Expect(DeletePersistentVolumeClaimIfExists(ctx, c, "pvc", "default")).To(Succeed())
+
+		found := &corev1.PersistentVolumeClaim{}
+		Expect(c.Get(ctx, client.ObjectKey{Name: "pvc", Namespace: "default"}, found)).To(MatchError(ContainSubstring("not found")))
+	})
+
+	It("deletes a StatefulSet by name and namespace", func() {
+		Expect(c.Create(ctx, &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{Name: "sts", Namespace: "default"},
+		})).To(Succeed())
+
+		Expect(DeleteStatefulSetIfExists(ctx, c, "sts", "default")).To(Succeed())
+
+		found := &appsv1.StatefulSet{}
+		Expect(c.Get(ctx, client.ObjectKey{Name: "sts", Namespace: "default"}, found)).To(MatchError(ContainSubstring("not found")))
+	})
+
+	It("deletes a Job by name and namespace", func() {
+		Expect(c.Create(ctx, &batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{Name: "job", Namespace: "default"},
+		})).To(Succeed())
+
+		Expect(DeleteJobIfExists(ctx, c, "job", "default")).To(Succeed())
+
+		found := &batchv1.Job{}
+		Expect(c.Get(ctx, client.ObjectKey{Name: "job", Namespace: "default"}, found)).To(MatchError(ContainSubstring("not found")))
+	})
+
+	It("succeeds when the resource is already absent", func() {
+		Expect(DeleteConfigMapIfExists(ctx, c, "missing", "default")).To(Succeed())
+		Expect(DeleteSecretIfExists(ctx, c, "missing", "default")).To(Succeed())
+		Expect(DeleteServiceIfExists(ctx, c, "missing", "default")).To(Succeed())
+		Expect(DeletePersistentVolumeClaimIfExists(ctx, c, "missing", "default")).To(Succeed())
+		Expect(DeleteStatefulSetIfExists(ctx, c, "missing", "default")).To(Succeed())
+		Expect(DeleteJobIfExists(ctx, c, "missing", "default")).To(Succeed())
 	})
 })

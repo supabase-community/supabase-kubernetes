@@ -17,32 +17,12 @@ limitations under the License.
 package migration
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"strings"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// ConfigMapName returns the name of the ConfigMap that holds the migration SQL.
-func ConfigMapName(migration *supabasev1alpha1.Migration) string {
-	return fmt.Sprintf("%s-sql", migration.Name)
-}
-
-// BuildConfigMap constructs the ConfigMap containing the batched SQL migrations.
-func BuildConfigMap(migration *supabasev1alpha1.Migration) *corev1.ConfigMap {
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ConfigMapName(migration),
-			Namespace: migration.Namespace,
-			Labels:    DefaultLabels(migration.Name),
-		},
-		Data: map[string]string{
-			DefaultConfigMapKey: BatchSQL(migration),
-		},
-	}
-}
 
 // BatchSQL concatenates all migration entries into a single SQL batch.
 func BatchSQL(migration *supabasev1alpha1.Migration) string {
@@ -53,4 +33,15 @@ func BatchSQL(migration *supabasev1alpha1.Migration) string {
 		fmt.Fprint(&b, "\n\n")
 	}
 	return b.String()
+}
+
+// MigrationHash computes a SHA-256 hash over the ordered migration SQLs.
+func MigrationHash(migration *supabasev1alpha1.Migration) string {
+	h := sha256.New()
+	for _, entry := range migration.Spec.Migrations {
+		// Delimiter ensures concatenation is unambiguous
+		h.Write([]byte(entry.SQL))
+		h.Write([]byte("\x00MIGRATION\x00"))
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

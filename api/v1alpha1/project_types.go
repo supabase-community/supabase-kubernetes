@@ -58,6 +58,14 @@ type ProjectStatus struct {
 	// Conditions represent the latest available observations of the Project's state
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// JwtSyncHash is the hash of the JWT configuration last successfully applied by the sync job.
+	// +optional
+	JwtSyncHash string `json:"jwtSyncHash,omitempty"`
+
+	// PasswordSyncHash is the hash of the password configuration last successfully applied by the sync job.
+	// +optional
+	PasswordSyncHash string `json:"passwordSyncHash,omitempty"`
 }
 
 // +kubebuilder:object:root=true

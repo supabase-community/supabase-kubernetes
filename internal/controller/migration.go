@@ -124,7 +124,7 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	job := &batchv1.Job{}
-	if err := r.Get(ctx, types.NamespacedName{Name: migrationpkg.JobName(migration), Namespace: migration.Namespace}, job); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: migrationpkg.MigrationJobName(migration), Namespace: migration.Namespace}, job); err != nil {
 		logger.Error(err, "Failed to get Job")
 		reconciler.SetNotReady(migration, "JobGetFailed", err.Error())
 		if statusErr := reconciler.UpdateStatus(ctx, r.Client, migration); statusErr != nil {
@@ -161,7 +161,13 @@ func (r *MigrationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *supabasev1alpha1.Migration) error {
-	cm := migrationpkg.BuildConfigMap(migration)
+	cm, err := migrationpkg.MigrationConfigMap(migration)
+	if err != nil {
+		return fmt.Errorf("building configmap: %w", err)
+	}
+	if cm == nil {
+		return reconciler.DeleteConfigMapIfExists(ctx, r.Client, migrationpkg.MigrationConfigMapName(migration), migration.Namespace)
+	}
 
 	logger := log.FromContext(ctx).WithValues(
 		"name", cm.GetName(),
@@ -186,7 +192,13 @@ func (r *MigrationReconciler) ensureConfigMap(ctx context.Context, migration *su
 }
 
 func (r *MigrationReconciler) ensureJob(ctx context.Context, migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) error {
-	job := migrationpkg.BuildJob(migration, db)
+	job, err := migrationpkg.MigrationJob(migration, db)
+	if err != nil {
+		return fmt.Errorf("building job: %w", err)
+	}
+	if job == nil {
+		return reconciler.DeleteJobIfExists(ctx, r.Client, migrationpkg.MigrationJobName(migration), migration.Namespace)
+	}
 
 	logger := log.FromContext(ctx).WithValues(
 		"name", job.GetName(),
@@ -211,8 +223,9 @@ func (r *MigrationReconciler) ensureJob(ctx context.Context, migration *supabase
 }
 
 func (r *MigrationReconciler) markReady(ctx context.Context, migration *supabasev1alpha1.Migration) error {
-	migration.Status.AppliedHash = migrationpkg.CalculateMigrationHash(migration)
 	now := metav1.Now()
+
+	migration.Status.AppliedHash = migrationpkg.MigrationHash(migration)
 	migration.Status.AppliedAt = &now
 
 	reconciler.SetReady(migration, "ReconcileSucceeded", "Migration applied successfully")

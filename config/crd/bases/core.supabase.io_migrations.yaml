@@ -1371,8 +1371,6 @@ spec:
             - migrations
             type: object
             x-kubernetes-validations:
-            - message: databaseRef is immutable after creation
-              rule: self.databaseRef == oldSelf.databaseRef
             - message: migrations are immutable after creation
               rule: self.migrations == oldSelf.migrations
           status:

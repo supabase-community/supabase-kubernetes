@@ -20,6 +20,11 @@ package v1alpha1
 type MetaSpec struct {
 	WorkloadConfig `json:",inline"`
 
+	// Enable defines whether the Meta component is enabled
+	// +optional
+	// +kubebuilder:default=false
+	Enable *bool `json:"enable,omitempty"`
+
 	// Replicas defines the number of component instances
 	// +optional
 	// +kubebuilder:default=1

@@ -17,53 +17,62 @@ limitations under the License.
 package migration
 
 import (
-	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 const (
-	// DefaultAppName is the value for the name label.
-	DefaultAppName = "supabase"
-	// DefaultComponent is the Kubernetes component label value for migrations.
-	DefaultComponent = "migration"
-	// DefaultManagedBy is the value for the managed-by label.
-	DefaultManagedBy = "supabase-operator"
-	// DefaultContainerName is the name of the migration container.
-	DefaultContainerName = "migration"
-	// DefaultVolumeName is the name of the migration SQL volume.
-	DefaultVolumeName = "migration-sql"
-	// DefaultConfigMapKey is the ConfigMap data key for the batched SQL.
-	DefaultConfigMapKey = "batch.sql"
-	// DefaultBackoffLimit is the Job backoff limit.
-	DefaultBackoffLimit = int32(0)
-	// DefaultTTLSecondsAfterFinished is the Job TTL after finished.
-	DefaultTTLSecondsAfterFinished = int32(30)
-	// DefaultRestartPolicy is the Job pod restart policy.
-	DefaultRestartPolicy = corev1.RestartPolicyNever
-	// DefaultMigrationTable is the default name of the migrations tracking table.
-	DefaultMigrationTable = "_supabase_operator_migrations"
-	// DefaultMigrationMountPath is the mount path for the migration SQL volume.
-	DefaultMigrationMountPath = "/migrations"
-	// DefaultMigrationImage is the default container image for Migration jobs.
-	DefaultMigrationImage = "supabase/postgres:17.6.1.084"
+	// DefaultPostgresImage is the default Postgres image used by migration Jobs.
+	DefaultPostgresImage = "supabase/postgres:17.6.1.084"
+
+	// DefaultMigrationTable is the table used to track applied migrations.
+	DefaultMigrationTable = "_operator_migrations"
+
+	// DefaultBackoffLimit is the number of retries before marking a Job as failed.
+	DefaultBackoffLimit int32 = 3
+
+	// DefaultTTLSecondsAfterFinished is the TTL for cleaning up finished Jobs.
+	DefaultTTLSecondsAfterFinished int32 = 30
+
+	// MigrationsMountPath is the path where the migration ConfigMap is mounted.
+	MigrationsMountPath = "/etc/supabase/migrations"
+
+	// MigrationsBatchFile is the file name of the batched SQL inside the ConfigMap.
+	MigrationsBatchFile = "batch.sql"
 )
 
-// DefaultLabels returns the standard labels for Migration resources.
-func DefaultLabels(instanceName string) map[string]string {
+// MigrationLabels returns the common labels for a Migration and its resources.
+func MigrationLabels(migration *supabasev1alpha1.Migration) map[string]string {
 	return map[string]string{
-		"app.kubernetes.io/name":       DefaultAppName,
-		"app.kubernetes.io/instance":   instanceName,
-		"app.kubernetes.io/component":  DefaultComponent,
-		"app.kubernetes.io/managed-by": DefaultManagedBy,
+		"app.kubernetes.io/name":       "migration",
+		"app.kubernetes.io/component":  "migration",
+		"app.kubernetes.io/instance":   migration.Name,
+		"app.kubernetes.io/managed-by": "supabase-operator",
 	}
 }
 
-// ResolveImage returns the container image for a Migration.
-// If migration.Spec.Image is set, it returns that value directly.
-// Otherwise, it resolves the image from the version/component registry.
-func ResolveImage(migration *supabasev1alpha1.Migration) string {
+// MigrationSelectorLabels returns the selector labels for the Migration Job.
+func MigrationSelectorLabels(migration *supabasev1alpha1.Migration) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":      "migration",
+		"app.kubernetes.io/component": "migration",
+		"app.kubernetes.io/instance":  migration.Name,
+	}
+}
+
+// getImageOrDefault returns the Postgres image from the spec or the default image.
+func getImageOrDefault(migration *supabasev1alpha1.Migration) string {
 	if migration.Spec.Image != nil && *migration.Spec.Image != "" {
 		return *migration.Spec.Image
 	}
-	return DefaultMigrationImage
+	return DefaultPostgresImage
+}
+
+// getImagePullPolicyOrDefault returns the image pull policy from the spec or the default.
+func getImagePullPolicyOrDefault(migration *supabasev1alpha1.Migration) corev1.PullPolicy {
+	if migration.Spec.ImagePullPolicy != nil {
+		return *migration.Spec.ImagePullPolicy
+	}
+	return corev1.PullIfNotPresent
 }

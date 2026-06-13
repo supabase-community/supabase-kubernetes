@@ -25,6 +25,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 var _ = Describe("Mutate functions", func() {
@@ -105,7 +107,7 @@ var _ = Describe("Mutate functions", func() {
 	})
 
 	Context("MutateService", func() {
-		It("should copy Spec, Labels and Annotations from desired", func() {
+		It("should copy Spec and Labels from desired and merge Annotations", func() {
 			existing := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      map[string]string{"old-label": "value"},
@@ -129,12 +131,14 @@ var _ = Describe("Mutate functions", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(existing.Spec.Ports[0].Port).To(Equal(int32(8080)))
 			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
+			Expect(existing.Labels).NotTo(HaveKey("old-label"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
 		})
 	})
 
 	Context("MutateConfigMap", func() {
-		It("should copy Data, Labels and Annotations from desired", func() {
+		It("should copy Data and Labels from desired and merge Annotations", func() {
 			existing := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      map[string]string{"old-label": "value"},
@@ -154,12 +158,14 @@ var _ = Describe("Mutate functions", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(existing.Data).To(HaveKeyWithValue("new-key", "new-value"))
 			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
+			Expect(existing.Labels).NotTo(HaveKey("old-label"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
 		})
 	})
 
 	Context("MutateStatefulSet", func() {
-		It("should copy Spec, Labels and Annotations from desired", func() {
+		It("should copy Spec and Labels from desired and merge Annotations", func() {
 			existing := &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      map[string]string{"old-label": "value"},
@@ -183,12 +189,14 @@ var _ = Describe("Mutate functions", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*existing.Spec.Replicas).To(Equal(int32(3)))
 			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
+			Expect(existing.Labels).NotTo(HaveKey("old-label"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
 		})
 	})
 
 	Context("MutateDeployment", func() {
-		It("should copy Spec, Labels and Annotations from desired", func() {
+		It("should copy Spec and Labels from desired and merge Annotations", func() {
 			existing := &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      map[string]string{"old-label": "value"},
@@ -212,12 +220,14 @@ var _ = Describe("Mutate functions", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*existing.Spec.Replicas).To(Equal(int32(5)))
 			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
+			Expect(existing.Labels).NotTo(HaveKey("old-label"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
 		})
 	})
 
 	Context("MutateJob", func() {
-		It("should copy Spec, Labels and Annotations while preserving the selector and generated template labels", func() {
+		It("should copy Spec and Labels from desired and merge Annotations while preserving the selector and generated template labels", func() {
 			existing := &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      map[string]string{"old-label": "value"},
@@ -261,6 +271,8 @@ var _ = Describe("Mutate functions", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*existing.Spec.Parallelism).To(Equal(int32(3)))
 			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
+			Expect(existing.Labels).NotTo(HaveKey("old-label"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
 			Expect(existing.Spec.Selector).NotTo(BeNil())
 			Expect(existing.Spec.Selector.MatchLabels).To(HaveKeyWithValue("generated", "selector"))
@@ -269,6 +281,57 @@ var _ = Describe("Mutate functions", func() {
 			Expect(existing.Spec.Template.Labels).To(HaveKeyWithValue("batch.kubernetes.io/controller-uid", "abc-123"))
 			Expect(existing.Spec.Template.Labels).To(HaveKeyWithValue("batch.kubernetes.io/job-name", "my-job"))
 			Expect(existing.Spec.Template.Labels).To(HaveKeyWithValue("app.kubernetes.io/component", "migration"))
+		})
+	})
+
+	Context("MutateMigration", func() {
+		It("should copy Spec and Labels from desired and merge Annotations", func() {
+			existing := &supabasev1alpha1.Migration{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      map[string]string{"old-label": "value"},
+					Annotations: map[string]string{"old-anno": "value", "shared-anno": "existing"},
+				},
+				Spec: supabasev1alpha1.MigrationSpec{
+					DatabaseRef: supabasev1alpha1.DatabaseRef{
+						Kind: "SingleDatabase",
+						Name: "old-db",
+					},
+				},
+			}
+			desired := &supabasev1alpha1.Migration{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      map[string]string{"new-label": "value"},
+					Annotations: map[string]string{"new-anno": "value", "shared-anno": "desired"},
+				},
+				Spec: supabasev1alpha1.MigrationSpec{
+					DatabaseRef: supabasev1alpha1.DatabaseRef{
+						Kind: "SingleDatabase",
+						Name: "new-db",
+					},
+				},
+			}
+
+			err := MutateMigration()(existing, desired)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(existing.Spec.DatabaseRef.Name).To(Equal("new-db"))
+			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
+			Expect(existing.Labels).NotTo(HaveKey("old-label"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
+			Expect(existing.Annotations).To(HaveKeyWithValue("shared-anno", "desired"))
+		})
+	})
+
+	Context("mergeStringMaps", func() {
+		It("should preserve existing keys when desired has no annotations", func() {
+			existing := map[string]string{"existing-anno": "yes"}
+			merged := mergeStringMaps(existing, nil)
+			Expect(merged).To(HaveKeyWithValue("existing-anno", "yes"))
+		})
+
+		It("should return nil when both maps are nil", func() {
+			merged := mergeStringMaps(nil, nil)
+			Expect(merged).To(BeNil())
 		})
 	})
 })

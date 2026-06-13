@@ -3,27 +3,8 @@ kind: SingleDatabase
 metadata:
   name: supabase
 spec:
-  # image overrides the default database image
-  # image: "supabase/postgres:17.6.1.084"
-  # storage:
-  #   accessModes:
-  #     - ReadWriteOnce
-  #   size: 20Gi
-  #   deletionPolicy: Retain
-  # nodeSelector:
-  #   kubernetes.io/os: linux
-  # tolerations:
-  #   - key: "dedicated"
-  #     operator: "Equal"
-  #     value: "postgres"
-  #     effect: "NoSchedule"
-  # podAnnotations:
-  #   prometheus.io/scrape: "true"
-  # podLabels:
-  #   tier: database
-  # imagePullPolicy: IfNotPresent
-  # terminationGracePeriodSeconds: 120
-  # securityContext:
-  #   runAsNonRoot: true
-  #   runAsUser: 999
-  #   fsGroup: 999
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi
+    # deletionPolicy: Delete ## Or Retain

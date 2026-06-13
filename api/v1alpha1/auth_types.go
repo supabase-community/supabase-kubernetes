@@ -20,6 +20,11 @@ package v1alpha1
 type AuthSpec struct {
 	WorkloadConfig `json:",inline"`
 
+	// Enable defines whether the Auth component is enabled
+	// +optional
+	// +kubebuilder:default=false
+	Enable *bool `json:"enable,omitempty"`
+
 	// Replicas defines the number of component instances
 	// +optional
 	// +kubebuilder:default=1

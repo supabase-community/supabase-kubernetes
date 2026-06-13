@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -50,7 +49,6 @@ func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&supabasev1alpha1.SingleDatabase{}).
 		Owns(&corev1.Secret{}).
-		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&appsv1.StatefulSet{}).
@@ -61,7 +59,7 @@ func (r *SingleDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
@@ -75,8 +73,8 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	)
 	logger.Info("Starting SingleDatabase reconciliation")
 
-	singleDB := &supabasev1alpha1.SingleDatabase{}
-	if err := r.Get(ctx, req.NamespacedName, singleDB); err != nil {
+	db := &supabasev1alpha1.SingleDatabase{}
+	if err := r.Get(ctx, req.NamespacedName, db); err != nil {
 		if client.IgnoreNotFound(err) == nil {
 			logger.Info("SingleDatabase resource not found, likely deleted")
 			return ctrl.Result{}, nil
@@ -85,73 +83,55 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	r.defaultStorage(singleDB)
-
-	if err := r.ensureSecret(ctx, singleDB); err != nil {
+	if err := r.ensureSecret(ctx, db); err != nil {
 		logger.Error(err, "Failed to ensure Secret")
-		reconciler.SetNotReady(singleDB, "SecretFailed", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
+		reconciler.SetNotReady(db, "SecretFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, db); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after secret failure")
 		}
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureConfigMap(ctx, singleDB); err != nil {
-		logger.Error(err, "Failed to ensure ConfigMap")
-		reconciler.SetNotReady(singleDB, "ConfigMapFailed", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after ConfigMap failure")
-		}
-		return ctrl.Result{}, err
-	}
-
 	sc := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.SecretName(singleDB), Namespace: singleDB.Namespace}, sc); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.PostgresSecretName(db), Namespace: db.Namespace}, sc); err != nil {
 		logger.Error(err, "Failed to get Secret")
 		return ctrl.Result{}, err
 	}
 
-	cm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.ConfigMapName(singleDB), Namespace: singleDB.Namespace}, cm); err != nil {
-		logger.Error(err, "Failed to get ConfigMap")
-		return ctrl.Result{}, err
-	}
-
 	secretHash := helper.SecretHash(sc)
-	configMapHash := helper.ConfigMapHash(cm)
 
-	if err := r.ensurePVC(ctx, singleDB); err != nil {
+	if err := r.ensurePVC(ctx, db); err != nil {
 		logger.Error(err, "Failed to ensure PVC")
-		reconciler.SetNotReady(singleDB, "PVCFailed", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
+		reconciler.SetNotReady(db, "PVCFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, db); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after PVC failure")
 		}
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureService(ctx, singleDB); err != nil {
+	if err := r.ensureService(ctx, db); err != nil {
 		logger.Error(err, "Failed to ensure Service")
-		reconciler.SetNotReady(singleDB, "ServiceFailed", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
+		reconciler.SetNotReady(db, "ServiceFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, db); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after Service failure")
 		}
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureStatefulSet(ctx, singleDB, secretHash, configMapHash); err != nil {
+	if err := r.ensureStatefulSet(ctx, db, secretHash); err != nil {
 		logger.Error(err, "Failed to ensure StatefulSet")
-		reconciler.SetNotReady(singleDB, "StatefulSetFailed", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
+		reconciler.SetNotReady(db, "StatefulSetFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, db); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet failure")
 		}
 		return ctrl.Result{}, err
 	}
 
 	sts := &appsv1.StatefulSet{}
-	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.StatefulSetName(singleDB), Namespace: singleDB.Namespace}, sts); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: singledatabase.PostgresStatefulSetName(db), Namespace: db.Namespace}, sts); err != nil {
 		logger.Error(err, "Failed to get StatefulSet")
-		reconciler.SetNotReady(singleDB, "StatefulSetGetFailed", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
+		reconciler.SetNotReady(db, "StatefulSetGetFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, db); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet get failure")
 		}
 		return ctrl.Result{}, err
@@ -159,14 +139,14 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
 		logger.Info("Waiting for StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", *sts.Spec.Replicas)
-		reconciler.SetNotReady(singleDB, "StatefulSetNotReady", "Waiting for StatefulSet pods to be ready")
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, singleDB); statusErr != nil {
+		reconciler.SetNotReady(db, "StatefulSetNotReady", "Waiting for StatefulSet pods to be ready")
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, db); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet not ready")
 		}
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
-	if err := r.markReady(ctx, singleDB, cm); err != nil {
+	if err := r.markReady(ctx, db); err != nil {
 		logger.Error(err, "Failed to update SingleDatabase status")
 		return ctrl.Result{}, err
 	}
@@ -175,10 +155,13 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
-	sc, err := singledatabase.BuildSecret(singleDB)
+func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
+	sc, err := singledatabase.PostgresSecret(db)
 	if err != nil {
 		return fmt.Errorf("building secret: %w", err)
+	}
+	if sc == nil {
+		return reconciler.DeleteSecretIfExists(ctx, r.Client, singledatabase.PostgresSecretName(db), db.Namespace)
 	}
 
 	logger := log.FromContext(ctx).WithValues(
@@ -186,7 +169,7 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *s
 		"namespace", sc.GetNamespace(),
 	)
 
-	result, err := reconciler.EnsureResource(ctx, r.Client, sc, singleDB, reconciler.MutateSecret(singledatabase.DefaultSecretPasswordKey))
+	result, err := reconciler.EnsureResource(ctx, r.Client, sc, db, reconciler.MutateSecret(singledatabase.DefaultSecretKeyPassword))
 	if err != nil {
 		return fmt.Errorf("ensuring secret: %w", err)
 	}
@@ -203,36 +186,17 @@ func (r *SingleDatabaseReconciler) ensureSecret(ctx context.Context, singleDB *s
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) ensureConfigMap(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
-	cm := singledatabase.BuildConfigMap(singleDB)
-
-	logger := log.FromContext(ctx).WithValues(
-		"name", cm.GetName(),
-		"namespace", cm.GetNamespace(),
-	)
-
-	result, err := reconciler.EnsureResource(ctx, r.Client, cm, singleDB, reconciler.MutateConfigMap())
+func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
+	pvc, err := singledatabase.PostgresPVC(db)
 	if err != nil {
-		return fmt.Errorf("ensuring configmap: %w", err)
+		return fmt.Errorf("building pvc: %w", err)
+	}
+	if pvc == nil {
+		return reconciler.DeletePersistentVolumeClaimIfExists(ctx, r.Client, singledatabase.PostgresPVCName(db), db.Namespace)
 	}
 
-	switch result {
-	case reconciler.ResultCreated:
-		logger.Info("Created ConfigMap")
-	case reconciler.ResultUpdated:
-		logger.Info("Updated ConfigMap")
-	default:
-		logger.V(1).Info("ConfigMap unchanged")
-	}
-
-	return nil
-}
-
-func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
-	pvc := singledatabase.BuildPVC(singleDB)
-	var owner client.Object = singleDB
-	if singleDB.Spec.Storage.DeletionPolicy != nil &&
-		*singleDB.Spec.Storage.DeletionPolicy == supabasev1alpha1.DeletionPolicyRetain {
+	var owner client.Object = db
+	if singledatabase.PostgresPVCDeletionPolicy(db) == supabasev1alpha1.DeletionPolicyRetain {
 		owner = nil
 	}
 
@@ -258,15 +222,21 @@ func (r *SingleDatabaseReconciler) ensurePVC(ctx context.Context, singleDB *supa
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase) error {
-	svc := singledatabase.BuildService(singleDB)
+func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
+	svc, err := singledatabase.PostgresService(db)
+	if err != nil {
+		return fmt.Errorf("building service: %w", err)
+	}
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, singledatabase.PostgresServiceName(db), db.Namespace)
+	}
 
 	logger := log.FromContext(ctx).WithValues(
 		"name", svc.GetName(),
 		"namespace", svc.GetNamespace(),
 	)
 
-	result, err := reconciler.EnsureResource(ctx, r.Client, svc, singleDB, reconciler.MutateService())
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, db, reconciler.MutateService())
 	if err != nil {
 		return fmt.Errorf("ensuring service: %w", err)
 	}
@@ -283,15 +253,21 @@ func (r *SingleDatabaseReconciler) ensureService(ctx context.Context, singleDB *
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, secretHash, configMapHash string) error {
-	sts := singledatabase.BuildStatefulSet(singleDB, secretHash, configMapHash)
+func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, db *supabasev1alpha1.SingleDatabase, secretHash string) error {
+	sts, err := singledatabase.PostgresStatefulSet(db, secretHash)
+	if err != nil {
+		return fmt.Errorf("building statefulset: %w", err)
+	}
+	if sts == nil {
+		return reconciler.DeleteStatefulSetIfExists(ctx, r.Client, singledatabase.PostgresStatefulSetName(db), db.Namespace)
+	}
 
 	logger := log.FromContext(ctx).WithValues(
 		"name", sts.GetName(),
 		"namespace", sts.GetNamespace(),
 	)
 
-	result, err := reconciler.EnsureResource(ctx, r.Client, sts, singleDB, reconciler.MutateStatefulSet())
+	result, err := reconciler.EnsureResource(ctx, r.Client, sts, db, reconciler.MutateStatefulSet())
 	if err != nil {
 		return fmt.Errorf("ensuring statefulset: %w", err)
 	}
@@ -308,25 +284,18 @@ func (r *SingleDatabaseReconciler) ensureStatefulSet(ctx context.Context, single
 	return nil
 }
 
-func (r *SingleDatabaseReconciler) defaultStorage(singleDB *supabasev1alpha1.SingleDatabase) {
-	if singleDB.Spec.Storage == nil {
-		singleDB.Spec.Storage = singledatabase.DefaultStorage()
-	}
-}
-
-func (r *SingleDatabaseReconciler) markReady(ctx context.Context, singleDB *supabasev1alpha1.SingleDatabase, configMap *corev1.ConfigMap) error {
-	port, _ := strconv.Atoi(configMap.Data[singledatabase.DefaultConfigMapKeyPort])
-	singleDB.Status.ResolvedDatabase = &supabasev1alpha1.ResolvedDatabase{
-		Host:   fmt.Sprintf("%s.%s.svc.cluster.local", singledatabase.ServiceName(singleDB), singleDB.Namespace),
-		Port:   int32(port),
-		DBName: configMap.Data[singledatabase.DefaultConfigMapKeyDatabase],
-		User:   configMap.Data[singledatabase.DefaultConfigMapKeyUser],
+func (r *SingleDatabaseReconciler) markReady(ctx context.Context, db *supabasev1alpha1.SingleDatabase) error {
+	db.Status.ResolvedDatabase = &supabasev1alpha1.ResolvedDatabase{
+		Host:   singledatabase.PostgresServiceHost(db),
+		Port:   singledatabase.DefaultPostgresPort,
+		DBName: singledatabase.DefaultPostgresDatabase,
+		User:   singledatabase.DefaultPostgresUser,
 		PasswordRef: supabasev1alpha1.SecretKeyRef{
-			Name: singledatabase.SecretName(singleDB),
-			Key:  singledatabase.DefaultSecretPasswordKey,
+			Name: singledatabase.PostgresSecretName(db),
+			Key:  singledatabase.DefaultSecretKeyPassword,
 		},
 	}
 
-	reconciler.SetReady(singleDB, "ReconcileSucceeded", "All resources reconciled successfully")
-	return reconciler.UpdateStatus(ctx, r.Client, singleDB)
+	reconciler.SetReady(db, "ReconcileSucceeded", "All resources reconciled successfully")
+	return reconciler.UpdateStatus(ctx, r.Client, db)
 }

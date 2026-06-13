@@ -18,56 +18,27 @@ package controller
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
-	"maps"
-	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 	"github.com/supabase-community/supabase-kubernetes/internal/database"
-	"github.com/supabase-community/supabase-kubernetes/internal/helper"
-	projectpkg "github.com/supabase-community/supabase-kubernetes/internal/project"
+	"github.com/supabase-community/supabase-kubernetes/internal/project"
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
-
-const (
-	DefaultJWTExpiry = 24 * time.Hour * 365 * 10
-
-	ConditionTypeSecretsReady      = "SecretsReady"
-	ConditionTypeDatabaseReady     = "DatabaseReady"
-	ConditionTypeMigrationReady    = "MigrationReady"
-	ConditionTypeJWTSettingsReady  = "JWTSettingsReady"
-	ConditionTypePasswordSyncReady = "PasswordSyncReady"
-
-	DefaultMigrationNameSuffix = "-migration"
-
-	DefaultMigrationImage = "supabase/postgres:17.6.1.084"
-)
-
-type secretDefinition struct {
-	suffix    string
-	generator func() (map[string][]byte, error)
-}
 
 // ProjectReconciler reconciles a Project object.
 type ProjectReconciler struct {
@@ -77,32 +48,75 @@ type ProjectReconciler struct {
 	RequeueInterval time.Duration
 }
 
-// projectReconciler returns a project package reconciler backed by the same
-// client and scheme used by the controller reconciler.
-func (r *ProjectReconciler) projectReconciler() *projectpkg.Reconciler {
-	return &projectpkg.Reconciler{
-		Client: r.Client,
-		Scheme: r.Scheme,
+// SetupWithManager sets up the controller with the Manager.
+func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&supabasev1alpha1.Project{}).
+		Owns(&corev1.Secret{}).
+		Owns(&corev1.Service{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&batchv1.Job{}).
+		Owns(&supabasev1alpha1.Migration{}).
+		Watches(
+			&supabasev1alpha1.SingleDatabase{},
+			handler.EnqueueRequestsFromMapFunc(r.mapSingleDatabaseToProjects),
+		).
+		Named("project").
+		Complete(r)
+}
+
+func (r *ProjectReconciler) mapSingleDatabaseToProjects(ctx context.Context, obj client.Object) []reconcile.Request {
+	singleDB, ok := obj.(*supabasev1alpha1.SingleDatabase)
+	if !ok {
+		return nil
 	}
+
+	projects := &supabasev1alpha1.ProjectList{}
+	if err := r.List(ctx, projects); err != nil {
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for _, proj := range projects.Items {
+		if proj.Spec.DatabaseRef.Kind == "SingleDatabase" && proj.Spec.DatabaseRef.Name == singleDB.Name {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      proj.Name,
+					Namespace: proj.Namespace,
+				},
+			})
+		}
+	}
+	return requests
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=migrations/status,verbs=get
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile handles the reconciliation loop for Project resources.
+//
+//nolint:gocyclo // keep the reconciliation steps explicit
 func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx).WithValues(
+		"name", req.Name,
+		"namespace", req.Namespace,
+	)
+	logger.Info("Starting Project reconciliation")
 
-	project := &supabasev1alpha1.Project{}
-	if err := r.Get(ctx, req.NamespacedName, project); err != nil {
-		if apierrors.IsNotFound(err) {
+	proj := &supabasev1alpha1.Project{}
+	if err := r.Get(ctx, req.NamespacedName, proj); err != nil {
+		if client.IgnoreNotFound(err) == nil {
 			logger.Info("Project resource not found, likely deleted")
 			return ctrl.Result{}, nil
 		}
@@ -110,132 +124,280 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureAllSecrets(ctx, project); err != nil {
-		logger.Error(err, "Failed to ensure secrets")
-		reconciler.SetCondition(project, ConditionTypeSecretsReady, metav1.ConditionFalse, "SecretGenerationFailed", err.Error())
-		reconciler.SetNotReady(project, "SecretsNotReady", "Generated secrets are not ready")
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after secret failure")
-		}
-		return ctrl.Result{}, err
-	}
-
-	db, err := r.resolveDatabaseRef(ctx, project)
+	db, ready, err := database.ResolveRef(ctx, r.Client, proj.Spec.DatabaseRef, proj.Namespace)
 	if err != nil {
 		logger.Error(err, "Failed to resolve database reference")
-		reconciler.SetCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "DatabaseResolutionFailed", err.Error())
-		reconciler.SetNotReady(project, "DatabaseNotReady", "Database reference could not be resolved")
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
+		reconciler.SetNotReady(proj, "DatabaseResolutionFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after database resolution failure")
 		}
 		return ctrl.Result{}, err
 	}
+	if !ready {
+		logger.Info("Database reference is not ready", "databaseRef", proj.Spec.DatabaseRef.Name)
+		reconciler.SetNotReady(proj, "DatabaseNotReady", "Referenced database is not ready")
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status while waiting for database")
+		}
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+	}
 
-	migrationResult, err := r.ensureMigration(ctx, project)
-	if err != nil {
-		logger.Error(err, "Failed to ensure migration")
-		reconciler.SetCondition(project, ConditionTypeMigrationReady, metav1.ConditionFalse, "MigrationFailed", err.Error())
-		reconciler.SetCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "MigrationNotReady", "Database migration failed")
-		reconciler.SetNotReady(project, "MigrationNotReady", "Built-in migration failed or not ready")
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
+	if err := r.ensureMigration1(ctx, proj); err != nil {
+		logger.Error(err, "Failed to ensure Migration")
+		reconciler.SetNotReady(proj, "MigrationFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after migration failure")
 		}
 		return ctrl.Result{}, err
 	}
-	if migrationResult.RequeueAfter > 0 {
-		reconciler.SetCondition(project, ConditionTypeMigrationReady, metav1.ConditionFalse, "MigrationInProgress", "Built-in migration is running")
-		reconciler.SetCondition(project, ConditionTypeDatabaseReady, metav1.ConditionFalse, "MigrationInProgress", "Waiting for built-in migration to complete")
-		reconciler.SetNotReady(project, "MigrationNotReady", "Waiting for built-in migration to complete")
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status while migration in progress")
+
+	migration := &supabasev1alpha1.Migration{}
+	if err := r.Get(ctx, types.NamespacedName{Name: project.ProjectMigration1Name(proj), Namespace: proj.Namespace}, migration); err != nil {
+		logger.Error(err, "Failed to get Migration")
+		return ctrl.Result{}, err
+	}
+	if !meta.IsStatusConditionTrue(migration.Status.Conditions, reconciler.ConditionTypeReady) {
+		logger.Info("Waiting for Migration to be ready")
+		reconciler.SetNotReady(proj, "MigrationNotReady", "Waiting for migration to be ready")
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status while waiting for migration")
 		}
-		return migrationResult, nil
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 
-	reconciler.SetCondition(project, ConditionTypeMigrationReady, metav1.ConditionTrue, "MigrationApplied", "Built-in migration applied successfully")
-	reconciler.SetCondition(project, ConditionTypeDatabaseReady, metav1.ConditionTrue, "DatabaseResolved", "Database reference resolved and migration applied")
-	reconciler.SetCondition(project, ConditionTypeSecretsReady, metav1.ConditionTrue, "AllSecretsReady", "All generated secrets are present and complete")
+	if err := r.ensureJWTSecret(ctx, proj); err != nil {
+		logger.Error(err, "Failed to ensure JWT Secret")
+		reconciler.SetNotReady(proj, "JWTSecretFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after JWT secret failure")
+		}
+		return ctrl.Result{}, err
+	}
 
-	jwtResult, err := r.ensureJWTSettings(ctx, project, db)
+	if err := r.ensureKeysSecret(ctx, proj); err != nil {
+		logger.Error(err, "Failed to ensure Keys Secret")
+		reconciler.SetNotReady(proj, "KeysSecretFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after keys secret failure")
+		}
+		return ctrl.Result{}, err
+	}
+
+	jwtSecret, err := r.getJWTSecretValue(ctx, proj)
 	if err != nil {
-		logger.Error(err, "Failed to ensure JWT settings")
-		reconciler.SetCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionFalse, "JWTSettingsFailed", err.Error())
-		reconciler.SetNotReady(project, "JWTSettingsNotReady", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after JWT settings failure")
+		logger.Error(err, "Failed to get JWT secret value")
+		reconciler.SetNotReady(proj, "JWTSecretValueFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after JWT secret value failure")
 		}
 		return ctrl.Result{}, err
 	}
-	if jwtResult.RequeueAfter > 0 {
-		reconciler.SetCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionFalse, "JWTSettingsInProgress", "Waiting for JWT settings sync to complete")
-		reconciler.SetNotReady(project, "JWTSettingsNotReady", "Waiting for JWT settings sync to complete")
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status while JWT settings in progress")
-		}
-		return jwtResult, nil
-	}
 
-	reconciler.SetCondition(project, ConditionTypeJWTSettingsReady, metav1.ConditionTrue, "JWTSettingsApplied", "JWT settings applied successfully")
-
-	passwordSyncResult, err := r.ensurePasswordSync(ctx, project, db)
+	dbPassword, err := r.getDBPasswordValue(ctx, proj.Namespace, db)
 	if err != nil {
-		logger.Error(err, "Failed to ensure password sync")
-		reconciler.SetCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionFalse, "PasswordSyncFailed", err.Error())
-		reconciler.SetNotReady(project, "PasswordSyncNotReady", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after password sync failure")
-		}
-		return ctrl.Result{}, err
-	}
-	if passwordSyncResult.RequeueAfter > 0 {
-		reconciler.SetCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionFalse, "PasswordSyncInProgress", "Waiting for password sync to complete")
-		reconciler.SetNotReady(project, "PasswordSyncNotReady", "Waiting for password sync to complete")
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status while password sync in progress")
-		}
-		return passwordSyncResult, nil
-	}
-
-	reconciler.SetCondition(project, ConditionTypePasswordSyncReady, metav1.ConditionTrue, "PasswordSyncApplied", "Password sync applied successfully")
-
-	if err := r.projectReconciler().EnsureRest(ctx, project, db); err != nil {
-		logger.Error(err, "Failed to ensure Rest")
-		reconciler.SetNotReady(project, "RestNotReady", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update Project status")
+		logger.Error(err, "Failed to get database password value")
+		reconciler.SetNotReady(proj, "DBPasswordValueFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after database password value failure")
 		}
 		return ctrl.Result{}, err
 	}
 
-	if err := r.projectReconciler().EnsureMeta(ctx, project, db); err != nil {
-		logger.Error(err, "Failed to ensure Meta")
-		reconciler.SetNotReady(project, "MetaNotReady", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update Project status")
+	if project.ComputeJWTSyncHash(proj, db, dbPassword, jwtSecret) != proj.Status.JwtSyncHash {
+		if err := r.ensureSyncJWTJob(ctx, proj, db); err != nil {
+			logger.Error(err, "Failed to ensure SyncJWTJob")
+			reconciler.SetNotReady(proj, "SyncJWTJobFailed", err.Error())
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status after sync JWT job failure")
+			}
+			return ctrl.Result{}, err
+		}
+
+		syncJWTJob := &batchv1.Job{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.SyncJWTJobName(proj), Namespace: proj.Namespace}, syncJWTJob); err != nil {
+			logger.Error(err, "Failed to get SyncJWTJob")
+			return ctrl.Result{}, err
+		}
+		if syncJWTJob.Status.Failed > 0 {
+			logger.Info("SyncJWTJob failed")
+			reconciler.SetNotReady(proj, "SyncJWTJobFailed", "Sync JWT job failed")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status after sync JWT job failure")
+			}
+			return ctrl.Result{}, fmt.Errorf("sync-jwt job failed")
+		}
+		if syncJWTJob.Status.Succeeded == 0 {
+			logger.Info("Waiting for SyncJWTJob to complete")
+			reconciler.SetNotReady(proj, "SyncJWTJobInProgress", "Waiting for sync JWT job to complete")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for sync JWT job")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+
+		proj.Status.JwtSyncHash = project.ComputeJWTSyncHash(proj, db, dbPassword, jwtSecret)
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update JwtSyncHash status")
+			return ctrl.Result{}, statusErr
+		}
+	}
+
+	if project.ComputePasswordSyncHash(proj, db, dbPassword) != proj.Status.PasswordSyncHash {
+		if err := r.ensureSyncPasswordJob(ctx, proj, db); err != nil {
+			logger.Error(err, "Failed to ensure SyncPasswordJob")
+			reconciler.SetNotReady(proj, "SyncPasswordJobFailed", err.Error())
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status after sync password job failure")
+			}
+			return ctrl.Result{}, err
+		}
+
+		syncPasswordJob := &batchv1.Job{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.SyncPasswordJobName(proj), Namespace: proj.Namespace}, syncPasswordJob); err != nil {
+			logger.Error(err, "Failed to get SyncPasswordJob")
+			return ctrl.Result{}, err
+		}
+		if syncPasswordJob.Status.Failed > 0 {
+			logger.Info("SyncPasswordJob failed")
+			reconciler.SetNotReady(proj, "SyncPasswordJobFailed", "Sync password job failed")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status after sync password job failure")
+			}
+			return ctrl.Result{}, fmt.Errorf("sync-password job failed")
+		}
+		if syncPasswordJob.Status.Succeeded == 0 {
+			logger.Info("Waiting for SyncPasswordJob to complete")
+			reconciler.SetNotReady(proj, "SyncPasswordJobInProgress", "Waiting for sync password job to complete")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for sync password job")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+
+		proj.Status.PasswordSyncHash = project.ComputePasswordSyncHash(proj, db, dbPassword)
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update PasswordSyncHash status")
+			return ctrl.Result{}, statusErr
+		}
+	}
+
+	if err := r.ensureAuth(ctx, proj, db); err != nil {
+		logger.Error(err, "Failed to ensure Auth component")
+		reconciler.SetNotReady(proj, "AuthFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after auth failure")
 		}
 		return ctrl.Result{}, err
 	}
 
-	if err := r.projectReconciler().EnsureRealtime(ctx, project, db); err != nil {
-		logger.Error(err, "Failed to ensure Realtime")
-		reconciler.SetNotReady(project, "RealtimeNotReady", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update Project status")
+	if err := r.ensureRest(ctx, proj, db); err != nil {
+		logger.Error(err, "Failed to ensure Rest component")
+		reconciler.SetNotReady(proj, "RestFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after rest failure")
 		}
 		return ctrl.Result{}, err
 	}
 
-	if err := r.projectReconciler().EnsureAuth(ctx, project, db); err != nil {
-		logger.Error(err, "Failed to ensure Auth")
-		reconciler.SetNotReady(project, "AuthNotReady", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, project); statusErr != nil {
-			logger.Error(statusErr, "Failed to update Project status")
+	if err := r.ensureMeta(ctx, proj, db); err != nil {
+		logger.Error(err, "Failed to ensure Meta component")
+		reconciler.SetNotReady(proj, "MetaFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after meta failure")
 		}
 		return ctrl.Result{}, err
 	}
 
-	reconciler.SetReady(project, "ReconcileSucceeded", "All resources reconciled successfully")
-	if err := reconciler.UpdateStatus(ctx, r.Client, project); err != nil {
+	if err := r.ensureRealtime(ctx, proj, db); err != nil {
+		logger.Error(err, "Failed to ensure Realtime component")
+		reconciler.SetNotReady(proj, "RealtimeFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after realtime failure")
+		}
+		return ctrl.Result{}, err
+	}
+
+	if proj.Spec.Auth != nil && *proj.Spec.Auth.Enable {
+		deploy := &appsv1.Deployment{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.AuthDeploymentName(proj), Namespace: proj.Namespace}, deploy); err != nil {
+			logger.Error(err, "Failed to get Auth Deployment")
+			return ctrl.Result{}, err
+		}
+		replicas := int32(1)
+		if deploy.Spec.Replicas != nil {
+			replicas = *deploy.Spec.Replicas
+		}
+		if deploy.Status.ReadyReplicas < replicas {
+			logger.Info("Waiting for Auth Deployment to be ready", "readyReplicas", deploy.Status.ReadyReplicas, "replicas", replicas)
+			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for deployments")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
+	if proj.Spec.Rest != nil && *proj.Spec.Rest.Enable {
+		deploy := &appsv1.Deployment{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.RestDeploymentName(proj), Namespace: proj.Namespace}, deploy); err != nil {
+			logger.Error(err, "Failed to get Rest Deployment")
+			return ctrl.Result{}, err
+		}
+		replicas := int32(1)
+		if deploy.Spec.Replicas != nil {
+			replicas = *deploy.Spec.Replicas
+		}
+		if deploy.Status.ReadyReplicas < replicas {
+			logger.Info("Waiting for Rest Deployment to be ready", "readyReplicas", deploy.Status.ReadyReplicas, "replicas", replicas)
+			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for deployments")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
+	if proj.Spec.Meta != nil && *proj.Spec.Meta.Enable {
+		deploy := &appsv1.Deployment{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.MetaDeploymentName(proj), Namespace: proj.Namespace}, deploy); err != nil {
+			logger.Error(err, "Failed to get Meta Deployment")
+			return ctrl.Result{}, err
+		}
+		replicas := int32(1)
+		if deploy.Spec.Replicas != nil {
+			replicas = *deploy.Spec.Replicas
+		}
+		if deploy.Status.ReadyReplicas < replicas {
+			logger.Info("Waiting for Meta Deployment to be ready", "readyReplicas", deploy.Status.ReadyReplicas, "replicas", replicas)
+			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for deployments")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
+	if proj.Spec.Realtime != nil && *proj.Spec.Realtime.Enable {
+		deploy := &appsv1.Deployment{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.RealtimeDeploymentName(proj), Namespace: proj.Namespace}, deploy); err != nil {
+			logger.Error(err, "Failed to get Realtime Deployment")
+			return ctrl.Result{}, err
+		}
+		replicas := int32(1)
+		if deploy.Spec.Replicas != nil {
+			replicas = *deploy.Spec.Replicas
+		}
+		if deploy.Status.ReadyReplicas < replicas {
+			logger.Info("Waiting for Realtime Deployment to be ready", "readyReplicas", deploy.Status.ReadyReplicas, "replicas", replicas)
+			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for deployments")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
+	if err := r.markReady(ctx, proj); err != nil {
 		logger.Error(err, "Failed to update Project status")
 		return ctrl.Result{}, err
 	}
@@ -244,603 +406,522 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-// secretDefinitions returns the list of secrets that must exist for a Project.
-//
-//nolint:unparam
-func (r *ProjectReconciler) secretDefinitions(project *supabasev1alpha1.Project) []secretDefinition {
-	return []secretDefinition{
-		{
-			suffix: "jwt",
-			generator: func() (map[string][]byte, error) {
-				return GenerateJWTSecretData(time.Now(), DefaultJWTExpiry)
-			},
-		},
-		{suffix: "keys", generator: func() (map[string][]byte, error) { return GenerateKeysSecretData() }},
+func (r *ProjectReconciler) ensureMigration1(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	migration, err := project.ProjectMigration1(proj)
+	if err != nil {
+		return fmt.Errorf("building migration: %w", err)
 	}
+	if migration == nil {
+		return reconciler.DeleteMigrationIfExists(ctx, r.Client, project.ProjectMigration1Name(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", migration.GetName(),
+		"namespace", migration.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, migration, proj, reconciler.MutateMigration())
+	if err != nil {
+		return fmt.Errorf("ensuring migration: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Migration")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Migration")
+	default:
+		logger.V(1).Info("Migration unchanged")
+	}
+
+	return nil
 }
 
-// ensureAllSecrets iterates over all secret definitions and ensures each one exists with all required keys.
-func (r *ProjectReconciler) ensureAllSecrets(ctx context.Context, project *supabasev1alpha1.Project) error {
-	for _, def := range r.secretDefinitions(project) {
-		secretName := fmt.Sprintf("%s-%s", project.Name, def.suffix)
-		if err := r.ensureSecret(ctx, project, secretName, def.generator); err != nil {
-			return fmt.Errorf("ensuring secret %q: %w", secretName, err)
-		}
+func (r *ProjectReconciler) ensureSyncJWTJob(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	job, err := project.SyncJWTJob(proj, db)
+	if err != nil {
+		return fmt.Errorf("building sync-jwt job: %w", err)
+	}
+	if job == nil {
+		return reconciler.DeleteJobIfExists(ctx, r.Client, project.SyncJWTJobName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", job.GetName(),
+		"namespace", job.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, job, proj, reconciler.MutateJob())
+	if err != nil {
+		return fmt.Errorf("ensuring sync-jwt job: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created sync-jwt Job")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated sync-jwt Job")
+	default:
+		logger.V(1).Info("sync-jwt Job unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureSyncPasswordJob(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	job, err := project.SyncPasswordJob(proj, db)
+	if err != nil {
+		return fmt.Errorf("building sync-password job: %w", err)
+	}
+	if job == nil {
+		return reconciler.DeleteJobIfExists(ctx, r.Client, project.SyncPasswordJobName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", job.GetName(),
+		"namespace", job.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, job, proj, reconciler.MutateJob())
+	if err != nil {
+		return fmt.Errorf("ensuring sync-password job: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created sync-password Job")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated sync-password Job")
+	default:
+		logger.V(1).Info("sync-password Job unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureJWTSecret(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	sc, err := project.JWTSecret(proj)
+	if err != nil {
+		return fmt.Errorf("building JWT secret: %w", err)
+	}
+	if sc == nil {
+		return reconciler.DeleteSecretIfExists(ctx, r.Client, project.JWTSecretName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", sc.GetName(),
+		"namespace", sc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, sc, proj, reconciler.MutateSecret(
+		project.JWTSecretKey,
+		project.JWTSecretAnonKey,
+		project.JWTSecretServiceKey,
+		project.JWTSecretKeys,
+		project.JWTSecretJWKS,
+		project.JWTSecretAnonKeyAsym,
+		project.JWTSecretServiceKeyAsym,
+		project.JWTSecretPublishableKey,
+		project.JWTSecretOpaqueKey,
+	))
+	if err != nil {
+		return fmt.Errorf("ensuring JWT secret: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created JWT Secret")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated JWT Secret")
+	default:
+		logger.V(1).Info("JWT Secret unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureKeysSecret(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	sc, err := project.KeysSecret(proj)
+	if err != nil {
+		return fmt.Errorf("building keys secret: %w", err)
+	}
+	if sc == nil {
+		return reconciler.DeleteSecretIfExists(ctx, r.Client, project.KeysSecretName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", sc.GetName(),
+		"namespace", sc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, sc, proj, reconciler.MutateSecret(
+		project.KeysSecretSecretKeyBase,
+		project.KeysSecretCryptoKey,
+		project.KeysSecretVaultEncKey,
+	))
+	if err != nil {
+		return fmt.Errorf("ensuring keys secret: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Keys Secret")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Keys Secret")
+	default:
+		logger.V(1).Info("Keys Secret unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureAuthSecret(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	sc, err := project.AuthSecret(proj)
+	if err != nil {
+		return fmt.Errorf("building auth secret: %w", err)
+	}
+	if sc == nil {
+		return reconciler.DeleteSecretIfExists(ctx, r.Client, project.AuthSecretName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", sc.GetName(),
+		"namespace", sc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, sc, proj, reconciler.MutateSecret(project.AuthSecretSAMLPrivateKey))
+	if err != nil {
+		return fmt.Errorf("ensuring auth secret: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Auth Secret")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Auth Secret")
+	default:
+		logger.V(1).Info("Auth Secret unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureAuth(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	if err := r.ensureAuthSecret(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring auth secret: %w", err)
+	}
+	if err := r.ensureAuthService(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring auth service: %w", err)
+	}
+	if err := r.ensureAuthDeployment(ctx, proj, db); err != nil {
+		return fmt.Errorf("ensuring auth deployment: %w", err)
 	}
 	return nil
 }
 
-// ensureSecret ensures a Kubernetes Secret exists with all required keys.
-func (r *ProjectReconciler) ensureSecret(
-	ctx context.Context,
-	owner *supabasev1alpha1.Project,
-	name string,
-	generator func() (map[string][]byte, error),
-) error {
-	logger := log.FromContext(ctx).WithValues("secret", name)
-
-	existing := &corev1.Secret{}
-	err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: owner.Namespace}, existing)
-
-	if apierrors.IsNotFound(err) {
-		logger.Info("Creating generated secret")
-
-		data, genErr := generator()
-		if genErr != nil {
-			return fmt.Errorf("generating data for new secret: %w", genErr)
-		}
-
-		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: owner.Namespace,
-			},
-			Data: data,
-		}
-
-		if err := controllerutil.SetControllerReference(owner, secret, r.Scheme); err != nil {
-			return fmt.Errorf("setting owner reference: %w", err)
-		}
-
-		if err := r.Create(ctx, secret); err != nil {
-			return fmt.Errorf("creating secret: %w", err)
-		}
-
-		logger.Info("Created generated secret")
-		return nil
+func (r *ProjectReconciler) ensureRest(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	if err := r.ensureRestService(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring rest service: %w", err)
 	}
-
-	if err != nil {
-		return fmt.Errorf("getting existing secret: %w", err)
+	if err := r.ensureRestDeployment(ctx, proj, db); err != nil {
+		return fmt.Errorf("ensuring rest deployment: %w", err)
 	}
-
-	data, genErr := generator()
-	if genErr != nil {
-		return fmt.Errorf("generating data to check missing keys: %w", genErr)
-	}
-
-	missingKeys := make(map[string][]byte)
-	for key, val := range data {
-		if _, found := existing.Data[key]; !found {
-			missingKeys[key] = val
-		}
-	}
-
-	if len(missingKeys) == 0 {
-		logger.V(1).Info("Secret is complete, no missing keys")
-		return nil
-	}
-
-	logger.Info("Patching missing keys into secret", "missingKeys", keysOf(missingKeys))
-
-	if existing.Data == nil {
-		existing.Data = make(map[string][]byte)
-	}
-	maps.Copy(existing.Data, missingKeys)
-
-	if err := r.Update(ctx, existing); err != nil {
-		return fmt.Errorf("updating secret with missing keys: %w", err)
-	}
-
-	logger.Info("Patched missing keys into secret")
 	return nil
 }
 
-func (r *ProjectReconciler) resolveDatabaseRef(ctx context.Context, project *supabasev1alpha1.Project) (*supabasev1alpha1.ResolvedDatabase, error) {
-	db, ready, err := database.ResolveRef(ctx, r.Client, project.Spec.DatabaseRef, project.Namespace)
+func (r *ProjectReconciler) ensureMeta(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	if err := r.ensureMetaService(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring meta service: %w", err)
+	}
+	if err := r.ensureMetaDeployment(ctx, proj, db); err != nil {
+		return fmt.Errorf("ensuring meta deployment: %w", err)
+	}
+	return nil
+}
+
+func (r *ProjectReconciler) ensureRealtime(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	if err := r.ensureRealtimeService(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring realtime service: %w", err)
+	}
+	if err := r.ensureRealtimeDeployment(ctx, proj, db); err != nil {
+		return fmt.Errorf("ensuring realtime deployment: %w", err)
+	}
+	return nil
+}
+
+func (r *ProjectReconciler) ensureAuthService(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	svc, err := project.AuthService(proj)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("building auth service: %w", err)
 	}
-	if !ready {
-		return nil, fmt.Errorf("database reference %q is not ready", project.Spec.DatabaseRef.Name)
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, project.AuthServiceName(proj), proj.Namespace)
 	}
-	return db, nil
-}
 
-// keysOf returns the keys of a map as a string slice (for logging).
-func keysOf(m map[string][]byte) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
 
-func (r *ProjectReconciler) migrationName(project *supabasev1alpha1.Project, index int) string {
-	return fmt.Sprintf("%s%s-%d", project.Name, DefaultMigrationNameSuffix, index)
-}
-
-func (r *ProjectReconciler) buildMigration(project *supabasev1alpha1.Project, index int, files []string) (*supabasev1alpha1.Migration, error) {
-	entries, err := projectpkg.LoadMigrationEntries(files)
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, proj, reconciler.MutateService())
 	if err != nil {
-		return nil, fmt.Errorf("loading default migrations: %w", err)
+		return fmt.Errorf("ensuring auth service: %w", err)
 	}
-	return &supabasev1alpha1.Migration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.migrationName(project, index),
-			Namespace: project.Namespace,
-		},
-		Spec: supabasev1alpha1.MigrationSpec{
-			DatabaseRef: project.Spec.DatabaseRef,
-			Migrations:  entries,
-		},
-	}, nil
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Auth Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Auth Service")
+	default:
+		logger.V(1).Info("Auth Service unchanged")
+	}
+
+	return nil
 }
 
-func (r *ProjectReconciler) ensureMigration(ctx context.Context, project *supabasev1alpha1.Project) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
-	for i, batch := range projectpkg.DefaultMigrations {
-		migrationName := r.migrationName(project, i)
-		migrationLogger := logger.WithValues("migration", migrationName)
-
-		migration := &supabasev1alpha1.Migration{}
-		err := r.Get(ctx, types.NamespacedName{Name: migrationName, Namespace: project.Namespace}, migration)
-
-		if err != nil {
-			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, fmt.Errorf("getting migration %s: %w", migrationName, err)
-			}
-
-			migrationLogger.Info("Creating built-in migration")
-			migration, err = r.buildMigration(project, i, batch)
-			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("building migration %s: %w", migrationName, err)
-			}
-			if err := controllerutil.SetControllerReference(project, migration, r.Scheme); err != nil {
-				return ctrl.Result{}, fmt.Errorf("setting owner reference on migration %s: %w", migrationName, err)
-			}
-			if err := r.Create(ctx, migration); err != nil {
-				return ctrl.Result{}, fmt.Errorf("creating migration %s: %w", migrationName, err)
-			}
-			migrationLogger.Info("Created built-in migration")
-			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
-		}
-
-		cond := meta.FindStatusCondition(migration.Status.Conditions, reconciler.ConditionTypeReady)
-		if cond != nil && cond.Status == metav1.ConditionTrue {
-			continue
-		}
-
-		if cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "MigrationFailed" {
-			return ctrl.Result{}, fmt.Errorf("migration %s failed: %s", migrationName, cond.Message)
-		}
-
-		migrationLogger.Info("Waiting for migration to complete")
-		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
-	}
-
-	logger.Info("All migrations applied")
-	return ctrl.Result{}, nil
-}
-
-func (r *ProjectReconciler) jwtSyncJobName(project *supabasev1alpha1.Project) string {
-	return project.Name + "-sync-jwt"
-}
-
-func (r *ProjectReconciler) calculateJWTSettingsHash(secretData []byte, expirySeconds int32) string {
-	h := sha256.New()
-	h.Write(secretData)
-	h.Write([]byte(strconv.Itoa(int(expirySeconds))))
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-func (r *ProjectReconciler) ensureJWTSettings(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
-	jwtSecret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: project.Name + "-jwt", Namespace: project.Namespace}, jwtSecret); err != nil {
-		if apierrors.IsNotFound(err) {
-			logger.Info("JWT secret not found, skipping JWT settings sync")
-			return ctrl.Result{}, nil
-		}
-		return ctrl.Result{}, fmt.Errorf("getting JWT secret: %w", err)
-	}
-
-	expirySeconds := int32(3600)
-	if project.Spec.JWTExpSec != nil {
-		expirySeconds = *project.Spec.JWTExpSec
-	}
-
-	currentHash := r.calculateJWTSettingsHash(jwtSecret.Data["jwt-secret"], expirySeconds)
-
-	if project.Annotations != nil && project.Annotations["core.supabase.io/last-applied-sync-jwt-hash"] == currentHash {
-		return ctrl.Result{}, nil
-	}
-
-	jobName := r.jwtSyncJobName(project)
-	job := &batchv1.Job{}
-	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: project.Namespace}, job)
-
+func (r *ProjectReconciler) ensureAuthDeployment(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	deploy, err := project.AuthDeployment(proj, db)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("getting JWT sync job: %w", err)
-		}
-
-		logger.Info("Creating JWT settings sync job", "job", jobName)
-		job = r.buildJWTSettingsJob(project, db, expirySeconds)
-		if err := controllerutil.SetControllerReference(project, job, r.Scheme); err != nil {
-			return ctrl.Result{}, fmt.Errorf("setting owner reference on JWT sync job: %w", err)
-		}
-		if err := r.Create(ctx, job); err != nil {
-			return ctrl.Result{}, fmt.Errorf("creating JWT sync job: %w", err)
-		}
-		logger.Info("Created JWT settings sync job", "job", jobName)
-		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		return fmt.Errorf("building auth deployment: %w", err)
+	}
+	if deploy == nil {
+		return reconciler.DeleteDeploymentIfExists(ctx, r.Client, project.AuthDeploymentName(proj), proj.Namespace)
 	}
 
-	if job.Status.Succeeded > 0 {
-		if project.Annotations == nil {
-			project.Annotations = map[string]string{}
-		}
-		project.Annotations["core.supabase.io/last-applied-sync-jwt-hash"] = currentHash
-		if err := r.Update(ctx, project); err != nil {
-			logger.Error(err, "Failed to update project annotation after JWT sync", "job", jobName)
-			return ctrl.Result{}, fmt.Errorf("updating project annotation after JWT sync: %w", err)
-		}
+	logger := log.FromContext(ctx).WithValues(
+		"name", deploy.GetName(),
+		"namespace", deploy.GetNamespace(),
+	)
 
-		propagation := metav1.DeletePropagationBackground
-		if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagation}); err != nil && !apierrors.IsNotFound(err) {
-			logger.Error(err, "Failed to delete JWT sync job", "job", jobName)
-		} else {
-			logger.Info("Deleted JWT sync job", "job", jobName)
-		}
-
-		logger.Info("JWT settings sync completed", "job", jobName)
-		return ctrl.Result{}, nil
+	result, err := reconciler.EnsureResource(ctx, r.Client, deploy, proj, reconciler.MutateDeployment())
+	if err != nil {
+		return fmt.Errorf("ensuring auth deployment: %w", err)
 	}
 
-	if job.Status.Failed > 0 {
-		return ctrl.Result{}, fmt.Errorf("JWT sync job %s failed", jobName)
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Auth Deployment")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Auth Deployment")
+	default:
+		logger.V(1).Info("Auth Deployment unchanged")
 	}
 
-	logger.Info("Waiting for JWT settings sync to complete", "job", jobName)
-	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+	return nil
 }
 
-func (r *ProjectReconciler) buildJWTSettingsJob(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, expirySeconds int32) *batchv1.Job {
-	backoffLimit := int32(0)
-	ttlSecondsAfterFinished := int32(86400)
-
-	image := DefaultMigrationImage
-
-	env := []corev1.EnvVar{
-		helper.EnvVarFromSecret("PGPASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
-		helper.EnvVar("PGHOST", db.Host),
-		helper.EnvVar("PGPORT", fmt.Sprintf("%d", db.Port)),
-		helper.EnvVar("PGUSER", "supabase_admin"),
-		helper.EnvVar("PGDATABASE", db.DBName),
-		helper.EnvVarFromSecret("JWT_SECRET", project.Name+"-jwt", "jwt-secret"),
-		helper.EnvVar("JWT_EXP", strconv.Itoa(int(expirySeconds))),
+func (r *ProjectReconciler) ensureRestService(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	svc, err := project.RestService(proj)
+	if err != nil {
+		return fmt.Errorf("building rest service: %w", err)
+	}
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, project.RestServiceName(proj), proj.Namespace)
 	}
 
-	return &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.jwtSyncJobName(project),
-			Namespace: project.Namespace,
-		},
-		Spec: batchv1.JobSpec{
-			BackoffLimit:            &backoffLimit,
-			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:    "sync-jwt",
-							Image:   image,
-							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{assets.ProjectSyncJWTScript},
-							Env:     env,
-						},
-					},
-				},
-			},
-		},
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, proj, reconciler.MutateService())
+	if err != nil {
+		return fmt.Errorf("ensuring rest service: %w", err)
 	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Rest Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Rest Service")
+	default:
+		logger.V(1).Info("Rest Service unchanged")
+	}
+
+	return nil
 }
 
-func (r *ProjectReconciler) passwordSyncJobName(project *supabasev1alpha1.Project) string {
-	return project.Name + "-sync-password"
+func (r *ProjectReconciler) ensureRestDeployment(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	deploy, err := project.RestDeployment(proj, db)
+	if err != nil {
+		return fmt.Errorf("building rest deployment: %w", err)
+	}
+	if deploy == nil {
+		return reconciler.DeleteDeploymentIfExists(ctx, r.Client, project.RestDeploymentName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", deploy.GetName(),
+		"namespace", deploy.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, deploy, proj, reconciler.MutateDeployment())
+	if err != nil {
+		return fmt.Errorf("ensuring rest deployment: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Rest Deployment")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Rest Deployment")
+	default:
+		logger.V(1).Info("Rest Deployment unchanged")
+	}
+
+	return nil
 }
 
-func (r *ProjectReconciler) calculatePasswordHash(secretData []byte) string {
-	h := sha256.New()
-	h.Write(secretData)
-	return fmt.Sprintf("%x", h.Sum(nil))
+func (r *ProjectReconciler) ensureMetaService(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	svc, err := project.MetaService(proj)
+	if err != nil {
+		return fmt.Errorf("building meta service: %w", err)
+	}
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, project.MetaServiceName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, proj, reconciler.MutateService())
+	if err != nil {
+		return fmt.Errorf("ensuring meta service: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Meta Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Meta Service")
+	default:
+		logger.V(1).Info("Meta Service unchanged")
+	}
+
+	return nil
 }
 
-func (r *ProjectReconciler) ensurePasswordSync(ctx context.Context, project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+func (r *ProjectReconciler) ensureMetaDeployment(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	deploy, err := project.MetaDeployment(proj, db)
+	if err != nil {
+		return fmt.Errorf("building meta deployment: %w", err)
+	}
+	if deploy == nil {
+		return reconciler.DeleteDeploymentIfExists(ctx, r.Client, project.MetaDeploymentName(proj), proj.Namespace)
+	}
 
-	passwordRef := db.PasswordRef
+	logger := log.FromContext(ctx).WithValues(
+		"name", deploy.GetName(),
+		"namespace", deploy.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, deploy, proj, reconciler.MutateDeployment())
+	if err != nil {
+		return fmt.Errorf("ensuring meta deployment: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Meta Deployment")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Meta Deployment")
+	default:
+		logger.V(1).Info("Meta Deployment unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureRealtimeService(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	svc, err := project.RealtimeService(proj)
+	if err != nil {
+		return fmt.Errorf("building realtime service: %w", err)
+	}
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, project.RealtimeServiceName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, proj, reconciler.MutateService())
+	if err != nil {
+		return fmt.Errorf("ensuring realtime service: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Realtime Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Realtime Service")
+	default:
+		logger.V(1).Info("Realtime Service unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureRealtimeDeployment(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	deploy, err := project.RealtimeDeployment(proj, db)
+	if err != nil {
+		return fmt.Errorf("building realtime deployment: %w", err)
+	}
+	if deploy == nil {
+		return reconciler.DeleteDeploymentIfExists(ctx, r.Client, project.RealtimeDeploymentName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", deploy.GetName(),
+		"namespace", deploy.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, deploy, proj, reconciler.MutateDeployment())
+	if err != nil {
+		return fmt.Errorf("ensuring realtime deployment: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Realtime Deployment")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Realtime Deployment")
+	default:
+		logger.V(1).Info("Realtime Deployment unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) getJWTSecretValue(ctx context.Context, proj *supabasev1alpha1.Project) (string, error) {
 	secret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: passwordRef.Name, Namespace: project.Namespace}, secret); err != nil {
-		if apierrors.IsNotFound(err) {
-			logger.Info("Password secret not found, skipping password sync")
-			return ctrl.Result{}, nil
-		}
-		return ctrl.Result{}, fmt.Errorf("getting password secret: %w", err)
+	if err := r.Get(ctx, types.NamespacedName{Name: project.JWTSecretName(proj), Namespace: proj.Namespace}, secret); err != nil {
+		return "", fmt.Errorf("getting JWT secret: %w", err)
 	}
-
-	password := string(secret.Data[passwordRef.Key])
-	currentHash := r.calculatePasswordHash([]byte(password))
-
-	if project.Annotations != nil && project.Annotations["core.supabase.io/last-applied-password-hash"] == currentHash {
-		return ctrl.Result{}, nil
+	value, ok := secret.Data[project.JWTSecretKey]
+	if !ok {
+		return "", fmt.Errorf("JWT secret key %q not found", project.JWTSecretKey)
 	}
-
-	jobName := r.passwordSyncJobName(project)
-	job := &batchv1.Job{}
-	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: project.Namespace}, job)
-
-	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("getting password sync job: %w", err)
-		}
-
-		logger.Info("Creating password sync job", "job", jobName)
-		job = r.buildPasswordSyncJob(project, db, password)
-		if err := controllerutil.SetControllerReference(project, job, r.Scheme); err != nil {
-			return ctrl.Result{}, fmt.Errorf("setting owner reference on password sync job: %w", err)
-		}
-		if err := r.Create(ctx, job); err != nil {
-			return ctrl.Result{}, fmt.Errorf("creating password sync job: %w", err)
-		}
-		logger.Info("Created password sync job", "job", jobName)
-		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
-	}
-
-	if job.Status.Succeeded > 0 {
-		if project.Annotations == nil {
-			project.Annotations = map[string]string{}
-		}
-		project.Annotations["core.supabase.io/last-applied-password-hash"] = currentHash
-		if err := r.Update(ctx, project); err != nil {
-			logger.Error(err, "Failed to update project annotation after password sync", "job", jobName)
-			return ctrl.Result{}, fmt.Errorf("updating project annotation after password sync: %w", err)
-		}
-
-		propagation := metav1.DeletePropagationBackground
-		if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagation}); err != nil && !apierrors.IsNotFound(err) {
-			logger.Error(err, "Failed to delete password sync job", "job", jobName)
-		} else {
-			logger.Info("Deleted password sync job", "job", jobName)
-		}
-
-		logger.Info("Password sync completed", "job", jobName)
-		return ctrl.Result{}, nil
-	}
-
-	if job.Status.Failed > 0 {
-		return ctrl.Result{}, fmt.Errorf("password sync job %s failed", jobName)
-	}
-
-	logger.Info("Waiting for password sync to complete", "job", jobName)
-	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+	return string(value), nil
 }
 
-func (r *ProjectReconciler) buildPasswordSyncJob(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, password string) *batchv1.Job {
-	backoffLimit := int32(0)
-	ttlSecondsAfterFinished := int32(86400)
-
-	image := DefaultMigrationImage
-
-	env := []corev1.EnvVar{
-		helper.EnvVar("PGPASSWORD", password),
-		helper.EnvVar("PGHOST", db.Host),
-		helper.EnvVar("PGPORT", fmt.Sprintf("%d", db.Port)),
-		helper.EnvVar("PGUSER", "supabase_admin"),
-		helper.EnvVar("PGDATABASE", db.DBName),
-		helper.EnvVar("DB_ADMIN_USER", "supabase_admin"),
-		helper.EnvVar("DB_SRV_NAME", fmt.Sprintf("%s.%s.svc.cluster.local", db.Host, project.Namespace)),
-		helper.EnvVar("DB_SRV_PORT", fmt.Sprintf("%d", db.Port)),
+func (r *ProjectReconciler) getDBPasswordValue(ctx context.Context, namespace string, db *supabasev1alpha1.ResolvedDatabase) (string, error) {
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: db.PasswordRef.Name, Namespace: namespace}, secret); err != nil {
+		return "", fmt.Errorf("getting database password secret: %w", err)
 	}
-
-	return &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.passwordSyncJobName(project),
-			Namespace: project.Namespace,
-		},
-		Spec: batchv1.JobSpec{
-			BackoffLimit:            &backoffLimit,
-			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:    "sync-password",
-							Image:   image,
-							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{assets.ProjectSyncPasswordScript},
-							Env:     env,
-						},
-					},
-				},
-			},
-		},
+	value, ok := secret.Data[db.PasswordRef.Key]
+	if !ok {
+		return "", fmt.Errorf("database password secret key %q not found", db.PasswordRef.Key)
 	}
+	return string(value), nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	singleDatabaseToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		singleDB, ok := obj.(*supabasev1alpha1.SingleDatabase)
-		if !ok {
-			return nil
-		}
-
-		projectList := &supabasev1alpha1.ProjectList{}
-		if err := r.List(ctx, projectList, client.InNamespace(singleDB.Namespace)); err != nil {
-			return nil
-		}
-
-		var requests []reconcile.Request
-		for i := range projectList.Items {
-			if projectList.Items[i].Spec.DatabaseRef.Kind == "SingleDatabase" &&
-				projectList.Items[i].Spec.DatabaseRef.Name == singleDB.Name {
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      projectList.Items[i].Name,
-						Namespace: projectList.Items[i].Namespace,
-					},
-				})
-			}
-		}
-		return requests
-	})
-
-	migrationToProject := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-		migration, ok := obj.(*supabasev1alpha1.Migration)
-		if !ok {
-			return nil
-		}
-		for _, ref := range migration.OwnerReferences {
-			if ref.Kind == "Project" {
-				return []reconcile.Request{{
-					NamespacedName: types.NamespacedName{
-						Name:      ref.Name,
-						Namespace: migration.Namespace,
-					},
-				}}
-			}
-		}
-		return nil
-	})
-
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&supabasev1alpha1.Project{}).
-		Watches(&supabasev1alpha1.SingleDatabase{}, singleDatabaseToProject).
-		Watches(&supabasev1alpha1.Migration{}, migrationToProject).
-		Owns(&corev1.Secret{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
-		Named("project").
-		Complete(r)
-}
-
-// GenerateJWTSecretData generates all key material for the JWT secret (9 keys).
-func GenerateJWTSecretData(now time.Time, jwtExpiry time.Duration) (map[string][]byte, error) {
-	jwtSecretBytes := make([]byte, 30)
-	if _, err := rand.Read(jwtSecretBytes); err != nil {
-		return nil, fmt.Errorf("generating jwt-secret bytes: %w", err)
-	}
-	jwtSecret := base64.StdEncoding.EncodeToString(jwtSecretBytes)
-
-	anonKey, err := helper.GenerateJWTToken(jwtSecret, "anon", now, jwtExpiry)
-	if err != nil {
-		return nil, fmt.Errorf("generating anon-key: %w", err)
-	}
-
-	serviceKey, err := helper.GenerateJWTToken(jwtSecret, "service_role", now, jwtExpiry)
-	if err != nil {
-		return nil, fmt.Errorf("generating service-key: %w", err)
-	}
-
-	ecKey, err := helper.GenerateECP256Keypair()
-	if err != nil {
-		return nil, fmt.Errorf("generating EC P-256 keypair: %w", err)
-	}
-
-	kid, err := helper.GenerateRandomHex(16)
-	if err != nil {
-		return nil, fmt.Errorf("generating kid: %w", err)
-	}
-
-	ecPrivateJWK := helper.ECPrivateKeyToJWK(ecKey, kid)
-	ecPublicJWK := helper.ECPublicKeyToJWK(ecKey, kid)
-	octJWK := helper.SymmetricKeyToJWK(jwtSecret)
-
-	jwtKeys, err := helper.BuildJWTKeys(ecPrivateJWK, octJWK)
-	if err != nil {
-		return nil, fmt.Errorf("building jwt-keys: %w", err)
-	}
-
-	jwtJWKS, err := helper.BuildJWTJWKS(ecPublicJWK, octJWK)
-	if err != nil {
-		return nil, fmt.Errorf("building jwt-jwks: %w", err)
-	}
-
-	anonKeyAsym, err := helper.SignES256JWT(ecKey, kid, "anon", now, jwtExpiry)
-	if err != nil {
-		return nil, fmt.Errorf("generating anon-key-asymmetric: %w", err)
-	}
-
-	serviceKeyAsym, err := helper.SignES256JWT(ecKey, kid, "service_role", now, jwtExpiry)
-	if err != nil {
-		return nil, fmt.Errorf("generating service-key-asymmetric: %w", err)
-	}
-
-	publishableKey, err := helper.GenerateOpaqueKey("sb_publishable_")
-	if err != nil {
-		return nil, fmt.Errorf("generating publishable-key: %w", err)
-	}
-
-	secretKey, err := helper.GenerateOpaqueKey("sb_secret_")
-	if err != nil {
-		return nil, fmt.Errorf("generating secret-key: %w", err)
-	}
-
-	return map[string][]byte{
-		"jwt-secret":             []byte(jwtSecret),
-		"anon-key":               []byte(anonKey),
-		"service-key":            []byte(serviceKey),
-		"jwt-keys":               []byte(jwtKeys),
-		"jwt-jwks":               []byte(jwtJWKS),
-		"anon-key-asymmetric":    []byte(anonKeyAsym),
-		"service-key-asymmetric": []byte(serviceKeyAsym),
-		"publishable-key":        []byte(publishableKey),
-		"secret-key":             []byte(secretKey),
-	}, nil
-}
-
-// GenerateKeysSecretData generates the shared keys secret data.
-func GenerateKeysSecretData() (map[string][]byte, error) {
-	secretKeyBase, err := helper.GenerateRandomHex(64)
-	if err != nil {
-		return nil, fmt.Errorf("generating secret-key-base: %w", err)
-	}
-
-	cryptoKey, err := helper.GenerateRandomHex(32)
-	if err != nil {
-		return nil, fmt.Errorf("generating crypto-key: %w", err)
-	}
-
-	vaultEncKey, err := helper.GenerateRandomHex(16)
-	if err != nil {
-		return nil, fmt.Errorf("generating vault-enc-key: %w", err)
-	}
-
-	encoded, err := helper.GenerateSAMLPrivateKey()
-	if err != nil {
-		return nil, fmt.Errorf("generating saml-private-key: %w", err)
-	}
-
-	return map[string][]byte{
-		"secret-key-base":  []byte(secretKeyBase),
-		"crypto-key":       []byte(cryptoKey),
-		"vault-enc-key":    []byte(vaultEncKey),
-		"saml-private-key": []byte(encoded),
-	}, nil
+func (r *ProjectReconciler) markReady(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	reconciler.SetReady(proj, "ReconcileSucceeded", "All resources reconciled successfully")
+	return reconciler.UpdateStatus(ctx, r.Client, proj)
 }

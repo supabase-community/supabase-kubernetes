@@ -3,23 +3,43 @@ kind: Project
 metadata:
   name: supabase
 spec:
-  jwtExpSec: 1800
+  # jwtExpSec: 1800
   http:
     protocol: "http"
     hostname: "api.supabase.local"
-    port: 8000
   databaseRef:
     kind: SingleDatabase
     name: supabase
-  # rest:
-  #   dbSchemas: "public,storage,graphql_public"
-  # meta: {}
-  # realtime: {}
-  # auth:
-  #   siteUrl: "http://localhost:3000"
-  #   disableSignup: false
-  #   enableEmailSignup: true
-  #   enableAnonymousUsers: false
-  #   enableEmailAutoconfirm: false
-  #   enablePhoneSignup: false
-  #   enablePhoneAutoconfirm: false
+
+  meta:
+    enable: true
+    # replicas: 2
+
+  rest:
+    enable: true
+    # replicas: 2
+
+  realtime:
+    enable: true
+    # replicas: 2
+
+  auth:
+    enable: true
+    siteUrl: "https://myapp.supabase.com"
+    # smtp:
+    #   host: "smtp.example.com"
+    #   port: 587
+    #   user: "smtp-user"
+    #   passwordRef:
+    #     name: "smtp-credentials"
+    #     key: "password"
+    #   senderName: "My App"
+    #   adminEmail: "admin@example.com"
+    #   # maxFrequency: "1s"
+    # oauth:
+    #   google:
+    #     enable: true
+    #     clientId: "google-client-id"
+    #     secretRef:
+    #       name: "oauth-google-secret"
+    #       key: "secret"

@@ -19,33 +19,36 @@ package singledatabase
 import (
 	"fmt"
 
-	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
-// SecretName returns the name of the credentials Secret for a SingleDatabase.
-func SecretName(db *supabasev1alpha1.SingleDatabase) string {
-	return fmt.Sprintf("%s-db", db.Name)
+// PostgresSecretName returns the name of the credentials Secret for a SingleDatabase.
+func PostgresSecretName(db *supabasev1alpha1.SingleDatabase) string {
+	return fmt.Sprintf("%s-postgres-auth", db.Name)
 }
 
-// BuildSecret constructs the credentials Secret for a SingleDatabase.
-func BuildSecret(db *supabasev1alpha1.SingleDatabase) (*corev1.Secret, error) {
+// PostgresSecret constructs the credentials Secret for a SingleDatabase.
+func PostgresSecret(db *supabasev1alpha1.SingleDatabase) (*corev1.Secret, error) {
 	password, err := helper.GenerateRandomAlphanumeric(32)
 	if err != nil {
-		return nil, fmt.Errorf("generating password: %w", err)
+		return nil, fmt.Errorf("generating postgres password: %w", err)
 	}
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      SecretName(db),
+			Name:      PostgresSecretName(db),
 			Namespace: db.Namespace,
-			Labels:    DefaultLabels(db.Name),
+			Labels:    PostgresLabels(db),
 		},
+		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			DefaultSecretPasswordKey: []byte(password),
+			DefaultSecretKeyPassword: []byte(password),
 		},
 	}
+
 	return secret, nil
 }

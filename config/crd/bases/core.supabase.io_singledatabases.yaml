@@ -1378,6 +1378,8 @@ spec:
                       type: string
                   type: object
                 type: array
+            required:
+            - storage
             type: object
           status:
             description: SingleDatabaseStatus defines the observed state of SingleDatabase.

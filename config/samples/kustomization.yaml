@@ -9,5 +9,5 @@ labels:
 
 resources:
   - singledatabase.yaml
-  - migration.yaml
-  # - project.yaml
+  # - migration.yaml
+  - project.yaml

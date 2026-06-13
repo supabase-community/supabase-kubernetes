@@ -29,8 +29,8 @@ type SingleDatabaseSpec struct {
 	Service *ServiceSpec `json:"service,omitempty"`
 
 	// Storage defines the persistent volume claim configuration
-	// +optional
-	Storage *VolumeClaim `json:"storage,omitempty"`
+	// +required
+	Storage VolumeClaim `json:"storage"`
 }
 
 // SingleDatabaseStatus defines the observed state of SingleDatabase.
