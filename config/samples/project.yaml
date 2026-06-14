@@ -25,7 +25,7 @@ spec:
 
   functions:
     enable: true
-    # replicas: 1
+    # replicas: 2
     # verifyJwt: false
 
   auth:

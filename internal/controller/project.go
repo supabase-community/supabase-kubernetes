@@ -62,6 +62,10 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&supabasev1alpha1.SingleDatabase{},
 			handler.EnqueueRequestsFromMapFunc(r.mapSingleDatabaseToProjects),
 		).
+		Watches(
+			&supabasev1alpha1.Function{},
+			handler.EnqueueRequestsFromMapFunc(r.mapFunctionToProject),
+		).
 		Named("project").
 		Complete(r)
 }
@@ -89,6 +93,22 @@ func (r *ProjectReconciler) mapSingleDatabaseToProjects(ctx context.Context, obj
 		}
 	}
 	return requests
+}
+
+func (r *ProjectReconciler) mapFunctionToProject(ctx context.Context, obj client.Object) []reconcile.Request {
+	functionObj, ok := obj.(*supabasev1alpha1.Function)
+	if !ok {
+		return nil
+	}
+
+	return []reconcile.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      functionObj.Spec.ProjectRef,
+				Namespace: functionObj.Namespace,
+			},
+		},
+	}
 }
 
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects,verbs=get;list;watch;create;update;patch;delete
