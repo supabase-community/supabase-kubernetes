@@ -176,3 +176,10 @@ func DeleteMigrationIfExists(ctx context.Context, c client.Client, name, namespa
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 }
+
+// DeleteFunctionIfExists deletes a Function by name and namespace if it exists.
+func DeleteFunctionIfExists(ctx context.Context, c client.Client, name, namespace string) error {
+	return DeleteResourceIfExists(ctx, c, &supabasev1alpha1.Function{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	})
+}

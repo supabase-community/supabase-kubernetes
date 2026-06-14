@@ -57,6 +57,7 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&batchv1.Job{}).
 		Owns(&supabasev1alpha1.Migration{}).
+		Owns(&supabasev1alpha1.Function{}).
 		Watches(
 			&supabasev1alpha1.SingleDatabase{},
 			handler.EnqueueRequestsFromMapFunc(r.mapSingleDatabaseToProjects),
@@ -102,6 +103,9 @@ func (r *ProjectReconciler) mapSingleDatabaseToProjects(ctx context.Context, obj
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=migrations/status,verbs=get
+// +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
+// +kubebuilder:rbac:groups=core.supabase.io,resources=functions/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile handles the reconciliation loop for Project resources.
@@ -281,6 +285,15 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	if err := r.ensureMainFunction(ctx, proj); err != nil {
+		logger.Error(err, "Failed to ensure main Function")
+		reconciler.SetNotReady(proj, "MainFunctionFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after main Function failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	if err := r.ensureAuth(ctx, proj, db); err != nil {
 		logger.Error(err, "Failed to ensure Auth component")
 		reconciler.SetNotReady(proj, "AuthFailed", err.Error())
@@ -432,6 +445,37 @@ func (r *ProjectReconciler) ensureMigration1(ctx context.Context, proj *supabase
 		logger.Info("Updated Migration")
 	default:
 		logger.V(1).Info("Migration unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureMainFunction(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	functionObj, err := project.ProjectMainFunction(proj)
+	if err != nil {
+		return fmt.Errorf("building main function: %w", err)
+	}
+	if functionObj == nil {
+		return reconciler.DeleteFunctionIfExists(ctx, r.Client, project.ProjectMainFunctionName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", functionObj.GetName(),
+		"namespace", functionObj.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, functionObj, proj, reconciler.MutateFunction())
+	if err != nil {
+		return fmt.Errorf("ensuring main function: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created main Function")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated main Function")
+	default:
+		logger.V(1).Info("main Function unchanged")
 	}
 
 	return nil

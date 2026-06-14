@@ -256,3 +256,14 @@ func MutateMigration() func(existing, desired *supabasev1alpha1.Migration) error
 		return nil
 	}
 }
+
+// MutateFunction returns a mutateFn that copies Spec and Labels from desired
+// to existing, merging Annotations so that existing entries are preserved.
+func MutateFunction() func(existing, desired *supabasev1alpha1.Function) error {
+	return func(existing, desired *supabasev1alpha1.Function) error {
+		existing.Spec = desired.Spec
+		existing.Labels = desired.Labels
+		existing.Annotations = mergeStringMaps(existing.Annotations, desired.Annotations)
+		return nil
+	}
+}
