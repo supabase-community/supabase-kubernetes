@@ -36,8 +36,9 @@
 ##  7. autoscaling    - HPA configuration per component
 ##  8. ingress        - External access configuration
 ##  9. serviceAccount - ServiceAccount configuration per component
-## 10. migration      - Optional SQL migration scripts
-## 11. bigQuery       - Optional BigQuery backend configuration
+## 10. externalDb     - External database initialization options
+## 11. migration      - Optional SQL migration scripts
+## 12. bigQuery       - Optional BigQuery backend configuration
 
 secret:
   ## JSON Web Tokens
@@ -1151,6 +1152,21 @@ serviceAccount:
     create: true
     annotations: {}
     name: ""
+
+externalDb:
+  ## External database initialization options. Used only when deployment.db.enabled is false.
+  ##
+  init:
+    enabled: true
+    runUserMigrations: true
+    createInternalDatabase: true
+    setJwtSettings: false
+    runPrivilegedMigrations: false
+
+    ## Enable OrioleDB extension before Supabase services run migrations.
+    ## Requires the external Postgres server to preload/install OrioleDB.
+    orioledb:
+      enabled: false
 
 networkPolicy:
   db:

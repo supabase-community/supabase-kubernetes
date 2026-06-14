@@ -1,4 +1,4 @@
-{{- if not .Values.deployment.db.enabled -}}
+{{- if and (not .Values.deployment.db.enabled) .Values.externalDb.init.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -38,20 +38,37 @@ spec:
               echo "Running Supabase init scripts against external database..."
               for f in /init-scripts/*.sql; do
                 echo "=== Running $(basename $f) ==="
-                PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" -f "$f" -v ON_ERROR_STOP=0
+                PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" \
+                  -v ON_ERROR_STOP=1 \
+                  -v db_name="$DB_NAME" \
+                  -v internal_db_name="_supabase" \
+                  -v service_owner="supabase_admin" \
+                  -v jwt_secret="$JWT_SECRET" \
+                  -v jwt_exp="$JWT_EXP" \
+                  -f "$f"
               done
 
               echo "Setting service role passwords and grants..."
-              PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" -v ON_ERROR_STOP=0 <<EOSQL
-              ALTER USER authenticator WITH PASSWORD '$DB_PASSWORD';
-              ALTER USER supabase_auth_admin WITH PASSWORD '$DB_PASSWORD';
-              ALTER USER supabase_storage_admin WITH PASSWORD '$DB_PASSWORD';
-              ALTER USER pgbouncer WITH PASSWORD '$DB_PASSWORD';
-              ALTER USER supabase_admin WITH PASSWORD '$DB_PASSWORD';
-              GRANT $DB_USER TO authenticator;
-              GRANT $DB_USER TO supabase_admin;
-              GRANT CREATE ON DATABASE $DB_NAME TO supabase_storage_admin;
-              GRANT CREATE ON DATABASE $DB_NAME TO supabase_auth_admin;
+              PGPASSWORD="$DB_PASSWORD" psql "$CONNSTR" \
+                -v ON_ERROR_STOP=1 \
+                -v db_password="$DB_PASSWORD" \
+                -v db_name="$DB_NAME" <<'EOSQL'
+              SELECT format('ALTER USER %I WITH PASSWORD %L', rolname, :'db_password')
+              FROM pg_roles
+              WHERE rolname IN (
+                'authenticator',
+                'supabase_auth_admin',
+                'supabase_functions_admin',
+                'supabase_storage_admin',
+                'pgbouncer',
+                'supabase_admin'
+              ) \gexec
+
+              SELECT format('GRANT CREATE ON DATABASE %I TO supabase_storage_admin', :'db_name')
+              WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_storage_admin') \gexec
+
+              SELECT format('GRANT CREATE ON DATABASE %I TO supabase_auth_admin', :'db_name')
+              WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_auth_admin') \gexec
               EOSQL
 
               echo "=== External database initialization complete ==="
@@ -83,6 +100,13 @@ spec:
               {{- end }}
             - name: DB_SSL
               value: {{ .Values.environment.auth.DB_SSL | default "prefer" | quote }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.secret" . }}
+            - name: JWT_EXP
+              value: {{ .Values.environment.db.JWT_EXP | default "3600" | quote }}
           volumeMounts:
             - name: init-scripts
               mountPath: /init-scripts
