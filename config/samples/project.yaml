@@ -23,6 +23,11 @@ spec:
     enable: true
     # replicas: 2
 
+  functions:
+    enable: true
+    # replicas: 1
+    # verifyJwt: false
+
   auth:
     enable: true
     siteUrl: "https://myapp.supabase.com"

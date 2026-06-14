@@ -56,6 +56,12 @@ const (
 
 	// DefaultAuthPort is the default Auth container port.
 	DefaultAuthPort int32 = 9999
+
+	// DefaultFunctionsImage is the default Functions image.
+	DefaultFunctionsImage = "supabase/edge-runtime:v1.74.0"
+
+	// DefaultFunctionsPort is the default Functions container port.
+	DefaultFunctionsPort int32 = 9000
 )
 
 // ProjectLabels returns the common labels for a Project and its resources.
@@ -149,6 +155,25 @@ func AuthSelectorLabels(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":      "auth",
 		"app.kubernetes.io/component": "auth",
+		"app.kubernetes.io/instance":  project.Name,
+	}
+}
+
+// FunctionsLabels returns the common labels for the Functions component.
+func FunctionsLabels(project *supabasev1alpha1.Project) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":       "functions",
+		"app.kubernetes.io/component":  "functions",
+		"app.kubernetes.io/instance":   project.Name,
+		"app.kubernetes.io/managed-by": "supabase-operator",
+	}
+}
+
+// FunctionsSelectorLabels returns the selector labels for the Functions Deployment.
+func FunctionsSelectorLabels(project *supabasev1alpha1.Project) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":      "functions",
+		"app.kubernetes.io/component": "functions",
 		"app.kubernetes.io/instance":  project.Name,
 	}
 }

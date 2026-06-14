@@ -32,6 +32,10 @@ func ProjectMainFunctionName(project *supabasev1alpha1.Project) string {
 
 // ProjectMainFunction constructs the default main Function for a Project.
 func ProjectMainFunction(project *supabasev1alpha1.Project) (*supabasev1alpha1.Function, error) {
+	if project.Spec.Functions == nil || !*project.Spec.Functions.Enable {
+		return nil, nil
+	}
+
 	return &supabasev1alpha1.Function{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ProjectMainFunctionName(project),

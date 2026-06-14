@@ -51,6 +51,10 @@ type ProjectSpec struct {
 	// Auth defines the Auth component configuration
 	// +optional
 	Auth *AuthSpec `json:"auth,omitempty"`
+
+	// Functions defines the Functions component configuration
+	// +optional
+	Functions *FunctionsSpec `json:"functions,omitempty"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.

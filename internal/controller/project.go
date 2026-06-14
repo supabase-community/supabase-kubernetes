@@ -294,6 +294,25 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	functions, err := r.fetchProjectFunctions(ctx, proj)
+	if err != nil {
+		logger.Error(err, "Failed to fetch Functions")
+		reconciler.SetNotReady(proj, "FunctionsFetchFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after functions fetch failure")
+		}
+		return ctrl.Result{}, err
+	}
+
+	if err := r.ensureFunctions(ctx, proj, db, functions); err != nil {
+		logger.Error(err, "Failed to ensure Functions component")
+		reconciler.SetNotReady(proj, "FunctionsFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after functions failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	if err := r.ensureAuth(ctx, proj, db); err != nil {
 		logger.Error(err, "Failed to ensure Auth component")
 		reconciler.SetNotReady(proj, "AuthFailed", err.Error())
@@ -402,6 +421,26 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		if deploy.Status.ReadyReplicas < replicas {
 			logger.Info("Waiting for Realtime Deployment to be ready", "readyReplicas", deploy.Status.ReadyReplicas, "replicas", replicas)
+			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for deployments")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
+	if proj.Spec.Functions != nil && *proj.Spec.Functions.Enable {
+		deploy := &appsv1.Deployment{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.FunctionsDeploymentName(proj), Namespace: proj.Namespace}, deploy); err != nil {
+			logger.Error(err, "Failed to get Functions Deployment")
+			return ctrl.Result{}, err
+		}
+		replicas := int32(1)
+		if deploy.Spec.Replicas != nil {
+			replicas = *deploy.Spec.Replicas
+		}
+		if deploy.Status.ReadyReplicas < replicas {
+			logger.Info("Waiting for Functions Deployment to be ready", "readyReplicas", deploy.Status.ReadyReplicas, "replicas", replicas)
 			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
 			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 				logger.Error(statusErr, "Failed to update status while waiting for deployments")
@@ -936,6 +975,93 @@ func (r *ProjectReconciler) ensureRealtimeDeployment(ctx context.Context, proj *
 		logger.Info("Updated Realtime Deployment")
 	default:
 		logger.V(1).Info("Realtime Deployment unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) fetchProjectFunctions(ctx context.Context, proj *supabasev1alpha1.Project) ([]supabasev1alpha1.Function, error) {
+	functionList := &supabasev1alpha1.FunctionList{}
+	if err := r.List(ctx, functionList, client.InNamespace(proj.Namespace)); err != nil {
+		return nil, fmt.Errorf("listing functions: %w", err)
+	}
+
+	var functions []supabasev1alpha1.Function
+	for _, f := range functionList.Items {
+		if f.Spec.ProjectRef == proj.Name {
+			functions = append(functions, f)
+		}
+	}
+	return functions, nil
+}
+
+func (r *ProjectReconciler) ensureFunctions(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, functions []supabasev1alpha1.Function) error {
+	if err := r.ensureFunctionsService(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring functions service: %w", err)
+	}
+	if err := r.ensureFunctionsDeployment(ctx, proj, db, functions); err != nil {
+		return fmt.Errorf("ensuring functions deployment: %w", err)
+	}
+	return nil
+}
+
+func (r *ProjectReconciler) ensureFunctionsService(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	svc, err := project.FunctionsService(proj)
+	if err != nil {
+		return fmt.Errorf("building functions service: %w", err)
+	}
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, project.FunctionsServiceName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, proj, reconciler.MutateService())
+	if err != nil {
+		return fmt.Errorf("ensuring functions service: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Functions Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Functions Service")
+	default:
+		logger.V(1).Info("Functions Service unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureFunctionsDeployment(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, functions []supabasev1alpha1.Function) error {
+	deploy, err := project.FunctionsDeployment(proj, functions, db)
+	if err != nil {
+		return fmt.Errorf("building functions deployment: %w", err)
+	}
+	if deploy == nil {
+		return reconciler.DeleteDeploymentIfExists(ctx, r.Client, project.FunctionsDeploymentName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", deploy.GetName(),
+		"namespace", deploy.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, deploy, proj, reconciler.MutateDeployment())
+	if err != nil {
+		return fmt.Errorf("ensuring functions deployment: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Functions Deployment")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Functions Deployment")
+	default:
+		logger.V(1).Info("Functions Deployment unchanged")
 	}
 
 	return nil
