@@ -124,6 +124,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.realtime.name" . }}
                   key: {{ include "supabase.secret.realtime.key.secretKeyBase" . }}
+            {{- with .Values.deployment.realtime.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.realtime.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

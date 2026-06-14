@@ -111,6 +111,9 @@ spec:
             - name: POSTGRES_BACKEND_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
             {{- end }}
+            {{- with .Values.deployment.analytics.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.analytics.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

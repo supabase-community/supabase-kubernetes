@@ -128,6 +128,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.smtp.name" . }}
                   key: {{ include "supabase.secret.smtp.key.password" . }}
+            {{- with .Values.deployment.auth.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.auth.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
