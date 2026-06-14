@@ -2,9 +2,10 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/core.supabase.io_projects.yaml
-- bases/core.supabase.io_singledatabases.yaml
-- bases/core.supabase.io_migrations.yaml
+  - bases/core.supabase.io_projects.yaml
+  - bases/core.supabase.io_singledatabases.yaml
+  - bases/core.supabase.io_migrations.yaml
+  - bases/core.supabase.io_functions.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

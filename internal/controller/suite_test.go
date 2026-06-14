@@ -114,6 +114,14 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = (&FunctionReconciler{
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("function"),
+		RequeueInterval: 100 * time.Millisecond,
+	}).SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())
+
 	go func() {
 		defer GinkgoRecover()
 		err := mgr.Start(ctx)

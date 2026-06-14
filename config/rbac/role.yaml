@@ -54,6 +54,7 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
+  - functions
   - migrations
   - projects
   - singledatabases
@@ -68,6 +69,7 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
+  - functions/finalizers
   - migrations/finalizers
   - projects/finalizers
   - singledatabases/finalizers
@@ -76,6 +78,7 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
+  - functions/status
   - migrations/status
   - projects/status
   - singledatabases/status

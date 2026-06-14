@@ -222,6 +222,15 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "Migration")
 		os.Exit(1)
 	}
+	if err := (&controller.FunctionReconciler{
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("function"),
+		RequeueInterval: 10 * time.Second,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Function")
+		os.Exit(1)
+	}
 
 	// +kubebuilder:scaffold:builder
 

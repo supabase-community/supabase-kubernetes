@@ -11,3 +11,4 @@ resources:
   - singledatabase.yaml
   # - migration.yaml
   - project.yaml
+  # - function.yaml
