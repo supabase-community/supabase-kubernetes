@@ -137,6 +137,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.jwt.name" . }}
                   key: {{ include "supabase.secret.jwt.key.secret" . }}
+            {{- with .Values.deployment.db.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.db.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

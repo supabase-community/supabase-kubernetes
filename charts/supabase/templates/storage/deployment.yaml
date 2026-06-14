@@ -228,6 +228,9 @@ spec:
             - name: GLOBAL_S3_FORCE_PATH_STYLE
               value: "true"
             {{- end }}
+            {{- with .Values.deployment.storage.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.storage.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

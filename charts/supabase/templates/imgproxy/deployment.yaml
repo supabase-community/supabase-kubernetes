@@ -64,6 +64,9 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- with .Values.deployment.imgproxy.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.imgproxy.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

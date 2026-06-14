@@ -130,6 +130,9 @@ spec:
               value: '{"default":"$(SUPABASE_SECRET_KEY)"}'
             - name: SUPABASE_DB_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
+            {{- with .Values.deployment.functions.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- if .Values.deployment.functions.envFrom }}
           envFrom:
             {{- toYaml .Values.deployment.functions.envFrom | nindent 12 }}

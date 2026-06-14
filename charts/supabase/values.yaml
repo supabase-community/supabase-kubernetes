@@ -235,6 +235,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -259,6 +260,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -283,6 +285,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -308,6 +311,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -332,6 +336,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -356,6 +361,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -380,6 +386,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -404,6 +411,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -428,6 +436,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -452,6 +461,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -476,6 +486,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -501,6 +512,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}
@@ -530,6 +542,7 @@ deployment:
     tolerations: []
     priorityClassName: ""
     envFrom: []
+    extraEnv: []
     livenessProbe: {}
     readinessProbe: {}
     startupProbe: {}

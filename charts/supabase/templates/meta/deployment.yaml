@@ -99,6 +99,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.meta.name" . }}
                   key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
+            {{- with .Values.deployment.meta.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.meta.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

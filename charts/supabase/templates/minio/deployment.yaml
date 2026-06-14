@@ -80,6 +80,9 @@ spec:
                   name: {{ include "supabase.secret.minio.name" . }}
                   key: {{ include "supabase.secret.minio.key.password" . }}
                   {{- end }}
+            {{- with .Values.deployment.minio.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.minio.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
