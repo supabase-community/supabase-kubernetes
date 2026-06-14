@@ -43,6 +43,7 @@ spec:
                   -v db_name="$DB_NAME" \
                   -v internal_db_name="_supabase" \
                   -v service_owner="supabase_admin" \
+                  -v default_table_access_method="{{ .Values.externalDb.init.defaultTableAccessMethod }}" \
                   -v jwt_secret="$JWT_SECRET" \
                   -v jwt_exp="$JWT_EXP" \
                   -f "$f"

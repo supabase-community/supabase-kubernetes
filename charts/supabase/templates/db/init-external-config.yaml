@@ -26,8 +26,11 @@ data:
   {{- if .Values.externalDb.init.createInternalDatabase }}
   06-internal-database.sql: |{{ .Files.Get "files/db/initdb-external/06-internal-database.sql" | nindent 4 }}
   {{- end }}
+  {{- if .Values.externalDb.init.defaultTableAccessMethod }}
+  07-default-table-access-method.sql: |{{ .Files.Get "files/db/initdb-external/07-default-table-access-method.sql" | nindent 4 }}
+  {{- end }}
   {{- if .Values.externalDb.init.runPrivilegedMigrations }}
-  07-webhooks.sql: |{{ .Files.Get "files/db/initdb-external/07-webhooks.sql" | nindent 4 }}
+  08-webhooks.sql: |{{ .Files.Get "files/db/initdb-external/08-webhooks.sql" | nindent 4 }}
   {{- end }}
   {{- if and .Values.externalDb.init.runUserMigrations .Values.migration }}
   {{- toYaml .Values.migration | nindent 2 }}

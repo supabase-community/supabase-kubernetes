@@ -1160,6 +1160,7 @@ externalDb:
     enabled: true
     runUserMigrations: true
     createInternalDatabase: true
+    defaultTableAccessMethod: heap
     setJwtSettings: false
     runPrivilegedMigrations: false
 

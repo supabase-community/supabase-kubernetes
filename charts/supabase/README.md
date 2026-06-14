@@ -265,6 +265,7 @@ externalDb:
     enabled: true
     runUserMigrations: true
     createInternalDatabase: true
+    defaultTableAccessMethod: heap
     runPrivilegedMigrations: false
 ```
 
@@ -292,6 +293,19 @@ externalDb:
     orioledb:
       enabled: true
 ```
+
+Supabase-owned service tables default to `heap` in external database mode. This
+prevents Auth, Storage, Functions, Realtime, and Analytics migrations from
+inheriting a non-heap default table access method such as OrioleDB.
+
+```yaml
+externalDb:
+  init:
+    defaultTableAccessMethod: heap
+```
+
+Application tables can still use another access method through application-level
+SQL or database settings outside the Supabase service roles.
 
 If you need database-level JWT GUCs to match the built-in database init script,
 enable:
