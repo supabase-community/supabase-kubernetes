@@ -1,0 +1,231 @@
+resources:
+{{- if .AuthCluster.Enabled }}
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: auth
+    connect_timeout: 5s
+    type: STRICT_DNS
+    dns_refresh_rate: 5s
+    dns_failure_refresh_rate:
+      base_interval: 1s
+      max_interval: 1s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: auth
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ .AuthCluster.Address }}
+                    port_value: {{ .AuthCluster.Port }}
+    health_checks:
+      - timeout: 2s
+        interval: 5s
+        unhealthy_threshold: 3
+        healthy_threshold: 2
+        http_health_check:
+          path: /health
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+{{- end }}
+{{- if .RestCluster.Enabled }}
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: rest
+    connect_timeout: 5s
+    type: STRICT_DNS
+    dns_refresh_rate: 5s
+    dns_failure_refresh_rate:
+      base_interval: 1s
+      max_interval: 1s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: rest
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ .RestCluster.Address }}
+                    port_value: {{ .RestCluster.Port }}
+    health_checks:
+      - timeout: 2s
+        interval: 5s
+        unhealthy_threshold: 3
+        healthy_threshold: 2
+        http_health_check:
+          path: /
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+{{- end }}
+{{- if .RealtimeCluster.Enabled }}
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: realtime
+    connect_timeout: 5s
+    type: STRICT_DNS
+    dns_refresh_rate: 5s
+    dns_failure_refresh_rate:
+      base_interval: 1s
+      max_interval: 1s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: realtime
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ .RealtimeCluster.Address }}
+                    port_value: {{ .RealtimeCluster.Port }}
+    health_checks:
+      - timeout: 2s
+        interval: 5s
+        unhealthy_threshold: 3
+        healthy_threshold: 2
+        http_health_check:
+          path: /
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+{{- end }}
+{{- if .StorageCluster.Enabled }}
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: storage
+    connect_timeout: 5s
+    type: STRICT_DNS
+    dns_refresh_rate: 5s
+    dns_failure_refresh_rate:
+      base_interval: 1s
+      max_interval: 1s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: storage
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ .StorageCluster.Address }}
+                    port_value: {{ .StorageCluster.Port }}
+    health_checks:
+      - timeout: 2s
+        interval: 5s
+        unhealthy_threshold: 3
+        healthy_threshold: 2
+        http_health_check:
+          path: /status
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+{{- end }}
+{{- if .FunctionsCluster.Enabled }}
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: functions
+    connect_timeout: 5s
+    type: STRICT_DNS
+    dns_refresh_rate: 5s
+    dns_failure_refresh_rate:
+      base_interval: 1s
+      max_interval: 1s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: functions
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ .FunctionsCluster.Address }}
+                    port_value: {{ .FunctionsCluster.Port }}
+    health_checks:
+      - timeout: 2s
+        interval: 5s
+        unhealthy_threshold: 3
+        healthy_threshold: 2
+        tcp_health_check: {}
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+{{- end }}
+{{- if .MetaCluster.Enabled }}
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: meta
+    connect_timeout: 5s
+    type: STRICT_DNS
+    dns_refresh_rate: 5s
+    dns_failure_refresh_rate:
+      base_interval: 1s
+      max_interval: 1s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: meta
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ .MetaCluster.Address }}
+                    port_value: {{ .MetaCluster.Port }}
+    health_checks:
+      - timeout: 2s
+        interval: 5s
+        unhealthy_threshold: 3
+        healthy_threshold: 2
+        http_health_check:
+          path: /health
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+{{- end }}
+{{- if .StudioCluster.Enabled }}
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: studio
+    connect_timeout: 5s
+    type: STRICT_DNS
+    dns_refresh_rate: 5s
+    dns_failure_refresh_rate:
+      base_interval: 1s
+      max_interval: 1s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: studio
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ .StudioCluster.Address }}
+                    port_value: {{ .StudioCluster.Port }}
+    health_checks:
+      - timeout: 2s
+        interval: 5s
+        unhealthy_threshold: 3
+        healthy_threshold: 2
+        http_health_check:
+          path: /project/default
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+{{- end }}

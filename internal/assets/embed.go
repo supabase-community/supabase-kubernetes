@@ -50,3 +50,12 @@ var ProjectSyncPasswordScript string
 
 //go:embed functions/main/index.ts
 var MainFunction string
+
+//go:embed envoy/envoy.yaml.tmpl
+var EnvoyBaseTemplate string
+
+//go:embed envoy/cds.tmpl
+var EnvoyCDSTemplate string
+
+//go:embed envoy/lds.tmpl
+var EnvoyLDSTemplate string
