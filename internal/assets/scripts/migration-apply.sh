@@ -7,7 +7,8 @@ until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do
   sleep 2
 done
 
-# Create migrations tracking table if not exists
+# Create operator schema and migrations tracking table if not exists
+psql -v ON_ERROR_STOP=1 -c "CREATE SCHEMA IF NOT EXISTS supabase_operator;"
 psql -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS $MIGRATION_TABLE (hash TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW());"
 
 # Check if already applied (idempotency at DB level)

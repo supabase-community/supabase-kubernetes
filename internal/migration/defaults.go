@@ -27,7 +27,7 @@ const (
 	DefaultPostgresImage = "supabase/postgres:17.6.1.084"
 
 	// DefaultMigrationTable is the table used to track applied migrations.
-	DefaultMigrationTable = "_operator_migrations"
+	DefaultMigrationTable = "supabase_operator._operator_migrations"
 
 	// DefaultBackoffLimit is the number of retries before marking a Job as failed.
 	DefaultBackoffLimit int32 = 3
