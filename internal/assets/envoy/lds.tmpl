@@ -590,7 +590,7 @@ resources:
                     '@type': >-
                       type.googleapis.com/envoy.extensions.filters.http.basic_auth.v3.BasicAuth
                     users:
-                      inline_string: '{{ .DashboardBasicAuth }}'
+                      inline_string: '${DASHBOARD_BASIC_AUTH}'
 
                 # Copies ?apikey=... from the URL into the apikey header when clients omit the header.
                 - name: envoy.filters.http.lua
@@ -645,12 +645,12 @@ resources:
                     '@type': >-
                       type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                     inline_code: |
-                      local ANON_KEY = "{{ .AnonKey }}"
-                      local SERVICE_ROLE_KEY = "{{ .ServiceRoleKey }}"
-                      local SUPABASE_PUBLISHABLE_KEY = "{{ .PublishableKey }}"
-                      local SUPABASE_SECRET_KEY = "{{ .SecretKey }}"
-                      local ANON_KEY_ASYMMETRIC = "{{ .AnonKeyAsymmetric }}"
-                      local SERVICE_ROLE_KEY_ASYMMETRIC = "{{ .ServiceRoleKeyAsymmetric }}"
+                      local ANON_KEY = "${ANON_KEY}"
+                      local SERVICE_ROLE_KEY = "${SERVICE_ROLE_KEY}"
+                      local SUPABASE_PUBLISHABLE_KEY = "${SUPABASE_PUBLISHABLE_KEY}"
+                      local SUPABASE_SECRET_KEY = "${SUPABASE_SECRET_KEY}"
+                      local ANON_KEY_ASYMMETRIC = "${ANON_KEY_ASYMMETRIC}"
+                      local SERVICE_ROLE_KEY_ASYMMETRIC = "${SERVICE_ROLE_KEY_ASYMMETRIC}"
                       local TRANSLATION_ENABLED = SUPABASE_SECRET_KEY ~= "" and SUPABASE_PUBLISHABLE_KEY ~= "" and SERVICE_ROLE_KEY_ASYMMETRIC ~= "" and ANON_KEY_ASYMMETRIC ~= ""
 
                       local PROTECTED_ROUTES = {
@@ -719,10 +719,10 @@ resources:
                     inline_code: |
                       local FUNCTIONS_ROUTE = "functions-v1-all"
                       local FUNCTIONS_PREFIX = "/functions/v1/"
-                      local SECRET_KEY = "{{ .SecretKey }}"
-                      local PUBLISHABLE_KEY = "{{ .PublishableKey }}"
-                      local SERVICE_ROLE_JWT = "{{ .ServiceRoleKeyAsymmetric }}"
-                      local ANON_JWT = "{{ .AnonKeyAsymmetric }}"
+                      local SECRET_KEY = "${SUPABASE_SECRET_KEY}"
+                      local PUBLISHABLE_KEY = "${SUPABASE_PUBLISHABLE_KEY}"
+                      local SERVICE_ROLE_JWT = "${SERVICE_ROLE_KEY_ASYMMETRIC}"
+                      local ANON_JWT = "${ANON_KEY_ASYMMETRIC}"
                       local TRANSLATION_ENABLED = SECRET_KEY ~= "" and PUBLISHABLE_KEY ~= "" and SERVICE_ROLE_JWT ~= "" and ANON_JWT ~= ""
 
                       local function is_functions_request(request_handle, headers)
@@ -839,10 +839,10 @@ resources:
                     inline_code: |
                       local FUNCTIONS_ROUTE = "functions-v1-all"
                       local FUNCTIONS_PREFIX = "/functions/v1/"
-                      local SECRET_KEY = "{{ .SecretKey }}"
-                      local PUBLISHABLE_KEY = "{{ .PublishableKey }}"
-                      local SERVICE_ROLE_JWT = "{{ .ServiceRoleKeyAsymmetric }}"
-                      local ANON_JWT = "{{ .AnonKeyAsymmetric }}"
+                      local SECRET_KEY = "${SUPABASE_SECRET_KEY}"
+                      local PUBLISHABLE_KEY = "${SUPABASE_PUBLISHABLE_KEY}"
+                      local SERVICE_ROLE_JWT = "${SERVICE_ROLE_KEY_ASYMMETRIC}"
+                      local ANON_JWT = "${ANON_KEY_ASYMMETRIC}"
                       local TRANSLATION_ENABLED = SECRET_KEY ~= "" and PUBLISHABLE_KEY ~= "" and SERVICE_ROLE_JWT ~= "" and ANON_JWT ~= ""
 
                       local function is_functions_request(request_handle, headers)
@@ -997,11 +997,11 @@ resources:
                             - header:
                                 name: apikey
                                 string_match:
-                                  exact: '{{ .ServiceRoleKey }}'
+                                  exact: '${SERVICE_ROLE_KEY}'
                             - header:
                                 name: apikey
                                 string_match:
-                                  exact: '{{ .ServiceRoleKeyAsymmetric }}'
+                                  exact: '${SERVICE_ROLE_KEY_ASYMMETRIC}'
                         apikey:
                           permissions:
                             - url_path:
@@ -1023,19 +1023,19 @@ resources:
                             - header:
                                 name: apikey
                                 string_match:
-                                  exact: '{{ .ServiceRoleKey }}'
+                                  exact: '${SERVICE_ROLE_KEY}'
                             - header:
                                 name: apikey
                                 string_match:
-                                  exact: '{{ .AnonKey }}'
+                                  exact: '${ANON_KEY}'
                             - header:
                                 name: apikey
                                 string_match:
-                                  exact: '{{ .ServiceRoleKeyAsymmetric }}'
+                                  exact: '${SERVICE_ROLE_KEY_ASYMMETRIC}'
                             - header:
                                 name: apikey
                                 string_match:
-                                  exact: '{{ .AnonKeyAsymmetric }}'
+                                  exact: '${ANON_KEY_ASYMMETRIC}'
                 - name: envoy.filters.http.router
                   typed_config:
                     '@type': >-
