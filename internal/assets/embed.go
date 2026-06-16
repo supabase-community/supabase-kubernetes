@@ -48,6 +48,9 @@ var ProjectSyncJWTScript string
 //go:embed scripts/project-sync-password.sh
 var ProjectSyncPasswordScript string
 
+//go:embed scripts/project-envoy-init-container.sh
+var ProjectEnvoyInitContainer string
+
 //go:embed functions/main/index.ts
 var MainFunction string
 
