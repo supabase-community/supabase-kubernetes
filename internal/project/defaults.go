@@ -83,6 +83,21 @@ const (
 
 	// EnvoyConfigSourcePath is the path where the Envoy ConfigMap is mounted.
 	EnvoyConfigSourcePath = "/etc/envoy-config"
+
+	// DefaultStudioImage is the default Studio image.
+	DefaultStudioImage = "supabase/studio:2026.06.03-sha-0bca601"
+
+	// DefaultStudioPort is the default Studio container port.
+	DefaultStudioPort int32 = 3000
+
+	// StudioSnippetsMountPath is the path where Studio snippets are mounted.
+	StudioSnippetsMountPath = "/app/snippets"
+
+	// StudioSnippetsSubPath is the subPath used for snippets inside the Studio PVC.
+	StudioSnippetsSubPath = "snippets"
+
+	// StudioFunctionsMountPath is the path where Studio edge functions are mounted.
+	StudioFunctionsMountPath = "/app/edge-functions"
 )
 
 // ProjectLabels returns the common labels for a Project and its resources.
@@ -214,6 +229,25 @@ func EnvoySelectorLabels(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":      "envoy",
 		"app.kubernetes.io/component": "gateway",
+		"app.kubernetes.io/instance":  project.Name,
+	}
+}
+
+// StudioLabels returns the common labels for the Studio component.
+func StudioLabels(project *supabasev1alpha1.Project) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":       "studio",
+		"app.kubernetes.io/component":  "studio",
+		"app.kubernetes.io/instance":   project.Name,
+		"app.kubernetes.io/managed-by": "supabase-operator",
+	}
+}
+
+// StudioSelectorLabels returns the selector labels for the Studio StatefulSet.
+func StudioSelectorLabels(project *supabasev1alpha1.Project) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":      "studio",
+		"app.kubernetes.io/component": "studio",
 		"app.kubernetes.io/instance":  project.Name,
 	}
 }

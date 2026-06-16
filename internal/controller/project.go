@@ -56,6 +56,7 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&batchv1.Job{}).
 		Owns(&supabasev1alpha1.Migration{}).
@@ -119,6 +120,7 @@ func (r *ProjectReconciler) mapFunctionToProject(ctx context.Context, obj client
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch
@@ -396,6 +398,15 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	if err := r.ensureStudio(ctx, proj, db, functions); err != nil {
+		logger.Error(err, "Failed to ensure Studio component")
+		reconciler.SetNotReady(proj, "StudioFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after studio failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	if proj.Spec.Auth != nil && *proj.Spec.Auth.Enable {
 		deploy := &appsv1.Deployment{}
 		if err := r.Get(ctx, types.NamespacedName{Name: project.AuthDeploymentName(proj), Namespace: proj.Namespace}, deploy); err != nil {
@@ -511,6 +522,26 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
 			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 				logger.Error(statusErr, "Failed to update status while waiting for deployments")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
+	if proj.Spec.Studio != nil && *proj.Spec.Studio.Enable {
+		sts := &appsv1.StatefulSet{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.StudioStatefulSetName(proj), Namespace: proj.Namespace}, sts); err != nil {
+			logger.Error(err, "Failed to get Studio StatefulSet")
+			return ctrl.Result{}, err
+		}
+		replicas := int32(1)
+		if sts.Spec.Replicas != nil {
+			replicas = *sts.Spec.Replicas
+		}
+		if sts.Status.ReadyReplicas < replicas {
+			logger.Info("Waiting for Studio StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", replicas)
+			reconciler.SetNotReady(proj, "StatefulSetNotReady", "Waiting for Studio StatefulSet to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for Studio StatefulSet")
 			}
 			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 		}
@@ -1322,6 +1353,117 @@ func (r *ProjectReconciler) getEnvoySecret(ctx context.Context, proj *supabasev1
 		return nil, fmt.Errorf("getting envoy secret: %w", err)
 	}
 	return secret, nil
+}
+
+func (r *ProjectReconciler) ensureStudio(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, functions []supabasev1alpha1.Function) error {
+	if err := r.ensureStudioPVC(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring studio pvc: %w", err)
+	}
+	if err := r.ensureStudioService(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring studio service: %w", err)
+	}
+	if err := r.ensureStudioStatefulSet(ctx, proj, db, functions); err != nil {
+		return fmt.Errorf("ensuring studio statefulset: %w", err)
+	}
+	return nil
+}
+
+func (r *ProjectReconciler) ensureStudioPVC(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	pvc, err := project.StudioPVC(proj)
+	if err != nil {
+		return fmt.Errorf("building studio pvc: %w", err)
+	}
+	if pvc == nil {
+		return reconciler.DeletePersistentVolumeClaimIfExists(ctx, r.Client, project.StudioPVCName(proj), proj.Namespace)
+	}
+
+	var owner client.Object = proj
+	if project.StudioPVCDeletionPolicy(proj) == supabasev1alpha1.DeletionPolicyRetain {
+		owner = nil
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", pvc.GetName(),
+		"namespace", pvc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, reconciler.MutatePVC())
+	if err != nil {
+		return fmt.Errorf("ensuring studio pvc: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Studio PVC")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Studio PVC")
+	default:
+		logger.V(1).Info("Studio PVC unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureStudioService(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	svc, err := project.StudioService(proj)
+	if err != nil {
+		return fmt.Errorf("building studio service: %w", err)
+	}
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, project.StudioServiceName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, proj, reconciler.MutateService())
+	if err != nil {
+		return fmt.Errorf("ensuring studio service: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Studio Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Studio Service")
+	default:
+		logger.V(1).Info("Studio Service unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureStudioStatefulSet(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase, functions []supabasev1alpha1.Function) error {
+	sts, err := project.StudioStatefulSet(proj, functions, db)
+	if err != nil {
+		return fmt.Errorf("building studio statefulset: %w", err)
+	}
+	if sts == nil {
+		return reconciler.DeleteStatefulSetIfExists(ctx, r.Client, project.StudioStatefulSetName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", sts.GetName(),
+		"namespace", sts.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, sts, proj, reconciler.MutateStatefulSet())
+	if err != nil {
+		return fmt.Errorf("ensuring studio statefulset: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Studio StatefulSet")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Studio StatefulSet")
+	default:
+		logger.V(1).Info("Studio StatefulSet unchanged")
+	}
+
+	return nil
 }
 
 func (r *ProjectReconciler) getEnvoyConfigMap(ctx context.Context, proj *supabasev1alpha1.Project) (*corev1.ConfigMap, error) {

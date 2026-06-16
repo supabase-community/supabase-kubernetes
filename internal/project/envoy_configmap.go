@@ -116,7 +116,7 @@ func buildEnvoyTemplateData(project *supabasev1alpha1.Project) envoyTemplateData
 		FunctionsCluster: buildEnvoyFunctionsCluster(project),
 		MetaCluster:      buildEnvoyMetaCluster(project),
 		StorageCluster:   envoyCluster{Enabled: false},
-		StudioCluster:    envoyCluster{Enabled: false},
+		StudioCluster:    buildEnvoyStudioCluster(project),
 		RealtimeHost:     envoyRealtimeHost(project),
 	}
 }
@@ -168,6 +168,16 @@ func buildEnvoyMetaCluster(project *supabasev1alpha1.Project) envoyCluster {
 		Enabled: enabled,
 		Address: envoyServiceHost(project, MetaServiceName(project)),
 		Port:    DefaultMetaPort,
+	}
+}
+
+// buildEnvoyStudioCluster builds the studio cluster template data.
+func buildEnvoyStudioCluster(project *supabasev1alpha1.Project) envoyCluster {
+	enabled := project.Spec.Studio != nil && *project.Spec.Studio.Enable
+	return envoyCluster{
+		Enabled: enabled,
+		Address: envoyServiceHost(project, StudioServiceName(project)),
+		Port:    DefaultStudioPort,
 	}
 }
 

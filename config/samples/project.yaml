@@ -36,6 +36,18 @@ spec:
     # replicas: 2
     # verifyJwt: true
 
+  studio:
+    enable: true
+    orgName: "Default Organization"
+    projName: "Default Project"
+    storage:
+      accessModes:
+        - ReadWriteOnce
+      size: 1Gi
+    # openAiApiKey:
+    #   name: "openai-credentials"
+    #   key: "api-key"
+
   auth:
     enable: true
     siteUrl: "https://myapp.supabase.com"

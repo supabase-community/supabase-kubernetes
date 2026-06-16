@@ -59,6 +59,10 @@ type ProjectSpec struct {
 	// Envoy defines the Envoy component configuration
 	// +optional
 	Envoy *EnvoySpec `json:"envoy,omitempty"`
+
+	// Studio defines the Studio component configuration
+	// +optional
+	Studio *StudioSpec `json:"studio,omitempty"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.
