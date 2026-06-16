@@ -55,6 +55,10 @@ type ProjectSpec struct {
 	// Functions defines the Functions component configuration
 	// +optional
 	Functions *FunctionsSpec `json:"functions,omitempty"`
+
+	// Envoy defines the Envoy component configuration
+	// +optional
+	Envoy *EnvoySpec `json:"envoy,omitempty"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.
