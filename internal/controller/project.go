@@ -36,6 +36,7 @@ import (
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/database"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	"github.com/supabase-community/supabase-kubernetes/internal/project"
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
@@ -54,6 +55,7 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&supabasev1alpha1.Project{}).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&batchv1.Job{}).
 		Owns(&supabasev1alpha1.Migration{}).
@@ -116,7 +118,7 @@ func (r *ProjectReconciler) mapFunctionToProject(ctx context.Context, obj client
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch
@@ -369,6 +371,15 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	if err := r.ensureEnvoy(ctx, proj); err != nil {
+		logger.Error(err, "Failed to ensure Envoy component")
+		reconciler.SetNotReady(proj, "EnvoyFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after envoy failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	if proj.Spec.Auth != nil && *proj.Spec.Auth.Enable {
 		deploy := &appsv1.Deployment{}
 		if err := r.Get(ctx, types.NamespacedName{Name: project.AuthDeploymentName(proj), Namespace: proj.Namespace}, deploy); err != nil {
@@ -461,6 +472,26 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		if deploy.Status.ReadyReplicas < replicas {
 			logger.Info("Waiting for Functions Deployment to be ready", "readyReplicas", deploy.Status.ReadyReplicas, "replicas", replicas)
+			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for deployments")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
+	if proj.Spec.Envoy != nil && *proj.Spec.Envoy.Enable {
+		deploy := &appsv1.Deployment{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.EnvoyDeploymentName(proj), Namespace: proj.Namespace}, deploy); err != nil {
+			logger.Error(err, "Failed to get Envoy Deployment")
+			return ctrl.Result{}, err
+		}
+		replicas := int32(1)
+		if deploy.Spec.Replicas != nil {
+			replicas = *deploy.Spec.Replicas
+		}
+		if deploy.Status.ReadyReplicas < replicas {
+			logger.Info("Waiting for Envoy Deployment to be ready", "readyReplicas", deploy.Status.ReadyReplicas, "replicas", replicas)
 			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
 			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 				logger.Error(statusErr, "Failed to update status while waiting for deployments")
@@ -1109,6 +1140,180 @@ func (r *ProjectReconciler) getDBPasswordValue(ctx context.Context, namespace st
 		return "", fmt.Errorf("database password secret key %q not found", db.PasswordRef.Key)
 	}
 	return string(value), nil
+}
+
+func (r *ProjectReconciler) ensureEnvoy(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	if err := r.ensureEnvoySecret(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring envoy secret: %w", err)
+	}
+
+	envoySecret, err := r.getEnvoySecret(ctx, proj)
+	if err != nil {
+		return fmt.Errorf("getting envoy secret: %w", err)
+	}
+	secretHash := helper.SecretHash(envoySecret)
+
+	if err := r.ensureEnvoyConfigMap(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring envoy configmap: %w", err)
+	}
+
+	envoyConfigMap, err := r.getEnvoyConfigMap(ctx, proj)
+	if err != nil {
+		return fmt.Errorf("getting envoy configmap: %w", err)
+	}
+	configMapHash := helper.ConfigMapHash(envoyConfigMap)
+
+	if err := r.ensureEnvoyService(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring envoy service: %w", err)
+	}
+	if err := r.ensureEnvoyDeployment(ctx, proj, configMapHash, secretHash); err != nil {
+		return fmt.Errorf("ensuring envoy deployment: %w", err)
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureEnvoySecret(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	sc, err := project.EnvoySecret(proj)
+	if err != nil {
+		return fmt.Errorf("building envoy secret: %w", err)
+	}
+	if sc == nil {
+		return reconciler.DeleteSecretIfExists(ctx, r.Client, project.EnvoySecretName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", sc.GetName(),
+		"namespace", sc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, sc, proj, reconciler.MutateSecret(
+		project.DefaultEnvoySecretKeyUsername,
+		project.DefaultEnvoySecretKeyPassword,
+	))
+	if err != nil {
+		return fmt.Errorf("ensuring envoy secret: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Envoy Secret")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Envoy Secret")
+	default:
+		logger.V(1).Info("Envoy Secret unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureEnvoyConfigMap(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	cm, err := project.EnvoyConfigMap(proj)
+	if err != nil {
+		return fmt.Errorf("building envoy configmap: %w", err)
+	}
+	if cm == nil {
+		return reconciler.DeleteConfigMapIfExists(ctx, r.Client, project.EnvoyConfigMapName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", cm.GetName(),
+		"namespace", cm.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, cm, proj, reconciler.MutateConfigMap())
+	if err != nil {
+		return fmt.Errorf("ensuring envoy configmap: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Envoy ConfigMap")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Envoy ConfigMap")
+	default:
+		logger.V(1).Info("Envoy ConfigMap unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureEnvoyService(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	svc, err := project.EnvoyService(proj)
+	if err != nil {
+		return fmt.Errorf("building envoy service: %w", err)
+	}
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, project.EnvoyServiceName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, proj, reconciler.MutateService())
+	if err != nil {
+		return fmt.Errorf("ensuring envoy service: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Envoy Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Envoy Service")
+	default:
+		logger.V(1).Info("Envoy Service unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureEnvoyDeployment(ctx context.Context, proj *supabasev1alpha1.Project, configMapHash, secretHash string) error {
+	deploy, err := project.EnvoyDeployment(proj, configMapHash, secretHash)
+	if err != nil {
+		return fmt.Errorf("building envoy deployment: %w", err)
+	}
+	if deploy == nil {
+		return reconciler.DeleteDeploymentIfExists(ctx, r.Client, project.EnvoyDeploymentName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", deploy.GetName(),
+		"namespace", deploy.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, deploy, proj, reconciler.MutateDeployment())
+	if err != nil {
+		return fmt.Errorf("ensuring envoy deployment: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Envoy Deployment")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Envoy Deployment")
+	default:
+		logger.V(1).Info("Envoy Deployment unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) getEnvoySecret(ctx context.Context, proj *supabasev1alpha1.Project) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: project.EnvoySecretName(proj), Namespace: proj.Namespace}, secret); err != nil {
+		return nil, fmt.Errorf("getting envoy secret: %w", err)
+	}
+	return secret, nil
+}
+
+func (r *ProjectReconciler) getEnvoyConfigMap(ctx context.Context, proj *supabasev1alpha1.Project) (*corev1.ConfigMap, error) {
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: project.EnvoyConfigMapName(proj), Namespace: proj.Namespace}, cm); err != nil {
+		return nil, fmt.Errorf("getting envoy configmap: %w", err)
+	}
+	return cm, nil
 }
 
 func (r *ProjectReconciler) markReady(ctx context.Context, proj *supabasev1alpha1.Project) error {

@@ -62,6 +62,27 @@ const (
 
 	// DefaultFunctionsPort is the default Functions container port.
 	DefaultFunctionsPort int32 = 9000
+
+	// DefaultEnvoyImage is the default Envoy image.
+	DefaultEnvoyImage = "envoyproxy/envoy:v1.38.0"
+
+	// DefaultEnvoyPort is the default Envoy gateway port.
+	DefaultEnvoyPort int32 = 8000
+
+	// DefaultEnvoyAdminPort is the default Envoy admin port.
+	DefaultEnvoyAdminPort int32 = 9901
+
+	// DefaultEnvoySecretKeyUsername is the Secret data key that holds the dashboard username.
+	DefaultEnvoySecretKeyUsername = "username"
+
+	// DefaultEnvoySecretKeyPassword is the Secret data key that holds the dashboard password.
+	DefaultEnvoySecretKeyPassword = "password"
+
+	// EnvoyConfigMountPath is the path where Envoy configuration is mounted.
+	EnvoyConfigMountPath = "/etc/envoy"
+
+	// EnvoyConfigSourcePath is the path where the Envoy ConfigMap is mounted.
+	EnvoyConfigSourcePath = "/etc/envoy-config"
 )
 
 // ProjectLabels returns the common labels for a Project and its resources.
@@ -174,6 +195,25 @@ func FunctionsSelectorLabels(project *supabasev1alpha1.Project) map[string]strin
 	return map[string]string{
 		"app.kubernetes.io/name":      "functions",
 		"app.kubernetes.io/component": "functions",
+		"app.kubernetes.io/instance":  project.Name,
+	}
+}
+
+// EnvoyLabels returns the common labels for the Envoy component.
+func EnvoyLabels(project *supabasev1alpha1.Project) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":       "envoy",
+		"app.kubernetes.io/component":  "gateway",
+		"app.kubernetes.io/instance":   project.Name,
+		"app.kubernetes.io/managed-by": "supabase-operator",
+	}
+}
+
+// EnvoySelectorLabels returns the selector labels for the Envoy Deployment.
+func EnvoySelectorLabels(project *supabasev1alpha1.Project) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":      "envoy",
+		"app.kubernetes.io/component": "gateway",
 		"app.kubernetes.io/instance":  project.Name,
 	}
 }

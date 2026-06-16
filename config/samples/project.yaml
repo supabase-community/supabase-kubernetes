@@ -4,12 +4,20 @@ metadata:
   name: supabase
 spec:
   # jwtExpSec: 1800
+
   http:
     protocol: "http"
     hostname: "api.supabase.local"
+
   databaseRef:
     kind: SingleDatabase
     name: supabase
+
+  envoy:
+    enable: true
+    # replicas: 2
+    # service:
+    #   type: LoadBalancer
 
   meta:
     enable: true
@@ -26,7 +34,7 @@ spec:
   functions:
     enable: true
     # replicas: 2
-    # verifyJwt: false
+    # verifyJwt: true
 
   auth:
     enable: true

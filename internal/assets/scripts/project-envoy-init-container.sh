@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+CONFIG_SOURCE="/etc/envoy-config"
+CONFIG_TARGET="/etc/envoy"
+
+echo "Copying Envoy configuration from ConfigMap..."
+cp "${CONFIG_SOURCE}/envoy.yaml" "${CONFIG_TARGET}/envoy.yaml"
+cp "${CONFIG_SOURCE}/cds.yaml" "${CONFIG_TARGET}/cds.yaml"
+cp "${CONFIG_SOURCE}/lds.template.yaml" "${CONFIG_TARGET}/lds.template.yaml"
+
 # Generate SHA1 base64 hash for Envoy basic auth user list
 PASSWORD_HASH=$(printf '%s' "${DASHBOARD_PASSWORD}" | openssl sha1 -binary | openssl base64)
 DASHBOARD_BASIC_AUTH="${DASHBOARD_USERNAME}:{SHA}${PASSWORD_HASH}"
@@ -16,7 +24,7 @@ sed -e "s|\${ANON_KEY}|${ANON_KEY}|g" \
     -e "s|\${SUPABASE_PUBLISHABLE_KEY}|${SUPABASE_PUBLISHABLE_KEY}|g" \
     -e "s|\${SUPABASE_SECRET_KEY}|${SUPABASE_SECRET_KEY}|g" \
     -e "s|\${DASHBOARD_BASIC_AUTH}|${DASHBOARD_BASIC_AUTH}|g" \
-    /etc/envoy/lds.template.yaml > /etc/envoy/lds.yaml
+    "${CONFIG_TARGET}/lds.template.yaml" > "${CONFIG_TARGET}/lds.yaml"
 
 if [ -n "$SUPABASE_SECRET_KEY" ] && \
    [ -n "$SUPABASE_PUBLISHABLE_KEY" ] && \
