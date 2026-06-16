@@ -389,6 +389,15 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	if err := r.ensureStorage(ctx, proj, db); err != nil {
+		logger.Error(err, "Failed to ensure Storage component")
+		reconciler.SetNotReady(proj, "StorageFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after storage failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	if err := r.ensureEnvoy(ctx, proj); err != nil {
 		logger.Error(err, "Failed to ensure Envoy component")
 		reconciler.SetNotReady(proj, "EnvoyFailed", err.Error())
@@ -522,6 +531,26 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			reconciler.SetNotReady(proj, "DeploymentsNotReady", "Waiting for deployments to be ready")
 			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 				logger.Error(statusErr, "Failed to update status while waiting for deployments")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
+	if proj.Spec.Storage != nil && *proj.Spec.Storage.Enable {
+		sts := &appsv1.StatefulSet{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.StorageStatefulSetName(proj), Namespace: proj.Namespace}, sts); err != nil {
+			logger.Error(err, "Failed to get Storage StatefulSet")
+			return ctrl.Result{}, err
+		}
+		replicas := int32(1)
+		if sts.Spec.Replicas != nil {
+			replicas = *sts.Spec.Replicas
+		}
+		if sts.Status.ReadyReplicas < replicas {
+			logger.Info("Waiting for Storage StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", replicas)
+			reconciler.SetNotReady(proj, "StatefulSetNotReady", "Waiting for Storage StatefulSet to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for Storage StatefulSet")
 			}
 			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 		}
@@ -1187,6 +1216,154 @@ func (r *ProjectReconciler) getDBPasswordValue(ctx context.Context, namespace st
 		return "", fmt.Errorf("database password secret key %q not found", db.PasswordRef.Key)
 	}
 	return string(value), nil
+}
+
+func (r *ProjectReconciler) ensureStorage(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	if err := r.ensureStorageSecret(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring storage secret: %w", err)
+	}
+	if err := r.ensureStoragePVC(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring storage pvc: %w", err)
+	}
+	if err := r.ensureStorageService(ctx, proj); err != nil {
+		return fmt.Errorf("ensuring storage service: %w", err)
+	}
+	if err := r.ensureStorageStatefulSet(ctx, proj, db); err != nil {
+		return fmt.Errorf("ensuring storage statefulset: %w", err)
+	}
+	return nil
+}
+
+func (r *ProjectReconciler) ensureStorageSecret(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	sc, err := project.StorageSecret(proj)
+	if err != nil {
+		return fmt.Errorf("building storage secret: %w", err)
+	}
+	if sc == nil {
+		return reconciler.DeleteSecretIfExists(ctx, r.Client, project.StorageSecretName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", sc.GetName(),
+		"namespace", sc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, sc, proj, reconciler.MutateSecret(
+		project.StorageSecretAccessKeyID,
+		project.StorageSecretAccessKeySecret,
+	))
+	if err != nil {
+		return fmt.Errorf("ensuring storage secret: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Storage Secret")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Storage Secret")
+	default:
+		logger.V(1).Info("Storage Secret unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureStoragePVC(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	pvc, err := project.StoragePVC(proj)
+	if err != nil {
+		return fmt.Errorf("building storage pvc: %w", err)
+	}
+	if pvc == nil {
+		return reconciler.DeletePersistentVolumeClaimIfExists(ctx, r.Client, project.StoragePVCName(proj), proj.Namespace)
+	}
+
+	var owner client.Object = proj
+	if project.StoragePVCDeletionPolicy(proj) == supabasev1alpha1.DeletionPolicyRetain {
+		owner = nil
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", pvc.GetName(),
+		"namespace", pvc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, reconciler.MutatePVC())
+	if err != nil {
+		return fmt.Errorf("ensuring storage pvc: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Storage PVC")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Storage PVC")
+	default:
+		logger.V(1).Info("Storage PVC unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureStorageService(ctx context.Context, proj *supabasev1alpha1.Project) error {
+	svc, err := project.StorageService(proj)
+	if err != nil {
+		return fmt.Errorf("building storage service: %w", err)
+	}
+	if svc == nil {
+		return reconciler.DeleteServiceIfExists(ctx, r.Client, project.StorageServiceName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", svc.GetName(),
+		"namespace", svc.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, svc, proj, reconciler.MutateService())
+	if err != nil {
+		return fmt.Errorf("ensuring storage service: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Storage Service")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Storage Service")
+	default:
+		logger.V(1).Info("Storage Service unchanged")
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) ensureStorageStatefulSet(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
+	sts, err := project.StorageStatefulSet(proj, db)
+	if err != nil {
+		return fmt.Errorf("building storage statefulset: %w", err)
+	}
+	if sts == nil {
+		return reconciler.DeleteStatefulSetIfExists(ctx, r.Client, project.StorageStatefulSetName(proj), proj.Namespace)
+	}
+
+	logger := log.FromContext(ctx).WithValues(
+		"name", sts.GetName(),
+		"namespace", sts.GetNamespace(),
+	)
+
+	result, err := reconciler.EnsureResource(ctx, r.Client, sts, proj, reconciler.MutateStatefulSet())
+	if err != nil {
+		return fmt.Errorf("ensuring storage statefulset: %w", err)
+	}
+
+	switch result {
+	case reconciler.ResultCreated:
+		logger.Info("Created Storage StatefulSet")
+	case reconciler.ResultUpdated:
+		logger.Info("Updated Storage StatefulSet")
+	default:
+		logger.V(1).Info("Storage StatefulSet unchanged")
+	}
+
+	return nil
 }
 
 func (r *ProjectReconciler) ensureEnvoy(ctx context.Context, proj *supabasev1alpha1.Project) error {

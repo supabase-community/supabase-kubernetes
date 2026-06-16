@@ -98,6 +98,24 @@ const (
 
 	// StudioFunctionsMountPath is the path where Studio edge functions are mounted.
 	StudioFunctionsMountPath = "/app/edge-functions"
+
+	// DefaultStorageImage is the default Storage image.
+	DefaultStorageImage = "supabase/storage-api:v1.60.4"
+
+	// DefaultStoragePort is the default Storage container port.
+	DefaultStoragePort int32 = 5000
+
+	// StorageDataMountPath is the path where Storage data is mounted.
+	StorageDataMountPath = "/var/lib/storage"
+
+	// StorageDataSubPath is the subPath used for Storage data inside the PVC.
+	StorageDataSubPath = "storage-data"
+
+	// StorageSecretAccessKeyID is the Secret data key that holds the S3 access key ID.
+	StorageSecretAccessKeyID = "accessKeyId"
+
+	// StorageSecretAccessKeySecret is the Secret data key that holds the S3 access key secret.
+	StorageSecretAccessKeySecret = "accessKeySecret"
 )
 
 // ProjectLabels returns the common labels for a Project and its resources.
@@ -248,6 +266,25 @@ func StudioSelectorLabels(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":      "studio",
 		"app.kubernetes.io/component": "studio",
+		"app.kubernetes.io/instance":  project.Name,
+	}
+}
+
+// StorageLabels returns the common labels for the Storage component.
+func StorageLabels(project *supabasev1alpha1.Project) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":       "storage",
+		"app.kubernetes.io/component":  "storage",
+		"app.kubernetes.io/instance":   project.Name,
+		"app.kubernetes.io/managed-by": "supabase-operator",
+	}
+}
+
+// StorageSelectorLabels returns the selector labels for the Storage StatefulSet.
+func StorageSelectorLabels(project *supabasev1alpha1.Project) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":      "storage",
+		"app.kubernetes.io/component": "storage",
 		"app.kubernetes.io/instance":  project.Name,
 	}
 }

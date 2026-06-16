@@ -60,6 +60,10 @@ type ProjectSpec struct {
 	// +optional
 	Envoy *EnvoySpec `json:"envoy,omitempty"`
 
+	// Storage defines the Storage component configuration
+	// +optional
+	Storage *StorageSpec `json:"storage,omitempty"`
+
 	// Studio defines the Studio component configuration
 	// +optional
 	Studio *StudioSpec `json:"studio,omitempty"`

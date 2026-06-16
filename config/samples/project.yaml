@@ -27,6 +27,15 @@ spec:
     enable: true
     # replicas: 2
 
+  storage:
+    enable: true
+    # replicas: 1
+    # fileSizeLimit: 52428800
+    storage:
+      accessModes:
+        - ReadWriteOnce
+      size: 5Gi
+
   realtime:
     enable: true
     # replicas: 2
