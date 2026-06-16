@@ -191,9 +191,19 @@ func functionsProbeHandler() corev1.ProbeHandler {
 func buildFunctionsEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
 	return []corev1.EnvVar{
 		helper.EnvVarFromSecret("JWT_SECRET", JWTSecretName(project), JWTSecretKey),
+		helper.EnvVar("SUPABASE_URL", fmt.Sprintf(
+			"http://%s.%s.svc.cluster.local:%d",
+			EnvoyServiceName(project),
+			project.Namespace,
+			DefaultEnvoyPort,
+		)),
 		helper.EnvVar("SUPABASE_PUBLIC_URL", APIExternalURL(project)),
 		helper.EnvVarFromSecret("SUPABASE_ANON_KEY", JWTSecretName(project), JWTSecretAnonKey),
 		helper.EnvVarFromSecret("SUPABASE_SERVICE_ROLE_KEY", JWTSecretName(project), JWTSecretServiceKey),
+		helper.EnvVarFromSecret("SUPABASE_PUBLISHABLE_KEY", JWTSecretName(project), JWTSecretPublishableKey),
+		helper.EnvVarFromSecret("SUPABASE_SECRET_KEY", JWTSecretName(project), JWTSecretOpaqueKey),
+		helper.EnvVar("SUPABASE_PUBLISHABLE_KEYS", `{"default":"$(SUPABASE_PUBLISHABLE_KEY)"}`),
+		helper.EnvVar("SUPABASE_SECRET_KEYS", `{"default":"$(SUPABASE_SECRET_KEY)"}`),
 		helper.EnvVarFromSecret("DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVar("SUPABASE_DB_URL", fmt.Sprintf(
 			"postgresql://postgres:$(DB_PASSWORD)@%s:%s/%s",
