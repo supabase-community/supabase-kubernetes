@@ -316,6 +316,22 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	if proj.Spec.Functions != nil && *proj.Spec.Functions.Enable {
+		mainFunction := &supabasev1alpha1.Function{}
+		if err := r.Get(ctx, types.NamespacedName{Name: project.ProjectMainFunctionName(proj), Namespace: proj.Namespace}, mainFunction); err != nil {
+			logger.Error(err, "Failed to get main Function")
+			return ctrl.Result{}, err
+		}
+		if !meta.IsStatusConditionTrue(mainFunction.Status.Conditions, reconciler.ConditionTypeReady) {
+			logger.Info("Waiting for main Function to be ready")
+			reconciler.SetNotReady(proj, "MainFunctionNotReady", "Waiting for main function to be ready")
+			if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status while waiting for main Function")
+			}
+			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		}
+	}
+
 	functions, err := r.fetchProjectFunctions(ctx, proj)
 	if err != nil {
 		logger.Error(err, "Failed to fetch Functions")
