@@ -14,6 +14,10 @@ spec:
   {{- if not .Values.autoscaling.minio.enabled }}
   replicas: {{ .Values.deployment.minio.replicaCount }}
   {{- end }}
+  {{- with .Values.deployment.minio.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.minio.selectorLabels" . | nindent 6 }}

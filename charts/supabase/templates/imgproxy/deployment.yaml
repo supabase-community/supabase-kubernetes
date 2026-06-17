@@ -14,6 +14,10 @@ spec:
   {{- if not .Values.autoscaling.imgproxy.enabled }}
   replicas: {{ .Values.deployment.imgproxy.replicaCount }}
   {{- end }}
+  {{- with .Values.deployment.imgproxy.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.imgproxy.selectorLabels" . | nindent 6 }}
