@@ -1,9 +1,9 @@
 # Supabase Kubernetes
 
-This repository provides Kubernetes-native ways to run [Supabase](https://github.com/supabase/supabase) inside a cluster.
+Deploy and manage [Supabase](https://github.com/supabase/supabase) on Kubernetes with a Helm chart or a Kubernetes Operator.
 
-- **Supabase Kubernetes Operator** — manages Supabase through Kubernetes Custom Resources. The Operator is in an early stage of development and its API (`core.supabase.io/v1alpha1`) may change.
-- **Supabase Helm Chart** — available in [`charts/supabase`](./charts/supabase/README.md).
+- **Supabase Kubernetes Operator**: manages Supabase through Kubernetes Custom Resources. The Operator is in an early stage of development and its API (`core.supabase.io/v1alpha1`) may change.
+- **Supabase Helm Chart**: available in [`charts/supabase`](./charts/supabase/README.md).
 
 For information about Supabase itself, refer to the [official documentation](https://supabase.io/docs).
 
@@ -185,7 +185,7 @@ spec:
 EOF
 ```
 
-Functions are exposed through Envoy at `/functions/v1/<function-name>`. To test locally, forward the Functions service:
+Functions are exposed through Envoy at `/functions/v1/<function-name>`. To test locally:
 
 ```bash
 kubectl port-forward svc/supabase-envoy 8000:8000
