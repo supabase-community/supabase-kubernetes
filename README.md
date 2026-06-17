@@ -47,7 +47,7 @@ This installs the CRDs and deploys the controller in a single step.
 
 ### Provision a database
 
-Create a `SingleDatabase` resource. The Operator will provision a Postgres StatefulSet, Service, PVC, and a Secret with the generated credentials.
+Create a `SingleDatabase` resource. The Operator will provision a [`supabase/postgres`](https://github.com/supabase/postgres) StatefulSet, Service, PVC, and a Secret with the generated credentials.
 
 ```bash
 kubectl apply -f - <<EOF
