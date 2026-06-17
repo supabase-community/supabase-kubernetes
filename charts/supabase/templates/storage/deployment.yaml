@@ -14,6 +14,10 @@ spec:
   {{- if not .Values.autoscaling.storage.enabled }}
   replicas: {{ .Values.deployment.storage.replicaCount }}
   {{- end }}
+  {{- with .Values.deployment.storage.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.storage.selectorLabels" . | nindent 6 }}

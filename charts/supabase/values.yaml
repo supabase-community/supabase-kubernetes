@@ -315,6 +315,11 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    ## Deployment strategy. Set to {type: Recreate} when using
+    ## persistence.functions.enabled with a ReadWriteOnce PVC: the chart's
+    ## default RollingUpdate causes a Multi-Attach error because the new
+    ## pod is scheduled before the old one releases the volume.
+    strategy: {}
 
   imgproxy:
     enabled: true
@@ -339,6 +344,11 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    ## Deployment strategy. Set to {type: Recreate} when using
+    ## persistence.imgproxy.enabled with a ReadWriteOnce PVC: the chart's
+    ## default RollingUpdate causes a Multi-Attach error because the new
+    ## pod is scheduled before the old one releases the volume.
+    strategy: {}
 
   kong:
     enabled: true
@@ -411,6 +421,11 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    ## Deployment strategy. Set to {type: Recreate} when using
+    ## persistence.minio.enabled with a ReadWriteOnce PVC: the chart's
+    ## default RollingUpdate causes a Multi-Attach error because the new
+    ## pod is scheduled before the old one releases the volume.
+    strategy: {}
 
   realtime:
     enabled: true
@@ -483,6 +498,11 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    ## Deployment strategy. Set to {type: Recreate} when using
+    ## persistence.storage.enabled with a ReadWriteOnce PVC: the chart's
+    ## default RollingUpdate causes a Multi-Attach error because the new
+    ## pod is scheduled before the old one releases the volume.
+    strategy: {}
     extraInitContainers: []
 
   studio:
