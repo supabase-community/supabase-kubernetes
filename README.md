@@ -203,6 +203,8 @@ curl -X POST http://localhost:8000/functions/v1/hello \
 
 Contributions are welcome. Before starting significant work, please open an issue to discuss your idea or bug report. When you are ready, fork the repository, make your changes, and open a pull request.
 
+For setup instructions, build commands, and testing workflows, see [DEVELOPERS.md](./DEVELOPERS.md).
+
 ## Support
 
 This project is supported by the community and not officially supported by Supabase. Please do not create issues on the official Supabase repositories if you face problems using this project. Instead, open an issue on this repository.
