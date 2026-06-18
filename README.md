@@ -1,9 +1,11 @@
 # Supabase Kubernetes
 
-Deploy and manage [Supabase](https://github.com/supabase/supabase) on Kubernetes with a Helm chart or a Kubernetes Operator.
+This repository provides Kubernetes-native ways to run [Supabase](https://github.com/supabase/supabase) on your own cluster.
 
-- **Supabase Kubernetes Operator**: manages Supabase through Kubernetes Custom Resources. The Operator is in an early stage of development and its API (`core.supabase.io/v1alpha1`) may change.
-- **Supabase Helm Chart**: available in [`charts/supabase`](./charts/supabase/README.md).
+You can choose between two approaches:
+
+- **Supabase Kubernetes Operator**: manage Supabase through Kubernetes Custom Resources (`core.supabase.io/v1alpha1`). The Operator is in an early stage of development and its API may change.
+- **Supabase Helm Chart**: deploy Supabase using a traditional Helm chart. See [`charts/supabase`](./charts/supabase/README.md) for details.
 
 For information about Supabase itself, refer to the [official documentation](https://supabase.io/docs).
 
