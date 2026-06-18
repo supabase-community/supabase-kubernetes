@@ -435,6 +435,16 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    ## Run Realtime.Release.seeds(Realtime.Repo) on every container start.
+    ## Default true preserves existing behavior, but the seed step deletes
+    ## and recreates the tenant row on every pod restart (see
+    ## supabase/realtime priv/repo/seeds.exs). Recreation clobbers any
+    ## tenant config edited via the management API and the hardcoded
+    ## "ssl_enforced": false breaks tenant CDC against TLS-only Postgres
+    ## (e.g. AWS RDS with rds.force_ssl=1). Set to false after the tenant
+    ## has been seeded once, or on every install where the tenant already
+    ## exists in the metadata DB.
+    runSeeds: true
 
   rest:
     enabled: true

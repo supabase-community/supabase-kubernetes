@@ -71,7 +71,14 @@ spec:
           image: "{{ .Values.image.realtime.repository }}:{{ .Values.image.realtime.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.realtime.pullPolicy }}
           command: ["/bin/sh"]
-          args: ["-c", "/app/bin/migrate && /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)' && /app/bin/server"]
+          args:
+            - "-c"
+            - >-
+              /app/bin/migrate &&
+              {{- if .Values.deployment.realtime.runSeeds }}
+              /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)' &&
+              {{- end }}
+              /app/bin/server
           ports:
             - name: http
               containerPort: 4000
