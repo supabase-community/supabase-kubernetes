@@ -97,7 +97,7 @@ spec:
             - mountPath: /initdb.d
               name: initdb-scripts-data
       {{- if .Values.deployment.db.extraInitContainers }}
-          {{- toYaml .Values.deployment.db.extraInitContainers | nindent 8 }}
+          {{- toYaml .Values.deployment.db.extraInitContainers | nindent 10 }}
       {{- end }}
       containers:
         - name: {{ include "supabase.db.name" $ }}
