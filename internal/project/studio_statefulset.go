@@ -203,6 +203,7 @@ func buildStudioEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		helper.EnvVar("POSTGRES_HOST", db.Host),
 		helper.EnvVar("POSTGRES_DB", db.DBName),
 		helper.EnvVarFromSecret("POSTGRES_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
+		helper.EnvVar("POSTGRES_USER_READ_WRITE", "postgres"),
 		helper.EnvVarFromSecret("PG_META_CRYPTO_KEY", KeysSecretName(project), KeysSecretCryptoKey),
 		helper.EnvVar("PGRST_DB_SCHEMAS", restSchemasOrDefault(project)),
 		helper.EnvVar("PGRST_DB_MAX_ROWS", restMaxRowsOrDefault(project)),

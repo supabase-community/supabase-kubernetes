@@ -141,7 +141,7 @@ func buildMetaEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.Re
 		helper.EnvVar("PG_META_DB_HOST", db.Host),
 		helper.EnvVar("PG_META_DB_PORT", strconv.Itoa(int(db.Port))),
 		helper.EnvVar("PG_META_DB_NAME", db.DBName),
-		helper.EnvVar("PG_META_DB_USER", "supabase_admin"),
+		helper.EnvVar("PG_META_DB_USER", "postgres"),
 		helper.EnvVarFromSecret("PG_META_DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVarFromSecret("CRYPTO_KEY", KeysSecretName(project), KeysSecretCryptoKey),
 	}
