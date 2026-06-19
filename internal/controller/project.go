@@ -58,6 +58,7 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&appsv1.StatefulSet{}).
 		Owns(&batchv1.Job{}).
 		Owns(&supabasev1alpha1.Migration{}).
 		Owns(&supabasev1alpha1.Function{}).
