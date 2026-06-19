@@ -81,7 +81,7 @@ func (r *ProjectReconciler) mapSingleDatabaseToProjects(ctx context.Context, obj
 	}
 
 	projects := &supabasev1alpha1.ProjectList{}
-	if err := r.List(ctx, projects); err != nil {
+	if err := r.List(ctx, projects, client.InNamespace(singleDB.Namespace)); err != nil {
 		return nil
 	}
 
