@@ -211,16 +211,8 @@ func buildFunctionsEnvVars(project *supabasev1alpha1.Project, db *supabasev1alph
 			strconv.Itoa(int(db.Port)),
 			db.DBName,
 		)),
-		helper.EnvVar("VERIFY_JWT", strconv.FormatBool(functionsVerifyJWT(project))),
+		helper.EnvVar("VERIFY_JWT", strconv.FormatBool(project.Spec.Functions.VerifyJWT)),
 	}
-}
-
-// functionsVerifyJWT returns the VerifyJWT setting from the spec or the default.
-func functionsVerifyJWT(project *supabasev1alpha1.Project) bool {
-	if project.Spec.Functions != nil && project.Spec.Functions.VerifyJWT != nil {
-		return *project.Spec.Functions.VerifyJWT
-	}
-	return false
 }
 
 // buildFunctionsVolumes returns the ConfigMap volumes for the Functions container.

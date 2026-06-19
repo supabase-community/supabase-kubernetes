@@ -42,8 +42,8 @@ spec:
 
   functions:
     enable: true
+    verifyJwt: false
     # replicas: 2
-    # verifyJwt: true
 
   studio:
     enable: true

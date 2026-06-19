@@ -36,7 +36,6 @@ type FunctionsSpec struct {
 	Service *ServiceSpec `json:"service,omitempty"`
 
 	// VerifyJWT defines whether to verify JWT tokens
-	// +optional
-	// +kubebuilder:default=false
-	VerifyJWT *bool `json:"verifyJwt,omitempty"`
+	// +kubebuilder:validation:Required
+	VerifyJWT bool `json:"verifyJwt"`
 }

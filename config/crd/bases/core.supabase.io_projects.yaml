@@ -4358,9 +4358,10 @@ spec:
                       type: object
                     type: array
                   verifyJwt:
-                    default: false
                     description: VerifyJWT defines whether to verify JWT tokens
                     type: boolean
+                required:
+                - verifyJwt
                 type: object
               http:
                 description: HTTP defines the public HTTP access settings
