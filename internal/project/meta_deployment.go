@@ -24,6 +24,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
@@ -104,6 +105,9 @@ func buildMetaContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		Env:             buildMetaEnvVars(project, db),
 		Ports:           metaPorts(),
 		Resources:       ptr.Deref(project.Spec.Meta.Resources, corev1.ResourceRequirements{}),
+		LivenessProbe:   metaLivenessProbe(),
+		ReadinessProbe:  metaReadinessProbe(),
+		StartupProbe:    metaStartupProbe(),
 	}
 }
 
@@ -130,6 +134,50 @@ func metaPorts() []corev1.ContainerPort {
 			Name:          "meta",
 			ContainerPort: DefaultMetaPort,
 			Protocol:      corev1.ProtocolTCP,
+		},
+	}
+}
+
+// metaLivenessProbe returns the liveness probe for the Meta container.
+func metaLivenessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:        metaProbeHandler(),
+		InitialDelaySeconds: 5,
+		PeriodSeconds:       5,
+		TimeoutSeconds:      5,
+		FailureThreshold:    3,
+	}
+}
+
+// metaReadinessProbe returns the readiness probe for the Meta container.
+func metaReadinessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:        metaProbeHandler(),
+		InitialDelaySeconds: 5,
+		PeriodSeconds:       5,
+		TimeoutSeconds:      5,
+		FailureThreshold:    3,
+	}
+}
+
+// metaStartupProbe returns the startup probe for the Meta container.
+func metaStartupProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:        metaProbeHandler(),
+		InitialDelaySeconds: 5,
+		PeriodSeconds:       5,
+		TimeoutSeconds:      5,
+		FailureThreshold:    10,
+	}
+}
+
+// metaProbeHandler returns the shared probe handler for Meta health checks.
+func metaProbeHandler() corev1.ProbeHandler {
+	return corev1.ProbeHandler{
+		HTTPGet: &corev1.HTTPGetAction{
+			Path:   "/health",
+			Port:   intstr.FromInt(int(DefaultMetaPort)),
+			Scheme: corev1.URISchemeHTTP,
 		},
 	}
 }
