@@ -190,7 +190,7 @@ spec:
             name: {{ include "supabase.db.fullname" . }}-initdb
         - name: custom-migrations
           configMap:
-            name: {{ include "supabase.db.fullname" . }}-migrations
+            name: {{ include "supabase.db.migrationsConfigMap.name" . }}
         {{- if .Values.persistence.pgsodium.enabled }}
         - name: pgsodium
           persistentVolumeClaim:
