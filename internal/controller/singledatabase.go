@@ -137,8 +137,12 @@ func (r *SingleDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
-		logger.Info("Waiting for StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", *sts.Spec.Replicas)
+	replicas := int32(1)
+	if sts.Spec.Replicas != nil {
+		replicas = *sts.Spec.Replicas
+	}
+	if sts.Status.ReadyReplicas < replicas {
+		logger.Info("Waiting for StatefulSet to be ready", "readyReplicas", sts.Status.ReadyReplicas, "replicas", replicas)
 		reconciler.SetNotReady(db, "StatefulSetNotReady", "Waiting for StatefulSet pods to be ready")
 		if statusErr := reconciler.UpdateStatus(ctx, r.Client, db); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after StatefulSet not ready")
