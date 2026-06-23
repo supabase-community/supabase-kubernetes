@@ -979,7 +979,7 @@ spec:
                     description: DisableSignup disables new user signups
                     type: boolean
                   enable:
-                    default: false
+                    default: true
                     description: Enable defines whether the Auth component is enabled
                     type: boolean
                   enableAnonymousUsers:
@@ -2640,7 +2640,7 @@ spec:
                         type: object
                     type: object
                   enable:
-                    default: false
+                    default: true
                     description: Enable defines whether the Envoy component is enabled
                     type: boolean
                   image:
@@ -3960,7 +3960,7 @@ spec:
                         type: object
                     type: object
                   enable:
-                    default: false
+                    default: true
                     description: Enable defines whether the Functions component is
                       enabled
                     type: boolean
@@ -5315,7 +5315,7 @@ spec:
                         type: object
                     type: object
                   enable:
-                    default: false
+                    default: true
                     description: Enable defines whether the Meta component is enabled
                     type: boolean
                   image:
@@ -6635,7 +6635,7 @@ spec:
                         type: object
                     type: object
                   enable:
-                    default: false
+                    default: true
                     description: Enable defines whether the Realtime component is
                       enabled
                     type: boolean
@@ -7972,7 +7972,7 @@ spec:
                     description: DBSchemas defines the schemas exposed by PostgREST
                     type: string
                   enable:
-                    default: false
+                    default: true
                     description: Enable defines whether the Rest component is enabled
                     type: boolean
                   image:
@@ -9292,7 +9292,7 @@ spec:
                         type: object
                     type: object
                   enable:
-                    default: false
+                    default: true
                     description: Enable defines whether the Storage component is enabled
                     type: boolean
                   fileSizeLimit:
@@ -10658,7 +10658,7 @@ spec:
                         type: object
                     type: object
                   enable:
-                    default: false
+                    default: true
                     description: Enable defines whether the Studio component is enabled
                     type: boolean
                   image:

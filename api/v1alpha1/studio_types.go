@@ -22,7 +22,7 @@ type StudioSpec struct {
 
 	// Enable defines whether the Studio component is enabled
 	// +optional
-	// +kubebuilder:default=false
+	// +kubebuilder:default=true
 	Enable *bool `json:"enable,omitempty"`
 
 	// Replicas defines the number of Studio instances

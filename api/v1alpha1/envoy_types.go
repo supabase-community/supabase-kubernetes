@@ -22,7 +22,7 @@ type EnvoySpec struct {
 
 	// Enable defines whether the Envoy component is enabled
 	// +optional
-	// +kubebuilder:default=false
+	// +kubebuilder:default=true
 	Enable *bool `json:"enable,omitempty"`
 
 	// Replicas defines the number of component instances

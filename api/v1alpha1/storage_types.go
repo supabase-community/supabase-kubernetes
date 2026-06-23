@@ -22,7 +22,7 @@ type StorageSpec struct {
 
 	// Enable defines whether the Storage component is enabled
 	// +optional
-	// +kubebuilder:default=false
+	// +kubebuilder:default=true
 	Enable *bool `json:"enable,omitempty"`
 
 	// Replicas defines the number of Storage instances
