@@ -315,6 +315,7 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    strategy: {}
 
   imgproxy:
     enabled: true
