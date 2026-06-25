@@ -138,6 +138,7 @@ func mergePodSpec(existing, desired *corev1.PodSpec) {
 	existing.ServiceAccountName = desired.ServiceAccountName
 	existing.ImagePullSecrets = desired.ImagePullSecrets
 	existing.HostAliases = desired.HostAliases
+	existing.InitContainers = mergeContainers(existing.InitContainers, desired.InitContainers)
 	existing.Containers = mergeContainers(existing.Containers, desired.Containers)
 }
 

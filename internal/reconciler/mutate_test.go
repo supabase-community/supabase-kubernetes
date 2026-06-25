@@ -173,6 +173,16 @@ var _ = Describe("Mutate functions", func() {
 				},
 				Spec: appsv1.StatefulSetSpec{
 					Replicas: int32Ptr(1),
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							InitContainers: []corev1.Container{
+								{Name: "init", Image: "old-init-image"},
+							},
+							Containers: []corev1.Container{
+								{Name: "main", Image: "old-main-image"},
+							},
+						},
+					},
 				},
 			}
 			desired := &appsv1.StatefulSet{
@@ -182,6 +192,16 @@ var _ = Describe("Mutate functions", func() {
 				},
 				Spec: appsv1.StatefulSetSpec{
 					Replicas: int32Ptr(3),
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							InitContainers: []corev1.Container{
+								{Name: "init", Image: "new-init-image"},
+							},
+							Containers: []corev1.Container{
+								{Name: "main", Image: "new-main-image"},
+							},
+						},
+					},
 				},
 			}
 
@@ -192,6 +212,10 @@ var _ = Describe("Mutate functions", func() {
 			Expect(existing.Labels).NotTo(HaveKey("old-label"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
+			Expect(existing.Spec.Template.Spec.InitContainers).To(HaveLen(1))
+			Expect(existing.Spec.Template.Spec.InitContainers[0].Image).To(Equal("new-init-image"))
+			Expect(existing.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(existing.Spec.Template.Spec.Containers[0].Image).To(Equal("new-main-image"))
 		})
 	})
 
@@ -204,6 +228,16 @@ var _ = Describe("Mutate functions", func() {
 				},
 				Spec: appsv1.DeploymentSpec{
 					Replicas: int32Ptr(1),
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							InitContainers: []corev1.Container{
+								{Name: "init", Image: "old-init-image"},
+							},
+							Containers: []corev1.Container{
+								{Name: "main", Image: "old-main-image"},
+							},
+						},
+					},
 				},
 			}
 			desired := &appsv1.Deployment{
@@ -213,6 +247,16 @@ var _ = Describe("Mutate functions", func() {
 				},
 				Spec: appsv1.DeploymentSpec{
 					Replicas: int32Ptr(5),
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							InitContainers: []corev1.Container{
+								{Name: "init", Image: "new-init-image"},
+							},
+							Containers: []corev1.Container{
+								{Name: "main", Image: "new-main-image"},
+							},
+						},
+					},
 				},
 			}
 
@@ -223,6 +267,10 @@ var _ = Describe("Mutate functions", func() {
 			Expect(existing.Labels).NotTo(HaveKey("old-label"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("new-anno", "value"))
+			Expect(existing.Spec.Template.Spec.InitContainers).To(HaveLen(1))
+			Expect(existing.Spec.Template.Spec.InitContainers[0].Image).To(Equal("new-init-image"))
+			Expect(existing.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(existing.Spec.Template.Spec.Containers[0].Image).To(Equal("new-main-image"))
 		})
 	})
 
