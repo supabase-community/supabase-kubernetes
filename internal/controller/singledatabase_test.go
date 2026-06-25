@@ -112,6 +112,34 @@ var _ = Describe("SingleDatabase Controller", func() {
 				g.Expect(sts.OwnerReferences).To(HaveLen(1))
 				g.Expect(sts.OwnerReferences[0].Kind).To(Equal("SingleDatabase"))
 				g.Expect(sts.Spec.Template.Spec.Containers).To(HaveLen(1))
+
+				// Init containers: init-pgsodium before password-sync
+				g.Expect(sts.Spec.Template.Spec.InitContainers).To(HaveLen(2))
+				g.Expect(sts.Spec.Template.Spec.InitContainers[0].Name).To(Equal("init-pgsodium"))
+				g.Expect(sts.Spec.Template.Spec.InitContainers[1].Name).To(Equal("password-sync"))
+
+				// Main postgres container mounts both data and custom subPaths
+				mainMounts := sts.Spec.Template.Spec.Containers[0].VolumeMounts
+				g.Expect(mainMounts).To(ContainElements(
+					corev1.VolumeMount{
+						Name:      "postgres-data",
+						MountPath: singledatabase.PostgresDataMountPath,
+						SubPath:   singledatabase.PostgresDataSubPath,
+					},
+					corev1.VolumeMount{
+						Name:      "postgres-data",
+						MountPath: singledatabase.PostgresCustomMountPath,
+						SubPath:   singledatabase.PostgresCustomSubPath,
+					},
+				))
+
+				// init-pgsodium mounts only the custom subPath in /mnt/pgsodium
+				pgsodiumMounts := sts.Spec.Template.Spec.InitContainers[0].VolumeMounts
+				g.Expect(pgsodiumMounts).To(ConsistOf(corev1.VolumeMount{
+					Name:      "postgres-data",
+					MountPath: "/mnt/pgsodium",
+					SubPath:   singledatabase.PostgresCustomSubPath,
+				}))
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 		})
 

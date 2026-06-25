@@ -63,6 +63,7 @@ func PostgresStatefulSet(db *supabasev1alpha1.SingleDatabase, secretHash string)
 					SecurityContext:               db.Spec.SecurityContext,
 					TerminationGracePeriodSeconds: db.Spec.TerminationGracePeriodSeconds,
 					InitContainers: []corev1.Container{
+						buildPgsodiumInitContainer(db),
 						buildPasswordSyncInitContainer(db),
 					},
 					Containers: []corev1.Container{
@@ -131,6 +132,24 @@ func buildPasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.
 	}
 }
 
+// buildPgsodiumInitContainer returns the pgsodium init container specification.
+func buildPgsodiumInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
+	return corev1.Container{
+		Name:            "init-pgsodium",
+		Image:           getImageOrDefault(db),
+		ImagePullPolicy: getImagePullPolicyOrDefault(db),
+		Command:         []string{"/bin/sh", "-c"},
+		Args:            []string{assets.SingleDatabasePgsodiumInitScript},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "postgres-data",
+				MountPath: "/mnt/pgsodium",
+				SubPath:   PostgresCustomSubPath,
+			},
+		},
+	}
+}
+
 // postgresVolumeMounts returns the volume mounts for the Postgres containers.
 func postgresVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
@@ -138,6 +157,11 @@ func postgresVolumeMounts() []corev1.VolumeMount {
 			Name:      "postgres-data",
 			MountPath: PostgresDataMountPath,
 			SubPath:   PostgresDataSubPath,
+		},
+		{
+			Name:      "postgres-data",
+			MountPath: PostgresCustomMountPath,
+			SubPath:   PostgresCustomSubPath,
 		},
 	}
 }

@@ -43,6 +43,12 @@ const (
 
 	// PostgresDataSubPath is the subPath used inside the PVC.
 	PostgresDataSubPath = "postgres-data"
+
+	// PostgresCustomMountPath is the path where Postgres custom config (incl. pgsodium_root.key) lives.
+	PostgresCustomMountPath = "/etc/postgresql-custom"
+
+	// PostgresCustomSubPath is the subPath used inside the PVC for the custom config.
+	PostgresCustomSubPath = "postgres-custom"
 )
 
 // PostgresLabels returns the common labels for a SingleDatabase and its resources.

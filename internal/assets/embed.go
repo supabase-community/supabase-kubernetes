@@ -42,6 +42,9 @@ var MigrationApplyScript string
 //go:embed scripts/singledatabase-password-sync.sh
 var SingleDatabasePasswordSyncScript string
 
+//go:embed scripts/singledatabase-pgsodium-init.sh
+var SingleDatabasePgsodiumInitScript string
+
 //go:embed scripts/project-sync-jwt.sh
 var ProjectSyncJWTScript string
 
