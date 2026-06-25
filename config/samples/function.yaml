@@ -1,0 +1,10 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Function
+metadata:
+  name: supabase
+spec:
+  projectRef: supabase
+  functionName: hello
+  source:
+    index.ts: |
+      Deno.serve(() => new Response("Hello from Supabase Function"))

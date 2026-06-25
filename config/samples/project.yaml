@@ -1,0 +1,79 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Project
+metadata:
+  name: supabase
+spec:
+  # jwtExpSec: 1800
+
+  http:
+    protocol: "http"
+    hostname: "api.supabase.local"
+
+  databaseRef:
+    kind: SingleDatabase
+    name: supabase
+
+  envoy:
+    enable: true
+    # replicas: 2
+    # service:
+    #   type: LoadBalancer
+
+  meta:
+    enable: true
+    # replicas: 2
+
+  rest:
+    enable: true
+    # replicas: 2
+
+  storage:
+    enable: true
+    # replicas: 1
+    # fileSizeLimit: 52428800
+    storage:
+      accessModes:
+        - ReadWriteOnce
+      size: 5Gi
+
+  realtime:
+    enable: true
+    # replicas: 2
+
+  functions:
+    enable: true
+    verifyJwt: false
+    # replicas: 2
+
+  studio:
+    enable: true
+    orgName: "Default Organization"
+    projName: "Default Project"
+    storage:
+      accessModes:
+        - ReadWriteOnce
+      size: 1Gi
+    # openAiApiKey:
+    #   name: "openai-credentials"
+    #   key: "api-key"
+
+  auth:
+    enable: true
+    siteUrl: "https://myapp.supabase.com"
+    # smtp:
+    #   host: "smtp.example.com"
+    #   port: 587
+    #   user: "smtp-user"
+    #   passwordRef:
+    #     name: "smtp-credentials"
+    #     key: "password"
+    #   senderName: "My App"
+    #   adminEmail: "admin@example.com"
+    #   # maxFrequency: "1s"
+    # oauth:
+    #   google:
+    #     enable: true
+    #     clientId: "google-client-id"
+    #     secretRef:
+    #       name: "oauth-google-secret"
+    #       key: "secret"

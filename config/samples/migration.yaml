@@ -1,0 +1,17 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Migration
+metadata:
+  name: supabase
+spec:
+  databaseRef:
+    kind: SingleDatabase
+    name: supabase
+  migrations:
+    - name: "01-create-todos"
+      sql: |
+        CREATE TABLE IF NOT EXISTS todos (
+          id serial PRIMARY KEY,
+          title text NOT NULL,
+          completed boolean NOT NULL DEFAULT false,
+          created_at timestamptz NOT NULL DEFAULT NOW()
+        );
