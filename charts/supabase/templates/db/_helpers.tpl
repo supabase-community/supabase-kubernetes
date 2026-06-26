@@ -24,6 +24,19 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
+Name of the ConfigMap holding user-defined migration scripts.
+If migrationConfigRef is set, that existing ConfigMap is referenced and the
+chart will not render its own migrations ConfigMap.
+*/}}
+{{- define "supabase.db.migrationsConfigMap.name" -}}
+{{- if .Values.migrationConfigRef -}}
+{{- .Values.migrationConfigRef -}}
+{{- else -}}
+{{- printf "%s-migrations" (include "supabase.db.fullname" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Selector labels
 */}}
 {{- define "supabase.db.selectorLabels" -}}
