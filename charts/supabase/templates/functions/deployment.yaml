@@ -14,6 +14,10 @@ spec:
   {{- if not .Values.autoscaling.functions.enabled }}
   replicas: {{ .Values.deployment.functions.replicaCount }}
   {{- end }}
+  {{- with .Values.deployment.functions.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "supabase.functions.selectorLabels" . | nindent 6 }}
