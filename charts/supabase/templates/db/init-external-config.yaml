@@ -1,4 +1,4 @@
-{{- if not .Values.deployment.db.enabled -}}
+{{- if and (not .Values.deployment.db.enabled) .Values.externalDb.init.enabled -}}
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -12,9 +12,27 @@ metadata:
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data:
+  {{- if .Values.externalDb.init.orioledb.enabled }}
+  00-00-orioledb.sql: |{{ .Files.Get "files/db/initdb-external/00-00-orioledb.sql" | nindent 4 }}
+  {{- end }}
   00-initial-schema.sql: |{{ .Files.Get "files/db/initdb-external/00-initial-schema.sql" | nindent 4 }}
   01-auth-schema.sql: |{{ .Files.Get "files/db/initdb-external/01-auth-schema.sql" | nindent 4 }}
   02-storage-schema.sql: |{{ .Files.Get "files/db/initdb-external/02-storage-schema.sql" | nindent 4 }}
   03-realtime-schema.sql: |{{ .Files.Get "files/db/initdb-external/03-realtime-schema.sql" | nindent 4 }}
   04-grants.sql: |{{ .Files.Get "files/db/initdb-external/04-grants.sql" | nindent 4 }}
+  {{- if .Values.externalDb.init.setJwtSettings }}
+  05-jwt.sql: |{{ .Files.Get "files/db/initdb-external/05-jwt.sql" | nindent 4 }}
+  {{- end }}
+  {{- if .Values.externalDb.init.createInternalDatabase }}
+  06-internal-database.sql: |{{ .Files.Get "files/db/initdb-external/06-internal-database.sql" | nindent 4 }}
+  {{- end }}
+  {{- if .Values.externalDb.init.defaultTableAccessMethod }}
+  07-default-table-access-method.sql: |{{ .Files.Get "files/db/initdb-external/07-default-table-access-method.sql" | nindent 4 }}
+  {{- end }}
+  {{- if .Values.externalDb.init.runPrivilegedMigrations }}
+  08-webhooks.sql: |{{ .Files.Get "files/db/initdb-external/08-webhooks.sql" | nindent 4 }}
+  {{- end }}
+  {{- if and .Values.externalDb.init.runUserMigrations .Values.migration }}
+  {{- toYaml .Values.migration | nindent 2 }}
+  {{- end }}
 {{- end }}

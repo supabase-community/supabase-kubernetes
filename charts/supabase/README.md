@@ -228,25 +228,117 @@ But here are the important points you have to think about:
 - Change the domain used in the ingresses endpoints.
 - Generate a new secure JWT Secret.
 
-### Migration
+### External database
 
-Migration from local development is made easy by adding migration scripts at `db.config` field. This will apply all of the migration scripts during the database initialization. For example:
+Set `deployment.db.enabled=false` to use a database outside this chart. This can be
+a managed cloud database or a PostgreSQL cluster managed by a Kubernetes operator.
+You must provide the host, port, database name, and password through `secret.db`
+values or an existing secret.
 
 ```yaml
-db:
-  config:
-    20230101000000_profiles.sql: |
-      create table profiles (
-        id uuid references auth.users not null,
-        updated_at timestamp with time zone,
-        username text unique,
-        avatar_url text,
-        website text,
+deployment:
+  db:
+    enabled: false
 
-        primary key (id),
-        unique(username),
-        constraint username_length check (char_length(username) >= 3)
-      );
+secret:
+  db:
+    host: supabase-postgres-rw
+    port: "5432"
+    database: postgres
+    password: change-me
+```
+
+When the built-in database is disabled, the chart creates a hook Job that runs the
+external database init scripts. By default it runs the portable scripts only:
+roles, core schemas, storage/auth/realtime bootstrap, grants, the `_supabase`
+database used by analytics/pooler, and any SQL from `migration`.
+
+The external init Job uses `ON_ERROR_STOP=1`. Re-runs stay safe because bundled
+external scripts use idempotent patterns. If the Job fails, fix the failed SQL or
+permissions and let Helm/Argo CD recreate the hook Job.
+
+Cloud managed databases usually should keep privileged migrations disabled:
+
+```yaml
+externalDb:
+  init:
+    enabled: true
+    runUserMigrations: true
+    createInternalDatabase: true
+    defaultTableAccessMethod: heap
+    runPrivilegedMigrations: false
+```
+
+Operator-managed PostgreSQL clusters can enable extra behavior when the database
+role has the needed privileges:
+
+```yaml
+externalDb:
+  init:
+    runPrivilegedMigrations: true
+```
+
+`runPrivilegedMigrations=true` enables the webhooks/`pg_net` setup. It may require
+extension install and event trigger privileges. Do not enable it on cloud managed
+databases unless the provider supports those operations.
+
+If your database uses OrioleDB as the default table access method, enable the
+OrioleDB init script. The PostgreSQL image/operator must already install and
+preload OrioleDB; this chart only runs `CREATE EXTENSION IF NOT EXISTS orioledb`
+inside the Supabase database.
+
+```yaml
+externalDb:
+  init:
+    orioledb:
+      enabled: true
+```
+
+Supabase-owned service tables default to `heap` in external database mode. This
+prevents Auth, Storage, Functions, Realtime, and Analytics migrations from
+inheriting a non-heap default table access method such as OrioleDB.
+
+```yaml
+externalDb:
+  init:
+    defaultTableAccessMethod: heap
+```
+
+Application tables can still use another access method through application-level
+SQL or database settings outside the Supabase service roles.
+
+If you need database-level JWT GUCs to match the built-in database init script,
+enable:
+
+```yaml
+externalDb:
+  init:
+    setJwtSettings: true
+```
+
+This runs `ALTER DATABASE ... SET app.settings.jwt_*`. Leave it disabled when the
+external database user cannot alter database settings.
+
+### Migration
+
+Migration from local development is made easy by adding migration scripts at the
+`migration` field. This applies the migration scripts during database
+initialization. For example:
+
+```yaml
+migration:
+  20230101000000_profiles.sql: |
+    create table profiles (
+      id uuid references auth.users not null,
+      updated_at timestamp with time zone,
+      username text unique,
+      avatar_url text,
+      website text,
+
+      primary key (id),
+      unique(username),
+      constraint username_length check (char_length(username) >= 3)
+    );
 ```
 
 To make copying scripts easier, use this handy bash script:

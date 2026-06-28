@@ -6,7 +6,7 @@
 --   - All role creation is idempotent (IF NOT EXISTS)
 --   - REPLICATION attribute skipped (not available on most managed databases)
 --   - No reference to 'postgres' role (RDS uses a custom master user)
---   - Role passwords set from the DB master password
+--   - Role passwords set by the external init job
 --   - graphql_public schema created for PostgREST
 --   - All auth functions owned by supabase_auth_admin
 
@@ -39,11 +39,11 @@ GRANT authenticated TO authenticator;
 GRANT service_role TO authenticator;
 
 -- Public schema grants
-GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
-GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA public TO postgres, supabase_admin, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, supabase_admin, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, supabase_admin, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, supabase_admin, anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA extensions TO postgres, supabase_admin, anon, authenticated, service_role;
 
 -- API role timeouts
 ALTER ROLE anon SET statement_timeout = '3s';
