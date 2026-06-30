@@ -91,6 +91,10 @@ secret:
     ## External database host/port (used when deployment.db.enabled is false).
     ## Host and port are required when using an external database.
     ## Ignored when deployment.db.enabled is true (internal DB service is used).
+    ##
+    ## IMPORTANT: when using an external database, it must already be
+    ## initialized with the required Supabase schemas, roles and grants.
+    ## The chart no longer runs automatic migrations against external databases.
     host: ""
     port: ""
 
