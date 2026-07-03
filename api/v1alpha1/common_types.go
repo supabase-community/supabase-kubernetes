@@ -92,6 +92,11 @@ type ResolvedDatabase struct {
 	// PasswordRef references the secret containing the database password
 	// +kubebuilder:validation:Required
 	PasswordRef SecretKeyRef `json:"passwordRef"`
+
+	// Image is the Postgres image the database runs, so dependent workloads
+	// (such as migrations) can match the database version.
+	// +optional
+	Image string `json:"image,omitempty"`
 }
 
 // ServiceSpec defines the configuration for a component Service.
