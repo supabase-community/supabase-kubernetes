@@ -191,6 +191,29 @@ autoscaling:
     targetCPUUtilizationPercentage: 80
 ```
 
+### ServiceMonitor
+
+ServiceMonitor creation is disabled by default. It requires the [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator) CRDs (`monitoring.coreos.com/v1`) to be installed in the cluster. To scrape a component, set `serviceMonitor.enabled=true` and enable the component under `serviceMonitor.components.<component>`. A ServiceMonitor is created only for components that are both deployed and enabled here.
+
+Components that natively expose Prometheus metrics on their HTTP port (for example `realtime` and `storage`) work out of the box. Others may require enabling metrics in their own configuration first.
+
+```yaml
+serviceMonitor:
+  enabled: true
+  # Match the label your Prometheus uses to discover ServiceMonitors.
+  labels:
+    release: kube-prometheus-stack
+  interval: 30s
+  components:
+    realtime:
+      enabled: true
+    storage:
+      enabled: true
+      # Per-component overrides of any top-level default.
+      path: /metrics
+      interval: 15s
+```
+
 ### S3 secret
 
 Supabase storage supports the use of S3 object-storage. To enable S3 for Supabase storage:
