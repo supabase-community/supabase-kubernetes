@@ -118,6 +118,15 @@ const (
 	StorageSecretAccessKeySecret = "accessKeySecret"
 )
 
+// postgresImageOrDefault returns the resolved database image so Postgres-based
+// Jobs match the database version, falling back to the default image.
+func postgresImageOrDefault(db *supabasev1alpha1.ResolvedDatabase) string {
+	if db != nil && db.Image != "" {
+		return db.Image
+	}
+	return DefaultPostgresImage
+}
+
 // ProjectLabels returns the common labels for a Project and its resources.
 func ProjectLabels(project *supabasev1alpha1.Project) map[string]string {
 	return map[string]string{
