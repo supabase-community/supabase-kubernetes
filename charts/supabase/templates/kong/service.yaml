@@ -5,6 +5,7 @@ metadata:
   name: {{ include "supabase.kong.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kong
 spec:
   type: {{ .Values.service.kong.type }}
   ports:

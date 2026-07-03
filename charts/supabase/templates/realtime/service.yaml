@@ -5,6 +5,7 @@ metadata:
   name: {{ include "supabase.realtime.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: realtime
 spec:
   type: {{ .Values.service.realtime.type }}
   ports:

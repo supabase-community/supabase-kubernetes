@@ -5,6 +5,7 @@ metadata:
   name: {{ include "supabase.minio.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: minio
 spec:
   type: {{ .Values.service.minio.type }}
   ports:

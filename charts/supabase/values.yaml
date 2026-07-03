@@ -1115,6 +1115,67 @@ service:
     labels: {}
     portName: http
 
+# Prometheus Operator ServiceMonitor resources for scraping component metrics.
+# Requires the Prometheus Operator CRDs (monitoring.coreos.com/v1) to be installed in the cluster.
+serviceMonitor:
+  # Master switch. When false, no ServiceMonitor is created regardless of the per-component settings below.
+  enabled: false
+  # Namespace to create the ServiceMonitor resources in. Defaults to the release namespace when empty.
+  namespace: ""
+  # Extra labels added to every ServiceMonitor (e.g. to match your Prometheus `serviceMonitorSelector`).
+  labels: {}
+  # Extra annotations added to every ServiceMonitor.
+  annotations: {}
+  # Default scrape interval. Overridable per component.
+  interval: 30s
+  # Default scrape timeout. Overridable per component.
+  scrapeTimeout: 10s
+  # Default Service port name to scrape. The chart Services expose the "http" port. Overridable per component.
+  port: http
+  # Default metrics path. Overridable per component.
+  path: /metrics
+  # Default scheme, http or https. Overridable per component.
+  scheme: http
+  # Default TLS configuration for the endpoint. Overridable per component.
+  tlsConfig: {}
+  # Default relabelings applied before scraping. Overridable per component.
+  relabelings: []
+  # Default metric relabelings applied after scraping. Overridable per component.
+  metricRelabelings: []
+  # Per-component configuration. A ServiceMonitor is created only for a component that is deployed
+  # (`deployment.<component>.enabled`) AND has `enabled: true` here. Any default above (interval,
+  # scrapeTimeout, port, path, scheme, tlsConfig, relabelings, metricRelabelings) can be overridden
+  # inside a component block. Components that natively expose Prometheus metrics on their HTTP port
+  # (e.g. realtime, storage) work out of the box; others may require enabling metrics in their own
+  # configuration first.
+  components:
+    analytics:
+      enabled: false
+    auth:
+      enabled: false
+    db:
+      enabled: false
+    functions:
+      enabled: false
+    imgproxy:
+      enabled: false
+    kong:
+      enabled: false
+    meta:
+      enabled: false
+    minio:
+      enabled: false
+    realtime:
+      enabled: false
+    rest:
+      enabled: false
+    storage:
+      enabled: false
+    studio:
+      enabled: false
+    vector:
+      enabled: false
+
 autoscaling:
   analytics:
     enabled: false
