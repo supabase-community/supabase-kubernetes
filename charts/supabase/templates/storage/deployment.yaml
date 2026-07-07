@@ -83,13 +83,8 @@ spec:
             - name: MINIO_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.s3.secretRef }}
-                  name: {{ include "supabase.secret.s3.name" . }}
-                  key: {{ include "supabase.secret.s3.key.password" . }}
-                  {{- else }}
                   name: {{ include "supabase.secret.minio.name" . }}
                   key: {{ include "supabase.secret.minio.key.password" . }}
-                  {{- end }}
             - name: GLOBAL_S3_BUCKET
               value: {{ .Values.environment.storage.GLOBAL_S3_BUCKET }}
           imagePullPolicy: {{ .Values.image.minioClient.pullPolicy }}
@@ -136,24 +131,14 @@ spec:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.s3.secretRef }}
-                  name: {{ include "supabase.secret.s3.name" . | quote }}
-                  key: {{ include "supabase.secret.s3.key.keyId" . | quote }}
-                  {{- else }}
                   name: {{ include "supabase.secret.minio.name" . }}
                   key: {{ include "supabase.secret.minio.key.user" . }}
-                  {{- end }}
 
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.s3.secretRef }}
-                  name: {{ include "supabase.secret.s3.name" . | quote }}
-                  key: {{ include "supabase.secret.s3.key.accessKey" . | quote }}
-                  {{- else }}
                   name: {{ include "supabase.secret.minio.name" . }}
                   key: {{ include "supabase.secret.minio.key.password" . }}
-                  {{- end }}
             {{- end }}
 
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST") | nindent 12 }}
