@@ -52,6 +52,7 @@ spec:
       priorityClassName: {{ . }}
       {{- end }}
       initContainers:
+      {{- if .Values.deployment.auth.initDb }}
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
@@ -66,6 +67,10 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
+      {{- end }}
+      {{- with .Values.deployment.auth.extraInitContainers }}
+          {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.auth.name" $ }}
           image: "{{ .Values.image.auth.repository }}:{{ .Values.image.auth.tag | default .Chart.AppVersion }}"

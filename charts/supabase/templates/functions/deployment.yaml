@@ -61,6 +61,10 @@ spec:
       {{- with .Values.deployment.functions.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- with .Values.deployment.functions.extraInitContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.functions.name" $ }}
           image: "{{ .Values.image.functions.repository }}:{{ .Values.image.functions.tag | default .Chart.AppVersion }}"
