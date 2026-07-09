@@ -350,6 +350,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    configMapRef: ""
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
