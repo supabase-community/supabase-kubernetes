@@ -247,6 +247,8 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   auth:
     enabled: true
@@ -274,6 +276,8 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   db:
     enabled: true
@@ -300,6 +304,7 @@ deployment:
     volumeMounts: {}
     volumes: {}
     extraInitContainers: []
+    initDb: true
 
   functions:
     enabled: true
@@ -326,6 +331,7 @@ deployment:
     volumeMounts: {}
     volumes: {}
     strategy: {}
+    extraInitContainers: []
 
   imgproxy:
     enabled: true
@@ -453,6 +459,8 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   rest:
     enabled: true
@@ -478,6 +486,8 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   storage:
     enabled: true
@@ -504,6 +514,7 @@ deployment:
     volumeMounts: {}
     volumes: {}
     extraInitContainers: []
+    initDb: true
 
   studio:
     enabled: true

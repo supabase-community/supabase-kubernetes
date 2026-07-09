@@ -55,6 +55,7 @@ spec:
       priorityClassName: {{ . }}
       {{- end }}
       initContainers:
+      {{- if .Values.deployment.rest.initDb }}
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
@@ -69,6 +70,10 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
+      {{- end }}
+      {{- with .Values.deployment.rest.extraInitContainers }}
+          {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.rest.name" $ }}
           image: "{{ .Values.image.rest.repository }}:{{ .Values.image.rest.tag | default .Chart.AppVersion }}"
