@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.vector.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
     vector.dev/exclude: "true"
   {{- with .Values.deployment.vector.annotations }}
   annotations:
