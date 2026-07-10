@@ -301,6 +301,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
