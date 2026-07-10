@@ -26,6 +26,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      {{- with .Values.deployment.realtime.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with .Values.deployment.realtime.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "supabase.realtime.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.deployment.realtime.automountServiceAccountToken }}
       restartPolicy: Always
