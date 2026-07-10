@@ -262,6 +262,8 @@ deployment:
     affinity: {}
     tolerations: []
     priorityClassName: ""
+    dnsPolicy: ""
+    dnsConfig: {}
     envFrom: []
     livenessProbe: {}
     readinessProbe: {}
