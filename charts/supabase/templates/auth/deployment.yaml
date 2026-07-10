@@ -26,6 +26,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      {{- with .Values.deployment.auth.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with .Values.deployment.auth.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "supabase.auth.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.deployment.auth.automountServiceAccountToken }}
       restartPolicy: Always
