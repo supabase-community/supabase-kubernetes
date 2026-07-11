@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.realtime.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.realtime.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -26,6 +29,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      {{- with .Values.deployment.realtime.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with .Values.deployment.realtime.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "supabase.realtime.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.deployment.realtime.automountServiceAccountToken }}
       restartPolicy: Always
@@ -52,6 +62,7 @@ spec:
       priorityClassName: {{ . }}
       {{- end }}
       initContainers:
+      {{- if .Values.deployment.realtime.initDb }}
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
@@ -66,6 +77,10 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
+      {{- end }}
+      {{- with .Values.deployment.realtime.extraInitContainers }}
+          {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.realtime.name" $ }}
           image: "{{ .Values.image.realtime.repository }}:{{ .Values.image.realtime.tag | default .Chart.AppVersion }}"

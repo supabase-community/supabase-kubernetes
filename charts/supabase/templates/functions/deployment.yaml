@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.functions.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.functions.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -60,6 +63,10 @@ spec:
       {{- end }}
       {{- with .Values.deployment.functions.priorityClassName }}
       priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.deployment.functions.extraInitContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ include "supabase.functions.name" $ }}

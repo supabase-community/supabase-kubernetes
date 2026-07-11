@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.storage.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.storage.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -52,6 +55,7 @@ spec:
       priorityClassName: {{ . }}
       {{- end }}
       initContainers:
+      {{- if .Values.deployment.storage.initDb }}
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
@@ -66,7 +70,8 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
-        {{- if .Values.deployment.minio.enabled }}
+      {{- end }}
+      {{- if .Values.deployment.minio.enabled }}
         - name: init-bucket
           image: "{{ .Values.image.minioClient.repository }}:{{ .Values.image.minioClient.tag }}"
           env:
@@ -98,8 +103,8 @@ spec:
               done
               /usr/bin/mc mb --ignore-existing supa-minio/$GLOBAL_S3_BUCKET
         {{- end }}
-        {{- if .Values.deployment.storage.extraInitContainers }}
-          {{ .Values.deployment.storage.extraInitContainers | toYaml | nindent 8 }}
+        {{- with .Values.deployment.storage.extraInitContainers }}
+          {{ . | toYaml | nindent 8 }}
         {{- end }}
       containers:
         - name: {{ include "supabase.storage.name" $ }}

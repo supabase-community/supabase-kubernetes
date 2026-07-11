@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.analytics.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.analytics.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -52,6 +55,7 @@ spec:
       priorityClassName: {{ . }}
       {{- end }}
       initContainers:
+      {{- if .Values.deployment.analytics.initDb }}
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
@@ -66,6 +70,10 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
+      {{- end }}
+      {{- with .Values.deployment.analytics.extraInitContainers }}
+          {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.analytics.name" $ }}
           image: "{{ .Values.image.analytics.repository }}:{{ .Values.image.analytics.tag | default .Chart.AppVersion }}"

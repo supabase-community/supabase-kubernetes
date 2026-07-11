@@ -228,54 +228,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    annotations: {}
-    podAnnotations: {}
-    podSecurityContext:
-    securityContext: {}
-    automountServiceAccountToken: true
-    terminationGracePeriodSeconds: 30
-    nodeSelector: {}
-    affinity: {}
-    tolerations: []
-    priorityClassName: ""
-    envFrom: []
-    livenessProbe: {}
-    readinessProbe: {}
-    startupProbe: {}
-    lifecycle: {}
-    resources: {}
-    volumeMounts: {}
-    volumes: {}
-
-  auth:
-    enabled: true
-    replicaCount: 1
-    nameOverride: ""
-    fullnameOverride: ""
-    annotations: {}
-    podAnnotations: {}
-    podSecurityContext:
-    securityContext: {}
-    automountServiceAccountToken: true
-    terminationGracePeriodSeconds: 30
-    nodeSelector: {}
-    affinity: {}
-    tolerations: []
-    priorityClassName: ""
-    envFrom: []
-    livenessProbe: {}
-    readinessProbe: {}
-    startupProbe: {}
-    lifecycle: {}
-    resources: {}
-    volumeMounts: {}
-    volumes: {}
-
-  db:
-    enabled: true
-    replicaCount: 1
-    nameOverride: ""
-    fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -295,12 +248,70 @@ deployment:
     volumeMounts: {}
     volumes: {}
     extraInitContainers: []
+    initDb: true
+
+  auth:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    labels: {}
+    annotations: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    dnsPolicy: ""
+    dnsConfig: {}
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
+    volumeMounts: {}
+    volumes: {}
+    extraInitContainers: []
+    initDb: true
+
+  db:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    labels: {}
+    annotations: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
+    volumeMounts: {}
+    volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   functions:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -320,12 +331,14 @@ deployment:
     volumeMounts: {}
     volumes: {}
     strategy: {}
+    extraInitContainers: []
 
   imgproxy:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -351,6 +364,7 @@ deployment:
     nameOverride: ""
     fullnameOverride: ""
     configMapRef: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -375,6 +389,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -399,6 +414,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -423,6 +439,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -433,6 +450,8 @@ deployment:
     affinity: {}
     tolerations: []
     priorityClassName: ""
+    dnsPolicy: ""
+    dnsConfig: {}
     envFrom: []
     livenessProbe: {}
     readinessProbe: {}
@@ -441,36 +460,15 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   rest:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    annotations: {}
-    podAnnotations: {}
-    podSecurityContext:
-    securityContext: {}
-    automountServiceAccountToken: true
-    terminationGracePeriodSeconds: 30
-    nodeSelector: {}
-    affinity: {}
-    tolerations: []
-    priorityClassName: ""
-    envFrom: []
-    livenessProbe: {}
-    readinessProbe: {}
-    startupProbe: {}
-    lifecycle: {}
-    resources: {}
-    volumeMounts: {}
-    volumes: {}
-
-  storage:
-    enabled: true
-    replicaCount: 1
-    nameOverride: ""
-    fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -490,12 +488,41 @@ deployment:
     volumeMounts: {}
     volumes: {}
     extraInitContainers: []
+    initDb: true
+
+  storage:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    labels: {}
+    annotations: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
+    volumeMounts: {}
+    volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   studio:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -525,6 +552,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
