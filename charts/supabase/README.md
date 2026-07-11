@@ -308,6 +308,98 @@ docker run -it \
 
 ### Version compatibility
 
+#### `0.6.x` to `0.7.x`
+
+This chart version bumps the default Postgres image from `15.8.1.085` to `17.6.1.136` and the `initDb` image from `15-alpine` to `17-alpine`.
+
+> **Warning:** Before upgrading, make sure you have a recent backup of your database. Major version upgrades can fail and may require rollback.
+
+##### New installs
+
+New installations automatically use Postgres 17:
+
+```bash
+helm repo update
+helm install demo supabase/supabase
+```
+
+##### Upgrading an existing Postgres 15 deployment
+
+For existing deployments running Postgres 15, use the `scripts/upgrade-pg17.sh` helper provided in the chart. This script is the Kubernetes equivalent of the Docker `utils/upgrade-pg17.sh` and performs an in-place `pg_upgrade`:
+
+```bash
+bash scripts/upgrade-pg17.sh -n <namespace> -r <release> [-c <chart-path>] [--yes]
+```
+
+Required flags:
+
+- `-n, --namespace`: Kubernetes namespace where Supabase is deployed
+- `-r, --release`: Helm release name
+
+Optional flags:
+
+- `-c, --chart`: Path to this Helm chart (auto-detected by default)
+- `--yes, -y`: Skip confirmation prompts
+
+What the script does:
+
+1. Builds a PG 17 upgrade tarball from the Supabase `supabase/postgres:17.6.1.063` image
+2. Scales down all Supabase services
+3. Runs `pg_upgrade` (Postgres 15 → 17) inside a temporary PG 15 pod
+4. Runs `complete.sh` inside a temporary PG 17 pod for post-upgrade patches
+5. Swaps the data directories inside the DB PVC
+6. Upgrades the Helm release to the PG 17 image (`supabase/postgres:17.6.1.136`)
+7. Applies the PG 17 role and extension migrations
+8. Verifies the final Postgres version and extension list
+
+The original Postgres 15 data is preserved inside the DB PVC as `postgres-data.bak.pg15`. You can remove it after confirming the upgrade was successful.
+
+##### Rollback (if needed)
+
+If the upgrade fails before the Helm release is updated, scale the DB StatefulSet back to `1` to resume Postgres 15. If the Helm release was already updated, roll back with:
+
+```bash
+helm upgrade <release> <chart-path> \
+  --set image.db.tag=15.8.1.085 \
+  --set image.initDb.tag=15-alpine \
+  --reuse-values -n <namespace>
+
+kubectl scale statefulset -n <namespace> <db-statefulset> --replicas=0
+
+kubectl run supabase-rollback -n <namespace> --image=alpine:3.20 \
+  --restart=Never \
+  --overrides='{
+    "apiVersion": "v1",
+    "spec": {
+      "containers": [{
+        "name": "rollback",
+        "image": "alpine:3.20",
+        "command": ["sh", "-c"],
+        "args": ["rm -rf /mnt/db-data/postgres-data && mv /mnt/db-data/postgres-data.bak.pg15 /mnt/db-data/postgres-data"],
+        "volumeMounts": [{"name": "db-data", "mountPath": "/mnt/db-data"}]
+      }],
+      "volumes": [{"name": "db-data", "persistentVolumeClaim": {"claimName": "<db-pvc>"}}],
+      "restartPolicy": "Never"
+    }
+  }'
+
+kubectl run supabase-fix-owner -n <namespace> --image=supabase/postgres:15.8.1.085 \
+  --restart=Never -- chown -R postgres:postgres /etc/postgresql-custom/
+
+kubectl scale statefulset -n <namespace> <db-statefulset> --replicas=1
+```
+
+##### Staying on Postgres 15
+
+If you are not ready to upgrade, you can keep using Postgres 15 by overriding the image tags:
+
+```bash
+helm upgrade <release> <chart-path> \
+  --set image.db.tag=15.8.1.085 \
+  --set image.initDb.tag=15-alpine \
+  --reuse-values -n <namespace>
+```
+
 #### `0.0.x` to `0.1.x`
 
 * `supabase/postgres` is updated from `14.1` to `15.1`, which warrants backing up all your data before proceeding to update to the next major version.
