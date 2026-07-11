@@ -593,7 +593,7 @@ image:
   db:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
-    tag: "15.8.1.085"
+    tag: "17.6.1.136"
     pullSecrets: []
 
   functions:
@@ -659,7 +659,7 @@ image:
   initDb:
     repository: postgres
     pullPolicy: IfNotPresent
-    tag: "15-alpine"
+    tag: "17-alpine"
 
   minioClient:
     repository: cgr.dev/chainguard/minio-client
