@@ -41,3 +41,10 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.kong.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the config map to use
+*/}}
+{{- define "supabase.kong.configMapName" -}}
+{{- default (include "supabase.kong.fullname" .) .Values.deployment.kong.configMapRef }}
+{{- end }}

@@ -1,4 +1,4 @@
-{{- if .Values.deployment.kong.enabled -}}
+{{- if and .Values.deployment.kong.enabled (not .Values.deployment.kong.configMapRef) -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
