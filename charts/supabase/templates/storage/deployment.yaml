@@ -111,6 +111,12 @@ spec:
           env:
             - name: STORAGE_BACKEND
               value: {{ if .Values.deployment.minio.enabled }}"s3"{{ else }}"file"{{ end }}
+            - name: DB_DRIVER
+              value: "postgres"
+            - name: DB_USER
+              value: "supabase_storage_admin"
+            - name: DB_SSL
+              value: "disable"
 
             {{- if or .Values.secret.s3.secretRef .Values.deployment.minio.enabled }}
             - name: AWS_ACCESS_KEY_ID

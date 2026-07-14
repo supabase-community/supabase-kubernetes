@@ -82,6 +82,12 @@ spec:
               value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
             {{- end }}
 
+            - name: DB_DRIVER
+              value: "postgresql"
+            - name: DB_USERNAME
+              value: "postgres"
+            - name: DB_SSL
+              value: "disable"
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOSTNAME") | nindent 12 }}
             {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD

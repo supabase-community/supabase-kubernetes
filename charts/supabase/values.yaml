@@ -670,12 +670,6 @@ environment:
   analytics:
     - name: LOGFLARE_NODE_HOST
       value: 127.0.0.1
-    - name: DB_USERNAME
-      value: supabase_admin
-    - name: DB_DATABASE
-      value: _supabase
-    - name: DB_DRIVER
-      value: postgresql
     - name: DB_SCHEMA
       value: _analytics
     - name: POSTGRES_BACKEND_SCHEMA
@@ -688,13 +682,6 @@ environment:
       value: multibackend=true
 
   auth:
-    - name: DB_USER
-      value: supabase_auth_admin
-    - name: DB_DRIVER
-      value: postgres
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    - name: DB_SSL
-      value: disable
     - name: API_EXTERNAL_URL
       value: http://supabase.local
     - name: GOTRUE_API_HOST
@@ -819,13 +806,6 @@ environment:
     #       key: <secret-key>
 
   functions:
-    - name: DB_USERNAME
-      value: postgres
-    - name: DB_DRIVER
-      value: postgresql
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    - name: DB_SSL
-      value: disable
     - name: VERIFY_JWT
       value: false
 
@@ -861,13 +841,8 @@ environment:
       value: "2"
 
   meta:
-    - name: DB_USER
-      value: supabase_admin
     - name: DB_DRIVER
       value: postgres
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    - name: DB_SSL
-      value: disable
     - name: PG_META_PORT
       value: "8080"
 
@@ -904,13 +879,6 @@ environment:
       value: true
 
   rest:
-    - name: DB_USER
-      value: authenticator
-    - name: DB_DRIVER
-      value: postgres
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    - name: DB_SSL
-      value: disable
     - name: PGRST_DB_SCHEMAS
       value: public,storage,graphql_public
     - name: PGRST_DB_ANON_ROLE
@@ -921,13 +889,6 @@ environment:
       value: 3600
 
   storage:
-    - name: DB_USER
-      value: supabase_storage_admin
-    - name: DB_DRIVER
-      value: postgres
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    - name: DB_SSL
-      value: disable
     - name: REQUEST_ALLOW_X_FORWARDED_PATH
       value: "true"
     - name: FILE_SIZE_LIMIT
