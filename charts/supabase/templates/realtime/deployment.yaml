@@ -92,12 +92,6 @@ spec:
               containerPort: 4000
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.realtime }}
-            {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST") | nindent 12 }}
             {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: SELF_HOST_TENANT_NAME
@@ -149,6 +143,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.realtime.name" . }}
                   key: {{ include "supabase.secret.realtime.key.dbEncKey" . }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.realtime) | nindent 12 }}
           {{- with .Values.deployment.realtime.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

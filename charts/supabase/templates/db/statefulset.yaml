@@ -117,10 +117,6 @@ spec:
               containerPort: 5432
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.db }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
@@ -146,6 +142,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.jwt.name" . }}
                   key: {{ include "supabase.secret.jwt.key.secret" . }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.db) | nindent 12 }}
           {{- with .Values.deployment.db.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

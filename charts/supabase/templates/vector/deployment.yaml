@@ -67,10 +67,6 @@ spec:
             - containerPort: {{ .Values.service.vector.port }}
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.vector }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
             - name: VECTOR_SELF_NODE_NAME
               valueFrom:
                 fieldRef:
@@ -82,6 +78,7 @@ spec:
                   name: {{ include "supabase.secret.analytics.name" . }}
                   key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
             {{- end }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.vector) | nindent 12 }}
           {{- with .Values.deployment.vector.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

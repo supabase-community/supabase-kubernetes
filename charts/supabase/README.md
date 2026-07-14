@@ -201,20 +201,46 @@ Supabase storage supports the use of S3 object-storage. To enable S3 for Supabas
   ```
 2. Set storage S3 environment variables:
   ```yaml
-  storage:
-    environment:
-      # Set S3 endpoint if using external object-storage
-      # GLOBAL_S3_ENDPOINT: http://minio:9000
-      STORAGE_BACKEND: s3
-      GLOBAL_S3_PROTOCOL: http
-      GLOBAL_S3_FORCE_PATH_STYLE: true
-      AWS_DEFAULT_REGION: stub
+
+  environment:
+    auth:
+      - name: API_EXTERNAL_URL
+        value: http://supabase.local
+      - name: GOTRUE_SITE_URL
+        value: http://supabase.local
+      - name: GOTRUE_URI_ALLOW_LIST
+        value: "*"
+      - name: GOTRUE_EXTERNAL_AZURE_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: azure-secret
+            key: secret
   ```
 3. (Optional) Enable internal minio deployment
   ```yaml
   minio:
     enabled: true
   ```
+
+### Environment variables
+
+> [!NOTE]
+> Starting with chart version `0.7.1`, `environment.<component>` is an array of Kubernetes env entries instead of a map. Each entry supports `value:` or `valueFrom:`.
+
+Example:
+```yaml
+environment:
+  auth:
+    - name: GOTRUE_API_HOST
+      value: "0.0.0.0"
+    - name: GOTRUE_EXTERNAL_AZURE_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: azure-secret
+          key: secret
+```
+
+User-provided entries are rendered after the chart defaults, so any chart-managed env var can be overridden by adding an entry with the same `name` to the component array.
 
 ## How to use in Production
 
