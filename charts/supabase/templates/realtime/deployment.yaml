@@ -144,6 +144,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.realtime.name" . }}
                   key: {{ include "supabase.secret.realtime.key.secretKeyBase" . }}
+            - name: DB_ENC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.realtime.name" . }}
+                  key: {{ include "supabase.secret.realtime.key.dbEncKey" . }}
           {{- with .Values.deployment.realtime.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

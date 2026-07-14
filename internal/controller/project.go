@@ -769,6 +769,7 @@ func (r *ProjectReconciler) ensureKeysSecret(ctx context.Context, proj *supabase
 		project.KeysSecretSecretKeyBase,
 		project.KeysSecretCryptoKey,
 		project.KeysSecretVaultEncKey,
+		project.KeysSecretRealtimeDBEncKey,
 	))
 	if err != nil {
 		return fmt.Errorf("ensuring keys secret: %w", err)
