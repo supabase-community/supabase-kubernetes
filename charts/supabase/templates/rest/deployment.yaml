@@ -83,6 +83,12 @@ spec:
               containerPort: 3000
               protocol: TCP
           env:
+            - name: DB_DRIVER
+              value: "postgres"
+            - name: DB_USER
+              value: "authenticator"
+            - name: DB_SSL
+              value: "disable"
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST") | nindent 12 }}
             {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD
