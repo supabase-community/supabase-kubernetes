@@ -188,12 +188,17 @@ secret:
     ## Generate with: openssl rand -base64 64
     secretKeyBase: "UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq"
 
+    ## Encryption key used by Realtime for sensitive fields in the _realtime schema.
+    ## Must be exactly 16 characters. Generate with: openssl rand -hex 8
+    dbEncKey: "supabaserealtime"
+
     ## Reference to existing secret
     # secretRef: ""
 
     ## Map to actual keys inside secretRef if they differ
     # secretRefKey:
     #   secretKeyBase: secretKeyBase
+    #   dbEncKey: dbEncKey
 
   ## Meta service
   ## Docs: https://github.com/supabase/postgres-meta
@@ -773,7 +778,6 @@ environment:
     FLY_APP_NAME: realtime
     ENABLE_TAILSCALE: "false"
     DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
-    DB_ENC_KEY: supabaserealtime
     ERL_AFLAGS: -proto_dist inet_tcp
     DNS_NODES: "''"
     RLIMIT_NOFILE: "10000"

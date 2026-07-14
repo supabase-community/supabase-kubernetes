@@ -198,7 +198,7 @@ func buildRealtimeEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha
 		helper.EnvVarFromSecret("DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVar("DB_NAME", db.DBName),
 		helper.EnvVar("DB_AFTER_CONNECT_QUERY", "SET search_path TO _realtime"),
-		helper.EnvVar("DB_ENC_KEY", "supabaserealtime"),
+		helper.EnvVarFromSecret("DB_ENC_KEY", KeysSecretName(project), KeysSecretRealtimeDBEncKey),
 		helper.EnvVarFromSecret("API_JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVarFromSecret("API_JWT_JWKS", JWTSecretName(project), JWTSecretJWKS),
 		helper.EnvVarFromSecret("SECRET_KEY_BASE", KeysSecretName(project), KeysSecretSecretKeyBase),

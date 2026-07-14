@@ -35,6 +35,9 @@ const (
 
 	// KeysSecretVaultEncKey is the Secret data key that holds the Vault encryption key.
 	KeysSecretVaultEncKey = "vault-enc-key"
+
+	// KeysSecretRealtimeDBEncKey is the Secret data key that holds the Realtime DB encryption key.
+	KeysSecretRealtimeDBEncKey = "realtime-db-enc-key"
 )
 
 // KeysSecretName returns the name of the Keys Secret for a Project.
@@ -59,6 +62,11 @@ func KeysSecret(project *supabasev1alpha1.Project) (*corev1.Secret, error) {
 		return nil, fmt.Errorf("generating vault encryption key: %w", err)
 	}
 
+	realtimeDBEncKey, err := helper.GenerateRandomHex(8)
+	if err != nil {
+		return nil, fmt.Errorf("generating realtime db encryption key: %w", err)
+	}
+
 	sc := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KeysSecretName(project),
@@ -67,9 +75,10 @@ func KeysSecret(project *supabasev1alpha1.Project) (*corev1.Secret, error) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			KeysSecretSecretKeyBase: []byte(secretKeyBase),
-			KeysSecretCryptoKey:     []byte(cryptoKey),
-			KeysSecretVaultEncKey:   []byte(vaultEncKey),
+			KeysSecretSecretKeyBase:    []byte(secretKeyBase),
+			KeysSecretCryptoKey:        []byte(cryptoKey),
+			KeysSecretVaultEncKey:      []byte(vaultEncKey),
+			KeysSecretRealtimeDBEncKey: []byte(realtimeDBEncKey),
 		},
 	}
 
