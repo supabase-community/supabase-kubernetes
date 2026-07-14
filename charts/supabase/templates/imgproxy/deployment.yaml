@@ -63,10 +63,7 @@ spec:
               containerPort: 8080
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.imgproxy }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.imgproxy) | nindent 12 }}
           {{- with .Values.deployment.imgproxy.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

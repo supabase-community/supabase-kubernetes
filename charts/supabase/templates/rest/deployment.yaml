@@ -83,12 +83,6 @@ spec:
               containerPort: 3000
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.rest }}
-            {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST") | nindent 12 }}
             {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD
@@ -127,6 +121,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.jwt.name" . }}
                   key: {{ include "supabase.secret.jwt.key.secret" . }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.rest) | nindent 12 }}
           {{- with .Values.deployment.rest.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

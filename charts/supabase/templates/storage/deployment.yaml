@@ -85,8 +85,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.minio.name" . }}
                   key: {{ include "supabase.secret.minio.key.password" . }}
-            - name: GLOBAL_S3_BUCKET
-              value: {{ .Values.environment.storage.GLOBAL_S3_BUCKET }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.storage) | nindent 12 }}
           imagePullPolicy: {{ .Values.image.minioClient.pullPolicy }}
           command:
             - /bin/sh
@@ -110,22 +109,8 @@ spec:
               containerPort: 5000
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.storage }}
-            {{- if and (ne $key "AWS_ACCESS_KEY_ID") (ne $key "AWS_SECRET_ACCESS_KEY") (ne $key "STORAGE_BACKEND") (ne $key "DB_HOST") (ne $key "DB_PORT") }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
-            
-            # 2. Now handle STORAGE_BACKEND specifically
             - name: STORAGE_BACKEND
-              value: {{ if hasKey .Values.environment.storage "STORAGE_BACKEND" -}}
-                {{ index .Values.environment.storage "STORAGE_BACKEND" | quote }}
-              {{- else if .Values.deployment.minio.enabled -}}
-                "s3"
-              {{- else -}}
-                "file"
-              {{- end }}
+              value: {{ if .Values.deployment.minio.enabled }}"s3"{{ else }}"file"{{ end }}
 
             {{- if or .Values.secret.s3.secretRef .Values.deployment.minio.enabled }}
             - name: AWS_ACCESS_KEY_ID
@@ -218,6 +203,7 @@ spec:
             - name: GLOBAL_S3_FORCE_PATH_STYLE
               value: "true"
             {{- end }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.storage) | nindent 12 }}
           {{- with .Values.deployment.storage.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

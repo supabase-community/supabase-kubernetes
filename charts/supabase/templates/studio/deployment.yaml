@@ -67,12 +67,6 @@ spec:
               containerPort: 3000
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.studio }}
-            {{- if and (ne $key "POSTGRES_HOST") (ne $key "POSTGRES_PORT") }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
             {{- if .Values.deployment.kong.enabled }}
             - name: SUPABASE_URL
               value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
@@ -85,7 +79,6 @@ spec:
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "POSTGRES_HOST") | nindent 12 }}
             {{- include "supabase.db.portEnv" (dict "root" . "name" "POSTGRES_PORT") | nindent 12 }}
 
-            {{- if not (hasKey (default (dict) .Values.environment.studio) "POSTGRES_DB") }}
             - name: POSTGRES_DB
               {{- if and .Values.secret.db.secretRef (not (hasKey (default (dict) .Values.secret.db.secretRefKey) "database")) }}
               value: {{ .Values.secret.db.database | default "postgres" | quote }}
@@ -95,7 +88,6 @@ spec:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.database" . }}
               {{- end }}
-            {{- end }}
 
             - name: POSTGRES_PASSWORD
               valueFrom:
@@ -156,6 +148,7 @@ spec:
             - name: SNIPPETS_MANAGEMENT_FOLDER
               value: /app/snippets
             {{- end }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.studio) | nindent 12 }}
           {{- with .Values.deployment.studio.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

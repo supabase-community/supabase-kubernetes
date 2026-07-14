@@ -72,10 +72,6 @@ spec:
               containerPort: 8000
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.kong }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
@@ -118,6 +114,7 @@ spec:
                   name: {{ include "supabase.secret.dashboard.name" . }}
                   key: {{ include "supabase.secret.dashboard.key.password" . }}
             {{- end }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.kong) | nindent 12 }}
           {{- with .Values.deployment.kong.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

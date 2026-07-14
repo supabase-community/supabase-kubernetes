@@ -60,3 +60,19 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Render environment variables from a list of { name, value | valueFrom } entries.
+All plain values are forced to strings so Kubernetes accepts them.
+*/}}
+{{- define "supabase.env.render" -}}
+{{- range .env }}
+- name: {{ .name }}
+{{- if hasKey . "value" }}
+  value: {{ .value | quote }}
+{{- else if hasKey . "valueFrom" }}
+  valueFrom:
+    {{- .valueFrom | toYaml | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end -}}

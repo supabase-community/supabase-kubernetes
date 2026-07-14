@@ -39,3 +39,11 @@ persistence:
 
   storage:
     enabled: false
+
+environment:
+  auth:
+    - name: GOTRUE_EXTERNAL_AZURE_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: azure-secret
+          key: secret
