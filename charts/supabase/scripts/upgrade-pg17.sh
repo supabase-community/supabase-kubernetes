@@ -35,13 +35,9 @@
 #   DO NOT DELETE it until you have verified the upgrade was successful.
 #
 # Rollback (if the upgrade fails or you want to revert):
-#   1. helm upgrade <release> <chart> --set image.db.tag=15.8.1.085 \
-#        --set image.initDb.tag=15-alpine --reuse-values -n <namespace>
-#   2. kubectl exec -n <namespace> <db-pod> -- bash -c \
-#        'rm -rf /var/lib/postgresql/data/postgres-data && \
-#         mv /var/lib/postgresql/data/postgres-data.bak.pg15 \
-#            /var/lib/postgresql/data/postgres-data'
-#   3. kubectl rollout restart statefulset -n <namespace> <db-statefulset>
+#   Use the companion rollback script:
+#     bash scripts/rollback-pg15.sh -n <namespace> -r <release> [-c <chart-path>] [--yes]
+#   Or see charts/supabase/README.md for the manual rollback steps.
 #
 
 # Ensure we're running under bash (not sh/zsh/dash).
@@ -1114,20 +1110,9 @@ verify() {
     echo "    kubectl exec -n $NAMESPACE ${DB_STS_NAME}-0 -- rm -f /var/lib/postgresql/data/pg17_upgrade_bin.tar.gz"
     echo ""
     echo "  Rollback (if needed):"
-    echo "    1. helm upgrade $RELEASE <chart-path> \\"
-    echo "         --set image.db.tag=15.8.1.085 \\"
-    echo "         --set image.initDb.tag=15-alpine \\"
-    echo "         --reuse-values -n $NAMESPACE"
-    echo "    2. Wait for the release to apply, then scale down the DB:"
-    echo "       kubectl scale statefulset -n $NAMESPACE $DB_STS_NAME --replicas=0"
-    echo "    3. Wait for the DB pod to terminate, then swap data back:"
-    echo "       kubectl run supabase-rollback -n $NAMESPACE --image=alpine:3.20 \\"
-    echo "         --restart=Never --overrides='{\"apiVersion\":\"v1\",\"spec\":{\"containers\":[{\"name\":\"rollback\",\"image\":\"alpine:3.20\",\"command\":[\"sh\",\"-c\"],\"args\":[\"rm -rf /mnt/db-data/$DATA_SUBPATH && mv /mnt/db-data/$BACKUP_SUBPATH /mnt/db-data/$DATA_SUBPATH\"],\"volumeMounts\":[{\"name\":\"db-data\",\"mountPath\":\"/mnt/db-data\"}]}],\"volumes\":[{\"name\":\"db-data\",\"persistentVolumeClaim\":{\"claimName\":\"'\"$DB_PVC_NAME\"'\"}}],\"restartPolicy\":\"Never\"}}'"
-    echo "    4. Fix pgsodium ownership for PG 15:"
-    echo "       kubectl run supabase-fix-owner -n $NAMESPACE --image=$CURRENT_IMAGE \\"
-    echo "         --restart=Never --overrides='{...}' -- chown -R postgres:postgres /etc/postgresql-custom/"
-    echo "    5. Scale up:"
-    echo "       kubectl scale statefulset -n $NAMESPACE $DB_STS_NAME --replicas=1"
+    echo "    bash scripts/rollback-pg15.sh -n $NAMESPACE -r $RELEASE [-c <chart-path>] [--yes]"
+    echo ""
+    echo "  Or see charts/supabase/README.md for the manual rollback steps."
     echo ""
 }
 

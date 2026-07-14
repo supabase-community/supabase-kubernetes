@@ -313,6 +313,8 @@ docker run -it \
 This chart version bumps the default Postgres image from `15.8.1.085` to `17.6.1.136` and the `initDb` image from `15-alpine` to `17-alpine`.
 
 > **Warning:** Before upgrading, make sure you have a recent backup of your database. Major version upgrades can fail and may require rollback.
+>
+> **Important:** We strongly recommend taking a snapshot or backup of the DB PersistentVolumeClaim (PVC) before running the upgrade. The upgrade script modifies the data directory in-place, and a PVC snapshot is the safest way to recover if anything goes wrong.
 
 ##### New installs
 
@@ -356,7 +358,35 @@ The original Postgres 15 data is preserved inside the DB PVC as `postgres-data.b
 
 ##### Rollback (if needed)
 
-If the upgrade fails before the Helm release is updated, scale the DB StatefulSet back to `1` to resume Postgres 15. If the Helm release was already updated, roll back with:
+If the upgrade fails before the Helm release is updated, scale the DB StatefulSet back to `1` to resume Postgres 15. If the Helm release was already updated to Postgres 17, use the `scripts/rollback-pg15.sh` helper to roll back to Postgres 15:
+
+```bash
+bash scripts/rollback-pg15.sh -n <namespace> -r <release> [-c <chart-path>] [--yes]
+```
+
+Required flags:
+
+- `-n, --namespace`: Kubernetes namespace where Supabase is deployed
+- `-r, --release`: Helm release name
+
+Optional flags:
+
+- `-c, --chart`: Path to this Helm chart (auto-detected by default)
+- `--yes, -y`: Skip confirmation prompts
+
+What the script does:
+
+1. Scales down all Supabase services belonging to the release
+2. Removes the Postgres 17 data directory (`postgres-data`) from the DB PVC
+3. Restores the Postgres 15 backup directory (`postgres-data.bak.pg15`)
+4. Fixes pgsodium volume ownership for the PG 15 image
+5. Rolls the Helm release back to the PG 15 image tags
+6. Scales up the DB StatefulSet
+7. Verifies that Postgres reports version 15
+
+> **Warning:** This rollback is destructive. The Postgres 17 data directory is removed from the PVC. Ensure you have a snapshot or backup of the DB PVC before rolling back, especially if you need to preserve the Postgres 17 state.
+
+If you prefer to perform the rollback manually, the steps are:
 
 ```bash
 helm upgrade <release> <chart-path> \
@@ -384,7 +414,21 @@ kubectl run supabase-rollback -n <namespace> --image=alpine:3.20 \
   }'
 
 kubectl run supabase-fix-owner -n <namespace> --image=supabase/postgres:15.8.1.085 \
-  --restart=Never -- chown -R postgres:postgres /etc/postgresql-custom/
+  --restart=Never \
+  --overrides='{
+    "apiVersion": "v1",
+    "spec": {
+      "containers": [{
+        "name": "fix-owner",
+        "image": "supabase/postgres:15.8.1.085",
+        "command": ["sh", "-c"],
+        "args": ["chown -R postgres:postgres /vol/"],
+        "volumeMounts": [{"name": "pgsodium", "mountPath": "/vol"}]
+      }],
+      "volumes": [{"name": "pgsodium", "persistentVolumeClaim": {"claimName": "<pgsodium-pvc>"}}],
+      "restartPolicy": "Never"
+    }
+  }'
 
 kubectl scale statefulset -n <namespace> <db-statefulset> --replicas=1
 ```
