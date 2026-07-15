@@ -126,7 +126,7 @@ spec:
                   name: {{ include "supabase.secret.jwt.name" . }}
                   key: {{ include "supabase.secret.jwt.key.secret" . }}
 
-            {{- if .Values.deployment.analytics.enabled }}
+            {{- if eq (include "supabase.logs.enabled" .) "true" }}
             - name: LOGFLARE_URL
               value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}
             - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
@@ -140,6 +140,8 @@ spec:
                   name: {{ include "supabase.secret.analytics.name" . }}
                   key: {{ include "supabase.secret.analytics.key.privateAccessToken" . }}
             {{- end }}
+            - name: ENABLED_FEATURES_LOGS_ALL
+              value: {{ include "supabase.logs.enabled" . | quote }}
             {{- if .Values.persistence.functions.enabled }}
             - name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER
               value: /home/deno/functions
