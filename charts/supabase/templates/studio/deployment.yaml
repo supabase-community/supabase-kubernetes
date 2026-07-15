@@ -129,11 +129,6 @@ spec:
             {{- if eq (include "supabase.logs.enabled" .) "true" }}
             - name: LOGFLARE_URL
               value: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.service.analytics.port }}
-            - name:  LOGFLARE_PUBLIC_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.analytics.name" . }}
-                  key: {{ include "supabase.secret.analytics.key.publicAccessToken" . }}
             - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
