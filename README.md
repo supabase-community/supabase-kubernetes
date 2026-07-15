@@ -40,9 +40,17 @@ Before you begin, make sure you have:
 
 - A Kubernetes cluster (1.28+ recommended)
 - `kubectl` configured to connect to your cluster
+- `helm` 3.x+
 - `make`
 - Docker (or another container runtime supported by the Makefile `CONTAINER_TOOL` variable)
 - A container registry accessible from your cluster, because you must build and push the Operator image before deploying it
+
+Add the Supabase Helm repository:
+
+```bash
+helm repo add supabase https://supabase-community.github.io/supabase-kubernetes
+helm repo update
+```
 
 ### Deploy the Operator
 
@@ -53,10 +61,14 @@ make docker-build IMG=example.com/supabase-operator:v0.0.1
 make docker-push IMG=example.com/supabase-operator:v0.0.1
 ```
 
-To deploy the Operator into the cluster configured in `~/.kube/config`, run:
+Then deploy the Operator into the `supabase-operator` namespace:
 
 ```bash
-make deploy IMG=example.com/supabase-operator:v0.0.1
+helm install supabase-operator supabase/supabase-operator \
+  --namespace supabase-operator \
+  --create-namespace \
+  --set manager.image.repository=example.com/supabase-operator \
+  --set manager.image.tag=v0.0.1
 ```
 
 This installs the CRDs and deploys the controller in a single step.
