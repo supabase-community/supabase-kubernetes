@@ -6,6 +6,10 @@ cliVersion: 4.13.1
 domain: supabase.io
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v2-alpha:
+    manifests: dist/install.yaml
+    output: charts
 projectName: supabase-operator
 repo: github.com/supabase-community/supabase-kubernetes
 resources:
