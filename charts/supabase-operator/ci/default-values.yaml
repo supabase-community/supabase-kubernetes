@@ -1,0 +1,5 @@
+# TODO: replace placeholder image with a real operator image and scale replicas back to 1
+# when an official supabase-operator image is published.
+# For now, run with 0 replicas to avoid ImagePullBackOff during ct install.
+manager:
+  replicas: 0
