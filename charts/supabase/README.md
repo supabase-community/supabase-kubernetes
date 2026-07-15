@@ -41,7 +41,6 @@ The database configuration we provide is an example using only one master. If yo
     kubectl get pod -l app.kubernetes.io/instance=demo
     
     NAME                                      READY   STATUS    RESTARTS      AGE
-    demo-supabase-analytics-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
     demo-supabase-auth-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
     demo-supabase-db-0-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
     demo-supabase-functions-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
@@ -52,8 +51,10 @@ The database configuration we provide is an example using only one master. If yo
     demo-supabase-rest-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
     demo-supabase-storage-xxxxxxxxxx-xxxxx    1/1     Running   0             47s
     demo-supabase-studio-xxxxxxxxxx-xxxxx     1/1     Running   0             47s
-    demo-supabase-vector-xxxxxxxxxx-xxxxx     1/1     Running   0             47s
     ```
+
+    > **Note:** `analytics` (Logflare) and `vector` are disabled by default.
+    > To enable the Logs section in Studio, set both `deployment.analytics.enabled=true` and `deployment.vector.enabled=true`.
 
 5. Open Supabase Studio in your browser: http://supabase.local
 
@@ -136,6 +137,8 @@ secret:
 ```
 
 ### Analytics secret
+
+Analytics/Vector (logs) are **disabled by default**. To enable the Logs feature in Studio, set both `deployment.analytics.enabled=true` and `deployment.vector.enabled=true`.
 
 A new logflare secret API key is required for securing communication between all of the Supabase services. To set the secret, generate a new 32 characters long secret similar to the step [above](#jwt-secret).
 

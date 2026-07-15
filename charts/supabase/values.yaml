@@ -229,7 +229,7 @@ secret:
 
 deployment:
   analytics:
-    enabled: true
+    enabled: false
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
@@ -555,7 +555,7 @@ deployment:
     strategy: {}
 
   vector:
-    enabled: true
+    enabled: false
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
@@ -919,8 +919,6 @@ environment:
       value: Default Project
     - name: SUPABASE_PUBLIC_URL
       value: http://supabase.local
-    - name: NEXT_PUBLIC_ENABLE_LOGS
-      value: true
     ## Set value to bigquery to use Big Query backend for analytics (postgres or bigquery)
     - name: NEXT_ANALYTICS_BACKEND_PROVIDER
       value: postgres
