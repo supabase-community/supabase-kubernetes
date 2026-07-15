@@ -47,7 +47,7 @@ manager:
     allowPrivilegeEscalation: false
     capabilities:
       drop:
-      - ALL
+        - ALL
     readOnlyRootFilesystem: true
 
   ## Resource limits and requests
@@ -105,4 +105,3 @@ certManager:
 ##
 prometheus:
   enable: false
-
