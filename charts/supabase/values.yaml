@@ -911,8 +911,6 @@ environment:
       value: "::"
     - name: STUDIO_PORT
       value: "3000"
-    - name: POSTGRES_PORT
-      value: 5432
     - name: DEFAULT_ORGANIZATION_NAME
       value: Default Organization
     - name: DEFAULT_PROJECT_NAME
