@@ -1,0 +1,121 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Project
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  jwtExpSec: {{ .Values.project.jwtExpSec }}
+  http:
+    protocol: {{ .Values.project.http.protocol | quote }}
+    hostname: {{ .Values.project.http.hostname | quote }}
+    {{- with .Values.project.http.port }}
+    port: {{ . }}
+    {{- end }}
+  databaseRef:
+    kind: SingleDatabase
+    name: {{ include "supabase-project.fullname" . | quote }}
+  {{- with .Values.rest }}
+  rest:
+    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    {{- with .dbSchemas }}
+    dbSchemas: {{ . | quote }}
+    {{- end }}
+    {{- with .dbMaxRows }}
+    dbMaxRows: {{ . }}
+    {{- end }}
+    {{- with .dbExtraSearchPath }}
+    dbExtraSearchPath: {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.meta }}
+  meta:
+    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.realtime }}
+  realtime:
+    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.auth }}
+  auth:
+    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    siteUrl: {{ .siteUrl | quote }}
+    {{- with .additionalRedirectUrls }}
+    additionalRedirectUrls:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    disableSignup: {{ .disableSignup }}
+    enableEmailSignup: {{ .enableEmailSignup }}
+    enableAnonymousUsers: {{ .enableAnonymousUsers }}
+    enableEmailAutoconfirm: {{ .enableEmailAutoconfirm }}
+    enablePhoneSignup: {{ .enablePhoneSignup }}
+    enablePhoneAutoconfirm: {{ .enablePhoneAutoconfirm }}
+    skipNonceCheck: {{ .skipNonceCheck }}
+    enableMailerSecureEmailChange: {{ .enableMailerSecureEmailChange }}
+    {{- with .smtp }}
+    smtp:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .oauth }}
+    oauth:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .sms }}
+    sms:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .mfa }}
+    mfa:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .saml }}
+    saml:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.functions }}
+  functions:
+    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    verifyJwt: {{ .verifyJwt }}
+  {{- end }}
+  {{- with .Values.envoy }}
+  envoy:
+    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.storage }}
+  storage:
+    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    {{- with .fileSizeLimit }}
+    fileSizeLimit: {{ . | int64 }}
+    {{- end }}
+    storage:
+      accessModes:
+        {{- toYaml .storage.accessModes | nindent 8 }}
+      size: {{ .storage.size | quote }}
+      {{- with .storage.storageClassName }}
+      storageClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .storage.deletionPolicy }}
+      deletionPolicy: {{ . | quote }}
+      {{- end }}
+  {{- end }}
+  {{- with .Values.studio }}
+  studio:
+    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    orgName: {{ .orgName | quote }}
+    projName: {{ .projName | quote }}
+    {{- with .openAiApiKey }}
+    openAiApiKey:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    storage:
+      accessModes:
+        {{- toYaml .storage.accessModes | nindent 8 }}
+      size: {{ .storage.size | quote }}
+      {{- with .storage.storageClassName }}
+      storageClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .storage.deletionPolicy }}
+      deletionPolicy: {{ . | quote }}
+      {{- end }}
+  {{- end }}
