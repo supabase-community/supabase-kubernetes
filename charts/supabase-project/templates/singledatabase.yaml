@@ -1,0 +1,24 @@
+{{- if .Values.singleDatabase.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: SingleDatabase
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  {{- include "supabase-project.renderWorkloadConfig" .Values.singleDatabase | nindent 2 }}
+  {{- with .Values.singleDatabase.service }}
+  service:
+    {{- include "supabase-project.renderService" . | nindent 4 }}
+  {{- end }}
+  storage:
+    accessModes:
+      {{- toYaml .Values.singleDatabase.storage.accessModes | nindent 6 }}
+    size: {{ .Values.singleDatabase.storage.size | quote }}
+    {{- with .Values.singleDatabase.storage.storageClassName }}
+    storageClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.singleDatabase.storage.deletionPolicy }}
+    deletionPolicy: {{ . | quote }}
+    {{- end }}
+{{- end }}
