@@ -155,6 +155,11 @@ type OAuthProviderConfig struct {
 	// SecretRef references the secret containing the OAuth client secret
 	// +kubebuilder:validation:Required
 	SecretRef SecretKeyRef `json:"secretRef"`
+
+	// URL overrides the OAuth provider base URL. Required for Keycloak
+	// (realm URL, e.g. https://keycloak.example.com/realms/myrealm)
+	// +optional
+	URL *string `json:"url,omitempty"`
 }
 
 // OAuthConfig defines OAuth provider settings.
@@ -170,6 +175,10 @@ type OAuthConfig struct {
 	// Azure defines the Azure OAuth provider configuration
 	// +optional
 	Azure *OAuthProviderConfig `json:"azure,omitempty"`
+
+	// Keycloak defines the Keycloak OAuth provider configuration
+	// +optional
+	Keycloak *OAuthProviderConfig `json:"keycloak,omitempty"`
 }
 
 // SMSConfig defines SMS provider settings.
