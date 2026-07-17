@@ -30,6 +30,11 @@ import (
 )
 
 const (
+	// DefaultAPIKeyExpiry is the lifetime used for static API keys such as
+	// ANON_KEY and SERVICE_ROLE_KEY. It matches the 5-year expiry used by the
+	// Supabase self-hosted generate-keys.sh script.
+	DefaultAPIKeyExpiry = 5 * 365 * 24 * time.Hour
+
 	// JWTSecretKey is the Secret data key that holds the symmetric JWT secret.
 	JWTSecretKey = "jwt-secret"
 
@@ -78,14 +83,14 @@ func JWTSecret(project *supabasev1alpha1.Project) (*corev1.Secret, error) {
 	jwtSecret := base64.StdEncoding.EncodeToString(jwtSecretBytes)
 
 	now := time.Now()
-	jwtExpiry := time.Duration(*project.Spec.JWTExpSec) * time.Second
+	apiKeyExpiry := DefaultAPIKeyExpiry
 
-	anonKey, err := helper.GenerateJWTToken(jwtSecret, "anon", now, jwtExpiry)
+	anonKey, err := helper.GenerateJWTToken(jwtSecret, "anon", now, apiKeyExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("generating anon key: %w", err)
 	}
 
-	serviceKey, err := helper.GenerateJWTToken(jwtSecret, "service_role", now, jwtExpiry)
+	serviceKey, err := helper.GenerateJWTToken(jwtSecret, "service_role", now, apiKeyExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("generating service key: %w", err)
 	}
@@ -114,12 +119,12 @@ func JWTSecret(project *supabasev1alpha1.Project) (*corev1.Secret, error) {
 		return nil, fmt.Errorf("building JWT JWKS: %w", err)
 	}
 
-	anonKeyAsym, err := helper.SignES256JWT(ecKey, kid, "anon", now, jwtExpiry)
+	anonKeyAsym, err := helper.SignES256JWT(ecKey, kid, "anon", now, apiKeyExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("generating asymmetric anon key: %w", err)
 	}
 
-	serviceKeyAsym, err := helper.SignES256JWT(ecKey, kid, "service_role", now, jwtExpiry)
+	serviceKeyAsym, err := helper.SignES256JWT(ecKey, kid, "service_role", now, apiKeyExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("generating asymmetric service key: %w", err)
 	}
