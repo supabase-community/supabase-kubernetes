@@ -77,3 +77,10 @@ spec:
     #     secretRef:
     #       name: "oauth-google-secret"
     #       key: "secret"
+    #   keycloak:
+    #     enable: true
+    #     clientId: "keycloak-client-id"
+    #     secretRef:
+    #       name: "oauth-keycloak-secret"
+    #       key: "secret"
+    #     url: "https://keycloak.example.com/realms/myrealm"

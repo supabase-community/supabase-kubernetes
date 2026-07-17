@@ -1082,6 +1082,11 @@ spec:
                             - key
                             - name
                             type: object
+                          url:
+                            description: |-
+                              URL overrides the OAuth provider base URL. Required for Keycloak
+                              (realm URL, e.g. https://keycloak.example.com/realms/myrealm)
+                            type: string
                         required:
                         - clientId
                         - secretRef
@@ -1118,6 +1123,11 @@ spec:
                             - key
                             - name
                             type: object
+                          url:
+                            description: |-
+                              URL overrides the OAuth provider base URL. Required for Keycloak
+                              (realm URL, e.g. https://keycloak.example.com/realms/myrealm)
+                            type: string
                         required:
                         - clientId
                         - secretRef
@@ -1154,6 +1164,53 @@ spec:
                             - key
                             - name
                             type: object
+                          url:
+                            description: |-
+                              URL overrides the OAuth provider base URL. Required for Keycloak
+                              (realm URL, e.g. https://keycloak.example.com/realms/myrealm)
+                            type: string
+                        required:
+                        - clientId
+                        - secretRef
+                        type: object
+                      keycloak:
+                        description: Keycloak defines the Keycloak OAuth provider
+                          configuration
+                        properties:
+                          clientId:
+                            description: ClientID defines the OAuth client ID
+                            minLength: 1
+                            type: string
+                          enable:
+                            default: true
+                            description: Enable defines whether the OAuth provider
+                              is enabled
+                            type: boolean
+                          secretRef:
+                            description: SecretRef references the secret containing
+                              the OAuth client secret
+                            properties:
+                              key:
+                                description: Key defines the key within the Kubernetes
+                                  Secret
+                                maxLength: 253
+                                minLength: 1
+                                type: string
+                              name:
+                                description: Name defines the name of the Kubernetes
+                                  Secret
+                                maxLength: 253
+                                minLength: 1
+                                type: string
+                            required:
+                            - key
+                            - name
+                            type: object
+                          url:
+                            description: |-
+                              URL overrides the OAuth provider base URL. Required for Keycloak
+                              (realm URL, e.g. https://keycloak.example.com/realms/myrealm)
+                            type: string
                         required:
                         - clientId
                         - secretRef

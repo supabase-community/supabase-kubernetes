@@ -273,10 +273,11 @@ func buildAuthOAuthEnvVars(project *supabasev1alpha1.Project, apiURL string) []c
 		return nil
 	}
 
-	env := make([]corev1.EnvVar, 0, 3)
+	env := make([]corev1.EnvVar, 0, 4)
 	env = append(env, buildOAuthProviderEnvVars("GOOGLE", project.Spec.Auth.OAuth.Google, apiURL)...)
 	env = append(env, buildOAuthProviderEnvVars("GITHUB", project.Spec.Auth.OAuth.GitHub, apiURL)...)
 	env = append(env, buildOAuthProviderEnvVars("AZURE", project.Spec.Auth.OAuth.Azure, apiURL)...)
+	env = append(env, buildOAuthProviderEnvVars("KEYCLOAK", project.Spec.Auth.OAuth.Keycloak, apiURL)...)
 	return env
 }
 
@@ -287,12 +288,18 @@ func buildOAuthProviderEnvVars(provider string, config *supabasev1alpha1.OAuthPr
 	}
 
 	prefix := fmt.Sprintf("GOTRUE_EXTERNAL_%s", provider)
-	return []corev1.EnvVar{
+	env := []corev1.EnvVar{
 		helper.EnvVar(fmt.Sprintf("%s_ENABLED", prefix), strconv.FormatBool(*config.Enable)),
 		helper.EnvVar(fmt.Sprintf("%s_CLIENT_ID", prefix), config.ClientID),
 		helper.EnvVarFromSecret(fmt.Sprintf("%s_SECRET", prefix), config.SecretRef.Name, config.SecretRef.Key),
 		helper.EnvVar(fmt.Sprintf("%s_REDIRECT_URI", prefix), fmt.Sprintf("%s/auth/v1/callback", apiURL)),
 	}
+
+	if config.URL != nil {
+		env = append(env, helper.EnvVar(fmt.Sprintf("%s_URL", prefix), *config.URL))
+	}
+
+	return env
 }
 
 // buildAuthSMSEnvVars returns the SMS environment variables for the Auth container.

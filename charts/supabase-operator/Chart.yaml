@@ -2,7 +2,7 @@ apiVersion: v2
 name: supabase-operator
 description: Supabase Kubernetes Operator Helm chart
 type: application
-version: 0.1.0
+version: 0.1.1
 icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
 
 keywords:
