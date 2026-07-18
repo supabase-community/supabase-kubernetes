@@ -1,11 +1,11 @@
 apiVersion: v2
 name: supabase-project
-description: Helm chart to deploy a Supabase Project custom resources
+description: Helm chart to deploy a Supabase CRDs
 type: application
 version: 0.1.0
 icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
 
 keywords:
-  - supabase
-  - project
+  - kubernetes
   - operator
+  - supabase
