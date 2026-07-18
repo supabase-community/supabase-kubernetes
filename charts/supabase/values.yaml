@@ -289,6 +289,8 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    ## Override the immutable StatefulSet serviceName; defaults to the db fullname
+    # serviceName: ""
     labels: {}
     annotations: {}
     podAnnotations: {}
@@ -929,6 +931,7 @@ persistence:
     enabled: true
     storageClassName: ""
     # existingClaim: ""
+    subPath: postgres-data
     annotations: {}
     size: 5Gi
     accessModes:
