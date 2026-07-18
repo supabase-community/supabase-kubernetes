@@ -260,4 +260,19 @@ entries:
     urls:
     - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-operator-0.1.0/supabase-operator-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-17T20:50:01.592666747Z"
+  supabase-project:
+  - apiVersion: v2
+    created: "2026-07-18T14:42:36.53050984Z"
+    description: Helm chart to deploy a Supabase CRDs
+    digest: 1d465e99477bb9a5a304be8da3ff6a373565b111e8a7c6cc2f76f87d29e4abd5
+    icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
+    keywords:
+    - kubernetes
+    - operator
+    - supabase
+    name: supabase-project
+    type: application
+    urls:
+    - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-project-0.1.0/supabase-project-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-07-18T14:42:36.530596932Z"
