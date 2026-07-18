@@ -84,27 +84,16 @@ helm install supabase supabase/supabase-project \
   --set project.http.port=8000 \
   --set auth.siteUrl=http://localhost:3000 \
   --set studio.orgName="Default Organization" \
-  --set studio.projName="Default Project" \
+  --set studio.projName="Default Project"
 ```
 
 The Operator will provision the Postgres StatefulSet, the component Deployments, Services, Secrets, and run sync Jobs to configure JWT keys and the database.
 
-Retrieve the generated database password:
+Retrieve the generated database password, the Studio credentials, and the API keys with a single command:
 
 ```bash
-kubectl get secret supabase-postgres-auth -o go-template='Password: {{.data.password | base64decode}}{{"\n"}}'
-```
-
-Retrieve the Studio credentials:
-
-```bash
-kubectl get secret supabase-envoy-auth -o go-template='Username: {{.data.username | base64decode}}{{"\n"}}Password: {{.data.password | base64decode}}{{"\n"}}'
-```
-
-Retrieve the API keys:
-
-```bash
-kubectl get secret supabase-jwt -o go-template='Publishable Key: {{index .data "publishable-key" | base64decode}}{{"\n"}}Secret Key: {{index .data "secret-key" | base64decode}}{{"\n"}}'
+kubectl get secrets supabase-postgres-auth supabase-envoy-auth supabase-jwt \
+  -o go-template='{{range .items}}{{if eq .metadata.name "supabase-postgres-auth"}}{{printf "%-18s: %s" "Database Password" (.data.password | base64decode)}}{{"\n"}}{{end}}{{if eq .metadata.name "supabase-envoy-auth"}}{{printf "%-18s: %s" "Studio Username" (.data.username | base64decode)}}{{"\n"}}{{printf "%-18s: %s" "Studio Password" (.data.password | base64decode)}}{{"\n"}}{{end}}{{if eq .metadata.name "supabase-jwt"}}{{printf "%-18s: %s" "Publishable Key" (index .data "publishable-key" | base64decode)}}{{"\n"}}{{printf "%-18s: %s" "Secret Key" (index .data "secret-key" | base64decode)}}{{"\n"}}{{end}}{{end}}'
 ```
 
 ### Access Supabase
