@@ -1558,6 +1558,15 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the type of the Kubernetes
+                          Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -3034,6 +3043,15 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the type of the Kubernetes
+                          Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -4355,6 +4373,15 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the type of the Kubernetes
+                          Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -5709,6 +5736,15 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the type of the Kubernetes
+                          Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -7030,6 +7066,15 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the type of the Kubernetes
+                          Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -8366,6 +8411,15 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the type of the Kubernetes
+                          Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -9692,6 +9746,15 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the type of the Kubernetes
+                          Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -11080,6 +11143,15 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the type of the Kubernetes
+                          Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
