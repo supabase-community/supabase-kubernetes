@@ -1579,7 +1579,7 @@ spec:
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
-                        additionalProperties:
+                        items:
                           enum:
                           - IPv4
                           - IPv6
@@ -3073,7 +3073,7 @@ spec:
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
-                        additionalProperties:
+                        items:
                           enum:
                           - IPv4
                           - IPv6
@@ -4413,7 +4413,7 @@ spec:
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
-                        additionalProperties:
+                        items:
                           enum:
                           - IPv4
                           - IPv6
@@ -5786,7 +5786,7 @@ spec:
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
-                        additionalProperties:
+                        items:
                           enum:
                           - IPv4
                           - IPv6
@@ -7126,7 +7126,7 @@ spec:
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
-                        additionalProperties:
+                        items:
                           enum:
                           - IPv4
                           - IPv6
@@ -8481,7 +8481,7 @@ spec:
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
-                        additionalProperties:
+                        items:
                           enum:
                           - IPv4
                           - IPv6
@@ -9826,7 +9826,7 @@ spec:
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
-                        additionalProperties:
+                        items:
                           enum:
                           - IPv4
                           - IPv6
@@ -11233,7 +11233,7 @@ spec:
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
-                        additionalProperties:
+                        items:
                           enum:
                           - IPv4
                           - IPv6
