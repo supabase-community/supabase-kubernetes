@@ -9,12 +9,7 @@
 ## Project top-level configuration
 ##
 project:
-  ## JWT expiration time in seconds
-  ##
   jwtExpSec: 3600
-
-  ## Public HTTP access configuration
-  ##
   http:
     protocol: http
     hostname: ""
@@ -23,63 +18,22 @@ project:
 ## SingleDatabase configuration
 ##
 singleDatabase:
-  ## Whether to create the SingleDatabase resource
-  ##
   enable: true
-
-  ## Container image override
-  ##
   image: ""
-
-  ## Image pull policy
-  ##
   imagePullPolicy: ""
-
-  ## Affinity rules for the database pod
-  ##
   affinity: {}
-
-  ## Node selector for the database pod
-  ##
   nodeSelector: {}
-
-  ## Additional annotations for the database pod
-  ##
   podAnnotations: {}
-
-  ## Additional labels for the database pod
-  ##
   podLabels: {}
-
-  ## Pod-level security context
-  ##
   securityContext: {}
-
-  ## Priority class name for the database pod
-  ##
   priorityClassName: ""
-
-  ## Resource requests and limits for the database pod
-  ##
   resources: {}
-
-  ## Termination grace period in seconds
-  ##
   terminationGracePeriodSeconds: null
-
-  ## Tolerations for the database pod
-  ##
   tolerations: []
-
-  ## Service configuration
-  ##
   service:
     type: ClusterIP
     annotations: {}
     labels: {}
-
-  ## Persistent volume claim configuration
-  ##
   storage:
     accessModes:
       - ReadWriteOnce
