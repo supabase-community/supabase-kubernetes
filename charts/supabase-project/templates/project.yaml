@@ -17,7 +17,64 @@ spec:
     name: {{ include "supabase-project.fullname" . | quote }}
   {{- with .Values.rest }}
   rest:
-    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
     {{- with .dbSchemas }}
     dbSchemas: {{ . | quote }}
     {{- end }}
@@ -30,15 +87,186 @@ spec:
   {{- end }}
   {{- with .Values.meta }}
   meta:
-    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
   {{- end }}
   {{- with .Values.realtime }}
   realtime:
-    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
   {{- end }}
   {{- with .Values.auth }}
   auth:
-    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
     siteUrl: {{ .siteUrl | quote }}
     {{- with .additionalRedirectUrls }}
     additionalRedirectUrls:
@@ -75,16 +303,187 @@ spec:
   {{- end }}
   {{- with .Values.functions }}
   functions:
-    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
     verifyJwt: {{ .verifyJwt }}
   {{- end }}
   {{- with .Values.envoy }}
   envoy:
-    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
   {{- end }}
   {{- with .Values.storage }}
   storage:
-    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
     {{- with .fileSizeLimit }}
     fileSizeLimit: {{ . | int64 }}
     {{- end }}
@@ -101,7 +500,64 @@ spec:
   {{- end }}
   {{- with .Values.studio }}
   studio:
-    {{- include "supabase-project.renderComponent" . | nindent 4 }}
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
     orgName: {{ .orgName | quote }}
     projName: {{ .projName | quote }}
     {{- with .openAiApiKey }}
