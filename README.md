@@ -104,11 +104,7 @@ Once the Project is ready, forward the Envoy gateway to your local machine:
 kubectl port-forward svc/supabase-envoy 8000:8000
 ```
 
-The Studio and the Supabase APIs are available at:
-
-```
-http://localhost:8000
-```
+The Studio and the Supabase APIs are available at [http://localhost:8000](http://localhost:8000).
 
 ## Contributing
 
