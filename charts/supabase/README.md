@@ -99,6 +99,12 @@ secret:
 > 32 characters long secret can be generated with `openssl rand 64 | base64`
 > You can use the [JWT Tool](https://supabase.com/docs/guides/self-hosting/docker#generate-and-configure-api-keys) to generate anon and service keys.
 
+### Preserving secrets across upgrades
+
+Set `secret.preserveExisting: true` so a `helm upgrade` reuses the self-managed secret
+values already in the cluster (via lookup, plus a `helm.sh/resource-policy: keep`
+annotation) instead of resetting them to the defaults when overrides aren't re-supplied.
+
 ### SMTP Secret
 
 Connection credentials for the SMTP mail server will also be provided via Kubernetes secret referenced in `values.yaml`:

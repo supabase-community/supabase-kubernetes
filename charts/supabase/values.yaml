@@ -40,6 +40,10 @@
 ## 11. bigQuery       - Optional BigQuery backend configuration
 
 secret:
+  ## Reuse self-managed secret values already in the cluster on upgrade (via lookup +
+  ## `helm.sh/resource-policy: keep`) instead of resetting them to the defaults below.
+  preserveExisting: false
+
   ## JSON Web Tokens
   ## Used to sign and validate access tokens across all Supabase services
   ## Docs: https://supabase.com/docs/guides/self-hosting/docker#generate-and-configure-api-keys
