@@ -5,7 +5,14 @@ resources:
 
     address:
       socket_address:
+{{- if and .IPFamilyPolicy.IPv4 .IPFamilyPolicy.IPv6 }}
+        address: "::"
+        ipv4_compat: true
+{{- else if .IPFamilyPolicy.IPv6 }}
+        address: "::"
+{{- else }}
         address: 0.0.0.0
+{{ end }}
         port_value: 8000
 
     filter_chains:
