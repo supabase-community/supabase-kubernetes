@@ -48,6 +48,7 @@ func FunctionsService(project *supabasev1alpha1.Project) (*corev1.Service, error
 		Spec: corev1.ServiceSpec{
 			Type:           functionsServiceType(project),
 			Selector:       FunctionsSelectorLabels(project),
+			IPFamilies:     functionsServiceIPFamilies(project),
 			IPFamilyPolicy: functionsServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -95,4 +96,13 @@ func functionsServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.I
 	}
 	defaultPolicy := corev1.IPFamilyPolicySingleStack
 	return &defaultPolicy
+}
+
+// functionsServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func functionsServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Functions != nil && project.Spec.Functions.Service != nil && project.Spec.Functions.Service.IPFamilies != nil {
+		return project.Spec.Functions.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }

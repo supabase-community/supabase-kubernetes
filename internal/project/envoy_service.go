@@ -48,6 +48,7 @@ func EnvoyService(project *supabasev1alpha1.Project) (*corev1.Service, error) {
 		Spec: corev1.ServiceSpec{
 			Type:           envoyServiceType(project),
 			Selector:       EnvoySelectorLabels(project),
+			IPFamilies:     envoyServiceIPFamilies(project),
 			IPFamilyPolicy: envoyServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -86,11 +87,20 @@ func envoyServiceType(project *supabasev1alpha1.Project) corev1.ServiceType {
 	return corev1.ServiceTypeClusterIP
 }
 
-// envoyServiceIPFamilyPolicy returns the service IPFamilyPolicy from the spec or ClusterIP.
+// envoyServiceIPFamilyPolicy returns the service IPFamilyPolicy from the spec.
 func envoyServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFamilyPolicy {
 	if project.Spec.Envoy != nil && project.Spec.Envoy.Service != nil && project.Spec.Envoy.Service.IPFamilyPolicy != nil {
 		return project.Spec.Envoy.Service.IPFamilyPolicy
 	}
 	defaultPolicy := corev1.IPFamilyPolicySingleStack
 	return &defaultPolicy
+}
+
+// envoyServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func envoyServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Envoy != nil && project.Spec.Envoy.Service != nil && project.Spec.Envoy.Service.IPFamilies != nil {
+		return project.Spec.Envoy.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }

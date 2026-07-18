@@ -48,6 +48,7 @@ func MetaService(project *supabasev1alpha1.Project) (*corev1.Service, error) {
 		Spec: corev1.ServiceSpec{
 			Type:           metaServiceType(project),
 			Selector:       MetaSelectorLabels(project),
+			IPFamilies:     metaServiceIPFamilies(project),
 			IPFamilyPolicy: metaServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -95,4 +96,13 @@ func metaServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFami
 	}
 	defaultPolicy := corev1.IPFamilyPolicySingleStack
 	return &defaultPolicy
+}
+
+// metaServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func metaServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Meta != nil && project.Spec.Meta.Service != nil && project.Spec.Meta.Service.IPFamilies != nil {
+		return project.Spec.Meta.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }

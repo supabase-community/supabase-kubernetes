@@ -48,6 +48,7 @@ func RealtimeService(project *supabasev1alpha1.Project) (*corev1.Service, error)
 		Spec: corev1.ServiceSpec{
 			Type:           realtimeServiceType(project),
 			Selector:       RealtimeSelectorLabels(project),
+			IPFamilies:     realtimeServiceIPFamilies(project),
 			IPFamilyPolicy: realtimeServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -95,4 +96,13 @@ func realtimeServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IP
 	}
 	defaultPolicy := corev1.IPFamilyPolicySingleStack
 	return &defaultPolicy
+}
+
+// realtimeServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func realtimeServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Realtime != nil && project.Spec.Realtime.Service != nil && project.Spec.Realtime.Service.IPFamilies != nil {
+		return project.Spec.Realtime.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }

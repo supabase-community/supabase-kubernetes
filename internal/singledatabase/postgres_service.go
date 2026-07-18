@@ -44,6 +44,7 @@ func PostgresService(db *supabasev1alpha1.SingleDatabase) (*corev1.Service, erro
 		Spec: corev1.ServiceSpec{
 			Type:           getServiceTypeOrDefault(db),
 			Selector:       PostgresSelectorLabels(db),
+			IPFamilies:     serviceIPFamilies(db),
 			IPFamilyPolicy: serviceIPFamilyPolicy(db),
 			Ports: []corev1.ServicePort{
 				{
@@ -91,4 +92,13 @@ func serviceIPFamilyPolicy(db *supabasev1alpha1.SingleDatabase) *corev1.IPFamily
 	}
 	defaultPolicy := corev1.IPFamilyPolicySingleStack
 	return &defaultPolicy
+}
+
+// serviceIPFamilies returns the service IPFamilyPolies from the spec.
+func serviceIPFamilies(db *supabasev1alpha1.SingleDatabase) []corev1.IPFamily {
+	if db.Spec.Service != nil && db.Spec.Service.IPFamilies != nil {
+		return db.Spec.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }

@@ -48,6 +48,7 @@ func RestService(project *supabasev1alpha1.Project) (*corev1.Service, error) {
 		Spec: corev1.ServiceSpec{
 			Type:           restServiceType(project),
 			Selector:       RestSelectorLabels(project),
+			IPFamilies:     restServiceIPFamilies(project),
 			IPFamilyPolicy: restServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -95,4 +96,13 @@ func restServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFami
 	}
 	defaultPolicy := corev1.IPFamilyPolicySingleStack
 	return &defaultPolicy
+}
+
+// restServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func restServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Rest != nil && project.Spec.Rest.Service != nil && project.Spec.Rest.Service.IPFamilies != nil {
+		return project.Spec.Rest.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }

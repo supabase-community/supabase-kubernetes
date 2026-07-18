@@ -48,6 +48,7 @@ func StudioService(project *supabasev1alpha1.Project) (*corev1.Service, error) {
 		Spec: corev1.ServiceSpec{
 			Type:           studioServiceType(project),
 			Selector:       StudioSelectorLabels(project),
+			IPFamilies:     studioServiceIPFamilies(project),
 			IPFamilyPolicy: studioServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -95,4 +96,13 @@ func studioServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFa
 	}
 	defaultPolicy := corev1.IPFamilyPolicySingleStack
 	return &defaultPolicy
+}
+
+// studioServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func studioServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Studio != nil && project.Spec.Studio.Service != nil && project.Spec.Studio.Service.IPFamilies != nil {
+		return project.Spec.Studio.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }

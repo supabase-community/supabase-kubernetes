@@ -110,7 +110,13 @@ type ServiceSpec struct {
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// IPFamilyPolicy defines the type of the Kubernetes Service
+	// IPFamilies defines the IPFamilies of the Kubernetes Service
+	// +optional
+	// +kubebuilder:default={IPv4}
+	// +kubebuilder:validation:items:Enum=IPv4;IPv6
+	IPFamilies []corev1.IPFamily `json:"ipFamilies,omitempty"`
+
+	// IPFamilyPolicy defines the IPFamilyPolicy of the Kubernetes Service
 	// +optional
 	// +kubebuilder:default=SingleStack
 	// +kubebuilder:validation:Enum=SingleStack;PreferDualStack;RequireDualStack

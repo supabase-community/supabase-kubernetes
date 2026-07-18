@@ -930,6 +930,11 @@ func (in *ServiceSpec) DeepCopyInto(out *ServiceSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.IPFamilies != nil {
+		in, out := &in.IPFamilies, &out.IPFamilies
+		*out = make([]v1.IPFamily, len(*in))
+		copy(*out, *in)
+	}
 	if in.IPFamilyPolicy != nil {
 		in, out := &in.IPFamilyPolicy, &out.IPFamilyPolicy
 		*out = new(v1.IPFamilyPolicy)

@@ -48,6 +48,7 @@ func StorageService(project *supabasev1alpha1.Project) (*corev1.Service, error) 
 		Spec: corev1.ServiceSpec{
 			Type:           storageServiceType(project),
 			Selector:       StorageSelectorLabels(project),
+			IPFamilies:     storageServiceIPFamilies(project),
 			IPFamilyPolicy: storageServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -95,4 +96,13 @@ func storageServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPF
 	}
 	defaultPolicy := corev1.IPFamilyPolicySingleStack
 	return &defaultPolicy
+}
+
+// storageServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func storageServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Storage != nil && project.Spec.Storage.Service != nil && project.Spec.Storage.Service.IPFamilies != nil {
+		return project.Spec.Storage.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }
