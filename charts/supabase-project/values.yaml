@@ -1,10 +1,10 @@
-## String to partially override the generated fullname
+## String to partially override chart.fullname template (will maintain the release name)
 ##
-nameOverride: ""
+# nameOverride: ""
 
-## String to fully override the generated fullname
+## String to fully override chart.fullname template
 ##
-fullnameOverride: ""
+# fullnameOverride: ""
 
 ## Project top-level configuration
 ##
