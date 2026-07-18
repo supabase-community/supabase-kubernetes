@@ -298,6 +298,7 @@ func (r *SingleDatabaseReconciler) markReady(ctx context.Context, db *supabasev1
 			Name: singledatabase.PostgresSecretName(db),
 			Key:  singledatabase.DefaultSecretKeyPassword,
 		},
+		Image: singledatabase.ImageOrDefault(db),
 	}
 
 	reconciler.SetReady(db, "ReconcileSucceeded", "All resources reconciled successfully")

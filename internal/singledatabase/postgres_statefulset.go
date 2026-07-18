@@ -102,7 +102,7 @@ func podAnnotations(db *supabasev1alpha1.SingleDatabase, secretHash string) map[
 func buildPostgresContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 	return corev1.Container{
 		Name:            "postgres",
-		Image:           getImageOrDefault(db),
+		Image:           ImageOrDefault(db),
 		ImagePullPolicy: getImagePullPolicyOrDefault(db),
 		Args: []string{
 			"-c", "config_file=/etc/postgresql/postgresql.conf",
@@ -123,7 +123,7 @@ func buildPostgresContainer(db *supabasev1alpha1.SingleDatabase) corev1.Containe
 func buildPasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 	return corev1.Container{
 		Name:            "password-sync",
-		Image:           getImageOrDefault(db),
+		Image:           ImageOrDefault(db),
 		ImagePullPolicy: getImagePullPolicyOrDefault(db),
 		Command:         []string{"/bin/sh", "-c"},
 		Args:            []string{assets.SingleDatabasePasswordSyncScript},
@@ -136,7 +136,7 @@ func buildPasswordSyncInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.
 func buildPgsodiumInitContainer(db *supabasev1alpha1.SingleDatabase) corev1.Container {
 	return corev1.Container{
 		Name:            "init-pgsodium",
-		Image:           getImageOrDefault(db),
+		Image:           ImageOrDefault(db),
 		ImagePullPolicy: getImagePullPolicyOrDefault(db),
 		Command:         []string{"/bin/sh", "-c"},
 		Args:            []string{assets.SingleDatabasePgsodiumInitScript},
@@ -192,8 +192,8 @@ func postgresLifecycle() *corev1.Lifecycle {
 	}
 }
 
-// getImageOrDefault returns the Postgres image from the spec or the default image.
-func getImageOrDefault(db *supabasev1alpha1.SingleDatabase) string {
+// ImageOrDefault returns the Postgres image from the spec or the default image.
+func ImageOrDefault(db *supabasev1alpha1.SingleDatabase) string {
 	if db.Spec.Image != nil && *db.Spec.Image != "" {
 		return *db.Spec.Image
 	}
