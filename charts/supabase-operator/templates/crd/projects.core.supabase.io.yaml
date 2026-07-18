@@ -1574,6 +1574,23 @@ spec:
                         - NodePort
                         - LoadBalancer
                         type: string
+                      ipFamilies:
+                        description: ipFamilies defines the IP Families of the Kubernetes Service
+                        default: 
+                        - IPv4
+                        additionalProperties:
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                      ipFamilyPolicy:
+                        description: ipFamilyPolicy defines the IP Family Policy of the Kubernetes Service
+                        default: SingleStack
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                     type: object
                   siteUrl:
                     description: SiteURL is the base URL of the site used for email
@@ -3050,6 +3067,23 @@ spec:
                         - NodePort
                         - LoadBalancer
                         type: string
+                      ipFamilies:
+                        description: ipFamilies defines the IP Families of the Kubernetes Service
+                        default: 
+                        - IPv4
+                        additionalProperties:
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                      ipFamilyPolicy:
+                        description: ipFamilyPolicy defines the IP Family Policy of the Kubernetes Service
+                        default: SingleStack
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                     type: object
                   terminationGracePeriodSeconds:
                     description: TerminationGracePeriodSeconds defines the grace period
@@ -4370,6 +4404,23 @@ spec:
                         - ClusterIP
                         - NodePort
                         - LoadBalancer
+                        type: string
+                      ipFamilies:
+                        description: ipFamilies defines the IP Families of the Kubernetes Service
+                        default: 
+                        - IPv4
+                        additionalProperties:
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                      ipFamilyPolicy:
+                        description: ipFamilyPolicy defines the IP Family Policy of the Kubernetes Service
+                        default: SingleStack
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
                         type: string
                     type: object
                   terminationGracePeriodSeconds:
@@ -5725,6 +5776,23 @@ spec:
                         - NodePort
                         - LoadBalancer
                         type: string
+                      ipFamilies:
+                        description: ipFamilies defines the IP Families of the Kubernetes Service
+                        default: 
+                        - IPv4
+                        additionalProperties:
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                      ipFamilyPolicy:
+                        description: ipFamilyPolicy defines the IP Family Policy of the Kubernetes Service
+                        default: SingleStack
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                     type: object
                   terminationGracePeriodSeconds:
                     description: TerminationGracePeriodSeconds defines the grace period
@@ -7045,6 +7113,23 @@ spec:
                         - ClusterIP
                         - NodePort
                         - LoadBalancer
+                        type: string
+                      ipFamilies:
+                        description: ipFamilies defines the IP Families of the Kubernetes Service
+                        default: 
+                        - IPv4
+                        additionalProperties:
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                      ipFamilyPolicy:
+                        description: ipFamilyPolicy defines the IP Family Policy of the Kubernetes Service
+                        default: SingleStack
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
                         type: string
                     type: object
                   terminationGracePeriodSeconds:
@@ -8382,6 +8467,23 @@ spec:
                         - NodePort
                         - LoadBalancer
                         type: string
+                      ipFamilies:
+                        description: ipFamilies defines the IP Families of the Kubernetes Service
+                        default: 
+                        - IPv4
+                        additionalProperties:
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                      ipFamilyPolicy:
+                        description: ipFamilyPolicy defines the IP Family Policy of the Kubernetes Service
+                        default: SingleStack
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                     type: object
                   terminationGracePeriodSeconds:
                     description: TerminationGracePeriodSeconds defines the grace period
@@ -9707,6 +9809,23 @@ spec:
                         - ClusterIP
                         - NodePort
                         - LoadBalancer
+                        type: string
+                      ipFamilies:
+                        description: ipFamilies defines the IP Families of the Kubernetes Service
+                        default: 
+                        - IPv4
+                        additionalProperties:
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                      ipFamilyPolicy:
+                        description: ipFamilyPolicy defines the IP Family Policy of the Kubernetes Service
+                        default: SingleStack
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
                         type: string
                     type: object
                   storage:
@@ -11095,6 +11214,23 @@ spec:
                         - ClusterIP
                         - NodePort
                         - LoadBalancer
+                        type: string
+                      ipFamilies:
+                        description: ipFamilies defines the IP Families of the Kubernetes Service
+                        default: 
+                        - IPv4
+                        additionalProperties:
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                      ipFamilyPolicy:
+                        description: ipFamilyPolicy defines the IP Family Policy of the Kubernetes Service
+                        default: SingleStack
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
                         type: string
                     type: object
                   storage:
