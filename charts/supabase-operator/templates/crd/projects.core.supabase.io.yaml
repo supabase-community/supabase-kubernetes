@@ -1575,6 +1575,7 @@ spec:
                         - LoadBalancer
                         type: string
                       ipFamilies:
+                        type: array
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
@@ -3068,6 +3069,7 @@ spec:
                         - LoadBalancer
                         type: string
                       ipFamilies:
+                        type: array
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
@@ -4406,6 +4408,8 @@ spec:
                         - LoadBalancer
                         type: string
                       ipFamilies:
+                        type: array
+                        type: array
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
@@ -5777,6 +5781,8 @@ spec:
                         - LoadBalancer
                         type: string
                       ipFamilies:
+                        type: array
+                        type: array
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
@@ -7115,6 +7121,8 @@ spec:
                         - LoadBalancer
                         type: string
                       ipFamilies:
+                        type: array
+                        type: array
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
@@ -8468,6 +8476,8 @@ spec:
                         - LoadBalancer
                         type: string
                       ipFamilies:
+                        type: array
+                        type: array
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
@@ -9811,6 +9821,8 @@ spec:
                         - LoadBalancer
                         type: string
                       ipFamilies:
+                        type: array
+                        type: array
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
@@ -11216,6 +11228,8 @@ spec:
                         - LoadBalancer
                         type: string
                       ipFamilies:
+                        type: array
+                        type: array
                         description: ipFamilies defines the IP Families of the Kubernetes Service
                         default: 
                         - IPv4
