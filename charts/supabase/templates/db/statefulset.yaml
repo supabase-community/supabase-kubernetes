@@ -20,7 +20,11 @@ spec:
   selector:
     matchLabels:
       {{- include "supabase.db.selectorLabels" . | nindent 6 }}
+  {{- if hasKey .Values.deployment.db "serviceName" }}
+  serviceName: {{ .Values.deployment.db.serviceName | quote }}
+  {{- else }}
   serviceName: {{ include "supabase.db.fullname" . }}
+  {{- end }}
   template:
     metadata:
       labels:
@@ -164,7 +168,9 @@ spec:
             {{- if .Values.persistence.db.enabled }}
             - mountPath: /var/lib/postgresql/data
               name: postgres-volume
-              subPath: postgres-data
+              {{- with .Values.persistence.db.subPath }}
+              subPath: {{ . }}
+              {{- end }}
             {{- end }}
           {{- with .Values.deployment.db.livenessProbe }}
           livenessProbe:
