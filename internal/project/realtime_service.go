@@ -46,8 +46,9 @@ func RealtimeService(project *supabasev1alpha1.Project) (*corev1.Service, error)
 			Annotations: realtimeServiceAnnotations(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     realtimeServiceType(project),
-			Selector: RealtimeSelectorLabels(project),
+			Type:           realtimeServiceType(project),
+			Selector:       RealtimeSelectorLabels(project),
+			IPFamilyPolicy: realtimeServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "realtime",
@@ -85,4 +86,13 @@ func realtimeServiceType(project *supabasev1alpha1.Project) corev1.ServiceType {
 		return *project.Spec.Realtime.Service.Type
 	}
 	return corev1.ServiceTypeClusterIP
+}
+
+// realtimeServiceIPFamilyPolicy returns the service IPFamilyPolicy from the spec or ClusterIP.
+func realtimeServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFamilyPolicy {
+	if project.Spec.Realtime != nil && project.Spec.Realtime.Service != nil && project.Spec.Realtime.Service.IPFamilyPolicy != nil {
+		return project.Spec.Realtime.Service.IPFamilyPolicy
+	}
+	defaultPolicy := corev1.IPFamilyPolicySingleStack
+	return &defaultPolicy
 }

@@ -46,8 +46,9 @@ func FunctionsService(project *supabasev1alpha1.Project) (*corev1.Service, error
 			Annotations: functionsServiceAnnotations(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     functionsServiceType(project),
-			Selector: FunctionsSelectorLabels(project),
+			Type:           functionsServiceType(project),
+			Selector:       FunctionsSelectorLabels(project),
+			IPFamilyPolicy: functionsServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "functions",
@@ -85,4 +86,13 @@ func functionsServiceType(project *supabasev1alpha1.Project) corev1.ServiceType 
 		return *project.Spec.Functions.Service.Type
 	}
 	return corev1.ServiceTypeClusterIP
+}
+
+// functionsServiceIPFamilyPolicy returns the service IPFamilyPolicy from the spec or ClusterIP.
+func functionsServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFamilyPolicy {
+	if project.Spec.Functions != nil && project.Spec.Functions.Service != nil && project.Spec.Functions.Service.IPFamilyPolicy != nil {
+		return project.Spec.Functions.Service.IPFamilyPolicy
+	}
+	defaultPolicy := corev1.IPFamilyPolicySingleStack
+	return &defaultPolicy
 }

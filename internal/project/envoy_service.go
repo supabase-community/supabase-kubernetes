@@ -46,8 +46,9 @@ func EnvoyService(project *supabasev1alpha1.Project) (*corev1.Service, error) {
 			Annotations: envoyServiceAnnotations(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     envoyServiceType(project),
-			Selector: EnvoySelectorLabels(project),
+			Type:           envoyServiceType(project),
+			Selector:       EnvoySelectorLabels(project),
+			IPFamilyPolicy: envoyServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "envoy",
@@ -83,4 +84,13 @@ func envoyServiceType(project *supabasev1alpha1.Project) corev1.ServiceType {
 		return *project.Spec.Envoy.Service.Type
 	}
 	return corev1.ServiceTypeClusterIP
+}
+
+// envoyServiceIPFamilyPolicy returns the service IPFamilyPolicy from the spec or ClusterIP.
+func envoyServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFamilyPolicy {
+	if project.Spec.Envoy != nil && project.Spec.Envoy.Service != nil && project.Spec.Envoy.Service.IPFamilyPolicy != nil {
+		return project.Spec.Envoy.Service.IPFamilyPolicy
+	}
+	defaultPolicy := corev1.IPFamilyPolicySingleStack
+	return &defaultPolicy
 }
