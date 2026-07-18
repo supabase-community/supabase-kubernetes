@@ -1,0 +1,4 @@
+Supabase Project "{{ include "supabase-project.fullname" . }}" has been created.
+
+To watch the status:
+  kubectl get project {{ include "supabase-project.fullname" . }} -n {{ .Release.Namespace }} -w

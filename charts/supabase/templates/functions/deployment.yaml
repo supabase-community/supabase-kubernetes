@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.functions.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.functions.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -13,6 +16,10 @@ metadata:
 spec:
   {{- if not .Values.autoscaling.functions.enabled }}
   replicas: {{ .Values.deployment.functions.replicaCount }}
+  {{- end }}
+  {{- with .Values.deployment.functions.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   selector:
     matchLabels:
@@ -57,6 +64,10 @@ spec:
       {{- with .Values.deployment.functions.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- with .Values.deployment.functions.extraInitContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.functions.name" $ }}
           image: "{{ .Values.image.functions.repository }}:{{ .Values.image.functions.tag | default .Chart.AppVersion }}"
@@ -66,18 +77,17 @@ spec:
             - --main-service
             - /home/deno/functions/main
           env:
-            {{- range $key, $value := .Values.environment.functions }}
-            {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
-
             {{- if .Values.deployment.kong.enabled }}
             - name: SUPABASE_URL
               value: http://{{ include "supabase.kong.fullname" . }}:{{ .Values.service.kong.port }}
             {{- end }}
 
+            - name: DB_DRIVER
+              value: "postgresql"
+            - name: DB_USERNAME
+              value: "postgres"
+            - name: DB_SSL
+              value: "disable"
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOSTNAME") | nindent 12 }}
             {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD
@@ -130,6 +140,7 @@ spec:
               value: '{"default":"$(SUPABASE_SECRET_KEY)"}'
             - name: SUPABASE_DB_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)?search_path=auth&sslmode=$(DB_SSL)
+            {{- include "supabase.env.render" (dict "env" .Values.environment.functions) | nindent 12 }}
           {{- if .Values.deployment.functions.envFrom }}
           envFrom:
             {{- toYaml .Values.deployment.functions.envFrom | nindent 12 }}

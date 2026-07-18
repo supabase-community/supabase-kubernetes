@@ -1,0 +1,10 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: SingleDatabase
+metadata:
+  name: supabase
+spec:
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi
+    # deletionPolicy: Delete ## Or Retain

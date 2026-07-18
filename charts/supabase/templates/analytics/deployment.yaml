@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.analytics.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.analytics.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -52,6 +55,7 @@ spec:
       priorityClassName: {{ . }}
       {{- end }}
       initContainers:
+      {{- if .Values.deployment.analytics.initDb }}
         - name: init-db
           image: "{{ .Values.image.initDb.repository }}:{{ .Values.image.initDb.tag }}"
           imagePullPolicy: {{ .Values.image.initDb.pullPolicy }}
@@ -66,6 +70,10 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
+      {{- end }}
+      {{- with .Values.deployment.analytics.extraInitContainers }}
+          {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "supabase.analytics.name" $ }}
           image: "{{ .Values.image.analytics.repository }}:{{ .Values.image.analytics.tag | default .Chart.AppVersion }}"
@@ -74,12 +82,12 @@ spec:
             - containerPort: {{ .Values.service.analytics.port }}
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.analytics }}
-            {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
+            - name: DB_DRIVER
+              value: "postgresql"
+            - name: DB_USERNAME
+              value: "supabase_admin"
+            - name: DB_DATABASE
+              value: "_supabase"
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOSTNAME") | nindent 12 }}
             {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD
@@ -111,6 +119,7 @@ spec:
             - name: POSTGRES_BACKEND_URL
               value: $(DB_DRIVER)://$(DB_USERNAME):$(DB_PASSWORD_ENC)@$(DB_HOSTNAME):$(DB_PORT)/$(DB_DATABASE)
             {{- end }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.analytics) | nindent 12 }}
           {{- with .Values.deployment.analytics.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

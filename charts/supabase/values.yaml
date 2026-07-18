@@ -95,6 +95,10 @@ secret:
     ## External database host/port (used when deployment.db.enabled is false).
     ## Host and port are required when using an external database.
     ## Ignored when deployment.db.enabled is true (internal DB service is used).
+    ##
+    ## IMPORTANT: when using an external database, it must already be
+    ## initialized with the required Supabase schemas, roles and grants.
+    ## The chart no longer runs automatic migrations against external databases.
     host: ""
     port: ""
 
@@ -188,12 +192,17 @@ secret:
     ## Generate with: openssl rand -base64 64
     secretKeyBase: "UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq"
 
+    ## Encryption key used by Realtime for sensitive fields in the _realtime schema.
+    ## Must be exactly 16 characters. Generate with: openssl rand -hex 8
+    dbEncKey: "supabaserealtime"
+
     ## Reference to existing secret
     # secretRef: ""
 
     ## Map to actual keys inside secretRef if they differ
     # secretRefKey:
     #   secretKeyBase: secretKeyBase
+    #   dbEncKey: dbEncKey
 
   ## Meta service
   ## Docs: https://github.com/supabase/postgres-meta
@@ -224,58 +233,11 @@ secret:
 
 deployment:
   analytics:
-    enabled: true
+    enabled: false
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    annotations: {}
-    podAnnotations: {}
-    podSecurityContext:
-    securityContext: {}
-    automountServiceAccountToken: true
-    terminationGracePeriodSeconds: 30
-    nodeSelector: {}
-    affinity: {}
-    tolerations: []
-    priorityClassName: ""
-    envFrom: []
-    livenessProbe: {}
-    readinessProbe: {}
-    startupProbe: {}
-    lifecycle: {}
-    resources: {}
-    volumeMounts: {}
-    volumes: {}
-
-  auth:
-    enabled: true
-    replicaCount: 1
-    nameOverride: ""
-    fullnameOverride: ""
-    annotations: {}
-    podAnnotations: {}
-    podSecurityContext:
-    securityContext: {}
-    automountServiceAccountToken: true
-    terminationGracePeriodSeconds: 30
-    nodeSelector: {}
-    affinity: {}
-    tolerations: []
-    priorityClassName: ""
-    envFrom: []
-    livenessProbe: {}
-    readinessProbe: {}
-    startupProbe: {}
-    lifecycle: {}
-    resources: {}
-    volumeMounts: {}
-    volumes: {}
-
-  db:
-    enabled: true
-    replicaCount: 1
-    nameOverride: ""
-    fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -295,12 +257,43 @@ deployment:
     volumeMounts: {}
     volumes: {}
     extraInitContainers: []
+    initDb: true
 
-  functions:
+  auth:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
+    annotations: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    dnsPolicy: ""
+    dnsConfig: {}
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
+    volumeMounts: {}
+    volumes: {}
+    extraInitContainers: []
+    initDb: true
+
+  db:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -319,12 +312,42 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    extraInitContainers: []
+    initDb: true
+
+  functions:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    labels: {}
+    annotations: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
+    volumeMounts: {}
+    volumes: {}
+    strategy: {}
+    extraInitContainers: []
 
   imgproxy:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -349,6 +372,8 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    configMapRef: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -373,6 +398,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -397,6 +423,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -421,6 +448,7 @@ deployment:
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -431,6 +459,10 @@ deployment:
     affinity: {}
     tolerations: []
     priorityClassName: ""
+    dnsPolicy: ""
+    dnsConfig: {}
+    command: []
+    args: []
     envFrom: []
     livenessProbe: {}
     readinessProbe: {}
@@ -439,36 +471,15 @@ deployment:
     resources: {}
     volumeMounts: {}
     volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   rest:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
-    annotations: {}
-    podAnnotations: {}
-    podSecurityContext:
-    securityContext: {}
-    automountServiceAccountToken: true
-    terminationGracePeriodSeconds: 30
-    nodeSelector: {}
-    affinity: {}
-    tolerations: []
-    priorityClassName: ""
-    envFrom: []
-    livenessProbe: {}
-    readinessProbe: {}
-    startupProbe: {}
-    lifecycle: {}
-    resources: {}
-    volumeMounts: {}
-    volumes: {}
-
-  storage:
-    enabled: true
-    replicaCount: 1
-    nameOverride: ""
-    fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -488,12 +499,41 @@ deployment:
     volumeMounts: {}
     volumes: {}
     extraInitContainers: []
+    initDb: true
+
+  storage:
+    enabled: true
+    replicaCount: 1
+    nameOverride: ""
+    fullnameOverride: ""
+    labels: {}
+    annotations: {}
+    podAnnotations: {}
+    podSecurityContext:
+    securityContext: {}
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 30
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    envFrom: []
+    livenessProbe: {}
+    readinessProbe: {}
+    startupProbe: {}
+    lifecycle: {}
+    resources: {}
+    volumeMounts: {}
+    volumes: {}
+    extraInitContainers: []
+    initDb: true
 
   studio:
     enabled: true
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -519,10 +559,11 @@ deployment:
     strategy: {}
 
   vector:
-    enabled: true
+    enabled: false
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
+    labels: {}
     annotations: {}
     podAnnotations: {}
     podSecurityContext:
@@ -546,25 +587,25 @@ image:
   analytics:
     repository: supabase/logflare
     pullPolicy: IfNotPresent
-    tag: "1.36.1"
+    tag: "1.43.1"
     pullSecrets: []
 
   auth:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "v2.186.0"
+    tag: "v2.189.0"
     pullSecrets: []
 
   db:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
-    tag: "15.8.1.085"
+    tag: "17.6.1.136"
     pullSecrets: []
 
   functions:
     repository: supabase/edge-runtime
     pullPolicy: IfNotPresent
-    tag: "v1.71.2"
+    tag: "v1.74.0"
     pullSecrets: []
 
   imgproxy:
@@ -582,7 +623,7 @@ image:
   meta:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
-    tag: "v0.96.3"
+    tag: "v0.96.6"
     pullSecrets: []
 
   minio:
@@ -594,25 +635,25 @@ image:
   realtime:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
-    tag: "v2.76.5"
+    tag: "v2.102.3"
     pullSecrets: []
 
   rest:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "v14.8"
+    tag: "v14.12"
     pullSecrets: []
 
   storage:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "v1.48.26"
+    tag: "v1.60.4"
     pullSecrets: []
 
   studio:
     repository: supabase/studio
     pullPolicy: IfNotPresent
-    tag: "2026.04.27-sha-5f60601"
+    tag: "2026.07.07-sha-a6a04f2"
     pullSecrets: []
 
   vector:
@@ -624,7 +665,7 @@ image:
   initDb:
     repository: postgres
     pullPolicy: IfNotPresent
-    tag: "15-alpine"
+    tag: "17-alpine"
 
   minioClient:
     repository: cgr.dev/chainguard/minio-client
@@ -633,159 +674,259 @@ image:
 
 environment:
   analytics:
-    LOGFLARE_NODE_HOST: 127.0.0.1
-    DB_USERNAME: supabase_admin
-    DB_DATABASE: _supabase
-    DB_DRIVER: postgresql
-    DB_SCHEMA: _analytics
-    POSTGRES_BACKEND_SCHEMA: _analytics
-    LOGFLARE_SINGLE_TENANT: "true"
-    LOGFLARE_SUPABASE_MODE: "true"
-    LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
+    - name: LOGFLARE_NODE_HOST
+      value: 127.0.0.1
+    - name: DB_SCHEMA
+      value: _analytics
+    - name: POSTGRES_BACKEND_SCHEMA
+      value: _analytics
+    - name: LOGFLARE_SINGLE_TENANT
+      value: "true"
+    - name: LOGFLARE_SUPABASE_MODE
+      value: "true"
+    - name: LOGFLARE_FEATURE_FLAG_OVERRIDE
+      value: multibackend=true
 
   auth:
-    DB_USER: supabase_auth_admin
-    DB_DRIVER: postgres
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    DB_SSL: disable
-    API_EXTERNAL_URL: http://supabase.local
-    GOTRUE_API_HOST: "0.0.0.0"
-    GOTRUE_API_PORT: "9999"
-    GOTRUE_SITE_URL: http://supabase.local
-    GOTRUE_URI_ALLOW_LIST: "*"
-    GOTRUE_DISABLE_SIGNUP: "false"
-    GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
-    GOTRUE_JWT_ADMIN_ROLES: service_role
-    GOTRUE_JWT_AUD: authenticated
-    GOTRUE_JWT_EXP: "3600"
-    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-    GOTRUE_MAILER_AUTOCONFIRM: "true"
-    GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
-    # GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: true
-    # GOTRUE_SMTP_MAX_FREQUENCY: 1s
-    GOTRUE_SMTP_ADMIN_EMAIL: "SMTP_ADMIN_MAIL"
-    GOTRUE_SMTP_HOST: "SMTP_HOST"
-    GOTRUE_SMTP_PORT: "123"
-    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
-    GOTRUE_SMS_AUTOCONFIRM: "false"
-    GOTRUE_SMTP_SENDER_NAME: "SMTP_SENDER_NAME"
-    GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
+    - name: API_EXTERNAL_URL
+      value: http://supabase.local
+    - name: GOTRUE_API_HOST
+      value: "0.0.0.0"
+    - name: GOTRUE_API_PORT
+      value: "9999"
+    - name: GOTRUE_SITE_URL
+      value: http://supabase.local
+    - name: GOTRUE_URI_ALLOW_LIST
+      value: "*"
+    - name: GOTRUE_DISABLE_SIGNUP
+      value: "false"
+    - name: GOTRUE_JWT_DEFAULT_GROUP_NAME
+      value: authenticated
+    - name: GOTRUE_JWT_ADMIN_ROLES
+      value: service_role
+    - name: GOTRUE_JWT_AUD
+      value: authenticated
+    - name: GOTRUE_JWT_EXP
+      value: "3600"
+    - name: GOTRUE_EXTERNAL_EMAIL_ENABLED
+      value: "true"
+    - name: GOTRUE_MAILER_AUTOCONFIRM
+      value: "true"
+    - name: GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED
+      value: "false"
+    # - name: GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED
+    #   value: true
+    # - name: GOTRUE_SMTP_MAX_FREQUENCY
+    #   value: 1s
+    - name: GOTRUE_SMTP_ADMIN_EMAIL
+      value: "SMTP_ADMIN_MAIL"
+    - name: GOTRUE_SMTP_HOST
+      value: "SMTP_HOST"
+    - name: GOTRUE_SMTP_PORT
+      value: "123"
+    - name: GOTRUE_EXTERNAL_PHONE_ENABLED
+      value: "false"
+    - name: GOTRUE_SMS_AUTOCONFIRM
+      value: "false"
+    - name: GOTRUE_SMTP_SENDER_NAME
+      value: "SMTP_SENDER_NAME"
+    - name: GOTRUE_MAILER_URLPATHS_INVITE
+      value: "/auth/v1/verify"
+    - name: GOTRUE_MAILER_URLPATHS_CONFIRMATION
+      value: "/auth/v1/verify"
+    - name: GOTRUE_MAILER_URLPATHS_RECOVERY
+      value: "/auth/v1/verify"
+    - name: GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE
+      value: "/auth/v1/verify"
     ## Uncomment to enable custom access token hook. Please see: https://supabase.com/docs/guides/auth/auth-hooks
     ## for full list of hooks and additional details about custom_access_token_hook
-    # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED: "true"
-    # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI: "pg-functions://postgres/public/custom_access_token_hook"
-    # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_SECRETS: "<standard-base64-secret>"
-    # GOTRUE_HOOK_MFA_VERIFICATION_ATTEMPT_ENABLED: "true"
-    # GOTRUE_HOOK_MFA_VERIFICATION_ATTEMPT_URI: "pg-functions://postgres/public/mfa_verification_attempt"
-    # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED: "true"
-    # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI: "pg-functions://postgres/public/password_verification_attempt"
-    # GOTRUE_HOOK_SEND_SMS_ENABLED: "false"
-    # GOTRUE_HOOK_SEND_SMS_URI: "pg-functions://postgres/public/custom_access_token_hook"
-    # GOTRUE_HOOK_SEND_SMS_SECRETS: "v1,whsec_VGhpcyBpcyBhbiBleGFtcGxlIG9mIGEgc2hvcnRlciBCYXNlNjQgc3RyaW5n"
-    # GOTRUE_HOOK_SEND_EMAIL_ENABLED: "false"
-    # GOTRUE_HOOK_SEND_EMAIL_URI: "http://host.docker.internal:54321/functions/v1/email_sender"
-    # GOTRUE_HOOK_SEND_EMAIL_SECRETS: "v1,whsec_VGhpcyBpcyBhbiBleGFtcGxlIG9mIGEgc2hvcnRlciBCYXNlNjQgc3RyaW5n"
+    # - name: GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
+    # - name: GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
+    # - name: GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_SECRETS
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
+    # - name: GOTRUE_HOOK_MFA_VERIFICATION_ATTEMPT_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_HOOK_MFA_VERIFICATION_ATTEMPT_URI
+    #   value: "pg-functions://postgres/public/mfa_verification_attempt"
+    # - name: GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
+    # - name: GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
+    # - name: GOTRUE_HOOK_SEND_SMS_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_HOOK_SEND_SMS_URI
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
+    # - name: GOTRUE_HOOK_SEND_SMS_SECRETS
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
+    # - name: GOTRUE_HOOK_SEND_EMAIL_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_HOOK_SEND_EMAIL_URI
+    #   value: "http://host.docker.internal:54321/functions/v1/email_sender"
+    # - name: GOTRUE_HOOK_SEND_EMAIL_SECRETS
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
 
   db:
-    POSTGRES_HOST: /var/run/postgresql
-    PGPORT: "5432"
-    POSTGRES_PORT: "5432"
-    JWT_EXP: 3600
-    # POSTGRES_HOST_AUTH_METHOD: md5
+    - name: POSTGRES_HOST
+      value: /var/run/postgresql
+    - name: PGPORT
+      value: "5432"
+    - name: POSTGRES_PORT
+      value: "5432"
+    - name: JWT_EXP
+      value: 3600
+    # - name: POSTGRES_HOST_AUTH_METHOD
+    #   value: md5
     ## Enable SSL for postgres by specifying paths for mounted certificate key pair
-    # POSTGRES_SSL_CERT: /path/to/ssl/server.crt
-    # POSTGRES_SSL_KEY: /path/to/ssl/server.key
+    # - name: POSTGRES_SSL_CERT
+    #   value: /path/to/ssl/server.crt
+    # - name: POSTGRES_SSL_KEY
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: <secret-name>
+    #       key: <secret-key>
 
   functions:
-    DB_USERNAME: postgres
-    DB_DRIVER: postgresql
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    DB_SSL: disable
-    VERIFY_JWT: false
+    - name: VERIFY_JWT
+      value: false
 
   imgproxy:
-    IMGPROXY_BIND: ":5001"
-    IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
-    IMGPROXY_USE_ETAG: "true"
-    IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+    - name: IMGPROXY_BIND
+      value: ":5001"
+    - name: IMGPROXY_LOCAL_FILESYSTEM_ROOT
+      value: /
+    - name: IMGPROXY_USE_ETAG
+      value: "true"
+    - name: IMGPROXY_ENABLE_WEBP_DETECTION
+      value: "true"
 
   kong:
-    KONG_DATABASE: "off"
-    KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
+    - name: KONG_DATABASE
+      value: "off"
+    - name: KONG_DECLARATIVE_CONFIG
+      value: /usr/local/kong/kong.yml
     ## https://github.com/supabase/cli/issues/14
-    KONG_DNS_ORDER: LAST,A,CNAME
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,post-function
-    KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-    KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
-    KONG_LOG_LEVEL: warn
+    - name: KONG_DNS_ORDER
+      value: LAST,A,CNAME
+    - name: KONG_PLUGINS
+      value: request-transformer,cors,key-auth,acl,basic-auth,post-function
+    - name: KONG_NGINX_PROXY_PROXY_BUFFER_SIZE
+      value: 160k
+    - name: KONG_NGINX_PROXY_PROXY_BUFFERS
+      value: 64 160k
+    - name: KONG_LOG_LEVEL
+      value: warn
 
     # Please see: https://github.com/supabase-community/supabase-kubernetes/issues/187
-    KONG_NGINX_WORKER_PROCESSES: "2"
+    - name: KONG_NGINX_WORKER_PROCESSES
+      value: "2"
 
   meta:
-    DB_USER: supabase_admin
-    DB_DRIVER: postgres
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    DB_SSL: disable
-    PG_META_PORT: "8080"
+    - name: DB_DRIVER
+      value: postgres
+    - name: PG_META_PORT
+      value: "8080"
 
-  minio: {}
+  minio:
+    []
 
   realtime:
-    DB_USER: supabase_admin
+    - name: DB_USER
+      value: supabase_admin
     ## Set to true to enforce TLS connections to Postgres
-    DB_SSL: false
-    PORT: "4000"
-    FLY_ALLOC_ID: fly123
-    FLY_APP_NAME: realtime
-    ENABLE_TAILSCALE: "false"
-    DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
-    DB_ENC_KEY: supabaserealtime
-    ERL_AFLAGS: -proto_dist inet_tcp
-    DNS_NODES: "''"
-    RLIMIT_NOFILE: "10000"
-    APP_NAME: realtime
-    SEED_SELF_HOST: true
-    RUN_JANITOR: true
+    - name: DB_SSL
+      value: false
+    - name: PORT
+      value: "4000"
+    - name: FLY_ALLOC_ID
+      value: fly123
+    - name: FLY_APP_NAME
+      value: realtime
+    - name: ENABLE_TAILSCALE
+      value: "false"
+    - name: DB_AFTER_CONNECT_QUERY
+      value: "SET search_path TO _realtime"
+    - name: ERL_AFLAGS
+      value: -proto_dist inet_tcp
+    - name: DNS_NODES
+      value: "''"
+    - name: RLIMIT_NOFILE
+      value: "10000"
+    - name: APP_NAME
+      value: realtime
+    - name: SEED_SELF_HOST
+      value: true
+    - name: RUN_JANITOR
+      value: true
 
   rest:
-    DB_USER: authenticator
-    DB_DRIVER: postgres
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    DB_SSL: disable
-    PGRST_DB_SCHEMAS: public,storage,graphql_public
-    PGRST_DB_ANON_ROLE: anon
-    PGRST_DB_USE_LEGACY_GUCS: false
-    PGRST_APP_SETTINGS_JWT_EXP: 3600
+    - name: PGRST_DB_SCHEMAS
+      value: public,storage,graphql_public
+    - name: PGRST_DB_ANON_ROLE
+      value: anon
+    - name: PGRST_DB_USE_LEGACY_GUCS
+      value: false
+    - name: PGRST_APP_SETTINGS_JWT_EXP
+      value: 3600
 
   storage:
-    DB_USER: supabase_storage_admin
-    DB_DRIVER: postgres
-    ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
-    DB_SSL: disable
-    REQUEST_ALLOW_X_FORWARDED_PATH: "true"
-    FILE_SIZE_LIMIT: "52428800"
-    FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-    TENANT_ID: stub
-    REGION: stub
-    GLOBAL_S3_BUCKET: stub
-    ENABLE_IMAGE_TRANSFORMATION: "true"
+    - name: REQUEST_ALLOW_X_FORWARDED_PATH
+      value: "true"
+    - name: FILE_SIZE_LIMIT
+      value: "52428800"
+    - name: FILE_STORAGE_BACKEND_PATH
+      value: /var/lib/storage
+    - name: TENANT_ID
+      value: stub
+    - name: REGION
+      value: stub
+    - name: GLOBAL_S3_BUCKET
+      value: stub
+    - name: ENABLE_IMAGE_TRANSFORMATION
+      value: "true"
 
   studio:
-    HOSTNAME: "::"
-    STUDIO_PORT: "3000"
-    POSTGRES_PORT: 5432
-    DEFAULT_ORGANIZATION_NAME: Default Organization
-    DEFAULT_PROJECT_NAME: Default Project
-    SUPABASE_PUBLIC_URL: http://supabase.local
-    NEXT_PUBLIC_ENABLE_LOGS: true
+    - name: HOSTNAME
+      value: "::"
+    - name: STUDIO_PORT
+      value: "3000"
+    - name: DEFAULT_ORGANIZATION_NAME
+      value: Default Organization
+    - name: DEFAULT_PROJECT_NAME
+      value: Default Project
+    - name: SUPABASE_PUBLIC_URL
+      value: http://supabase.local
     ## Set value to bigquery to use Big Query backend for analytics (postgres or bigquery)
-    NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+    - name: NEXT_ANALYTICS_BACKEND_PROVIDER
+      value: postgres
 
-  vector: {}
+  vector:
+    []
 
 persistence:
   db:

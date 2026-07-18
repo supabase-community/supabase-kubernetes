@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.minio.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.minio.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -73,13 +76,9 @@ spec:
             - name: MINIO_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.s3.secretRef }}
-                  name: {{ include "supabase.secret.s3.name" . }}
-                  key: {{ include "supabase.secret.s3.key.password" . }}
-                  {{- else }}
                   name: {{ include "supabase.secret.minio.name" . }}
                   key: {{ include "supabase.secret.minio.key.password" . }}
-                  {{- end }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.minio) | nindent 12 }}
           {{- with .Values.deployment.minio.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

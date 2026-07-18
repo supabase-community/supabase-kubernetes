@@ -1,0 +1,577 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Project
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  jwtExpSec: {{ .Values.project.jwtExpSec }}
+  http:
+    protocol: {{ .Values.project.http.protocol | quote }}
+    hostname: {{ .Values.project.http.hostname | quote }}
+    {{- with .Values.project.http.port }}
+    port: {{ . }}
+    {{- end }}
+  databaseRef:
+    kind: SingleDatabase
+    name: {{ include "supabase-project.fullname" . | quote }}
+  {{- with .Values.rest }}
+  rest:
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    {{- with .dbSchemas }}
+    dbSchemas: {{ . | quote }}
+    {{- end }}
+    {{- with .dbMaxRows }}
+    dbMaxRows: {{ . }}
+    {{- end }}
+    {{- with .dbExtraSearchPath }}
+    dbExtraSearchPath: {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.meta }}
+  meta:
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.realtime }}
+  realtime:
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.auth }}
+  auth:
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    siteUrl: {{ .siteUrl | quote }}
+    {{- with .additionalRedirectUrls }}
+    additionalRedirectUrls:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    disableSignup: {{ .disableSignup }}
+    enableEmailSignup: {{ .enableEmailSignup }}
+    enableAnonymousUsers: {{ .enableAnonymousUsers }}
+    enableEmailAutoconfirm: {{ .enableEmailAutoconfirm }}
+    enablePhoneSignup: {{ .enablePhoneSignup }}
+    enablePhoneAutoconfirm: {{ .enablePhoneAutoconfirm }}
+    skipNonceCheck: {{ .skipNonceCheck }}
+    enableMailerSecureEmailChange: {{ .enableMailerSecureEmailChange }}
+    {{- with .smtp }}
+    smtp:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .oauth }}
+    oauth:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .sms }}
+    sms:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .mfa }}
+    mfa:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .saml }}
+    saml:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.functions }}
+  functions:
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    verifyJwt: {{ .verifyJwt }}
+  {{- end }}
+  {{- with .Values.envoy }}
+  envoy:
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.storage }}
+  storage:
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    {{- with .fileSizeLimit }}
+    fileSizeLimit: {{ . | int64 }}
+    {{- end }}
+    storage:
+      accessModes:
+        {{- toYaml .storage.accessModes | nindent 8 }}
+      size: {{ .storage.size | quote }}
+      {{- with .storage.storageClassName }}
+      storageClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .storage.deletionPolicy }}
+      deletionPolicy: {{ . | quote }}
+      {{- end }}
+  {{- end }}
+  {{- with .Values.studio }}
+  studio:
+    enable: {{ .enable }}
+    {{- with .replicas }}
+    replicas: {{ . | int }}
+    {{- end }}
+    {{- with .image }}
+    image: {{ . | quote }}
+    {{- end }}
+    {{- with .imagePullPolicy }}
+    imagePullPolicy: {{ . | quote }}
+    {{- end }}
+    {{- with .affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podAnnotations }}
+    podAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .podLabels }}
+    podLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .priorityClassName }}
+    priorityClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .terminationGracePeriodSeconds }}
+    terminationGracePeriodSeconds: {{ . | int64 }}
+    {{- end }}
+    {{- with .tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- with .type }}
+      type: {{ . | quote }}
+      {{- end }}
+      {{- with .annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    orgName: {{ .orgName | quote }}
+    projName: {{ .projName | quote }}
+    {{- with .openAiApiKey }}
+    openAiApiKey:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    storage:
+      accessModes:
+        {{- toYaml .storage.accessModes | nindent 8 }}
+      size: {{ .storage.size | quote }}
+      {{- with .storage.storageClassName }}
+      storageClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .storage.deletionPolicy }}
+      deletionPolicy: {{ . | quote }}
+      {{- end }}
+  {{- end }}

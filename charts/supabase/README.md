@@ -41,7 +41,6 @@ The database configuration we provide is an example using only one master. If yo
     kubectl get pod -l app.kubernetes.io/instance=demo
     
     NAME                                      READY   STATUS    RESTARTS      AGE
-    demo-supabase-analytics-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
     demo-supabase-auth-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
     demo-supabase-db-0-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
     demo-supabase-functions-xxxxxxxxxx-xxxxx  1/1     Running   0             47s
@@ -52,8 +51,10 @@ The database configuration we provide is an example using only one master. If yo
     demo-supabase-rest-xxxxxxxxxx-xxxxx       1/1     Running   0             47s
     demo-supabase-storage-xxxxxxxxxx-xxxxx    1/1     Running   0             47s
     demo-supabase-studio-xxxxxxxxxx-xxxxx     1/1     Running   0             47s
-    demo-supabase-vector-xxxxxxxxxx-xxxxx     1/1     Running   0             47s
     ```
+
+    > **Note:** `analytics` (Logflare) and `vector` are disabled by default.
+    > To enable the Logs section in Studio, set both `deployment.analytics.enabled=true` and `deployment.vector.enabled=true`.
 
 5. Open Supabase Studio in your browser: http://supabase.local
 
@@ -143,6 +144,8 @@ secret:
 
 ### Analytics secret
 
+Analytics/Vector (logs) are **disabled by default**. To enable the Logs feature in Studio, set both `deployment.analytics.enabled=true` and `deployment.vector.enabled=true`.
+
 A new logflare secret API key is required for securing communication between all of the Supabase services. To set the secret, generate a new 32 characters long secret similar to the step [above](#jwt-secret).
 
 ```yaml
@@ -207,20 +210,46 @@ Supabase storage supports the use of S3 object-storage. To enable S3 for Supabas
   ```
 2. Set storage S3 environment variables:
   ```yaml
-  storage:
-    environment:
-      # Set S3 endpoint if using external object-storage
-      # GLOBAL_S3_ENDPOINT: http://minio:9000
-      STORAGE_BACKEND: s3
-      GLOBAL_S3_PROTOCOL: http
-      GLOBAL_S3_FORCE_PATH_STYLE: true
-      AWS_DEFAULT_REGION: stub
+
+  environment:
+    auth:
+      - name: API_EXTERNAL_URL
+        value: http://supabase.local
+      - name: GOTRUE_SITE_URL
+        value: http://supabase.local
+      - name: GOTRUE_URI_ALLOW_LIST
+        value: "*"
+      - name: GOTRUE_EXTERNAL_AZURE_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: azure-secret
+            key: secret
   ```
 3. (Optional) Enable internal minio deployment
   ```yaml
   minio:
     enabled: true
   ```
+
+### Environment variables
+
+> [!NOTE]
+> Starting with chart version `0.7.1`, `environment.<component>` is an array of Kubernetes env entries instead of a map. Each entry supports `value:` or `valueFrom:`.
+
+Example:
+```yaml
+environment:
+  auth:
+    - name: GOTRUE_API_HOST
+      value: "0.0.0.0"
+    - name: GOTRUE_EXTERNAL_AZURE_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: azure-secret
+          key: secret
+```
+
+User-provided entries are rendered after the chart defaults, so any chart-managed env var can be overridden by adding an entry with the same `name` to the component array.
 
 ## How to use in Production
 
@@ -313,6 +342,142 @@ docker run -it \
 ```
 
 ### Version compatibility
+
+#### `0.6.x` to `0.7.x`
+
+This chart version bumps the default Postgres image from `15.8.1.085` to `17.6.1.136` and the `initDb` image from `15-alpine` to `17-alpine`.
+
+> **Warning:** Before upgrading, make sure you have a recent backup of your database. Major version upgrades can fail and may require rollback.
+>
+> **Important:** We strongly recommend taking a snapshot or backup of the DB PersistentVolumeClaim (PVC) before running the upgrade. The upgrade script modifies the data directory in-place, and a PVC snapshot is the safest way to recover if anything goes wrong.
+
+##### New installs
+
+New installations automatically use Postgres 17:
+
+```bash
+helm repo update
+helm install demo supabase/supabase
+```
+
+##### Upgrading an existing Postgres 15 deployment
+
+For existing deployments running Postgres 15, use the `scripts/upgrade-pg17.sh` helper provided in the chart. This script is the Kubernetes equivalent of the Docker `utils/upgrade-pg17.sh` and performs an in-place `pg_upgrade`:
+
+```bash
+bash scripts/upgrade-pg17.sh -n <namespace> -r <release> [-c <chart-path>] [--yes]
+```
+
+Required flags:
+
+- `-n, --namespace`: Kubernetes namespace where Supabase is deployed
+- `-r, --release`: Helm release name
+
+Optional flags:
+
+- `-c, --chart`: Path to this Helm chart (auto-detected by default)
+- `--yes, -y`: Skip confirmation prompts
+
+What the script does:
+
+1. Builds a PG 17 upgrade tarball from the Supabase `supabase/postgres:17.6.1.063` image
+2. Scales down all Supabase services
+3. Runs `pg_upgrade` (Postgres 15 → 17) inside a temporary PG 15 pod
+4. Runs `complete.sh` inside a temporary PG 17 pod for post-upgrade patches
+5. Swaps the data directories inside the DB PVC
+6. Upgrades the Helm release to the PG 17 image (`supabase/postgres:17.6.1.136`)
+7. Applies the PG 17 role and extension migrations
+8. Verifies the final Postgres version and extension list
+
+The original Postgres 15 data is preserved inside the DB PVC as `postgres-data.bak.pg15`. You can remove it after confirming the upgrade was successful.
+
+##### Rollback (if needed)
+
+If the upgrade fails before the Helm release is updated, scale the DB StatefulSet back to `1` to resume Postgres 15. If the Helm release was already updated to Postgres 17, use the `scripts/rollback-pg15.sh` helper to roll back to Postgres 15:
+
+```bash
+bash scripts/rollback-pg15.sh -n <namespace> -r <release> [-c <chart-path>] [--yes]
+```
+
+Required flags:
+
+- `-n, --namespace`: Kubernetes namespace where Supabase is deployed
+- `-r, --release`: Helm release name
+
+Optional flags:
+
+- `-c, --chart`: Path to this Helm chart (auto-detected by default)
+- `--yes, -y`: Skip confirmation prompts
+
+What the script does:
+
+1. Scales down all Supabase services belonging to the release
+2. Removes the Postgres 17 data directory (`postgres-data`) from the DB PVC
+3. Restores the Postgres 15 backup directory (`postgres-data.bak.pg15`)
+4. Fixes pgsodium volume ownership for the PG 15 image
+5. Rolls the Helm release back to the PG 15 image tags
+6. Scales up the DB StatefulSet
+7. Verifies that Postgres reports version 15
+
+> **Warning:** This rollback is destructive. The Postgres 17 data directory is removed from the PVC. Ensure you have a snapshot or backup of the DB PVC before rolling back, especially if you need to preserve the Postgres 17 state.
+
+If you prefer to perform the rollback manually, the steps are:
+
+```bash
+helm upgrade <release> <chart-path> \
+  --set image.db.tag=15.8.1.085 \
+  --set image.initDb.tag=15-alpine \
+  --reuse-values -n <namespace>
+
+kubectl scale statefulset -n <namespace> <db-statefulset> --replicas=0
+
+kubectl run supabase-rollback -n <namespace> --image=alpine:3.20 \
+  --restart=Never \
+  --overrides='{
+    "apiVersion": "v1",
+    "spec": {
+      "containers": [{
+        "name": "rollback",
+        "image": "alpine:3.20",
+        "command": ["sh", "-c"],
+        "args": ["rm -rf /mnt/db-data/postgres-data && mv /mnt/db-data/postgres-data.bak.pg15 /mnt/db-data/postgres-data"],
+        "volumeMounts": [{"name": "db-data", "mountPath": "/mnt/db-data"}]
+      }],
+      "volumes": [{"name": "db-data", "persistentVolumeClaim": {"claimName": "<db-pvc>"}}],
+      "restartPolicy": "Never"
+    }
+  }'
+
+kubectl run supabase-fix-owner -n <namespace> --image=supabase/postgres:15.8.1.085 \
+  --restart=Never \
+  --overrides='{
+    "apiVersion": "v1",
+    "spec": {
+      "containers": [{
+        "name": "fix-owner",
+        "image": "supabase/postgres:15.8.1.085",
+        "command": ["sh", "-c"],
+        "args": ["chown -R postgres:postgres /vol/"],
+        "volumeMounts": [{"name": "pgsodium", "mountPath": "/vol"}]
+      }],
+      "volumes": [{"name": "pgsodium", "persistentVolumeClaim": {"claimName": "<pgsodium-pvc>"}}],
+      "restartPolicy": "Never"
+    }
+  }'
+
+kubectl scale statefulset -n <namespace> <db-statefulset> --replicas=1
+```
+
+##### Staying on Postgres 15
+
+If you are not ready to upgrade, you can keep using Postgres 15 by overriding the image tags:
+
+```bash
+helm upgrade <release> <chart-path> \
+  --set image.db.tag=15.8.1.085 \
+  --set image.initDb.tag=15-alpine \
+  --reuse-values -n <namespace>
+```
 
 #### `0.0.x` to `0.1.x`
 

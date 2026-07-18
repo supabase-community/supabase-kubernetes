@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.meta.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.meta.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -60,12 +63,10 @@ spec:
               containerPort: 8080
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.meta }}
-            {{- if and (ne $key "DB_HOST") (ne $key "DB_PORT") }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
+            - name: DB_USER
+              value: "supabase_admin"
+            - name: DB_SSL
+              value: "disable"
             {{- include "supabase.db.hostEnv" (dict "root" . "name" "DB_HOST") | nindent 12 }}
             {{- include "supabase.db.portEnv" (dict "root" . "name" "DB_PORT") | nindent 12 }}
             - name: DB_PASSWORD
@@ -99,6 +100,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.meta.name" . }}
                   key: {{ include "supabase.secret.meta.key.cryptoKey" . }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.meta) | nindent 12 }}
           {{- with .Values.deployment.meta.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

@@ -1,0 +1,245 @@
+## String to partially override chart.fullname template (will maintain the release name)
+##
+# nameOverride: ""
+
+## String to fully override chart.fullname template
+##
+# fullnameOverride: ""
+
+## Project top-level configuration
+##
+project:
+  jwtExpSec: 3600
+  http:
+    protocol: http
+    hostname: ""
+    port: null
+
+## SingleDatabase configuration
+##
+singleDatabase:
+  enable: true
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi
+    storageClassName: ""
+    deletionPolicy: Delete
+
+## Rest component configuration
+##
+rest:
+  enable: true
+  replicas: 1
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+  dbSchemas: "public,storage,graphql_public"
+  dbMaxRows: 1000
+  dbExtraSearchPath: "public"
+
+## Meta component configuration
+##
+meta:
+  enable: true
+  replicas: 1
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+
+## Realtime component configuration
+##
+realtime:
+  enable: true
+  replicas: 1
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+
+## Auth component configuration
+##
+auth:
+  enable: true
+  replicas: 1
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+  siteUrl: ""
+  additionalRedirectUrls: []
+  disableSignup: false
+  enableEmailSignup: true
+  enableAnonymousUsers: false
+  enableEmailAutoconfirm: false
+  enablePhoneSignup: true
+  enablePhoneAutoconfirm: true
+  skipNonceCheck: false
+  enableMailerSecureEmailChange: false
+  smtp: {}
+  oauth: {}
+  sms: {}
+  mfa: {}
+  saml: {}
+
+## Functions component configuration
+##
+functions:
+  enable: true
+  replicas: 1
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+  verifyJwt: true
+
+## Envoy component configuration
+##
+envoy:
+  enable: true
+  replicas: 1
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+
+## Storage component configuration
+##
+storage:
+  enable: true
+  replicas: 1
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+  fileSizeLimit: 52428800
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    size: 5Gi
+    storageClassName: ""
+    deletionPolicy: Delete
+
+## Studio component configuration
+##
+studio:
+  enable: true
+  replicas: 1
+  image: ""
+  imagePullPolicy: ""
+  affinity: {}
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  securityContext: {}
+  priorityClassName: ""
+  resources: {}
+  terminationGracePeriodSeconds: null
+  tolerations: []
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}
+  orgName: ""
+  projName: ""
+  openAiApiKey: {}
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+    storageClassName: ""
+    deletionPolicy: Delete

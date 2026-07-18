@@ -1,0 +1,73 @@
+{{- if .Values.singleDatabase.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: SingleDatabase
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.singleDatabase.image }}
+  image: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.singleDatabase.imagePullPolicy }}
+  imagePullPolicy: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.singleDatabase.affinity }}
+  affinity:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.singleDatabase.nodeSelector }}
+  nodeSelector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.singleDatabase.podAnnotations }}
+  podAnnotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.singleDatabase.podLabels }}
+  podLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.singleDatabase.securityContext }}
+  securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.singleDatabase.priorityClassName }}
+  priorityClassName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.singleDatabase.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.singleDatabase.terminationGracePeriodSeconds }}
+  terminationGracePeriodSeconds: {{ . | int64 }}
+  {{- end }}
+  {{- with .Values.singleDatabase.tolerations }}
+  tolerations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.singleDatabase.service }}
+  service:
+    {{- with .type }}
+    type: {{ . | quote }}
+    {{- end }}
+    {{- with .annotations }}
+    annotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .labels }}
+    labels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  storage:
+    accessModes:
+      {{- toYaml .Values.singleDatabase.storage.accessModes | nindent 6 }}
+    size: {{ .Values.singleDatabase.storage.size | quote }}
+    {{- with .Values.singleDatabase.storage.storageClassName }}
+    storageClassName: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.singleDatabase.storage.deletionPolicy }}
+    deletionPolicy: {{ . | quote }}
+    {{- end }}
+{{- end }}

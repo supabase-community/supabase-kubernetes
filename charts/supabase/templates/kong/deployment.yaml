@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    {{- with .Values.deployment.kong.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.deployment.kong.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -69,10 +72,6 @@ spec:
               containerPort: 8000
               protocol: TCP
           env:
-            {{- range $key, $value := .Values.environment.kong }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
@@ -115,6 +114,7 @@ spec:
                   name: {{ include "supabase.secret.dashboard.name" . }}
                   key: {{ include "supabase.secret.dashboard.key.password" . }}
             {{- end }}
+            {{- include "supabase.env.render" (dict "env" .Values.environment.kong) | nindent 12 }}
           {{- with .Values.deployment.kong.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
@@ -153,14 +153,14 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "supabase.kong.fullname" $ }}
+            name: {{ include "supabase.kong.configMapName" $ }}
             defaultMode: 0777
             items:
             - key: kong.yml
               path: template.yml
         - name: wrapper
           configMap:
-            name: {{ include "supabase.kong.fullname" $ }}
+            name: {{ include "supabase.kong.configMapName" $ }}
             defaultMode: 0777
             items:
             - key: kong-entrypoint.sh

@@ -1,0 +1,14 @@
+namespace: default
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: supabase-operator
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: true
+    includeTemplates: true
+
+resources:
+  - singledatabase.yaml
+  # - migration.yaml
+  - project.yaml
+  # - function.yaml
