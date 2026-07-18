@@ -163,7 +163,7 @@ functions:
     type: ClusterIP
     annotations: {}
     labels: {}
-  verifyJwt: false
+  verifyJwt: true
 
 ## Envoy component configuration
 ##
