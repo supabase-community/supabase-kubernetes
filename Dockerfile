@@ -1,5 +1,7 @@
 # Build the manager binary
-FROM golang:1.25 AS builder
+# --platform=${BUILDPLATFORM} runs the Go toolchain natively and cross-compiles
+# (CGO is disabled), avoiding slow QEMU emulation for multi-arch buildx builds.
+FROM --platform=${BUILDPLATFORM} golang:1.25 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
