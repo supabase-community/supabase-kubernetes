@@ -48,3 +48,11 @@ Dynamically calculates safe truncation to ensure total name length <= 63 chars.
 {{- printf "%s-%s" $fullname $suffix | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
+
+{{/*
+Manager image reference.
+Tag defaults to "v<chart version>" when .Values.manager.image.tag is not set.
+*/}}
+{{- define "supabase-operator.image" -}}
+{{- printf "%s:%s" .Values.manager.image.repository (default (printf "v%s" .Chart.Version) .Values.manager.image.tag) -}}
+{{- end }}

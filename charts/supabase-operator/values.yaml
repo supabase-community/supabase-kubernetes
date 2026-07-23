@@ -12,8 +12,9 @@ manager:
   replicas: 1
 
   image:
-    repository: repository/placeholder
-    tag: latest
+    repository: ghcr.io/supabase-community/supabase-operator
+    # Tag defaults to "v<chart version>" (see _helpers.tpl)
+    tag: null
     pullPolicy: IfNotPresent
 
   ## Arguments
