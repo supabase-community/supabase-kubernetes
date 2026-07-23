@@ -46,8 +46,10 @@ func StudioService(project *supabasev1alpha1.Project) (*corev1.Service, error) {
 			Annotations: studioServiceAnnotations(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     studioServiceType(project),
-			Selector: StudioSelectorLabels(project),
+			Type:           studioServiceType(project),
+			Selector:       StudioSelectorLabels(project),
+			IPFamilies:     studioServiceIPFamilies(project),
+			IPFamilyPolicy: studioServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "studio",
@@ -85,4 +87,22 @@ func studioServiceType(project *supabasev1alpha1.Project) corev1.ServiceType {
 		return *project.Spec.Studio.Service.Type
 	}
 	return corev1.ServiceTypeClusterIP
+}
+
+// studioServiceIPFamilyPolicy returns the service IPFamilyPolicy from the spec or ClusterIP.
+func studioServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFamilyPolicy {
+	if project.Spec.Studio != nil && project.Spec.Studio.Service != nil && project.Spec.Studio.Service.IPFamilyPolicy != nil {
+		return project.Spec.Studio.Service.IPFamilyPolicy
+	}
+	defaultPolicy := corev1.IPFamilyPolicySingleStack
+	return &defaultPolicy
+}
+
+// studioServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func studioServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Studio != nil && project.Spec.Studio.Service != nil && project.Spec.Studio.Service.IPFamilies != nil {
+		return project.Spec.Studio.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }

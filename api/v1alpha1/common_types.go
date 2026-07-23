@@ -109,6 +109,18 @@ type ServiceSpec struct {
 	// Labels defines labels to add to the Service
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
+
+	// IPFamilies defines the IPFamilies of the Kubernetes Service
+	// +optional
+	// +kubebuilder:default={IPv4}
+	// +kubebuilder:validation:items:Enum=IPv4;IPv6
+	IPFamilies []corev1.IPFamily `json:"ipFamilies,omitempty"`
+
+	// IPFamilyPolicy defines the IPFamilyPolicy of the Kubernetes Service
+	// +optional
+	// +kubebuilder:default=SingleStack
+	// +kubebuilder:validation:Enum=SingleStack;PreferDualStack;RequireDualStack
+	IPFamilyPolicy *corev1.IPFamilyPolicy `json:"ipFamilyPolicy,omitempty"`
 }
 
 // HTTPConfig defines public HTTP access settings for a Project.
