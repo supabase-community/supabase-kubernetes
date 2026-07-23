@@ -49,7 +49,7 @@ spec:
         {{- end }}
         command:
         - /manager
-        image: "{{ .Values.manager.image.repository }}:{{ .Values.manager.image.tag }}"
+        image: {{ include "supabase-operator.image" . | quote }}
         imagePullPolicy: {{ .Values.manager.image.pullPolicy }}
         livenessProbe:
           httpGet:
