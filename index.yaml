@@ -233,6 +233,20 @@ entries:
     version: 0.3.0
   supabase-operator:
   - apiVersion: v2
+    created: "2026-07-23T09:30:30.229056526Z"
+    description: Helm chart to deploy a Supabase Operator
+    digest: 912d47b323990270614a75d2618d7f89109e37d1471d886b1fce7eff1271d8c3
+    icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
+    keywords:
+    - kubernetes
+    - operator
+    - supabase
+    name: supabase-operator
+    type: application
+    urls:
+    - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-operator-0.1.2/supabase-operator-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
     created: "2026-07-17T20:50:01.592610542Z"
     description: Supabase Kubernetes Operator Helm chart
     digest: c7084895395584afa32b409b256ad93c92898c7897099d8b604566106823ccc6
@@ -275,4 +289,4 @@ entries:
     urls:
     - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-project-0.1.0/supabase-project-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-18T14:42:36.530596932Z"
+generated: "2026-07-23T09:30:30.229117269Z"
