@@ -2,7 +2,7 @@ apiVersion: v2
 name: supabase-operator
 description: Helm chart to deploy a Supabase Operator
 type: application
-version: 0.1.1
+version: 0.1.2
 icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
 
 keywords:
