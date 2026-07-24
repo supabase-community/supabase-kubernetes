@@ -1,0 +1,52 @@
+{{- if .Values.serviceMonitor.enabled -}}
+{{- $root := . -}}
+{{- $sm := .Values.serviceMonitor -}}
+{{- range $component, $config := $sm.components -}}
+{{- if and $config.enabled (index $root.Values.deployment $component "enabled") }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include (printf "supabase.%s.fullname" $component) $root }}
+  {{- with $sm.namespace }}
+  namespace: {{ . }}
+  {{- end }}
+  labels:
+    {{- include "supabase.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+    {{- with $sm.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $sm.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ $root.Release.Namespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+      app.kubernetes.io/component: {{ $component }}
+  endpoints:
+    - port: {{ $config.port | default $sm.port }}
+      path: {{ $config.path | default $sm.path }}
+      scheme: {{ $config.scheme | default $sm.scheme }}
+      interval: {{ $config.interval | default $sm.interval }}
+      scrapeTimeout: {{ $config.scrapeTimeout | default $sm.scrapeTimeout }}
+      {{- with (or $config.tlsConfig $sm.tlsConfig) }}
+      tlsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (or $config.relabelings $sm.relabelings) }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (or $config.metricRelabelings $sm.metricRelabelings) }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -5,6 +5,7 @@ metadata:
   name: {{ include "supabase.vector.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: vector
 spec:
   type: {{ .Values.service.vector.type }}
   ports:
