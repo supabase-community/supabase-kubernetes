@@ -46,8 +46,10 @@ func RestService(project *supabasev1alpha1.Project) (*corev1.Service, error) {
 			Annotations: restServiceAnnotations(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     restServiceType(project),
-			Selector: RestSelectorLabels(project),
+			Type:           restServiceType(project),
+			Selector:       RestSelectorLabels(project),
+			IPFamilies:     restServiceIPFamilies(project),
+			IPFamilyPolicy: restServiceIPFamilyPolicy(project),
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "rest",
@@ -85,4 +87,22 @@ func restServiceType(project *supabasev1alpha1.Project) corev1.ServiceType {
 		return *project.Spec.Rest.Service.Type
 	}
 	return corev1.ServiceTypeClusterIP
+}
+
+// restServiceIPFamilyPolicy returns the service IPFamilyPolicy from the spec or ClusterIP.
+func restServiceIPFamilyPolicy(project *supabasev1alpha1.Project) *corev1.IPFamilyPolicy {
+	if project.Spec.Rest != nil && project.Spec.Rest.Service != nil && project.Spec.Rest.Service.IPFamilyPolicy != nil {
+		return project.Spec.Rest.Service.IPFamilyPolicy
+	}
+	defaultPolicy := corev1.IPFamilyPolicySingleStack
+	return &defaultPolicy
+}
+
+// restServiceIPFamilies returns the service IPFamilyPolies from the spec.
+func restServiceIPFamilies(project *supabasev1alpha1.Project) []corev1.IPFamily {
+	if project.Spec.Rest != nil && project.Spec.Rest.Service != nil && project.Spec.Rest.Service.IPFamilies != nil {
+		return project.Spec.Rest.Service.IPFamilies
+	}
+	defaultPolicy := []corev1.IPFamily{corev1.IPv4Protocol}
+	return defaultPolicy
 }
