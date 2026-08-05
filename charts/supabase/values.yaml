@@ -1312,6 +1312,11 @@ networkPolicy:
     #         matchLabels:
     #           role: analyst-tool
 
+## Reference to an existing ConfigMap holding migration scripts.
+## When set, the chart will not create its own migrations ConfigMap and the
+## referenced ConfigMap is mounted instead (overriding `migration` below).
+# migrationConfigRef: ""
+
 migration:
   # example.sql: |
   #   \set pguser `echo "$POSTGRES_USER"`
