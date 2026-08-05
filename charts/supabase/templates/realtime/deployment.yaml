@@ -77,6 +77,8 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
+          securityContext:
+            {{- toYaml .Values.deployment.realtime.securityContext | nindent 12 }}
       {{- end }}
       {{- with .Values.deployment.realtime.extraInitContainers }}
           {{- toYaml . | nindent 8 }}

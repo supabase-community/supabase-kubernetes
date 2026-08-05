@@ -70,6 +70,8 @@ spec:
               sleep 2
               done
             - echo "Database is ready"
+          securityContext:
+            {{- toYaml .Values.deployment.storage.securityContext | nindent 12 }}
       {{- end }}
       {{- if .Values.deployment.minio.enabled }}
         - name: init-bucket
