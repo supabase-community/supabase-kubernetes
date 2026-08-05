@@ -5,6 +5,7 @@ metadata:
   name: {{ include "supabase.imgproxy.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: imgproxy
 spec:
   type: {{ .Values.service.imgproxy.type }}
   ports:

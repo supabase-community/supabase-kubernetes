@@ -5,6 +5,7 @@ metadata:
   name: {{ include "supabase.meta.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: meta
 spec:
   type: {{ .Values.service.meta.type }}
   ports:
