@@ -90,7 +90,7 @@ func podAnnotations(migration *supabasev1alpha1.Migration) map[string]string {
 func buildMigrationContainer(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
 		Name:            "migration",
-		Image:           getImageOrDefault(migration),
+		Image:           getImageOrDefault(migration, db),
 		ImagePullPolicy: getImagePullPolicyOrDefault(migration),
 		Command:         []string{"/bin/sh", "-c"},
 		Args:            []string{assets.MigrationApplyScript},

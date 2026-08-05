@@ -57,7 +57,7 @@ var _ = Describe("Project Controller", func() {
 	// Ready by marking its StatefulSet status as ready. The SingleDatabase
 	// reconciler then writes Ready=True and populates ResolvedDatabase, which
 	// is a stable steady state that the Project reconciler can rely on.
-	driveSingleDatabaseReady := func(name string) *supabasev1alpha1.SingleDatabase {
+	driveSingleDatabaseReady := func(name string, image ...string) *supabasev1alpha1.SingleDatabase {
 		db := &supabasev1alpha1.SingleDatabase{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
@@ -69,6 +69,9 @@ var _ = Describe("Project Controller", func() {
 					Size:        resource.MustParse("1Gi"),
 				},
 			},
+		}
+		if len(image) > 0 && image[0] != "" {
+			db.Spec.Image = &image[0]
 		}
 		Expect(k8sClient.Create(ctx, db)).To(Succeed())
 
@@ -277,12 +280,26 @@ var _ = Describe("Project Controller", func() {
 		})
 
 		It("creates the sync-jwt and sync-password Jobs and records hashes on success", func() {
-			driveSingleDatabaseReady("pg")
+			db := driveSingleDatabaseReady("pg")
 			proj := newProject("demo", "pg")
 			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
 			driveChildMigrationReady(project.ProjectMigration1Name(proj))
 
+			// With no custom database image, each Job inherits the resolved
+			// database image (here the default Postgres image). sync-password
+			// is only created after sync-jwt succeeds, so assert and advance
+			// them in order.
+			expectJobImage := func(name, image string) {
+				Eventually(func(g Gomega) {
+					job := &batchv1.Job{}
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, job)).To(Succeed())
+					g.Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal(image))
+				}, defaultTimeout, defaultPolling).Should(Succeed())
+			}
+
+			expectJobImage(project.SyncJWTJobName(proj), db.Status.ResolvedDatabase.Image)
 			markJobSucceeded(project.SyncJWTJobName(proj))
+			expectJobImage(project.SyncPasswordJobName(proj), db.Status.ResolvedDatabase.Image)
 			markJobSucceeded(project.SyncPasswordJobName(proj))
 
 			Eventually(func(g Gomega) {
@@ -291,6 +308,27 @@ var _ = Describe("Project Controller", func() {
 				g.Expect(got.Status.JwtSyncHash).NotTo(BeEmpty())
 				g.Expect(got.Status.PasswordSyncHash).NotTo(BeEmpty())
 			}, defaultTimeout, defaultPolling).Should(Succeed())
+		})
+
+		It("sync Jobs inherit a custom database image", func() {
+			const dbImage = "example.com/supabase/postgres:custom"
+			driveSingleDatabaseReady("pg", dbImage)
+			proj := newProject("demo", "pg")
+			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+			driveChildMigrationReady(project.ProjectMigration1Name(proj))
+
+			expectJobImage := func(name string) {
+				Eventually(func(g Gomega) {
+					job := &batchv1.Job{}
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, job)).To(Succeed())
+					g.Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal(dbImage))
+				}, defaultTimeout, defaultPolling).Should(Succeed())
+			}
+
+			// sync-password is created only after sync-jwt succeeds.
+			expectJobImage(project.SyncJWTJobName(proj))
+			markJobSucceeded(project.SyncJWTJobName(proj))
+			expectJobImage(project.SyncPasswordJobName(proj))
 		})
 	})
 

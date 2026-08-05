@@ -61,10 +61,14 @@ func MigrationSelectorLabels(migration *supabasev1alpha1.Migration) map[string]s
 	}
 }
 
-// getImageOrDefault returns the Postgres image from the spec or the default image.
-func getImageOrDefault(migration *supabasev1alpha1.Migration) string {
+// getImageOrDefault returns the migration image, preferring an explicit spec
+// override, then the resolved database image, then the default image.
+func getImageOrDefault(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) string {
 	if migration.Spec.Image != nil && *migration.Spec.Image != "" {
 		return *migration.Spec.Image
+	}
+	if db != nil && db.Image != "" {
+		return db.Image
 	}
 	return DefaultPostgresImage
 }

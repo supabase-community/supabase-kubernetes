@@ -1452,6 +1452,11 @@ spec:
                   host:
                     description: Host defines the database host
                     type: string
+                  image:
+                    description: |-
+                      Image is the Postgres image the database runs, so dependent workloads
+                      (such as migrations) can match the database version.
+                    type: string
                   passwordRef:
                     description: PasswordRef references the secret containing the
                       database password

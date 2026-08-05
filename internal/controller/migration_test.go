@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/utils/ptr"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	migrationpkg "github.com/supabase-community/supabase-kubernetes/internal/migration"
@@ -56,7 +57,7 @@ var _ = Describe("Migration Controller", func() {
 	// Ready by repeatedly marking its StatefulSet status as ready. The
 	// SingleDatabase reconciler then writes ResolvedDatabase and Ready=True
 	// itself, which is a stable steady state that database.ResolveRef can read.
-	driveSingleDatabaseReady := func(name string) *supabasev1alpha1.SingleDatabase {
+	driveSingleDatabaseReady := func(name, image string) *supabasev1alpha1.SingleDatabase {
 		db := &supabasev1alpha1.SingleDatabase{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
@@ -68,6 +69,9 @@ var _ = Describe("Migration Controller", func() {
 					Size:        resource.MustParse("1Gi"),
 				},
 			},
+		}
+		if image != "" {
+			db.Spec.Image = &image
 		}
 		Expect(k8sClient.Create(ctx, db)).To(Succeed())
 
@@ -122,7 +126,7 @@ var _ = Describe("Migration Controller", func() {
 
 	Context("when a Migration is created against a ready database", func() {
 		It("creates a ConfigMap and a Job wired to the resolved database", func() {
-			db := driveSingleDatabaseReady("pg")
+			db := driveSingleDatabaseReady("pg", "")
 			m := newMigration("mig", "pg")
 			Expect(k8sClient.Create(ctx, m)).To(Succeed())
 
@@ -141,6 +145,10 @@ var _ = Describe("Migration Controller", func() {
 				g.Expect(job.OwnerReferences).To(HaveLen(1))
 				g.Expect(job.OwnerReferences[0].Kind).To(Equal("Migration"))
 				g.Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
+
+				// With no explicit override, the Job inherits the resolved
+				// database image (here the default Postgres image).
+				g.Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal(db.Status.ResolvedDatabase.Image))
 
 				envMap := map[string]string{}
 				for _, e := range job.Spec.Template.Spec.Containers[0].Env {
@@ -166,8 +174,36 @@ var _ = Describe("Migration Controller", func() {
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 		})
 
+		It("inherits a custom database image, and an explicit spec image wins", func() {
+			const dbImage = "example.com/supabase/postgres:custom"
+			const overrideImage = "example.com/supabase/postgres:override"
+
+			driveSingleDatabaseReady("pg", dbImage)
+
+			By("inheriting the resolved database image when the Migration has none")
+			m := newMigration("mig", "pg")
+			Expect(k8sClient.Create(ctx, m)).To(Succeed())
+			jobKey := types.NamespacedName{Name: migrationpkg.MigrationJobName(m), Namespace: ns}
+			Eventually(func(g Gomega) {
+				job := &batchv1.Job{}
+				g.Expect(k8sClient.Get(ctx, jobKey, job)).To(Succeed())
+				g.Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal(dbImage))
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+
+			By("preferring an explicit spec image over the inherited one")
+			mo := newMigration("mig-override", "pg")
+			mo.Spec.Image = ptr.To(overrideImage)
+			Expect(k8sClient.Create(ctx, mo)).To(Succeed())
+			jobKeyO := types.NamespacedName{Name: migrationpkg.MigrationJobName(mo), Namespace: ns}
+			Eventually(func(g Gomega) {
+				job := &batchv1.Job{}
+				g.Expect(k8sClient.Get(ctx, jobKeyO, job)).To(Succeed())
+				g.Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal(overrideImage))
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+		})
+
 		It("stays Ready=False with reason JobInProgress until the Job succeeds", func() {
-			driveSingleDatabaseReady("pg")
+			driveSingleDatabaseReady("pg", "")
 			m := newMigration("mig", "pg")
 			Expect(k8sClient.Create(ctx, m)).To(Succeed())
 
@@ -182,7 +218,7 @@ var _ = Describe("Migration Controller", func() {
 		})
 
 		It("becomes Ready=True with AppliedHash set when the Job succeeds", func() {
-			driveSingleDatabaseReady("pg")
+			driveSingleDatabaseReady("pg", "")
 			m := newMigration("mig", "pg")
 			Expect(k8sClient.Create(ctx, m)).To(Succeed())
 
@@ -208,7 +244,7 @@ var _ = Describe("Migration Controller", func() {
 		})
 
 		It("reports Ready=False with reason JobFailed when the Job fails", func() {
-			driveSingleDatabaseReady("pg")
+			driveSingleDatabaseReady("pg", "")
 			m := newMigration("mig", "pg")
 			Expect(k8sClient.Create(ctx, m)).To(Succeed())
 
