@@ -196,7 +196,7 @@ func envoyServiceHost(project *supabasev1alpha1.Project, serviceName string) str
 	return fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, project.Namespace)
 }
 
-// envoyRealtimeHost returns the fully qualified DNS name for the Realtime service.
-func envoyRealtimeHost(project *supabasev1alpha1.Project) string {
-	return envoyServiceHost(project, RealtimeServiceName(project))
+// envoyRealtimeHost returns the host used to select Realtime's default self-hosted tenant.
+func envoyRealtimeHost(_ *supabasev1alpha1.Project) string {
+	return "realtime-dev.supabase-realtime"
 }
