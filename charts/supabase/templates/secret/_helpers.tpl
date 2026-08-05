@@ -74,3 +74,14 @@ Expand the name of the bigquery secret.
 {{- define "supabase.secret.bigquery" -}}
 {{- printf "%s-bigquery" (include "supabase.fullname" .) }}
 {{- end -}}
+
+{{/*
+Emit a resource-policy keep annotation when secret.preserveExisting is set.
+Use directly under a Secret's metadata, after the labels block.
+*/}}
+{{- define "supabase.secret.keepAnnotation" -}}
+{{- if .Values.secret.preserveExisting }}
+  annotations:
+    helm.sh/resource-policy: keep
+{{- end }}
+{{- end -}}
