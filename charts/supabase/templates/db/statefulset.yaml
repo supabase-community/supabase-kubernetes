@@ -62,13 +62,15 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "Initializing pgsodium persistent config directory..."
-              if [ -z "$(ls -A /mnt/pgsodium 2>/dev/null)" ]; then
-                echo "pgsodium volume is empty, copying default postgresql-custom files..."
-                cp -a /etc/postgresql-custom/. /mnt/pgsodium/
-              else
-                echo "pgsodium volume already initialized, skipping copy"
-              fi
+              echo "Ensuring default postgresql-custom files exist..."
+              # Idempotent, no-clobber copy: seeds any missing config files without
+              # overwriting existing ones (preserves runtime-generated pgsodium keys).
+              # An emptiness check ([ -z "$(ls -A)" ]) is unreliable here: block-storage
+              # volumes (EBS, GCE PD, Ceph RBD, OpenEBS LVM, ...) are formatted ext4/xfs
+              # and ship a lost+found directory, so the volume is never truly empty on
+              # first use, the copy was skipped, and postgres could not open its
+              # included /etc/postgresql-custom/*.conf files (CrashLoopBackOff).
+              cp -an /etc/postgresql-custom/. /mnt/pgsodium/ 2>/dev/null || true
           volumeMounts:
             - mountPath: /mnt/pgsodium
               name: pgsodium
