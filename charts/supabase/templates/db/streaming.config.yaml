@@ -39,6 +39,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "supabase.db.streaming.fullname" . }}
+  annotations:
+    # Wave 0, with the database. The Job that runs this SQL is one wave later,
+    # which is the whole point: as a PreSync hook it used to run BEFORE this
+    # ConfigMap was applied, and therefore always executed the PREVIOUS SQL.
+    # Harmless while that SQL succeeded; a deadlock the moment it did not, since
+    # the sync that would have replaced it was itself waiting on the hook.
+    argocd.argoproj.io/sync-wave: "0"
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 data:

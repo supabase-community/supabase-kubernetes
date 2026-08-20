@@ -1,36 +1,37 @@
 {{- if and .Values.deployment.db.enabled .Values.deployment.db.streaming.enabled }}
 {{- $streaming := .Values.deployment.db.streaming }}
+{{- $config := include (print $.Template.BasePath "/db/streaming.config.yaml") . }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "supabase.db.streaming.fullname" . }}
+  # The name carries a digest of the SQL it runs. A Job's pod template is
+  # immutable, so re-applying a changed one fails; deriving the name from the
+  # content sidesteps that AND gives the right semantics -- a new Job appears
+  # exactly when the SQL changes, and a configuration change becomes visible in
+  # the Argo CD diff instead of hiding inside a resource that never varies.
+  name: {{ include "supabase.db.streaming.fullname" . }}-{{ $config | sha256sum | trunc 8 }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
   annotations:
-    # Runs BEFORE the rest of an upgrade, and after a fresh install.
+    # A sync WAVE, not a hook.
     #
-    # The order matters more than it looks. A reader deployed next to this
-    # database cannot start until the role it logs in as has a password — and
-    # under Argo CD, a post-sync hook only runs once every synced resource is
-    # healthy. Leave this hook post-only and the two wait for each other: the
-    # reader for its password, the password for the reader. Observed, not feared.
+    # This used to be a `pre-upgrade` hook, which Argo CD runs as PreSync --
+    # before the sync, and therefore before its own ConfigMap is applied. It
+    # always executed the PREVIOUS SQL. Invisible while that SQL succeeded, and a
+    # deadlock the moment it failed: the hook failed on the stale configuration,
+    # and the sync that would have replaced that configuration was waiting for
+    # the hook. Observed twice, unblocked by hand both times.
     #
-    # pre-upgrade breaks that cycle: the capability is opened first, and whatever
-    # depends on it is judged afterwards. post-install keeps the fresh case, where
-    # there is no database yet to prepare when the sync begins.
-    #
-    # Argo CD does not distinguish install from upgrade: it renders both hooks, so
-    # this runs in PreSync and again in PostSync. That costs one idempotent replay
-    # and is exactly what makes the first sync converge — see the tolerated wait
-    # below.
-    "helm.sh/hook": pre-upgrade,post-install
-    "helm.sh/hook-weight": "0"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    # Waves order resources INSIDE the sync, which is what was wanted all along:
+    # wave 0 brings up the database and this Job's ConfigMap, wave 1 runs the SQL
+    # against a database Argo CD has already found healthy, and the reader sits
+    # in a later wave still. No phase is misused, and every resource is an
+    # ordinary one that synchronises normally.
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   backoffLimit: 6
-  # A post-sync hook that never returns holds the whole sync. Bounded on both
-  # sides: the wait below gives up, and the deadline covers the pod never
-  # getting that far (image pull, scheduling).
+  # Bounded on both sides: the wait below gives up, and the deadline covers the
+  # pod never getting that far (image pull, scheduling).
   activeDeadlineSeconds: 900
   ttlSecondsAfterFinished: 600
   template:
@@ -81,17 +82,17 @@ spec:
             - |
               set -e
 
-              # On the very first sync there is no database yet: it is created in
-              # the phase this hook now runs before. Waiting the full window and
-              # failing would block that creation for good, so an absent database
-              # is not an error here — it is "nothing to prepare yet". The hook
-              # runs again once it exists, and the reader recovers on its own.
+              # Wave 1 runs once Argo CD has found the database healthy, so an
+              # absent one is a real fault rather than "not yet". This wait only
+              # covers the gap between a pod being Ready and Postgres accepting
+              # connections -- and giving up FAILS, because a reader started
+              # against a database nobody prepared is worse than a red Job.
               attempts=0
               until pg_isready -q; do
                 attempts=$((attempts + 1))
                 if [ "$attempts" -ge 60 ]; then
-                  echo "No database to prepare yet; leaving it for the next run."
-                  exit 0
+                  echo "The database never accepted a connection." >&2
+                  exit 1
                 fi
                 echo "Waiting for the database to accept connections..."
                 sleep 5
