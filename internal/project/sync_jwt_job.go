@@ -67,7 +67,7 @@ func SyncJWTJob(project *supabasev1alpha1.Project, db *supabasev1alpha1.Resolved
 func buildSyncJWTContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
 		Name:            "sync-jwt",
-		Image:           DefaultPostgresImage,
+		Image:           postgresImageOrDefault(db),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command:         []string{"/bin/sh", "-c"},
 		Args:            []string{assets.ProjectSyncJWTScript},
