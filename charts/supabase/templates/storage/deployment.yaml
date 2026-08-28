@@ -98,6 +98,8 @@ spec:
                 sleep 2
               done
               /usr/bin/mc mb --ignore-existing supa-minio/$GLOBAL_S3_BUCKET
+          securityContext:
+            {{- toYaml .Values.deployment.storage.securityContext | nindent 12 }}
         {{- end }}
         {{- with .Values.deployment.storage.extraInitContainers }}
           {{ . | toYaml | nindent 8 }}
