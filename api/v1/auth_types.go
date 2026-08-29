@@ -25,9 +25,7 @@ import (
 type AuthSpec struct {
 	// ProjectRef references the Project resource that owns this Auth component.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	ProjectRef string `json:"projectRef"`
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
 	// Replicas defines the number of Auth instances
 	// +optional

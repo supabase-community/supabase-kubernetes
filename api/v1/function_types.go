@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,9 +25,7 @@ import (
 type FunctionSpec struct {
 	// ProjectRef references the Project resource that owns this function.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	ProjectRef string `json:"projectRef"`
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
 	// FunctionName is the logical name of the function inside the project.
 	// +kubebuilder:validation:Required

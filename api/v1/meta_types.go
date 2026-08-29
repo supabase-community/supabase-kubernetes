@@ -25,9 +25,7 @@ import (
 type MetaSpec struct {
 	// ProjectRef references the Project resource that owns this Meta component.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	ProjectRef string `json:"projectRef"`
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
 	// Replicas defines the number of Meta instances
 	// +optional
