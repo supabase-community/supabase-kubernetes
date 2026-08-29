@@ -48,8 +48,8 @@ type ServiceTemplate struct {
 	Spec corev1.ServiceSpec `json:"spec,omitempty"`
 }
 
-// DatabaseRef references a database resource.
-type DatabaseRef struct {
+// DatabaseReference references a database resource.
+type DatabaseReference struct {
 	// Kind defines the kind of database resource
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1

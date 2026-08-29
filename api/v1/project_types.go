@@ -36,7 +36,7 @@ type ProjectSpec struct {
 
 	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required
-	DatabaseRef DatabaseRef `json:"databaseRef"`
+	DatabaseRef DatabaseReference `json:"databaseRef"`
 
 	// Migration defines the template used for the initial Migration created by the Project.
 	// +optional

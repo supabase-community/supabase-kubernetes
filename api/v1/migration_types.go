@@ -26,7 +26,7 @@ import (
 type MigrationSpec struct {
 	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required
-	DatabaseRef DatabaseRef `json:"databaseRef"`
+	DatabaseRef DatabaseReference `json:"databaseRef"`
 
 	// Pod defines the template for the Migration job pods
 	// +optional
