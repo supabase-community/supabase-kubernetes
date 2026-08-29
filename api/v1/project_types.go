@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,6 +37,33 @@ type ProjectSpec struct {
 	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
+
+	// Migration defines the template used for the initial Migration created by the Project.
+	// +optional
+	Migration *MigrationTemplateSpec `json:"migration,omitempty"`
+
+	// SyncJWTJob defines the template used for the JWT sync Job created by the Project.
+	// +optional
+	SyncJWTJob *JobTemplateSpec `json:"syncJwtJob,omitempty"`
+
+	// SyncPasswordJob defines the template used for the password sync Job created by the Project.
+	// +optional
+	SyncPasswordJob *JobTemplateSpec `json:"syncPasswordJob,omitempty"`
+}
+
+// MigrationTemplateSpec exposes the user-configurable parts of a MigrationSpec
+// when the Migration is owned by a Project.
+type MigrationTemplateSpec struct {
+	// Pod is the template for the migration Job pods.
+	// +optional
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
+}
+
+// JobTemplateSpec defines the template for a Job created by the Project.
+type JobTemplateSpec struct {
+	// Pod is the template for the Job pods.
+	// +optional
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.

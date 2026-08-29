@@ -54,31 +54,6 @@ spec:
                     description: VerifyJWT defines whether to verify JWT tokens
                     type: boolean
                 type: object
-              envoyRef:
-                description: EnvoyRef references the Envoy component used by EdgeRuntime.
-                properties:
-                  kind:
-                    description: Kind defines the kind of component resource
-                    enum:
-                    - Auth
-                    - Rest
-                    - Meta
-                    - Storage
-                    - Realtime
-                    - EdgeRuntime
-                    - Studio
-                    - Envoy
-                    minLength: 1
-                    type: string
-                  name:
-                    description: Name defines the name of the component resource
-                    maxLength: 253
-                    minLength: 1
-                    type: string
-                required:
-                - kind
-                - name
-                type: object
               pod:
                 description: Pod defines the template for the EdgeRuntime pods
                 properties:
@@ -8915,7 +8890,6 @@ spec:
                     type: object
                 type: object
             required:
-            - envoyRef
             - projectRef
             type: object
           status:

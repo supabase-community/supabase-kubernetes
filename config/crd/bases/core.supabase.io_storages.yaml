@@ -8540,31 +8540,6 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
-              restRef:
-                description: RestRef references the Rest component used by Storage.
-                properties:
-                  kind:
-                    description: Kind defines the kind of component resource
-                    enum:
-                    - Auth
-                    - Rest
-                    - Meta
-                    - Storage
-                    - Realtime
-                    - EdgeRuntime
-                    - Studio
-                    - Envoy
-                    minLength: 1
-                    type: string
-                  name:
-                    description: Name defines the name of the component resource
-                    maxLength: 253
-                    minLength: 1
-                    type: string
-                required:
-                - kind
-                - name
-                type: object
               service:
                 description: Service defines the template for the Storage service
                 properties:
@@ -9323,7 +9298,6 @@ spec:
                 type: array
             required:
             - projectRef
-            - restRef
             type: object
           status:
             description: StorageStatus defines the observed state of Storage.
