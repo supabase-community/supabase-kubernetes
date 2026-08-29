@@ -35,6 +35,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	supabasev1 "github.com/supabase-community/supabase-kubernetes/api/v1"
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/controller"
 	// +kubebuilder:scaffold:imports
@@ -49,6 +50,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(supabasev1alpha1.AddToScheme(scheme))
+	utilruntime.Must(supabasev1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
