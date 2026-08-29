@@ -32,10 +32,6 @@ type MigrationSpec struct {
 	// +optional
 	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
 
-	// Service defines the template for the Migration service
-	// +optional
-	Service ServiceTemplate `json:"service,omitempty"`
-
 	// Migrations is the ordered list of migration steps to apply
 	// The entire array is immutable after creation
 	// +kubebuilder:validation:Required
