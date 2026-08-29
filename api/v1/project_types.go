@@ -86,6 +86,7 @@ type ProjectStatus struct {
 // +kubebuilder:resource:path=projects,scope=Namespaced
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="API URL",type=string,JSONPath=`.spec.apiUrl`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Project is the Schema for the projects API.

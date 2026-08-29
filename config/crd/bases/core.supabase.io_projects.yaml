@@ -18,6 +18,9 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
+    - jsonPath: .spec.apiUrl
+      name: API URL
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
