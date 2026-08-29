@@ -81,6 +81,56 @@ spec:
                 - orgName
                 - projName
                 type: object
+              envoyRef:
+                description: EnvoyRef references the Envoy component used by Studio.
+                properties:
+                  kind:
+                    description: Kind defines the kind of component resource
+                    enum:
+                    - Auth
+                    - Rest
+                    - Meta
+                    - Storage
+                    - Realtime
+                    - EdgeRuntime
+                    - Studio
+                    - Envoy
+                    minLength: 1
+                    type: string
+                  name:
+                    description: Name defines the name of the component resource
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              metaRef:
+                description: MetaRef references the Meta component used by Studio.
+                properties:
+                  kind:
+                    description: Kind defines the kind of component resource
+                    enum:
+                    - Auth
+                    - Rest
+                    - Meta
+                    - Storage
+                    - Realtime
+                    - EdgeRuntime
+                    - Studio
+                    - Envoy
+                    minLength: 1
+                    type: string
+                  name:
+                    description: Name defines the name of the component resource
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               pod:
                 description: Pod defines the template for the Studio pods
                 properties:
@@ -8565,6 +8615,32 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              restRef:
+                description: RestRef references the Rest component used by Studio
+                  for schema configuration.
+                properties:
+                  kind:
+                    description: Kind defines the kind of component resource
+                    enum:
+                    - Auth
+                    - Rest
+                    - Meta
+                    - Storage
+                    - Realtime
+                    - EdgeRuntime
+                    - Studio
+                    - Envoy
+                    minLength: 1
+                    type: string
+                  name:
+                    description: Name defines the name of the component resource
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               service:
                 description: Service defines the template for the Studio service
                 properties:
@@ -9322,7 +9398,10 @@ spec:
                   type: object
                 type: array
             required:
+            - envoyRef
+            - metaRef
             - projectRef
+            - restRef
             type: object
           status:
             description: StudioStatus defines the observed state of Studio.

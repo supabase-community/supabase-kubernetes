@@ -33,7 +33,8 @@ type SingleDatabaseSpec struct {
 
 	// Storage defines the persistent volume claim configuration
 	// +kubebuilder:validation:Required
-	Storage VolumeClaim `json:"storage"`
+	// +kubebuilder:validation:MinItems=1
+	Storage []corev1.PersistentVolumeClaim `json:"storage"`
 }
 
 // SingleDatabaseStatus defines the observed state of SingleDatabase.
@@ -41,10 +42,6 @@ type SingleDatabaseStatus struct {
 	// Conditions represent the latest available observations of the SingleDatabase's state
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// ResolvedDatabase exposes the resolved database connection parameters
-	// +optional
-	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
 }
 
 // +kubebuilder:object:root=true
