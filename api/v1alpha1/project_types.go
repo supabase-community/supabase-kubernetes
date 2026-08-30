@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,45 +29,41 @@ type ProjectSpec struct {
 	// +kubebuilder:validation:Minimum=1
 	JWTExpSec *int32 `json:"jwtExpSec,omitempty"`
 
-	// HTTP defines the public HTTP access settings
+	// APIURL defines the public API URL for the Project
 	// +kubebuilder:validation:Required
-	HTTP HTTPConfig `json:"http"`
+	// +kubebuilder:validation:MinLength=1
+	APIURL string `json:"apiUrl"`
 
 	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required
-	DatabaseRef DatabaseRef `json:"databaseRef"`
+	DatabaseRef DatabaseReference `json:"databaseRef"`
 
-	// Rest defines the Rest component configuration
+	// Migration defines the template used for the initial Migration created by the Project.
 	// +optional
-	Rest *RestSpec `json:"rest,omitempty"`
+	Migration *MigrationTemplateSpec `json:"migration,omitempty"`
 
-	// Meta defines the Meta component configuration
+	// SyncJWTJob defines the template used for the JWT sync Job created by the Project.
 	// +optional
-	Meta *MetaSpec `json:"meta,omitempty"`
+	SyncJWTJob *JobTemplateSpec `json:"syncJwtJob,omitempty"`
 
-	// Realtime defines the Realtime component configuration
+	// SyncPasswordJob defines the template used for the password sync Job created by the Project.
 	// +optional
-	Realtime *RealtimeSpec `json:"realtime,omitempty"`
+	SyncPasswordJob *JobTemplateSpec `json:"syncPasswordJob,omitempty"`
+}
 
-	// Auth defines the Auth component configuration
+// MigrationTemplateSpec exposes the user-configurable parts of a MigrationSpec
+// when the Migration is owned by a Project.
+type MigrationTemplateSpec struct {
+	// Pod is the template for the migration Job pods.
 	// +optional
-	Auth *AuthSpec `json:"auth,omitempty"`
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
+}
 
-	// Functions defines the Functions component configuration
+// JobTemplateSpec defines the template for a Job created by the Project.
+type JobTemplateSpec struct {
+	// Pod is the template for the Job pods.
 	// +optional
-	Functions *FunctionsSpec `json:"functions,omitempty"`
-
-	// Envoy defines the Envoy component configuration
-	// +optional
-	Envoy *EnvoySpec `json:"envoy,omitempty"`
-
-	// Storage defines the Storage component configuration
-	// +optional
-	Storage *StorageSpec `json:"storage,omitempty"`
-
-	// Studio defines the Studio component configuration
-	// +optional
-	Studio *StudioSpec `json:"studio,omitempty"`
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.
@@ -87,7 +84,9 @@ type ProjectStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=projects,scope=Namespaced
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="API URL",type=string,JSONPath=`.spec.apiUrl`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Project is the Schema for the projects API.

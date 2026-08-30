@@ -14,16 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
-// StudioSpec defines the desired state of the Studio component.
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// StudioSpec defines the desired state of Studio.
 type StudioSpec struct {
-	WorkloadConfig `json:",inline"`
-
-	// Enable defines whether the Studio component is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enable *bool `json:"enable,omitempty"`
+	// ProjectRef references the Project resource that owns this Studio component.
+	// +kubebuilder:validation:Required
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
 	// Replicas defines the number of Studio instances
 	// +optional
@@ -31,10 +33,25 @@ type StudioSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Service defines the configuration for the component Service
+	// Pod defines the template for the Studio pods
 	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
 
+	// Service defines the template for the Studio service
+	// +optional
+	Service ServiceTemplate `json:"service,omitempty"`
+
+	// Config defines Studio-specific configuration
+	// +optional
+	Config StudioConfig `json:"config,omitempty"`
+
+	// Storage defines the persistent volume claims for Studio snippets
+	// +optional
+	Storage []corev1.PersistentVolumeClaim `json:"storage,omitempty"`
+}
+
+// StudioConfig defines Studio-specific configuration.
+type StudioConfig struct {
 	// OrgName defines the default organization name shown in Studio
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
@@ -48,8 +65,44 @@ type StudioSpec struct {
 	// OpenAIAPIKey references the secret containing the OpenAI API key
 	// +optional
 	OpenAIAPIKey *SecretKeyRef `json:"openAiApiKey,omitempty"`
+}
 
-	// Storage defines the persistent volume claim for Studio snippets
-	// +kubebuilder:validation:Required
-	Storage VolumeClaim `json:"storage"`
+// StudioStatus defines the observed state of Studio.
+type StudioStatus struct {
+	// Conditions represent the latest available observations of the Studio's state
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
+// +kubebuilder:resource:path=studios,scope=Namespaced
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Studio is the Schema for the studios API.
+type Studio struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              StudioSpec   `json:"spec"`
+	Status            StudioStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// StudioList contains a list of Studio.
+type StudioList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Studio `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Studio{}, &StudioList{})
+}
+
+// GetConditions returns a pointer to the status conditions slice.
+func (s *Studio) GetConditions() *[]metav1.Condition {
+	return &s.Status.Conditions
 }

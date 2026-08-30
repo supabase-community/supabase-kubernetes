@@ -14,16 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
-// StorageSpec defines the desired state of the Storage component.
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// StorageSpec defines the desired state of Storage.
 type StorageSpec struct {
-	WorkloadConfig `json:",inline"`
-
-	// Enable defines whether the Storage component is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enable *bool `json:"enable,omitempty"`
+	// ProjectRef references the Project resource that owns this Storage component.
+	// +kubebuilder:validation:Required
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
 	// Replicas defines the number of Storage instances
 	// +optional
@@ -31,17 +33,68 @@ type StorageSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Service defines the configuration for the component Service
+	// Pod defines the template for the Storage pods
 	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
 
+	// Service defines the template for the Storage service
+	// +optional
+	Service ServiceTemplate `json:"service,omitempty"`
+
+	// Config defines Storage-specific configuration
+	// +optional
+	Config StorageConfig `json:"config,omitempty"`
+
+	// Storage defines the persistent volume claims for Storage data
+	// +optional
+	Storage []corev1.PersistentVolumeClaim `json:"storage,omitempty"`
+}
+
+// StorageConfig defines Storage-specific configuration.
+type StorageConfig struct {
 	// FileSizeLimit defines the maximum file size in bytes
 	// +optional
 	// +kubebuilder:default=52428800
 	// +kubebuilder:validation:Minimum=1
 	FileSizeLimit *int64 `json:"fileSizeLimit,omitempty"`
+}
 
-	// Storage defines the persistent volume claim for Storage data
-	// +kubebuilder:validation:Required
-	Storage VolumeClaim `json:"storage"`
+// StorageStatus defines the observed state of Storage.
+type StorageStatus struct {
+	// Conditions represent the latest available observations of the Storage's state
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
+// +kubebuilder:resource:path=storages,scope=Namespaced
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Storage is the Schema for the storages API.
+type Storage struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              StorageSpec   `json:"spec"`
+	Status            StorageStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// StorageList contains a list of Storage.
+type StorageList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Storage `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Storage{}, &StorageList{})
+}
+
+// GetConditions returns a pointer to the status conditions slice.
+func (s *Storage) GetConditions() *[]metav1.Condition {
+	return &s.Status.Conditions
 }

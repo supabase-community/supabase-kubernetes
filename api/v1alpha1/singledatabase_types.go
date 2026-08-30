@@ -14,23 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // SingleDatabaseSpec defines the desired state of SingleDatabase.
 type SingleDatabaseSpec struct {
-	WorkloadConfig `json:",inline"`
-
-	// Service defines the configuration for the component Service
+	// Pod defines the template for the SingleDatabase pods
 	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
+
+	// Service defines the template for the SingleDatabase service
+	// +optional
+	Service ServiceTemplate `json:"service,omitempty"`
 
 	// Storage defines the persistent volume claim configuration
-	// +required
-	Storage VolumeClaim `json:"storage"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinItems=1
+	Storage []corev1.PersistentVolumeClaim `json:"storage"`
 }
 
 // SingleDatabaseStatus defines the observed state of SingleDatabase.
@@ -38,15 +42,12 @@ type SingleDatabaseStatus struct {
 	// Conditions represent the latest available observations of the SingleDatabase's state
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// ResolvedDatabase exposes the resolved database connection parameters
-	// +optional
-	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=singledatabases,scope=Namespaced
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 

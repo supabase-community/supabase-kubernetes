@@ -14,27 +14,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
-// RestSpec defines the desired state of the Rest component.
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// RestSpec defines the desired state of Rest.
 type RestSpec struct {
-	WorkloadConfig `json:",inline"`
+	// ProjectRef references the Project resource that owns this Rest component.
+	// +kubebuilder:validation:Required
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
-	// Enable defines whether the Rest component is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enable *bool `json:"enable,omitempty"`
-
-	// Replicas defines the number of component instances
+	// Replicas defines the number of Rest instances
 	// +optional
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Service defines the configuration for the component Service
+	// Pod defines the template for the Rest pods
 	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
 
+	// Service defines the template for the Rest service
+	// +optional
+	Service ServiceTemplate `json:"service,omitempty"`
+
+	// Config defines Rest-specific configuration
+	// +optional
+	Config RestConfig `json:"config,omitempty"`
+}
+
+// RestConfig defines Rest-specific configuration.
+type RestConfig struct {
 	// DBSchemas defines the schemas exposed by PostgREST
 	// +optional
 	// +kubebuilder:default="public,storage,graphql_public"
@@ -50,4 +63,44 @@ type RestSpec struct {
 	// +optional
 	// +kubebuilder:default="public"
 	DBExtraSearchPath *string `json:"dbExtraSearchPath,omitempty"`
+}
+
+// RestStatus defines the observed state of Rest.
+type RestStatus struct {
+	// Conditions represent the latest available observations of the Rest's state
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
+// +kubebuilder:resource:path=rests,scope=Namespaced
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Rest is the Schema for the rests API.
+type Rest struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              RestSpec   `json:"spec"`
+	Status            RestStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// RestList contains a list of Rest.
+type RestList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Rest `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Rest{}, &RestList{})
+}
+
+// GetConditions returns a pointer to the status conditions slice.
+func (r *Rest) GetConditions() *[]metav1.Condition {
+	return &r.Status.Conditions
 }

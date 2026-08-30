@@ -14,27 +14,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
-// AuthSpec defines the desired state of the Auth component.
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// AuthSpec defines the desired state of Auth.
 type AuthSpec struct {
-	WorkloadConfig `json:",inline"`
+	// ProjectRef references the Project resource that owns this Auth component.
+	// +kubebuilder:validation:Required
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
-	// Enable defines whether the Auth component is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enable *bool `json:"enable,omitempty"`
-
-	// Replicas defines the number of component instances
+	// Replicas defines the number of Auth instances
 	// +optional
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Service defines the configuration for the component Service
+	// Pod defines the template for the Auth pods
 	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
 
+	// Service defines the template for the Auth service
+	// +optional
+	Service ServiceTemplate `json:"service,omitempty"`
+
+	// Config defines Auth-specific configuration
+	// +optional
+	Config AuthConfig `json:"config,omitempty"`
+}
+
+// AuthConfig defines Auth-specific configuration.
+type AuthConfig struct {
 	// SiteURL is the base URL of the site used for email links and redirects
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
@@ -103,7 +116,7 @@ type AuthSpec struct {
 	SAML *SAMLConfig `json:"saml,omitempty"`
 }
 
-// SMTPConfig defines SMTP settings for GoTrue.
+// SMTPConfig defines SMTP settings for Auth.
 type SMTPConfig struct {
 	// Host defines the SMTP server host
 	// +kubebuilder:validation:Required
@@ -274,4 +287,44 @@ type SAMLConfig struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=1
 	RateLimitAssertion *int32 `json:"rateLimitAssertion,omitempty"`
+}
+
+// AuthStatus defines the observed state of Auth.
+type AuthStatus struct {
+	// Conditions represent the latest available observations of the Auth's state
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
+// +kubebuilder:resource:path=auths,scope=Namespaced
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Auth is the Schema for the auths API.
+type Auth struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              AuthSpec   `json:"spec"`
+	Status            AuthStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// AuthList contains a list of Auth.
+type AuthList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Auth `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Auth{}, &AuthList{})
+}
+
+// GetConditions returns a pointer to the status conditions slice.
+func (a *Auth) GetConditions() *[]metav1.Condition {
+	return &a.Status.Conditions
 }

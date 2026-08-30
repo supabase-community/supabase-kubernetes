@@ -14,20 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // MigrationSpec defines the desired state of Migration.
 // +kubebuilder:validation:XValidation:rule="self.migrations == oldSelf.migrations",message="migrations are immutable after creation"
 type MigrationSpec struct {
-	WorkloadConfig `json:",inline"`
-
 	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required
-	DatabaseRef DatabaseRef `json:"databaseRef"`
+	DatabaseRef DatabaseReference `json:"databaseRef"`
+
+	// Pod defines the template for the Migration job pods
+	// +optional
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
 
 	// Migrations is the ordered list of migration steps to apply
 	// The entire array is immutable after creation
@@ -55,6 +58,7 @@ type MigrationStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=migrations,scope=Namespaced
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Applied Hash",type=string,JSONPath=`.status.appliedHash`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`

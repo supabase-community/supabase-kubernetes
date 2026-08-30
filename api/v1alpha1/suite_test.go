@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1_test
+package v1_test
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	supabasev1 "github.com/supabase-community/supabase-kubernetes/api/v1"
 )
 
 var (
@@ -42,7 +42,7 @@ var (
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "API v1alpha1 Suite")
+	RunSpecs(t, "API v1 Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -57,7 +57,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = supabasev1alpha1.AddToScheme(clientgoscheme.Scheme)
+	err = supabasev1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: clientgoscheme.Scheme})

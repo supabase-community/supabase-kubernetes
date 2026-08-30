@@ -14,24 +14,78 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
-// RealtimeSpec defines the desired state of the Realtime component.
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// RealtimeSpec defines the desired state of Realtime.
 type RealtimeSpec struct {
-	WorkloadConfig `json:",inline"`
+	// ProjectRef references the Project resource that owns this Realtime component.
+	// +kubebuilder:validation:Required
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
-	// Enable defines whether the Realtime component is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enable *bool `json:"enable,omitempty"`
-
-	// Replicas defines the number of component instances
+	// Replicas defines the number of Realtime instances
 	// +optional
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Service defines the configuration for the component Service
+	// Pod defines the template for the Realtime pods
 	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
+	Pod corev1.PodTemplateSpec `json:"pod,omitempty"`
+
+	// Service defines the template for the Realtime service
+	// +optional
+	Service ServiceTemplate `json:"service,omitempty"`
+
+	// Config defines Realtime-specific configuration
+	// +optional
+	Config RealtimeConfig `json:"config,omitempty"`
+}
+
+// RealtimeConfig defines Realtime-specific configuration.
+type RealtimeConfig struct {
+}
+
+// RealtimeStatus defines the observed state of Realtime.
+type RealtimeStatus struct {
+	// Conditions represent the latest available observations of the Realtime's state
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
+// +kubebuilder:resource:path=realtimes,scope=Namespaced
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Realtime is the Schema for the realtime API.
+type Realtime struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              RealtimeSpec   `json:"spec"`
+	Status            RealtimeStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// RealtimeList contains a list of Realtime.
+type RealtimeList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Realtime `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Realtime{}, &RealtimeList{})
+}
+
+// GetConditions returns a pointer to the status conditions slice.
+func (r *Realtime) GetConditions() *[]metav1.Condition {
+	return &r.Status.Conditions
 }
