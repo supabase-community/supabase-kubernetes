@@ -5,59 +5,20 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ""
-  resources:
-  - configmaps
-  - persistentvolumeclaims
-  - secrets
-  - services
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - statefulsets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - core.supabase.io
   resources:
+  - auths
+  - edgeruntimes
+  - envoys
   - functions
+  - metas
   - migrations
   - projects
+  - realtimes
+  - rests
   - singledatabases
+  - storages
+  - studios
   verbs:
   - create
   - delete
@@ -69,19 +30,35 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
+  - auths/finalizers
+  - edgeruntimes/finalizers
+  - envoys/finalizers
   - functions/finalizers
+  - metas/finalizers
   - migrations/finalizers
   - projects/finalizers
+  - realtimes/finalizers
+  - rests/finalizers
   - singledatabases/finalizers
+  - storages/finalizers
+  - studios/finalizers
   verbs:
   - update
 - apiGroups:
   - core.supabase.io
   resources:
+  - auths/status
+  - edgeruntimes/status
+  - envoys/status
   - functions/status
+  - metas/status
   - migrations/status
   - projects/status
+  - realtimes/status
+  - rests/status
   - singledatabases/status
+  - storages/status
+  - studios/status
   verbs:
   - get
   - patch
