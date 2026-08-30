@@ -31,6 +31,10 @@ type SingleDatabaseSpec struct {
 	// +optional
 	Service ServiceTemplate `json:"service,omitempty"`
 
+	// Config defines Postgres-specific configuration
+	// +optional
+	Config []corev1.EnvVar `json:"config,omitempty"`
+
 	// Storage defines the persistent volume claim configuration
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1

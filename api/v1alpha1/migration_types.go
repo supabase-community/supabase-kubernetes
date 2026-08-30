@@ -40,6 +40,21 @@ type MigrationSpec struct {
 	Migrations []MigrationEntry `json:"migrations"`
 }
 
+// MigrationEntry defines a single ordered migration step.
+type MigrationEntry struct {
+	// Name is a human-readable identifier for this migration step
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	Name string `json:"name"`
+
+	// SQL is the migration script to execute
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=65536
+	SQL string `json:"sql"`
+}
+
 // MigrationStatus defines the observed state of Migration.
 type MigrationStatus struct {
 	// Conditions represent the latest available observations of the Migration's state
@@ -87,19 +102,4 @@ func init() {
 // GetConditions returns a pointer to the status conditions slice.
 func (m *Migration) GetConditions() *[]metav1.Condition {
 	return &m.Status.Conditions
-}
-
-// MigrationEntry defines a single ordered migration step.
-type MigrationEntry struct {
-	// Name is a human-readable identifier for this migration step
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=128
-	Name string `json:"name"`
-
-	// SQL is the migration script to execute
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=65536
-	SQL string `json:"sql"`
 }

@@ -1178,6 +1178,13 @@ func (in *SingleDatabaseSpec) DeepCopyInto(out *SingleDatabaseSpec) {
 	*out = *in
 	in.Pod.DeepCopyInto(&out.Pod)
 	in.Service.DeepCopyInto(&out.Service)
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
+		*out = make([]corev1.EnvVar, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Storage != nil {
 		in, out := &in.Storage, &out.Storage
 		*out = make([]corev1.PersistentVolumeClaim, len(*in))
