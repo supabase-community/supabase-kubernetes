@@ -43,11 +43,7 @@ type MetaSpec struct {
 
 	// Config defines Meta-specific configuration
 	// +optional
-	Config MetaConfig `json:"config,omitempty"`
-}
-
-// MetaConfig defines Meta-specific configuration.
-type MetaConfig struct {
+	Config []corev1.EnvVar `json:"config,omitempty"`
 }
 
 // MetaStatus defines the observed state of Meta.

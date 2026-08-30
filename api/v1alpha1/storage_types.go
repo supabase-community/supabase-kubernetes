@@ -43,20 +43,11 @@ type StorageSpec struct {
 
 	// Config defines Storage-specific configuration
 	// +optional
-	Config StorageConfig `json:"config,omitempty"`
+	Config []corev1.EnvVar `json:"config,omitempty"`
 
 	// Storage defines the persistent volume claims for Storage data
 	// +optional
 	Storage []corev1.PersistentVolumeClaim `json:"storage,omitempty"`
-}
-
-// StorageConfig defines Storage-specific configuration.
-type StorageConfig struct {
-	// FileSizeLimit defines the maximum file size in bytes
-	// +optional
-	// +kubebuilder:default=52428800
-	// +kubebuilder:validation:Minimum=1
-	FileSizeLimit *int64 `json:"fileSizeLimit,omitempty"`
 }
 
 // StorageStatus defines the observed state of Storage.

@@ -43,15 +43,7 @@ type EdgeRuntimeSpec struct {
 
 	// Config defines EdgeRuntime-specific configuration
 	// +optional
-	Config EdgeRuntimeConfig `json:"config,omitempty"`
-}
-
-// EdgeRuntimeConfig defines EdgeRuntime-specific configuration.
-type EdgeRuntimeConfig struct {
-	// VerifyJWT defines whether to verify JWT tokens
-	// +optional
-	// +kubebuilder:default=true
-	VerifyJWT *bool `json:"verifyJwt,omitempty"`
+	Config []corev1.EnvVar `json:"config,omitempty"`
 }
 
 // EdgeRuntimeStatus defines the observed state of EdgeRuntime.

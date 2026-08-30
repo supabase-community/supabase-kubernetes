@@ -43,11 +43,7 @@ type EnvoySpec struct {
 
 	// Config defines Envoy-specific configuration
 	// +optional
-	Config EnvoyConfig `json:"config,omitempty"`
-}
-
-// EnvoyConfig defines Envoy-specific configuration.
-type EnvoyConfig struct {
+	Config []corev1.EnvVar `json:"config,omitempty"`
 }
 
 // EnvoyStatus defines the observed state of Envoy.

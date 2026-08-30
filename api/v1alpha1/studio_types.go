@@ -43,28 +43,11 @@ type StudioSpec struct {
 
 	// Config defines Studio-specific configuration
 	// +optional
-	Config StudioConfig `json:"config,omitempty"`
+	Config []corev1.EnvVar `json:"config,omitempty"`
 
 	// Storage defines the persistent volume claims for Studio snippets
 	// +optional
 	Storage []corev1.PersistentVolumeClaim `json:"storage,omitempty"`
-}
-
-// StudioConfig defines Studio-specific configuration.
-type StudioConfig struct {
-	// OrgName defines the default organization name shown in Studio
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	OrgName string `json:"orgName"`
-
-	// ProjName defines the default project name shown in Studio
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	ProjName string `json:"projName"`
-
-	// OpenAIAPIKey references the secret containing the OpenAI API key
-	// +optional
-	OpenAIAPIKey *SecretKeyRef `json:"openAiApiKey,omitempty"`
 }
 
 // StudioStatus defines the observed state of Studio.

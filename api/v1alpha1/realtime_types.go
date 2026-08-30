@@ -43,11 +43,7 @@ type RealtimeSpec struct {
 
 	// Config defines Realtime-specific configuration
 	// +optional
-	Config RealtimeConfig `json:"config,omitempty"`
-}
-
-// RealtimeConfig defines Realtime-specific configuration.
-type RealtimeConfig struct {
+	Config []corev1.EnvVar `json:"config,omitempty"`
 }
 
 // RealtimeStatus defines the observed state of Realtime.
