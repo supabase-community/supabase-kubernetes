@@ -18,7 +18,6 @@ package project
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -41,6 +40,13 @@ func RestDeployment(project *supabasev1alpha1.Project, db *supabasev1alpha1.Reso
 		return nil, nil
 	}
 
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: RestLabels(project)},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildRestContainer(project, db)}},
+	}, project.Spec.Rest.Pod)
+	if err != nil {
+		return nil, err
+	}
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      RestDeploymentName(project),
@@ -52,23 +58,7 @@ func RestDeployment(project *supabasev1alpha1.Project, db *supabasev1alpha1.Reso
 			Selector: &metav1.LabelSelector{
 				MatchLabels: RestSelectorLabels(project),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      restPodLabels(project),
-					Annotations: restPodAnnotations(project),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      project.Spec.Rest.Affinity,
-					NodeSelector:                  project.Spec.Rest.NodeSelector,
-					Tolerations:                   project.Spec.Rest.Tolerations,
-					PriorityClassName:             ptr.Deref(project.Spec.Rest.PriorityClassName, ""),
-					SecurityContext:               project.Spec.Rest.SecurityContext,
-					TerminationGracePeriodSeconds: project.Spec.Rest.TerminationGracePeriodSeconds,
-					Containers: []corev1.Container{
-						buildRestContainer(project, db),
-					},
-				},
-			},
+			Template: template,
 		},
 	}
 
@@ -83,18 +73,6 @@ func restReplicas(project *supabasev1alpha1.Project) *int32 {
 	return ptr.To(int32(1))
 }
 
-// restPodLabels returns the merged pod labels for the Rest component.
-func restPodLabels(project *supabasev1alpha1.Project) map[string]string {
-	labels := maps.Clone(RestLabels(project))
-	maps.Copy(labels, project.Spec.Rest.PodLabels)
-	return labels
-}
-
-// restPodAnnotations returns the merged pod annotations for the Rest component.
-func restPodAnnotations(project *supabasev1alpha1.Project) map[string]string {
-	return project.Spec.Rest.PodAnnotations
-}
-
 // buildRestContainer returns the Rest container specification.
 func buildRestContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
@@ -104,7 +82,7 @@ func buildRestContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		Command:         []string{"postgrest"},
 		Env:             buildRestEnvVars(project, db),
 		Ports:           restPorts(),
-		Resources:       ptr.Deref(project.Spec.Rest.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		LivenessProbe:   restLivenessProbe(),
 		ReadinessProbe:  restReadinessProbe(),
 		StartupProbe:    restStartupProbe(),
@@ -113,17 +91,11 @@ func buildRestContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 
 // restImage returns the Rest image from the spec or the default image.
 func restImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Rest.Image != nil && *project.Spec.Rest.Image != "" {
-		return *project.Spec.Rest.Image
-	}
 	return DefaultRestImage
 }
 
 // restImagePullPolicy returns the Rest image pull policy from the spec or the default.
 func restImagePullPolicy(project *supabasev1alpha1.Project) corev1.PullPolicy {
-	if project.Spec.Rest.ImagePullPolicy != nil {
-		return *project.Spec.Rest.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

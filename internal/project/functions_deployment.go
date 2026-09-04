@@ -18,7 +18,6 @@ package project
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -42,6 +41,13 @@ func FunctionsDeployment(project *supabasev1alpha1.Project, functions []supabase
 		return nil, nil
 	}
 
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: FunctionsLabels(project)},
+		Spec:       corev1.PodSpec{Volumes: buildFunctionsVolumes(functions), Containers: []corev1.Container{buildFunctionsContainer(project, functions, db)}},
+	}, project.Spec.Functions.Pod)
+	if err != nil {
+		return nil, err
+	}
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      FunctionsDeploymentName(project),
@@ -53,24 +59,7 @@ func FunctionsDeployment(project *supabasev1alpha1.Project, functions []supabase
 			Selector: &metav1.LabelSelector{
 				MatchLabels: FunctionsSelectorLabels(project),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      functionsPodLabels(project),
-					Annotations: functionsPodAnnotations(project),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      project.Spec.Functions.Affinity,
-					NodeSelector:                  project.Spec.Functions.NodeSelector,
-					Tolerations:                   project.Spec.Functions.Tolerations,
-					PriorityClassName:             ptr.Deref(project.Spec.Functions.PriorityClassName, ""),
-					SecurityContext:               project.Spec.Functions.SecurityContext,
-					TerminationGracePeriodSeconds: project.Spec.Functions.TerminationGracePeriodSeconds,
-					Volumes:                       buildFunctionsVolumes(functions),
-					Containers: []corev1.Container{
-						buildFunctionsContainer(project, functions, db),
-					},
-				},
-			},
+			Template: template,
 		},
 	}
 
@@ -85,18 +74,6 @@ func functionsReplicas(project *supabasev1alpha1.Project) *int32 {
 	return ptr.To(int32(1))
 }
 
-// functionsPodLabels returns the merged pod labels for the Functions component.
-func functionsPodLabels(project *supabasev1alpha1.Project) map[string]string {
-	labels := maps.Clone(FunctionsLabels(project))
-	maps.Copy(labels, project.Spec.Functions.PodLabels)
-	return labels
-}
-
-// functionsPodAnnotations returns the merged pod annotations for the Functions component.
-func functionsPodAnnotations(project *supabasev1alpha1.Project) map[string]string {
-	return project.Spec.Functions.PodAnnotations
-}
-
 // buildFunctionsContainer returns the Functions container specification.
 func buildFunctionsContainer(project *supabasev1alpha1.Project, functions []supabasev1alpha1.Function, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
@@ -106,7 +83,7 @@ func buildFunctionsContainer(project *supabasev1alpha1.Project, functions []supa
 		Args:            []string{"start", "--main-service", "/home/deno/functions/main"},
 		Env:             buildFunctionsEnvVars(project, db),
 		Ports:           functionsPorts(),
-		Resources:       ptr.Deref(project.Spec.Functions.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		LivenessProbe:   functionsLivenessProbe(),
 		ReadinessProbe:  functionsReadinessProbe(),
 		StartupProbe:    functionsStartupProbe(),
@@ -116,17 +93,11 @@ func buildFunctionsContainer(project *supabasev1alpha1.Project, functions []supa
 
 // functionsImage returns the Functions image from the spec or the default image.
 func functionsImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Functions.Image != nil && *project.Spec.Functions.Image != "" {
-		return *project.Spec.Functions.Image
-	}
 	return DefaultFunctionsImage
 }
 
 // functionsImagePullPolicy returns the Functions image pull policy from the spec or the default.
 func functionsImagePullPolicy(project *supabasev1alpha1.Project) corev1.PullPolicy {
-	if project.Spec.Functions.ImagePullPolicy != nil {
-		return *project.Spec.Functions.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

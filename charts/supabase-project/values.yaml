@@ -19,17 +19,7 @@ project:
 ##
 singleDatabase:
   enable: true
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}
@@ -46,17 +36,7 @@ singleDatabase:
 rest:
   enable: true
   replicas: 1
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}
@@ -70,17 +50,7 @@ rest:
 meta:
   enable: true
   replicas: 1
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}
@@ -91,17 +61,7 @@ meta:
 realtime:
   enable: true
   replicas: 1
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}
@@ -112,17 +72,7 @@ realtime:
 auth:
   enable: true
   replicas: 1
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}
@@ -148,17 +98,7 @@ auth:
 functions:
   enable: true
   replicas: 1
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}
@@ -170,17 +110,7 @@ functions:
 envoy:
   enable: true
   replicas: 1
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}
@@ -191,17 +121,7 @@ envoy:
 storage:
   enable: true
   replicas: 1
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}
@@ -219,17 +139,7 @@ storage:
 studio:
   enable: true
   replicas: 1
-  image: ""
-  imagePullPolicy: ""
-  affinity: {}
-  nodeSelector: {}
-  podAnnotations: {}
-  podLabels: {}
-  securityContext: {}
-  priorityClassName: ""
-  resources: {}
-  terminationGracePeriodSeconds: null
-  tolerations: []
+  pod: {}
   service:
     type: ClusterIP
     annotations: {}

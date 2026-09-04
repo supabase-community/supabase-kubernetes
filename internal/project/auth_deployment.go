@@ -18,7 +18,6 @@ package project
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 	"strings"
 
@@ -42,6 +41,13 @@ func AuthDeployment(project *supabasev1alpha1.Project, db *supabasev1alpha1.Reso
 		return nil, nil
 	}
 
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: AuthLabels(project)},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildAuthContainer(project, db)}},
+	}, project.Spec.Auth.Pod)
+	if err != nil {
+		return nil, err
+	}
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AuthDeploymentName(project),
@@ -53,23 +59,7 @@ func AuthDeployment(project *supabasev1alpha1.Project, db *supabasev1alpha1.Reso
 			Selector: &metav1.LabelSelector{
 				MatchLabels: AuthSelectorLabels(project),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      authPodLabels(project),
-					Annotations: authPodAnnotations(project),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      project.Spec.Auth.Affinity,
-					NodeSelector:                  project.Spec.Auth.NodeSelector,
-					Tolerations:                   project.Spec.Auth.Tolerations,
-					PriorityClassName:             ptr.Deref(project.Spec.Auth.PriorityClassName, ""),
-					SecurityContext:               project.Spec.Auth.SecurityContext,
-					TerminationGracePeriodSeconds: project.Spec.Auth.TerminationGracePeriodSeconds,
-					Containers: []corev1.Container{
-						buildAuthContainer(project, db),
-					},
-				},
-			},
+			Template: template,
 		},
 	}
 
@@ -84,18 +74,6 @@ func authReplicas(project *supabasev1alpha1.Project) *int32 {
 	return ptr.To(int32(1))
 }
 
-// authPodLabels returns the merged pod labels for the Auth component.
-func authPodLabels(project *supabasev1alpha1.Project) map[string]string {
-	labels := maps.Clone(AuthLabels(project))
-	maps.Copy(labels, project.Spec.Auth.PodLabels)
-	return labels
-}
-
-// authPodAnnotations returns the merged pod annotations for the Auth component.
-func authPodAnnotations(project *supabasev1alpha1.Project) map[string]string {
-	return project.Spec.Auth.PodAnnotations
-}
-
 // buildAuthContainer returns the Auth container specification.
 func buildAuthContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
@@ -104,7 +82,7 @@ func buildAuthContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		ImagePullPolicy: authImagePullPolicy(project),
 		Env:             buildAuthEnvVars(project, db),
 		Ports:           authPorts(),
-		Resources:       ptr.Deref(project.Spec.Auth.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		LivenessProbe:   authLivenessProbe(),
 		ReadinessProbe:  authReadinessProbe(),
 		StartupProbe:    authStartupProbe(),
@@ -113,17 +91,11 @@ func buildAuthContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 
 // authImage returns the Auth image from the spec or the default image.
 func authImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Auth.Image != nil && *project.Spec.Auth.Image != "" {
-		return *project.Spec.Auth.Image
-	}
 	return DefaultAuthImage
 }
 
 // authImagePullPolicy returns the Auth image pull policy from the spec or the default.
 func authImagePullPolicy(project *supabasev1alpha1.Project) corev1.PullPolicy {
-	if project.Spec.Auth.ImagePullPolicy != nil {
-		return *project.Spec.Auth.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

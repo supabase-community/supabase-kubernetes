@@ -18,7 +18,6 @@ package singledatabase
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -38,6 +37,21 @@ func PostgresStatefulSetName(db *supabasev1alpha1.SingleDatabase) string {
 
 // PostgresStatefulSet constructs the StatefulSet for a SingleDatabase.
 func PostgresStatefulSet(db *supabasev1alpha1.SingleDatabase, secretHash string) (*appsv1.StatefulSet, error) {
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:      PostgresLabels(db),
+			Annotations: podAnnotations(secretHash),
+		},
+		Spec: corev1.PodSpec{
+			InitContainers: []corev1.Container{buildPgsodiumInitContainer(db), buildPasswordSyncInitContainer(db)},
+			Containers:     []corev1.Container{buildPostgresContainer(db)},
+			Volumes:        []corev1.Volume{buildPostgresVolume(db)},
+		},
+	}, db.Spec.Pod)
+	if err != nil {
+		return nil, err
+	}
+
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      PostgresStatefulSetName(db),
@@ -50,51 +64,20 @@ func PostgresStatefulSet(db *supabasev1alpha1.SingleDatabase, secretHash string)
 			Selector: &metav1.LabelSelector{
 				MatchLabels: PostgresSelectorLabels(db),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      podLabels(db),
-					Annotations: podAnnotations(db, secretHash),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      db.Spec.Affinity,
-					NodeSelector:                  db.Spec.NodeSelector,
-					Tolerations:                   db.Spec.Tolerations,
-					PriorityClassName:             ptr.Deref(db.Spec.PriorityClassName, ""),
-					SecurityContext:               db.Spec.SecurityContext,
-					TerminationGracePeriodSeconds: db.Spec.TerminationGracePeriodSeconds,
-					InitContainers: []corev1.Container{
-						buildPgsodiumInitContainer(db),
-						buildPasswordSyncInitContainer(db),
-					},
-					Containers: []corev1.Container{
-						buildPostgresContainer(db),
-					},
-					Volumes: []corev1.Volume{
-						buildPostgresVolume(db),
-					},
-				},
-			},
+			Template: template,
 		},
 	}
 
 	return sts, nil
 }
 
-// podLabels returns the merged pod labels for a SingleDatabase.
-func podLabels(db *supabasev1alpha1.SingleDatabase) map[string]string {
-	labels := maps.Clone(PostgresLabels(db))
-	maps.Copy(labels, db.Spec.PodLabels)
-	return labels
-}
-
 // podAnnotations returns the merged pod annotations for a SingleDatabase,
 // including an annotation with the secret hash when provided.
-func podAnnotations(db *supabasev1alpha1.SingleDatabase, secretHash string) map[string]string {
-	annotations := make(map[string]string, len(db.Spec.PodAnnotations)+1)
+func podAnnotations(secretHash string) map[string]string {
+	annotations := make(map[string]string, 1)
 	if secretHash != "" {
 		annotations["supabase.io/secret-hash"] = secretHash
 	}
-	maps.Copy(annotations, db.Spec.PodAnnotations)
 	return annotations
 }
 
@@ -110,7 +93,7 @@ func buildPostgresContainer(db *supabasev1alpha1.SingleDatabase) corev1.Containe
 		},
 		Env:            buildPostgresEnvVars(db),
 		Ports:          postgresPorts(),
-		Resources:      ptr.Deref(db.Spec.Resources, corev1.ResourceRequirements{}),
+		Resources:      corev1.ResourceRequirements{},
 		VolumeMounts:   postgresVolumeMounts(),
 		LivenessProbe:  postgresLivenessProbe(),
 		ReadinessProbe: postgresReadinessProbe(),
@@ -194,17 +177,11 @@ func postgresLifecycle() *corev1.Lifecycle {
 
 // getImageOrDefault returns the Postgres image from the spec or the default image.
 func getImageOrDefault(db *supabasev1alpha1.SingleDatabase) string {
-	if db.Spec.Image != nil && *db.Spec.Image != "" {
-		return *db.Spec.Image
-	}
 	return DefaultPostgresImage
 }
 
 // getImagePullPolicyOrDefault returns the image pull policy from the spec or the default.
 func getImagePullPolicyOrDefault(db *supabasev1alpha1.SingleDatabase) corev1.PullPolicy {
-	if db.Spec.ImagePullPolicy != nil {
-		return *db.Spec.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

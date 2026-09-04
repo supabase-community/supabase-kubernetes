@@ -180,7 +180,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 	})
 
 	Context("when the SingleDatabase spec is updated", func() {
-		It("propagates pod label changes to the StatefulSet template", func() {
+		It("propagates pod template changes to the StatefulSet", func() {
 			db := newSingleDatabase("pg")
 			Expect(k8sClient.Create(ctx, db)).To(Succeed())
 
@@ -192,7 +192,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 			Eventually(func(g Gomega) {
 				got := &supabasev1alpha1.SingleDatabase{}
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: db.Name, Namespace: ns}, got)).To(Succeed())
-				got.Spec.PodLabels = map[string]string{"custom-label": "applied"}
+				got.Spec.Pod = &corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"custom-label": "applied"}}}
 				g.Expect(k8sClient.Update(ctx, got)).To(Succeed())
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 

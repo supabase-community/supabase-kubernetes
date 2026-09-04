@@ -18,7 +18,6 @@ package migration
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -38,6 +37,18 @@ func MigrationJobName(migration *supabasev1alpha1.Migration) string {
 
 // MigrationJob constructs the migration Job.
 func MigrationJob(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.ResolvedDatabase) (*batchv1.Job, error) {
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: MigrationLabels(migration)},
+		Spec: corev1.PodSpec{
+			RestartPolicy: corev1.RestartPolicyOnFailure,
+			Containers:    []corev1.Container{buildMigrationContainer(migration, db)},
+			Volumes:       []corev1.Volume{buildMigrationVolume(migration)},
+		},
+	}, migration.Spec.Pod)
+	if err != nil {
+		return nil, err
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MigrationJobName(migration),
@@ -47,43 +58,11 @@ func MigrationJob(migration *supabasev1alpha1.Migration, db *supabasev1alpha1.Re
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            ptr.To(DefaultBackoffLimit),
 			TTLSecondsAfterFinished: ptr.To(DefaultTTLSecondsAfterFinished),
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      podLabels(migration),
-					Annotations: podAnnotations(migration),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      migration.Spec.Affinity,
-					NodeSelector:                  migration.Spec.NodeSelector,
-					Tolerations:                   migration.Spec.Tolerations,
-					PriorityClassName:             ptr.Deref(migration.Spec.PriorityClassName, ""),
-					SecurityContext:               migration.Spec.SecurityContext,
-					TerminationGracePeriodSeconds: migration.Spec.TerminationGracePeriodSeconds,
-					RestartPolicy:                 corev1.RestartPolicyOnFailure,
-					Containers: []corev1.Container{
-						buildMigrationContainer(migration, db),
-					},
-					Volumes: []corev1.Volume{
-						buildMigrationVolume(migration),
-					},
-				},
-			},
+			Template:                template,
 		},
 	}
 
 	return job, nil
-}
-
-// podLabels returns the merged pod labels for a Migration.
-func podLabels(migration *supabasev1alpha1.Migration) map[string]string {
-	labels := maps.Clone(MigrationLabels(migration))
-	maps.Copy(labels, migration.Spec.PodLabels)
-	return labels
-}
-
-// podAnnotations returns the pod annotations for a Migration.
-func podAnnotations(migration *supabasev1alpha1.Migration) map[string]string {
-	return migration.Spec.PodAnnotations
 }
 
 // buildMigrationContainer returns the migration container specification.
@@ -95,7 +74,7 @@ func buildMigrationContainer(migration *supabasev1alpha1.Migration, db *supabase
 		Command:         []string{"/bin/sh", "-c"},
 		Args:            []string{assets.MigrationApplyScript},
 		Env:             buildMigrationEnvVars(migration, db),
-		Resources:       ptr.Deref(migration.Spec.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		VolumeMounts:    migrationVolumeMounts(),
 	}
 }

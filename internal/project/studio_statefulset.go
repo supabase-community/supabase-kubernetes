@@ -18,7 +18,6 @@ package project
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -42,6 +41,13 @@ func StudioStatefulSet(project *supabasev1alpha1.Project, functions []supabasev1
 		return nil, nil
 	}
 
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: StudioLabels(project)},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildStudioContainer(project, functions, db)}, Volumes: buildStudioVolumes(project, functions)},
+	}, project.Spec.Studio.Pod)
+	if err != nil {
+		return nil, err
+	}
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      StudioStatefulSetName(project),
@@ -54,24 +60,7 @@ func StudioStatefulSet(project *supabasev1alpha1.Project, functions []supabasev1
 			Selector: &metav1.LabelSelector{
 				MatchLabels: StudioSelectorLabels(project),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      studioPodLabels(project),
-					Annotations: studioPodAnnotations(project),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      project.Spec.Studio.Affinity,
-					NodeSelector:                  project.Spec.Studio.NodeSelector,
-					Tolerations:                   project.Spec.Studio.Tolerations,
-					PriorityClassName:             ptr.Deref(project.Spec.Studio.PriorityClassName, ""),
-					SecurityContext:               project.Spec.Studio.SecurityContext,
-					TerminationGracePeriodSeconds: project.Spec.Studio.TerminationGracePeriodSeconds,
-					Containers: []corev1.Container{
-						buildStudioContainer(project, functions, db),
-					},
-					Volumes: buildStudioVolumes(project, functions),
-				},
-			},
+			Template: template,
 		},
 	}
 
@@ -86,18 +75,6 @@ func studioReplicas(project *supabasev1alpha1.Project) *int32 {
 	return ptr.To(int32(1))
 }
 
-// studioPodLabels returns the merged pod labels for the Studio component.
-func studioPodLabels(project *supabasev1alpha1.Project) map[string]string {
-	labels := maps.Clone(StudioLabels(project))
-	maps.Copy(labels, project.Spec.Studio.PodLabels)
-	return labels
-}
-
-// studioPodAnnotations returns the merged pod annotations for the Studio component.
-func studioPodAnnotations(project *supabasev1alpha1.Project) map[string]string {
-	return project.Spec.Studio.PodAnnotations
-}
-
 // buildStudioContainer returns the Studio container specification.
 func buildStudioContainer(project *supabasev1alpha1.Project, functions []supabasev1alpha1.Function, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
@@ -106,7 +83,7 @@ func buildStudioContainer(project *supabasev1alpha1.Project, functions []supabas
 		ImagePullPolicy: studioImagePullPolicy(project),
 		Env:             buildStudioEnvVars(project, db),
 		Ports:           studioPorts(),
-		Resources:       ptr.Deref(project.Spec.Studio.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		LivenessProbe:   studioLivenessProbe(),
 		ReadinessProbe:  studioReadinessProbe(),
 		StartupProbe:    studioStartupProbe(),
@@ -116,17 +93,11 @@ func buildStudioContainer(project *supabasev1alpha1.Project, functions []supabas
 
 // studioImage returns the Studio image from the spec or the default image.
 func studioImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Studio.Image != nil && *project.Spec.Studio.Image != "" {
-		return *project.Spec.Studio.Image
-	}
 	return DefaultStudioImage
 }
 
 // studioImagePullPolicy returns the Studio image pull policy from the spec or the default.
 func studioImagePullPolicy(project *supabasev1alpha1.Project) corev1.PullPolicy {
-	if project.Spec.Studio.ImagePullPolicy != nil {
-		return *project.Spec.Studio.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

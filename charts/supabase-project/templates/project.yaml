@@ -21,44 +21,8 @@ spec:
     {{- with .replicas }}
     replicas: {{ . | int }}
     {{- end }}
-    {{- with .image }}
-    image: {{ . | quote }}
-    {{- end }}
-    {{- with .imagePullPolicy }}
-    imagePullPolicy: {{ . | quote }}
-    {{- end }}
-    {{- with .affinity }}
-    affinity:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podAnnotations }}
-    podAnnotations:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podLabels }}
-    podLabels:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .securityContext }}
-    securityContext:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .priorityClassName }}
-    priorityClassName: {{ . | quote }}
-    {{- end }}
-    {{- with .resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .terminationGracePeriodSeconds }}
-    terminationGracePeriodSeconds: {{ . | int64 }}
-    {{- end }}
-    {{- with .tolerations }}
-    tolerations:
+    {{- with .pod }}
+    pod:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .service }}
@@ -91,44 +55,8 @@ spec:
     {{- with .replicas }}
     replicas: {{ . | int }}
     {{- end }}
-    {{- with .image }}
-    image: {{ . | quote }}
-    {{- end }}
-    {{- with .imagePullPolicy }}
-    imagePullPolicy: {{ . | quote }}
-    {{- end }}
-    {{- with .affinity }}
-    affinity:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podAnnotations }}
-    podAnnotations:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podLabels }}
-    podLabels:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .securityContext }}
-    securityContext:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .priorityClassName }}
-    priorityClassName: {{ . | quote }}
-    {{- end }}
-    {{- with .resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .terminationGracePeriodSeconds }}
-    terminationGracePeriodSeconds: {{ . | int64 }}
-    {{- end }}
-    {{- with .tolerations }}
-    tolerations:
+    {{- with .pod }}
+    pod:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .service }}
@@ -152,44 +80,8 @@ spec:
     {{- with .replicas }}
     replicas: {{ . | int }}
     {{- end }}
-    {{- with .image }}
-    image: {{ . | quote }}
-    {{- end }}
-    {{- with .imagePullPolicy }}
-    imagePullPolicy: {{ . | quote }}
-    {{- end }}
-    {{- with .affinity }}
-    affinity:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podAnnotations }}
-    podAnnotations:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podLabels }}
-    podLabels:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .securityContext }}
-    securityContext:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .priorityClassName }}
-    priorityClassName: {{ . | quote }}
-    {{- end }}
-    {{- with .resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .terminationGracePeriodSeconds }}
-    terminationGracePeriodSeconds: {{ . | int64 }}
-    {{- end }}
-    {{- with .tolerations }}
-    tolerations:
+    {{- with .pod }}
+    pod:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .service }}
@@ -213,44 +105,8 @@ spec:
     {{- with .replicas }}
     replicas: {{ . | int }}
     {{- end }}
-    {{- with .image }}
-    image: {{ . | quote }}
-    {{- end }}
-    {{- with .imagePullPolicy }}
-    imagePullPolicy: {{ . | quote }}
-    {{- end }}
-    {{- with .affinity }}
-    affinity:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podAnnotations }}
-    podAnnotations:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podLabels }}
-    podLabels:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .securityContext }}
-    securityContext:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .priorityClassName }}
-    priorityClassName: {{ . | quote }}
-    {{- end }}
-    {{- with .resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .terminationGracePeriodSeconds }}
-    terminationGracePeriodSeconds: {{ . | int64 }}
-    {{- end }}
-    {{- with .tolerations }}
-    tolerations:
+    {{- with .pod }}
+    pod:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .service }}
@@ -307,44 +163,8 @@ spec:
     {{- with .replicas }}
     replicas: {{ . | int }}
     {{- end }}
-    {{- with .image }}
-    image: {{ . | quote }}
-    {{- end }}
-    {{- with .imagePullPolicy }}
-    imagePullPolicy: {{ . | quote }}
-    {{- end }}
-    {{- with .affinity }}
-    affinity:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podAnnotations }}
-    podAnnotations:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podLabels }}
-    podLabels:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .securityContext }}
-    securityContext:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .priorityClassName }}
-    priorityClassName: {{ . | quote }}
-    {{- end }}
-    {{- with .resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .terminationGracePeriodSeconds }}
-    terminationGracePeriodSeconds: {{ . | int64 }}
-    {{- end }}
-    {{- with .tolerations }}
-    tolerations:
+    {{- with .pod }}
+    pod:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .service }}
@@ -369,44 +189,8 @@ spec:
     {{- with .replicas }}
     replicas: {{ . | int }}
     {{- end }}
-    {{- with .image }}
-    image: {{ . | quote }}
-    {{- end }}
-    {{- with .imagePullPolicy }}
-    imagePullPolicy: {{ . | quote }}
-    {{- end }}
-    {{- with .affinity }}
-    affinity:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podAnnotations }}
-    podAnnotations:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podLabels }}
-    podLabels:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .securityContext }}
-    securityContext:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .priorityClassName }}
-    priorityClassName: {{ . | quote }}
-    {{- end }}
-    {{- with .resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .terminationGracePeriodSeconds }}
-    terminationGracePeriodSeconds: {{ . | int64 }}
-    {{- end }}
-    {{- with .tolerations }}
-    tolerations:
+    {{- with .pod }}
+    pod:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .service }}
@@ -430,44 +214,8 @@ spec:
     {{- with .replicas }}
     replicas: {{ . | int }}
     {{- end }}
-    {{- with .image }}
-    image: {{ . | quote }}
-    {{- end }}
-    {{- with .imagePullPolicy }}
-    imagePullPolicy: {{ . | quote }}
-    {{- end }}
-    {{- with .affinity }}
-    affinity:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podAnnotations }}
-    podAnnotations:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podLabels }}
-    podLabels:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .securityContext }}
-    securityContext:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .priorityClassName }}
-    priorityClassName: {{ . | quote }}
-    {{- end }}
-    {{- with .resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .terminationGracePeriodSeconds }}
-    terminationGracePeriodSeconds: {{ . | int64 }}
-    {{- end }}
-    {{- with .tolerations }}
-    tolerations:
+    {{- with .pod }}
+    pod:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .service }}
@@ -504,44 +252,8 @@ spec:
     {{- with .replicas }}
     replicas: {{ . | int }}
     {{- end }}
-    {{- with .image }}
-    image: {{ . | quote }}
-    {{- end }}
-    {{- with .imagePullPolicy }}
-    imagePullPolicy: {{ . | quote }}
-    {{- end }}
-    {{- with .affinity }}
-    affinity:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podAnnotations }}
-    podAnnotations:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .podLabels }}
-    podLabels:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .securityContext }}
-    securityContext:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .priorityClassName }}
-    priorityClassName: {{ . | quote }}
-    {{- end }}
-    {{- with .resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .terminationGracePeriodSeconds }}
-    terminationGracePeriodSeconds: {{ . | int64 }}
-    {{- end }}
-    {{- with .tolerations }}
-    tolerations:
+    {{- with .pod }}
+    pod:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .service }}

@@ -63,16 +63,10 @@ func MigrationSelectorLabels(migration *supabasev1alpha1.Migration) map[string]s
 
 // getImageOrDefault returns the Postgres image from the spec or the default image.
 func getImageOrDefault(migration *supabasev1alpha1.Migration) string {
-	if migration.Spec.Image != nil && *migration.Spec.Image != "" {
-		return *migration.Spec.Image
-	}
 	return DefaultPostgresImage
 }
 
 // getImagePullPolicyOrDefault returns the image pull policy from the spec or the default.
 func getImagePullPolicyOrDefault(migration *supabasev1alpha1.Migration) corev1.PullPolicy {
-	if migration.Spec.ImagePullPolicy != nil {
-		return *migration.Spec.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }

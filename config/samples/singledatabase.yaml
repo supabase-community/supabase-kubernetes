@@ -3,6 +3,13 @@ kind: SingleDatabase
 metadata:
   name: supabase
 spec:
+  # pod:
+  #   metadata:
+  #     labels:
+  #       workload: database
+  #   spec:
+  #     nodeSelector:
+  #       workload: database
   storage:
     accessModes:
       - ReadWriteOnce

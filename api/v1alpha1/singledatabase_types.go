@@ -17,12 +17,17 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // SingleDatabaseSpec defines the desired state of SingleDatabase.
 type SingleDatabaseSpec struct {
-	WorkloadConfig `json:",inline"`
+	// Pod overlays the operator-generated Pod template.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
 
 	// Service defines the configuration for the component Service
 	// +optional

@@ -18,7 +18,6 @@ package project
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -42,6 +41,13 @@ func MetaDeployment(project *supabasev1alpha1.Project, db *supabasev1alpha1.Reso
 		return nil, nil
 	}
 
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: MetaLabels(project)},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildMetaContainer(project, db)}},
+	}, project.Spec.Meta.Pod)
+	if err != nil {
+		return nil, err
+	}
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MetaDeploymentName(project),
@@ -53,23 +59,7 @@ func MetaDeployment(project *supabasev1alpha1.Project, db *supabasev1alpha1.Reso
 			Selector: &metav1.LabelSelector{
 				MatchLabels: MetaSelectorLabels(project),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      metaPodLabels(project),
-					Annotations: metaPodAnnotations(project),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      project.Spec.Meta.Affinity,
-					NodeSelector:                  project.Spec.Meta.NodeSelector,
-					Tolerations:                   project.Spec.Meta.Tolerations,
-					PriorityClassName:             ptr.Deref(project.Spec.Meta.PriorityClassName, ""),
-					SecurityContext:               project.Spec.Meta.SecurityContext,
-					TerminationGracePeriodSeconds: project.Spec.Meta.TerminationGracePeriodSeconds,
-					Containers: []corev1.Container{
-						buildMetaContainer(project, db),
-					},
-				},
-			},
+			Template: template,
 		},
 	}
 
@@ -84,18 +74,6 @@ func metaReplicas(project *supabasev1alpha1.Project) *int32 {
 	return ptr.To(int32(1))
 }
 
-// metaPodLabels returns the merged pod labels for the Meta component.
-func metaPodLabels(project *supabasev1alpha1.Project) map[string]string {
-	labels := maps.Clone(MetaLabels(project))
-	maps.Copy(labels, project.Spec.Meta.PodLabels)
-	return labels
-}
-
-// metaPodAnnotations returns the merged pod annotations for the Meta component.
-func metaPodAnnotations(project *supabasev1alpha1.Project) map[string]string {
-	return project.Spec.Meta.PodAnnotations
-}
-
 // buildMetaContainer returns the Meta container specification.
 func buildMetaContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
@@ -104,7 +82,7 @@ func buildMetaContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		ImagePullPolicy: metaImagePullPolicy(project),
 		Env:             buildMetaEnvVars(project, db),
 		Ports:           metaPorts(),
-		Resources:       ptr.Deref(project.Spec.Meta.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		LivenessProbe:   metaLivenessProbe(),
 		ReadinessProbe:  metaReadinessProbe(),
 		StartupProbe:    metaStartupProbe(),
@@ -113,17 +91,11 @@ func buildMetaContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 
 // metaImage returns the Meta image from the spec or the default image.
 func metaImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Meta.Image != nil && *project.Spec.Meta.Image != "" {
-		return *project.Spec.Meta.Image
-	}
 	return DefaultMetaImage
 }
 
 // metaImagePullPolicy returns the Meta image pull policy from the spec or the default.
 func metaImagePullPolicy(project *supabasev1alpha1.Project) corev1.PullPolicy {
-	if project.Spec.Meta.ImagePullPolicy != nil {
-		return *project.Spec.Meta.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

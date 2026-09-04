@@ -16,9 +16,15 @@ limitations under the License.
 
 package v1alpha1
 
+import corev1 "k8s.io/api/core/v1"
+
 // EnvoySpec defines the desired state of the Envoy component.
 type EnvoySpec struct {
-	WorkloadConfig `json:",inline"`
+	// Pod overlays the operator-generated Pod template.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
 
 	// Enable defines whether the Envoy component is enabled
 	// +optional

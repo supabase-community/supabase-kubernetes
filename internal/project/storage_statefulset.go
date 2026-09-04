@@ -18,7 +18,6 @@ package project
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -41,6 +40,13 @@ func StorageStatefulSet(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		return nil, nil
 	}
 
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: StorageLabels(project)},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildStorageContainer(project, db)}, Volumes: []corev1.Volume{buildStorageVolume(project)}},
+	}, project.Spec.Storage.Pod)
+	if err != nil {
+		return nil, err
+	}
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      StorageStatefulSetName(project),
@@ -53,26 +59,7 @@ func StorageStatefulSet(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 			Selector: &metav1.LabelSelector{
 				MatchLabels: StorageSelectorLabels(project),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      storagePodLabels(project),
-					Annotations: storagePodAnnotations(project),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      project.Spec.Storage.Affinity,
-					NodeSelector:                  project.Spec.Storage.NodeSelector,
-					Tolerations:                   project.Spec.Storage.Tolerations,
-					PriorityClassName:             ptr.Deref(project.Spec.Storage.PriorityClassName, ""),
-					SecurityContext:               project.Spec.Storage.SecurityContext,
-					TerminationGracePeriodSeconds: project.Spec.Storage.TerminationGracePeriodSeconds,
-					Containers: []corev1.Container{
-						buildStorageContainer(project, db),
-					},
-					Volumes: []corev1.Volume{
-						buildStorageVolume(project),
-					},
-				},
-			},
+			Template: template,
 		},
 	}
 
@@ -87,18 +74,6 @@ func storageReplicas(project *supabasev1alpha1.Project) *int32 {
 	return ptr.To(int32(1))
 }
 
-// storagePodLabels returns the merged pod labels for the Storage component.
-func storagePodLabels(project *supabasev1alpha1.Project) map[string]string {
-	labels := maps.Clone(StorageLabels(project))
-	maps.Copy(labels, project.Spec.Storage.PodLabels)
-	return labels
-}
-
-// storagePodAnnotations returns the merged pod annotations for the Storage component.
-func storagePodAnnotations(project *supabasev1alpha1.Project) map[string]string {
-	return project.Spec.Storage.PodAnnotations
-}
-
 // buildStorageContainer returns the Storage container specification.
 func buildStorageContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
@@ -107,7 +82,7 @@ func buildStorageContainer(project *supabasev1alpha1.Project, db *supabasev1alph
 		ImagePullPolicy: storageImagePullPolicy(project),
 		Env:             buildStorageEnvVars(project, db),
 		Ports:           storagePorts(),
-		Resources:       ptr.Deref(project.Spec.Storage.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		LivenessProbe:   storageLivenessProbe(),
 		ReadinessProbe:  storageReadinessProbe(),
 		StartupProbe:    storageStartupProbe(),
@@ -117,17 +92,11 @@ func buildStorageContainer(project *supabasev1alpha1.Project, db *supabasev1alph
 
 // storageImage returns the Storage image from the spec or the default image.
 func storageImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Storage.Image != nil && *project.Spec.Storage.Image != "" {
-		return *project.Spec.Storage.Image
-	}
 	return DefaultStorageImage
 }
 
 // storageImagePullPolicy returns the Storage image pull policy from the spec or the default.
 func storageImagePullPolicy(project *supabasev1alpha1.Project) corev1.PullPolicy {
-	if project.Spec.Storage.ImagePullPolicy != nil {
-		return *project.Spec.Storage.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

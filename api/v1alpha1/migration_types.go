@@ -17,13 +17,18 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // MigrationSpec defines the desired state of Migration.
 // +kubebuilder:validation:XValidation:rule="self.migrations == oldSelf.migrations",message="migrations are immutable after creation"
 type MigrationSpec struct {
-	WorkloadConfig `json:",inline"`
+	// Pod overlays the operator-generated Pod template.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
 
 	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required

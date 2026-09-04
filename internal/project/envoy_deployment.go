@@ -18,7 +18,6 @@ package project
 
 import (
 	"fmt"
-	"maps"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -41,6 +40,17 @@ func EnvoyDeployment(project *supabasev1alpha1.Project, configMapHash, secretHas
 		return nil, nil
 	}
 
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: EnvoyLabels(project), Annotations: envoyPodAnnotations(configMapHash, secretHash)},
+		Spec: corev1.PodSpec{
+			InitContainers: []corev1.Container{buildEnvoyInitContainer(project)},
+			Containers:     []corev1.Container{buildEnvoyContainer(project)},
+			Volumes:        []corev1.Volume{buildEnvoyConfigVolume(project), buildEnvoyRuntimeVolume()},
+		},
+	}, project.Spec.Envoy.Pod)
+	if err != nil {
+		return nil, err
+	}
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EnvoyDeploymentName(project),
@@ -52,30 +62,7 @@ func EnvoyDeployment(project *supabasev1alpha1.Project, configMapHash, secretHas
 			Selector: &metav1.LabelSelector{
 				MatchLabels: EnvoySelectorLabels(project),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      envoyPodLabels(project),
-					Annotations: envoyPodAnnotations(project, configMapHash, secretHash),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      project.Spec.Envoy.Affinity,
-					NodeSelector:                  project.Spec.Envoy.NodeSelector,
-					Tolerations:                   project.Spec.Envoy.Tolerations,
-					PriorityClassName:             ptr.Deref(project.Spec.Envoy.PriorityClassName, ""),
-					SecurityContext:               project.Spec.Envoy.SecurityContext,
-					TerminationGracePeriodSeconds: project.Spec.Envoy.TerminationGracePeriodSeconds,
-					InitContainers: []corev1.Container{
-						buildEnvoyInitContainer(project),
-					},
-					Containers: []corev1.Container{
-						buildEnvoyContainer(project),
-					},
-					Volumes: []corev1.Volume{
-						buildEnvoyConfigVolume(project),
-						buildEnvoyRuntimeVolume(),
-					},
-				},
-			},
+			Template: template,
 		},
 	}, nil
 }
@@ -88,20 +75,12 @@ func envoyReplicas(project *supabasev1alpha1.Project) *int32 {
 	return ptr.To(int32(1))
 }
 
-// envoyPodLabels returns the merged pod labels for the Envoy component.
-func envoyPodLabels(project *supabasev1alpha1.Project) map[string]string {
-	labels := maps.Clone(EnvoyLabels(project))
-	maps.Copy(labels, project.Spec.Envoy.PodLabels)
-	return labels
-}
-
 // envoyPodAnnotations returns the merged pod annotations for the Envoy component,
 // including hashes that force a rolling update when the ConfigMap or Secret changes.
-func envoyPodAnnotations(project *supabasev1alpha1.Project, configMapHash, secretHash string) map[string]string {
-	annotations := make(map[string]string, len(project.Spec.Envoy.PodAnnotations)+2)
+func envoyPodAnnotations(configMapHash, secretHash string) map[string]string {
+	annotations := make(map[string]string, 2)
 	annotations["supabase.io/config-hash"] = configMapHash
 	annotations["supabase.io/secret-hash"] = secretHash
-	maps.Copy(annotations, project.Spec.Envoy.PodAnnotations)
 	return annotations
 }
 
@@ -127,7 +106,7 @@ func buildEnvoyContainer(project *supabasev1alpha1.Project) corev1.Container {
 		Args:            []string{"-c", fmt.Sprintf("%s/envoy.yaml", EnvoyConfigMountPath)},
 		Env:             buildEnvoyEnvVars(project),
 		Ports:           envoyPorts(),
-		Resources:       ptr.Deref(project.Spec.Envoy.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		VolumeMounts:    envoyRuntimeVolumeMounts(),
 		LivenessProbe:   envoyLivenessProbe(),
 		ReadinessProbe:  envoyReadinessProbe(),
@@ -136,17 +115,11 @@ func buildEnvoyContainer(project *supabasev1alpha1.Project) corev1.Container {
 
 // envoyImage returns the Envoy image from the spec or the default image.
 func envoyImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Envoy.Image != nil && *project.Spec.Envoy.Image != "" {
-		return *project.Spec.Envoy.Image
-	}
 	return DefaultEnvoyImage
 }
 
 // envoyImagePullPolicy returns the Envoy image pull policy from the spec or the default.
 func envoyImagePullPolicy(project *supabasev1alpha1.Project) corev1.PullPolicy {
-	if project.Spec.Envoy.ImagePullPolicy != nil {
-		return *project.Spec.Envoy.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

@@ -18,7 +18,6 @@ package project
 
 import (
 	"fmt"
-	"maps"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -41,6 +40,13 @@ func RealtimeDeployment(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		return nil, nil
 	}
 
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: RealtimeLabels(project)},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildRealtimeContainer(project, db)}},
+	}, project.Spec.Realtime.Pod)
+	if err != nil {
+		return nil, err
+	}
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      RealtimeDeploymentName(project),
@@ -52,23 +58,7 @@ func RealtimeDeployment(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 			Selector: &metav1.LabelSelector{
 				MatchLabels: RealtimeSelectorLabels(project),
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      realtimePodLabels(project),
-					Annotations: realtimePodAnnotations(project),
-				},
-				Spec: corev1.PodSpec{
-					Affinity:                      project.Spec.Realtime.Affinity,
-					NodeSelector:                  project.Spec.Realtime.NodeSelector,
-					Tolerations:                   project.Spec.Realtime.Tolerations,
-					PriorityClassName:             ptr.Deref(project.Spec.Realtime.PriorityClassName, ""),
-					SecurityContext:               project.Spec.Realtime.SecurityContext,
-					TerminationGracePeriodSeconds: project.Spec.Realtime.TerminationGracePeriodSeconds,
-					Containers: []corev1.Container{
-						buildRealtimeContainer(project, db),
-					},
-				},
-			},
+			Template: template,
 		},
 	}
 
@@ -83,18 +73,6 @@ func realtimeReplicas(project *supabasev1alpha1.Project) *int32 {
 	return ptr.To(int32(1))
 }
 
-// realtimePodLabels returns the merged pod labels for the Realtime component.
-func realtimePodLabels(project *supabasev1alpha1.Project) map[string]string {
-	labels := maps.Clone(RealtimeLabels(project))
-	maps.Copy(labels, project.Spec.Realtime.PodLabels)
-	return labels
-}
-
-// realtimePodAnnotations returns the merged pod annotations for the Realtime component.
-func realtimePodAnnotations(project *supabasev1alpha1.Project) map[string]string {
-	return project.Spec.Realtime.PodAnnotations
-}
-
 // buildRealtimeContainer returns the Realtime container specification.
 func buildRealtimeContainer(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
@@ -103,7 +81,7 @@ func buildRealtimeContainer(project *supabasev1alpha1.Project, db *supabasev1alp
 		ImagePullPolicy: realtimeImagePullPolicy(project),
 		Env:             buildRealtimeEnvVars(project, db),
 		Ports:           realtimePorts(),
-		Resources:       ptr.Deref(project.Spec.Realtime.Resources, corev1.ResourceRequirements{}),
+		Resources:       corev1.ResourceRequirements{},
 		LivenessProbe:   realtimeLivenessProbe(),
 		ReadinessProbe:  realtimeReadinessProbe(),
 		StartupProbe:    realtimeStartupProbe(),
@@ -112,17 +90,11 @@ func buildRealtimeContainer(project *supabasev1alpha1.Project, db *supabasev1alp
 
 // realtimeImage returns the Realtime image from the spec or the default image.
 func realtimeImage(project *supabasev1alpha1.Project) string {
-	if project.Spec.Realtime.Image != nil && *project.Spec.Realtime.Image != "" {
-		return *project.Spec.Realtime.Image
-	}
 	return DefaultRealtimeImage
 }
 
 // realtimeImagePullPolicy returns the Realtime image pull policy from the spec or the default.
 func realtimeImagePullPolicy(project *supabasev1alpha1.Project) corev1.PullPolicy {
-	if project.Spec.Realtime.ImagePullPolicy != nil {
-		return *project.Spec.Realtime.ImagePullPolicy
-	}
 	return corev1.PullIfNotPresent
 }
 

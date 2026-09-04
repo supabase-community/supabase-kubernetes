@@ -130,53 +130,6 @@ type HTTPConfig struct {
 	Port *int32 `json:"port,omitempty"`
 }
 
-// WorkloadConfig defines common workload configuration shared by all Supabase components.
-type WorkloadConfig struct {
-	// Image overrides the default component image
-	// +optional
-	Image *string `json:"image,omitempty"`
-
-	// ImagePullPolicy defines the policy for if/when to pull the container image
-	// +optional
-	ImagePullPolicy *corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-
-	// Affinity defines affinity scheduling rules
-	// +optional
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-
-	// NodeSelector defines node selection constraints
-	// +optional
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	// PodAnnotations defines annotations to add to the pod
-	// +optional
-	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
-
-	// PodLabels defines labels to add to the pod
-	// +optional
-	PodLabels map[string]string `json:"podLabels,omitempty"`
-
-	// SecurityContext holds pod-level security attributes
-	// +optional
-	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
-
-	// PriorityClassName defines the priority class for the pod
-	// +optional
-	PriorityClassName *string `json:"priorityClassName,omitempty"`
-
-	// Resources defines compute resource requirements
-	// +optional
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
-
-	// TerminationGracePeriodSeconds defines the grace period for pod termination
-	// +optional
-	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
-
-	// Tolerations defines pod tolerations
-	// +optional
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-}
-
 // DatabaseRef references a database resource.
 type DatabaseRef struct {
 	// Kind defines the kind of database resource
