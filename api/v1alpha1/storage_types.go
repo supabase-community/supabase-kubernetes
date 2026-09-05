@@ -41,11 +41,11 @@ type StorageSpec struct {
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
-	// FileSizeLimit defines the maximum file size in bytes
+	// Config defines extra environment variables merged into the Storage container.
 	// +optional
-	// +kubebuilder:default=52428800
-	// +kubebuilder:validation:Minimum=1
-	FileSizeLimit *int64 `json:"fileSizeLimit,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	Config []corev1.EnvVar `json:"config,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 
 	// Storage defines the persistent volume claim for Storage data
 	// +kubebuilder:validation:Required

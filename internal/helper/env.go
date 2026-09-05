@@ -29,6 +29,35 @@ func EnvVar(name, value string) corev1.EnvVar {
 	return corev1.EnvVar{Name: name, Value: value}
 }
 
+// MergeEnvVars merges overlay over base by EnvVar name.
+// Entries in overlay override matching names in base; new names are appended.
+// The returned slice preserves the order of base, followed by any new overlay
+// entries appended at the end.
+func MergeEnvVars(base, overlay []corev1.EnvVar) []corev1.EnvVar {
+	if len(overlay) == 0 {
+		return base
+	}
+
+	merged := make([]corev1.EnvVar, len(base))
+	copy(merged, base)
+
+	index := make(map[string]int, len(merged))
+	for i, e := range merged {
+		index[e.Name] = i
+	}
+
+	for _, e := range overlay {
+		if i, ok := index[e.Name]; ok {
+			merged[i] = e
+			continue
+		}
+		index[e.Name] = len(merged)
+		merged = append(merged, e)
+	}
+
+	return merged
+}
+
 // EnvVarFromSecret creates an environment variable that reads its value from a Secret key.
 func EnvVarFromSecret(name, secretName, key string) corev1.EnvVar {
 	return corev1.EnvVar{

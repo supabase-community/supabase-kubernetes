@@ -30,7 +30,6 @@ spec:
   storage:
     enable: true
     # replicas: 1
-    # fileSizeLimit: 52428800
     storage:
       accessModes:
         - ReadWriteOnce
@@ -42,45 +41,17 @@ spec:
 
   functions:
     enable: true
-    verifyJwt: false
     # replicas: 2
 
   studio:
     enable: true
-    orgName: "Default Organization"
-    projName: "Default Project"
     storage:
       accessModes:
         - ReadWriteOnce
       size: 1Gi
-    # openAiApiKey:
-    #   name: "openai-credentials"
-    #   key: "api-key"
 
   auth:
     enable: true
-    siteUrl: "https://myapp.supabase.com"
-    # smtp:
-    #   host: "smtp.example.com"
-    #   port: 587
-    #   user: "smtp-user"
-    #   passwordRef:
-    #     name: "smtp-credentials"
-    #     key: "password"
-    #   senderName: "My App"
-    #   adminEmail: "admin@example.com"
-    #   # maxFrequency: "1s"
-    # oauth:
-    #   google:
-    #     enable: true
-    #     clientId: "google-client-id"
-    #     secretRef:
-    #       name: "oauth-google-secret"
-    #       key: "secret"
-    #   keycloak:
-    #     enable: true
-    #     clientId: "keycloak-client-id"
-    #     secretRef:
-    #       name: "oauth-keycloak-secret"
-    #       key: "secret"
-    #     url: "https://keycloak.example.com/realms/myrealm"
+    config:
+      - name: "GOTRUE_SITE_URL"
+        value: "https://myapp.supabase.com"

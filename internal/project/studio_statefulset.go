@@ -176,11 +176,9 @@ func buildStudioEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		helper.EnvVarFromSecret("POSTGRES_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVar("POSTGRES_USER_READ_WRITE", "postgres"),
 		helper.EnvVarFromSecret("PG_META_CRYPTO_KEY", KeysSecretName(project), KeysSecretCryptoKey),
-		helper.EnvVar("PGRST_DB_SCHEMAS", restSchemasOrDefault(project)),
-		helper.EnvVar("PGRST_DB_MAX_ROWS", restMaxRowsOrDefault(project)),
-		helper.EnvVar("PGRST_DB_EXTRA_SEARCH_PATH", restExtraSearchPathOrDefault(project)),
-		helper.EnvVar("DEFAULT_ORGANIZATION_NAME", project.Spec.Studio.OrgName),
-		helper.EnvVar("DEFAULT_PROJECT_NAME", project.Spec.Studio.ProjName),
+		helper.EnvVar("PGRST_DB_SCHEMAS", restSchemasOrDefault()),
+		helper.EnvVar("PGRST_DB_MAX_ROWS", restMaxRowsOrDefault()),
+		helper.EnvVar("PGRST_DB_EXTRA_SEARCH_PATH", restExtraSearchPathOrDefault()),
 		helper.EnvVar("SUPABASE_URL", fmt.Sprintf(
 			"http://%s.%s.svc.cluster.local:%d",
 			EnvoyServiceName(project),
@@ -198,15 +196,7 @@ func buildStudioEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.
 		helper.EnvVar("EDGE_FUNCTIONS_MANAGEMENT_FOLDER", StudioFunctionsMountPath),
 	}
 
-	if project.Spec.Studio.OpenAIAPIKey != nil {
-		env = append(env, helper.EnvVarFromSecret(
-			"OPENAI_API_KEY",
-			project.Spec.Studio.OpenAIAPIKey.Name,
-			project.Spec.Studio.OpenAIAPIKey.Key,
-		))
-	}
-
-	return env
+	return helper.MergeEnvVars(env, project.Spec.Studio.Config)
 }
 
 // buildStudioVolumes returns the volumes for the Studio container.
