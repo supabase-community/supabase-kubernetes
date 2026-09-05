@@ -40,4 +40,10 @@ type MetaSpec struct {
 	// Service defines the configuration for the component Service
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
+
+	// Config defines extra environment variables merged into the Meta container.
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	Config []corev1.EnvVar `json:"config,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 }

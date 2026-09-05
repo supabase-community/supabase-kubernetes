@@ -787,41 +787,7 @@ func (r *ProjectReconciler) ensureKeysSecret(ctx context.Context, proj *supabase
 	return nil
 }
 
-func (r *ProjectReconciler) ensureAuthSecret(ctx context.Context, proj *supabasev1alpha1.Project) error {
-	sc, err := project.AuthSecret(proj)
-	if err != nil {
-		return fmt.Errorf("building auth secret: %w", err)
-	}
-	if sc == nil {
-		return reconciler.DeleteSecretIfExists(ctx, r.Client, project.AuthSecretName(proj), proj.Namespace)
-	}
-
-	logger := log.FromContext(ctx).WithValues(
-		"name", sc.GetName(),
-		"namespace", sc.GetNamespace(),
-	)
-
-	result, err := reconciler.EnsureResource(ctx, r.Client, sc, proj, reconciler.MutateSecret(project.AuthSecretSAMLPrivateKey))
-	if err != nil {
-		return fmt.Errorf("ensuring auth secret: %w", err)
-	}
-
-	switch result {
-	case reconciler.ResultCreated:
-		logger.Info("Created Auth Secret")
-	case reconciler.ResultUpdated:
-		logger.Info("Updated Auth Secret")
-	default:
-		logger.V(1).Info("Auth Secret unchanged")
-	}
-
-	return nil
-}
-
 func (r *ProjectReconciler) ensureAuth(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
-	if err := r.ensureAuthSecret(ctx, proj); err != nil {
-		return fmt.Errorf("ensuring auth secret: %w", err)
-	}
 	if err := r.ensureAuthService(ctx, proj); err != nil {
 		return fmt.Errorf("ensuring auth service: %w", err)
 	}

@@ -156,7 +156,7 @@ func metaProbeHandler() corev1.ProbeHandler {
 
 // buildMetaEnvVars returns the environment variables for the Meta container.
 func buildMetaEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
-	return []corev1.EnvVar{
+	env := []corev1.EnvVar{
 		helper.EnvVar("PG_META_PORT", strconv.Itoa(int(DefaultMetaPort))),
 		helper.EnvVar("PG_META_DB_HOST", db.Host),
 		helper.EnvVar("PG_META_DB_PORT", strconv.Itoa(int(db.Port))),
@@ -165,4 +165,6 @@ func buildMetaEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.Re
 		helper.EnvVarFromSecret("PG_META_DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVarFromSecret("CRYPTO_KEY", KeysSecretName(project), KeysSecretCryptoKey),
 	}
+
+	return helper.MergeEnvVars(env, project.Spec.Meta.Config)
 }

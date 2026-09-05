@@ -41,19 +41,9 @@ type RestSpec struct {
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
-	// DBSchemas defines the schemas exposed by PostgREST
+	// Config defines extra environment variables merged into the Rest container.
 	// +optional
-	// +kubebuilder:default="public,storage,graphql_public"
-	DBSchemas *string `json:"dbSchemas,omitempty"`
-
-	// DBMaxRows defines the maximum number of rows returned from a view, table, or stored procedure
-	// +optional
-	// +kubebuilder:default=1000
-	// +kubebuilder:validation:Minimum=1
-	DBMaxRows *int32 `json:"dbMaxRows,omitempty"`
-
-	// DBExtraSearchPath defines the schemas to add to the search path of every request
-	// +optional
-	// +kubebuilder:default="public"
-	DBExtraSearchPath *string `json:"dbExtraSearchPath,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	Config []corev1.EnvVar `json:"config,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 }

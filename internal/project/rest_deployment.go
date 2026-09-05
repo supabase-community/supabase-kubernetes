@@ -154,12 +154,12 @@ func restProbeHandler() corev1.ProbeHandler {
 
 // buildRestEnvVars returns the environment variables for the Rest container.
 func buildRestEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
-	return []corev1.EnvVar{
+	env := []corev1.EnvVar{
 		helper.EnvVarFromSecret("PGRST_DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVar("PGRST_DB_URI", fmt.Sprintf("postgres://authenticator:$(PGRST_DB_PASSWORD)@%s:%s/%s", db.Host, strconv.Itoa(int(db.Port)), db.DBName)),
-		helper.EnvVar("PGRST_DB_SCHEMAS", restSchemasOrDefault(project)),
-		helper.EnvVar("PGRST_DB_MAX_ROWS", restMaxRowsOrDefault(project)),
-		helper.EnvVar("PGRST_DB_EXTRA_SEARCH_PATH", restExtraSearchPathOrDefault(project)),
+		helper.EnvVar("PGRST_DB_SCHEMAS", restSchemasOrDefault()),
+		helper.EnvVar("PGRST_DB_MAX_ROWS", restMaxRowsOrDefault()),
+		helper.EnvVar("PGRST_DB_EXTRA_SEARCH_PATH", restExtraSearchPathOrDefault()),
 		helper.EnvVar("PGRST_DB_ANON_ROLE", "anon"),
 		helper.EnvVar("PGRST_ADMIN_SERVER_PORT", strconv.Itoa(int(DefaultRestAdminPort))),
 		helper.EnvVar("PGRST_ADMIN_SERVER_HOST", "localhost"),
@@ -168,28 +168,21 @@ func buildRestEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.Re
 		helper.EnvVarFromSecret("PGRST_APP_SETTINGS_JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVar("PGRST_APP_SETTINGS_JWT_EXP", strconv.Itoa(int(*project.Spec.JWTExpSec))),
 	}
+
+	return helper.MergeEnvVars(env, project.Spec.Rest.Config)
 }
 
-// restSchemasOrDefault returns the Rest DB schemas from the spec or the default.
-func restSchemasOrDefault(project *supabasev1alpha1.Project) string {
-	if project.Spec.Rest != nil && project.Spec.Rest.DBSchemas != nil {
-		return *project.Spec.Rest.DBSchemas
-	}
+// restSchemasOrDefault returns the Rest DB schemas default.
+func restSchemasOrDefault() string {
 	return "public,storage,graphql_public"
 }
 
-// restMaxRowsOrDefault returns the Rest DB max rows from the spec or the default.
-func restMaxRowsOrDefault(project *supabasev1alpha1.Project) string {
-	if project.Spec.Rest != nil && project.Spec.Rest.DBMaxRows != nil {
-		return strconv.Itoa(int(*project.Spec.Rest.DBMaxRows))
-	}
+// restMaxRowsOrDefault returns the Rest DB max rows default.
+func restMaxRowsOrDefault() string {
 	return "1000"
 }
 
-// restExtraSearchPathOrDefault returns the Rest DB extra search path from the spec or the default.
-func restExtraSearchPathOrDefault(project *supabasev1alpha1.Project) string {
-	if project.Spec.Rest != nil && project.Spec.Rest.DBExtraSearchPath != nil {
-		return *project.Spec.Rest.DBExtraSearchPath
-	}
+// restExtraSearchPathOrDefault returns the Rest DB extra search path default.
+func restExtraSearchPathOrDefault() string {
 	return "public"
 }

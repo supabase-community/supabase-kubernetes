@@ -41,7 +41,9 @@ type FunctionsSpec struct {
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
-	// VerifyJWT defines whether to verify JWT tokens
-	// +kubebuilder:validation:Required
-	VerifyJWT bool `json:"verifyJwt"`
+	// Config defines extra environment variables merged into the Functions container.
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	Config []corev1.EnvVar `json:"config,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 }

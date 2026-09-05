@@ -164,7 +164,7 @@ func buildStorageEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1
 	jwtSecret := JWTSecretName(project)
 	storageSecret := StorageSecretName(project)
 
-	return []corev1.EnvVar{
+	env := []corev1.EnvVar{
 		helper.EnvVarFromSecret("ANON_KEY", jwtSecret, JWTSecretAnonKey),
 		helper.EnvVarFromSecret("SERVICE_KEY", jwtSecret, JWTSecretServiceKey),
 		helper.EnvVar("POSTGREST_URL", fmt.Sprintf(
@@ -184,7 +184,7 @@ func buildStorageEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1
 		)),
 		helper.EnvVar("STORAGE_PUBLIC_URL", APIExternalURL(project)),
 		helper.EnvVar("REQUEST_ALLOW_X_FORWARDED_PATH", "true"),
-		helper.EnvVar("FILE_SIZE_LIMIT", storageFileSizeLimitOrDefault(project)),
+		helper.EnvVar("FILE_SIZE_LIMIT", "52428800"),
 		helper.EnvVar("STORAGE_BACKEND", "file"),
 		helper.EnvVar("GLOBAL_S3_BUCKET", project.Name),
 		helper.EnvVar("FILE_STORAGE_BACKEND_PATH", StorageDataMountPath),
@@ -194,14 +194,8 @@ func buildStorageEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1
 		helper.EnvVarFromSecret("S3_PROTOCOL_ACCESS_KEY_ID", storageSecret, StorageSecretAccessKeyID),
 		helper.EnvVarFromSecret("S3_PROTOCOL_ACCESS_KEY_SECRET", storageSecret, StorageSecretAccessKeySecret),
 	}
-}
 
-// storageFileSizeLimitOrDefault returns the file size limit from the spec or the default.
-func storageFileSizeLimitOrDefault(project *supabasev1alpha1.Project) string {
-	if project.Spec.Storage != nil && project.Spec.Storage.FileSizeLimit != nil {
-		return strconv.FormatInt(*project.Spec.Storage.FileSizeLimit, 10)
-	}
-	return "52428800"
+	return helper.MergeEnvVars(env, project.Spec.Storage.Config)
 }
 
 // buildStorageVolume returns the Storage data volume specification.

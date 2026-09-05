@@ -41,9 +41,7 @@ rest:
     type: ClusterIP
     annotations: {}
     labels: {}
-  dbSchemas: "public,storage,graphql_public"
-  dbMaxRows: 1000
-  dbExtraSearchPath: "public"
+  config: []
 
 ## Meta component configuration
 ##
@@ -55,6 +53,7 @@ meta:
     type: ClusterIP
     annotations: {}
     labels: {}
+  config: []
 
 ## Realtime component configuration
 ##
@@ -66,6 +65,7 @@ realtime:
     type: ClusterIP
     annotations: {}
     labels: {}
+  config: []
 
 ## Auth component configuration
 ##
@@ -77,21 +77,7 @@ auth:
     type: ClusterIP
     annotations: {}
     labels: {}
-  siteUrl: ""
-  additionalRedirectUrls: []
-  disableSignup: false
-  enableEmailSignup: true
-  enableAnonymousUsers: false
-  enableEmailAutoconfirm: false
-  enablePhoneSignup: true
-  enablePhoneAutoconfirm: true
-  skipNonceCheck: false
-  enableMailerSecureEmailChange: false
-  smtp: {}
-  oauth: {}
-  sms: {}
-  mfa: {}
-  saml: {}
+  config: []
 
 ## Functions component configuration
 ##
@@ -103,7 +89,7 @@ functions:
     type: ClusterIP
     annotations: {}
     labels: {}
-  verifyJwt: true
+  config: []
 
 ## Envoy component configuration
 ##
@@ -115,6 +101,7 @@ envoy:
     type: ClusterIP
     annotations: {}
     labels: {}
+  config: []
 
 ## Storage component configuration
 ##
@@ -126,7 +113,7 @@ storage:
     type: ClusterIP
     annotations: {}
     labels: {}
-  fileSizeLimit: 52428800
+  config: []
   storage:
     accessModes:
       - ReadWriteOnce
@@ -144,9 +131,7 @@ studio:
     type: ClusterIP
     annotations: {}
     labels: {}
-  orgName: ""
-  projName: ""
-  openAiApiKey: {}
+  config: []
   storage:
     accessModes:
       - ReadWriteOnce

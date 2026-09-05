@@ -162,7 +162,7 @@ func realtimeProbeHandler() corev1.ProbeHandler {
 func buildRealtimeEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
 	port := strconv.Itoa(int(DefaultRealtimePort))
 
-	return []corev1.EnvVar{
+	env := []corev1.EnvVar{
 		helper.EnvVar("PORT", port),
 		helper.EnvVar("DB_HOST", db.Host),
 		helper.EnvVar("DB_PORT", strconv.Itoa(int(db.Port))),
@@ -184,4 +184,6 @@ func buildRealtimeEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha
 		helper.EnvVar("DISABLE_HEALTHCHECK_LOGGING", "true"),
 		helper.EnvVarFromSecret("ANON_KEY", JWTSecretName(project), JWTSecretAnonKey),
 	}
+
+	return helper.MergeEnvVars(env, project.Spec.Realtime.Config)
 }

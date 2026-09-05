@@ -41,19 +41,11 @@ type StudioSpec struct {
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
-	// OrgName defines the default organization name shown in Studio
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	OrgName string `json:"orgName"`
-
-	// ProjName defines the default project name shown in Studio
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	ProjName string `json:"projName"`
-
-	// OpenAIAPIKey references the secret containing the OpenAI API key
+	// Config defines extra environment variables merged into the Studio container.
 	// +optional
-	OpenAIAPIKey *SecretKeyRef `json:"openAiApiKey,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	Config []corev1.EnvVar `json:"config,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 
 	// Storage defines the persistent volume claim for Studio snippets
 	// +kubebuilder:validation:Required

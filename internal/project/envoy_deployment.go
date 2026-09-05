@@ -139,7 +139,7 @@ func buildEnvoyEnvVars(project *supabasev1alpha1.Project) []corev1.EnvVar {
 	jwtSecret := JWTSecretName(project)
 	envoySecret := EnvoySecretName(project)
 
-	return []corev1.EnvVar{
+	env := []corev1.EnvVar{
 		helper.EnvVarFromSecret("ANON_KEY", jwtSecret, JWTSecretAnonKey),
 		helper.EnvVarFromSecret("SERVICE_ROLE_KEY", jwtSecret, JWTSecretServiceKey),
 		helper.EnvVarFromSecret("SUPABASE_PUBLISHABLE_KEY", jwtSecret, JWTSecretPublishableKey),
@@ -149,6 +149,8 @@ func buildEnvoyEnvVars(project *supabasev1alpha1.Project) []corev1.EnvVar {
 		helper.EnvVarFromSecret("DASHBOARD_USERNAME", envoySecret, DefaultEnvoySecretKeyUsername),
 		helper.EnvVarFromSecret("DASHBOARD_PASSWORD", envoySecret, DefaultEnvoySecretKeyPassword),
 	}
+
+	return helper.MergeEnvVars(env, project.Spec.Envoy.Config)
 }
 
 // envoyLivenessProbe returns the liveness probe for the Envoy container.

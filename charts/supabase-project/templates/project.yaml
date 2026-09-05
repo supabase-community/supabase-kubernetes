@@ -39,14 +39,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- end }}
-    {{- with .dbSchemas }}
-    dbSchemas: {{ . | quote }}
-    {{- end }}
-    {{- with .dbMaxRows }}
-    dbMaxRows: {{ . }}
-    {{- end }}
-    {{- with .dbExtraSearchPath }}
-    dbExtraSearchPath: {{ . | quote }}
+    {{- with .config }}
+    config:
+      {{- toYaml . | nindent 6 }}
     {{- end }}
   {{- end }}
   {{- with .Values.meta }}
@@ -73,6 +68,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- end }}
+    {{- with .config }}
+    config:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
   {{- end }}
   {{- with .Values.realtime }}
   realtime:
@@ -97,6 +96,10 @@ spec:
       labels:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+    {{- end }}
+    {{- with .config }}
+    config:
+      {{- toYaml . | nindent 6 }}
     {{- end }}
   {{- end }}
   {{- with .Values.auth }}
@@ -123,37 +126,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- end }}
-    siteUrl: {{ .siteUrl | quote }}
-    {{- with .additionalRedirectUrls }}
-    additionalRedirectUrls:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    disableSignup: {{ .disableSignup }}
-    enableEmailSignup: {{ .enableEmailSignup }}
-    enableAnonymousUsers: {{ .enableAnonymousUsers }}
-    enableEmailAutoconfirm: {{ .enableEmailAutoconfirm }}
-    enablePhoneSignup: {{ .enablePhoneSignup }}
-    enablePhoneAutoconfirm: {{ .enablePhoneAutoconfirm }}
-    skipNonceCheck: {{ .skipNonceCheck }}
-    enableMailerSecureEmailChange: {{ .enableMailerSecureEmailChange }}
-    {{- with .smtp }}
-    smtp:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .oauth }}
-    oauth:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .sms }}
-    sms:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .mfa }}
-    mfa:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .saml }}
-    saml:
+    {{- with .config }}
+    config:
       {{- toYaml . | nindent 6 }}
     {{- end }}
   {{- end }}
@@ -181,7 +155,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- end }}
-    verifyJwt: {{ .verifyJwt }}
+    {{- with .config }}
+    config:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
   {{- end }}
   {{- with .Values.envoy }}
   envoy:
@@ -206,6 +183,10 @@ spec:
       labels:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+    {{- end }}
+    {{- with .config }}
+    config:
+      {{- toYaml . | nindent 6 }}
     {{- end }}
   {{- end }}
   {{- with .Values.storage }}
@@ -232,8 +213,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- end }}
-    {{- with .fileSizeLimit }}
-    fileSizeLimit: {{ . | int64 }}
+    {{- with .config }}
+    config:
+      {{- toYaml . | nindent 6 }}
     {{- end }}
     storage:
       accessModes:
@@ -270,10 +252,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- end }}
-    orgName: {{ .orgName | quote }}
-    projName: {{ .projName | quote }}
-    {{- with .openAiApiKey }}
-    openAiApiKey:
+    {{- with .config }}
+    config:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     storage:

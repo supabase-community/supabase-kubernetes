@@ -160,7 +160,7 @@ func functionsProbeHandler() corev1.ProbeHandler {
 
 // buildFunctionsEnvVars returns the environment variables for the Functions container.
 func buildFunctionsEnvVars(project *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
-	return []corev1.EnvVar{
+	env := []corev1.EnvVar{
 		helper.EnvVarFromSecret("JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVar("SUPABASE_URL", fmt.Sprintf(
 			"http://%s.%s.svc.cluster.local:%d",
@@ -182,8 +182,9 @@ func buildFunctionsEnvVars(project *supabasev1alpha1.Project, db *supabasev1alph
 			strconv.Itoa(int(db.Port)),
 			db.DBName,
 		)),
-		helper.EnvVar("VERIFY_JWT", strconv.FormatBool(project.Spec.Functions.VerifyJWT)),
 	}
+
+	return helper.MergeEnvVars(env, project.Spec.Functions.Config)
 }
 
 // buildFunctionsVolumes returns the ConfigMap volumes for the Functions container.

@@ -176,8 +176,7 @@ var _ = Describe("Project Controller", func() {
 					Name: dbName,
 				},
 				Auth: &supabasev1alpha1.AuthSpec{
-					Enable:  ptr.To(false),
-					SiteURL: "https://example.com",
+					Enable: ptr.To(false),
 				},
 				Rest:     &supabasev1alpha1.RestSpec{Enable: ptr.To(false)},
 				Meta:     &supabasev1alpha1.MetaSpec{Enable: ptr.To(false)},
@@ -186,8 +185,7 @@ var _ = Describe("Project Controller", func() {
 				// Storage and Studio require their own VolumeClaim even when
 				// disabled, so omit them entirely.
 				Functions: &supabasev1alpha1.FunctionsSpec{
-					Enable:    ptr.To(false),
-					VerifyJWT: false,
+					Enable: ptr.To(false),
 				},
 			},
 		}
