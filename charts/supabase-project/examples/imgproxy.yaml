@@ -1,0 +1,51 @@
+# Enable image transformations in Storage through an imgproxy sidecar.
+# Containers in the same Pod share a network namespace, so Storage reaches
+# imgproxy through localhost rather than a Kubernetes Service.
+
+storage:
+  config:
+    - name: ENABLE_IMAGE_TRANSFORMATION
+      value: "true"
+    - name: IMGPROXY_URL
+      value: http://127.0.0.1:5001
+  pod:
+    spec:
+      containers:
+        - name: imgproxy
+          image: darthsim/imgproxy:v3.30.1
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          env:
+            - name: IMGPROXY_BIND
+              value: ":5001"
+            - name: IMGPROXY_LOCAL_FILESYSTEM_ROOT
+              value: /
+            - name: IMGPROXY_USE_ETAG
+              value: "true"
+            - name: IMGPROXY_AUTO_WEBP
+              value: "true"
+            - name: IMGPROXY_MAX_SRC_RESOLUTION
+              value: "16.8"
+          livenessProbe:
+            exec:
+              command:
+                - imgproxy
+                - health
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - imgproxy
+                - health
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            # This is the operator-managed Storage PVC, also mounted by Storage.
+            - name: storage-data
+              mountPath: /var/lib/storage
+              subPath: data
