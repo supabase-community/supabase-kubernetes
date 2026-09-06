@@ -208,7 +208,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	if project.ComputeJWTSyncHash(project.NewContext(proj), db, dbPassword, jwtSecret) != proj.Status.JwtSyncHash {
+	if project.ComputeJWTSyncHash(project.NewContext(proj), db, dbPassword, jwtSecret) != proj.Status.JWTSyncHash {
 		if err := r.ensureSyncJWTJob(ctx, proj, db); err != nil {
 			logger.Error(err, "Failed to ensure SyncJWTJob")
 			reconciler.SetNotReady(proj, "SyncJWTJobFailed", err.Error())
@@ -240,9 +240,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 		}
 
-		proj.Status.JwtSyncHash = project.ComputeJWTSyncHash(project.NewContext(proj), db, dbPassword, jwtSecret)
+		proj.Status.JWTSyncHash = project.ComputeJWTSyncHash(project.NewContext(proj), db, dbPassword, jwtSecret)
 		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
-			logger.Error(statusErr, "Failed to update JwtSyncHash status")
+			logger.Error(statusErr, "Failed to update JWTSyncHash status")
 			return ctrl.Result{}, statusErr
 		}
 	}

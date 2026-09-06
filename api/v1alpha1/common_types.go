@@ -27,12 +27,14 @@ type SecretKeyRef struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name"`
 
 	// Key defines the key within the Kubernetes Secret.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[-._a-zA-Z0-9]+$`
 	Key string `json:"key"`
 }
 
@@ -68,7 +70,7 @@ type ServiceTemplate struct {
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	ObjectMeta metav1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta metav1.ObjectMeta `json:"metadata,omitzero"`
 
 	// Spec defines the Kubernetes Service specification overlaid on the
 	// operator-generated Service specification.
@@ -88,5 +90,6 @@ type DatabaseRef struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name"`
 }

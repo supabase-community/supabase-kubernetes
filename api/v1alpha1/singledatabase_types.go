@@ -41,6 +41,8 @@ type SingleDatabaseSpec struct {
 // SingleDatabaseStatus defines the observed state of SingleDatabase.
 type SingleDatabaseStatus struct {
 	// Conditions include Ready and its current reconciliation reason.
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
@@ -59,17 +61,17 @@ type SingleDatabaseStatus struct {
 type SingleDatabase struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// metadata is a standard object metadata
+	// Metadata is the standard object metadata.
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	// spec defines the desired state of SingleDatabase
+	// Spec defines the desired state of SingleDatabase.
 	// +required
 	Spec SingleDatabaseSpec `json:"spec"`
 
-	// status defines the observed state of SingleDatabase
+	// Status defines the observed state of SingleDatabase.
 	// +optional
-	Status SingleDatabaseStatus `json:"status,omitempty"`
+	Status SingleDatabaseStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -77,7 +79,7 @@ type SingleDatabase struct {
 // SingleDatabaseList contains a list of SingleDatabase.
 type SingleDatabaseList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []SingleDatabase `json:"items"`
 }
 

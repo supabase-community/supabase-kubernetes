@@ -60,6 +60,8 @@ type MigrationSpec struct {
 // MigrationStatus defines the observed state of Migration.
 type MigrationStatus struct {
 	// Conditions include Ready and its current reconciliation reason.
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
@@ -83,17 +85,17 @@ type MigrationStatus struct {
 type Migration struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// metadata is a standard object metadata
+	// Metadata is the standard object metadata.
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	// spec defines the desired state of Migration
+	// Spec defines the desired state of Migration.
 	// +required
 	Spec MigrationSpec `json:"spec"`
 
-	// status defines the observed state of Migration
+	// Status defines the observed state of Migration.
 	// +optional
-	Status MigrationStatus `json:"status,omitempty"`
+	Status MigrationStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -101,7 +103,7 @@ type Migration struct {
 // MigrationList contains a list of Migration.
 type MigrationList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []Migration `json:"items"`
 }
 

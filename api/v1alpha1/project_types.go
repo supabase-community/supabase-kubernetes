@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ProjectSpec defines the desired state of a Supabase deployment.
+// ProjectSpec defines the desired state of Project.
 type ProjectSpec struct {
 	// JWTExpSec defines the JWT expiration time in seconds.
 	// +optional
@@ -38,15 +38,17 @@ type ProjectSpec struct {
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 }
 
-// ProjectStatus defines the observed state of a Supabase deployment.
+// ProjectStatus defines the observed state of Project.
 type ProjectStatus struct {
 	// Conditions include Ready and its current reconciliation reason.
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// JwtSyncHash is the hash of the JWT configuration last successfully applied by the sync job.
+	// JWTSyncHash is the hash of the JWT configuration last successfully applied by the sync job.
 	// +optional
-	JwtSyncHash string `json:"jwtSyncHash,omitempty"`
+	JWTSyncHash string `json:"jwtSyncHash,omitempty"`
 
 	// PasswordSyncHash is the hash of the password configuration last successfully applied by the sync job.
 	// +optional
@@ -63,17 +65,17 @@ type ProjectStatus struct {
 type Project struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// metadata is a standard object metadata
+	// Metadata is the standard object metadata.
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	// spec defines the desired state of Project
+	// Spec defines the desired state of Project.
 	// +required
 	Spec ProjectSpec `json:"spec"`
 
-	// status defines the observed state of Project
+	// Status defines the observed state of Project.
 	// +optional
-	Status ProjectStatus `json:"status,omitempty"`
+	Status ProjectStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -81,7 +83,7 @@ type Project struct {
 // ProjectList contains a list of Project.
 type ProjectList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []Project `json:"items"`
 }
 

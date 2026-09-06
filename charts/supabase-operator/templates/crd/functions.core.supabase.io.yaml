@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of Function
+            description: Spec defines the desired state of Function.
             properties:
               functionName:
                 description: FunctionName is the logical name of the function inside
@@ -77,6 +77,8 @@ spec:
                   rule: self == oldSelf
                 - message: projectRef.name is required
                   rule: has(self.name) && size(self.name) > 0
+                - message: projectRef.name must be a valid DNS subdomain
+                  rule: size(self.name) <= 253 && self.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
               source:
                 additionalProperties:
                   type: string
@@ -89,7 +91,7 @@ spec:
             - source
             type: object
           status:
-            description: status defines the observed state of Function
+            description: Status defines the observed state of Function.
             properties:
               conditions:
                 description: Conditions include Ready and its current reconciliation
@@ -149,6 +151,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
             type: object
         required:
         - spec

@@ -47,7 +47,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of SingleDatabase
+            description: Spec defines the desired state of SingleDatabase.
             properties:
               pod:
                 description: Pod overlays the operator-generated Pod template.
@@ -603,7 +603,7 @@ spec:
                 type: object
             type: object
           status:
-            description: status defines the observed state of SingleDatabase
+            description: Status defines the observed state of SingleDatabase.
             properties:
               conditions:
                 description: Conditions include Ready and its current reconciliation
@@ -663,6 +663,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               resolvedDatabase:
                 description: ResolvedDatabase exposes the resolved database connection
                   parameters.
@@ -681,11 +684,13 @@ spec:
                         description: Key defines the key within the Kubernetes Secret.
                         maxLength: 253
                         minLength: 1
+                        pattern: ^[-._a-zA-Z0-9]+$
                         type: string
                       name:
                         description: Name defines the name of the Kubernetes Secret.
                         maxLength: 253
                         minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                         type: string
                     required:
                     - key

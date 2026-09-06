@@ -265,7 +265,7 @@ var _ = Describe("Project Controller", func() {
 			Eventually(func(g Gomega) {
 				got := &supabasev1alpha1.Project{}
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: proj.Name, Namespace: ns}, got)).To(Succeed())
-				g.Expect(got.Status.JwtSyncHash).NotTo(BeEmpty())
+				g.Expect(got.Status.JWTSyncHash).NotTo(BeEmpty())
 				g.Expect(got.Status.PasswordSyncHash).NotTo(BeEmpty())
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 		})

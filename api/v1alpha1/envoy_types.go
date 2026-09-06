@@ -27,6 +27,7 @@ type EnvoySpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="projectRef is immutable"
 	// +kubebuilder:validation:XValidation:rule="has(self.name) && size(self.name) > 0",message="projectRef.name is required"
+	// +kubebuilder:validation:XValidation:rule="size(self.name) <= 253 && self.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="projectRef.name must be a valid DNS subdomain"
 	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
 	// Pod overlays the operator-generated Pod template.
@@ -46,6 +47,8 @@ type EnvoySpec struct {
 	Service *ServiceTemplate `json:"service,omitempty"`
 
 	// Config defines extra environment variables merged into the Envoy containers.
+	// +listType=map
+	// +listMapKey=name
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge
@@ -72,15 +75,15 @@ type EnvoyStatus struct {
 type Envoy struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// metadata is a standard object metadata
+	// Metadata is the standard object metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	// spec defines the desired state of Envoy
+	// Spec defines the desired state of Envoy.
 	// +required
 	Spec EnvoySpec `json:"spec"`
 
-	// status defines the observed state of Envoy
+	// Status defines the observed state of Envoy.
 	// +optional
 	Status EnvoyStatus `json:"status,omitzero"`
 }

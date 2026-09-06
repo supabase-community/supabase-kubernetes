@@ -27,6 +27,7 @@ type FunctionSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="projectRef is immutable"
 	// +kubebuilder:validation:XValidation:rule="has(self.name) && size(self.name) > 0",message="projectRef.name is required"
+	// +kubebuilder:validation:XValidation:rule="size(self.name) <= 253 && self.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="projectRef.name must be a valid DNS subdomain"
 	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
 	// FunctionName is the logical name of the function inside the project.
@@ -44,6 +45,8 @@ type FunctionSpec struct {
 // FunctionStatus defines the observed state of Function.
 type FunctionStatus struct {
 	// Conditions include Ready and its current reconciliation reason.
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
@@ -59,17 +62,17 @@ type FunctionStatus struct {
 type Function struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// metadata is a standard object metadata
+	// Metadata is the standard object metadata.
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	// spec defines the desired state of Function
+	// Spec defines the desired state of Function.
 	// +required
 	Spec FunctionSpec `json:"spec"`
 
-	// status defines the observed state of Function
+	// Status defines the observed state of Function.
 	// +optional
-	Status FunctionStatus `json:"status,omitempty"`
+	Status FunctionStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -77,7 +80,7 @@ type Function struct {
 // FunctionList contains a list of Function.
 type FunctionList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []Function `json:"items"`
 }
 

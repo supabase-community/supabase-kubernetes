@@ -47,7 +47,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of Envoy
+            description: Spec defines the desired state of Envoy.
             properties:
               config:
                 description: Config defines extra environment variables merged into
@@ -207,6 +207,9 @@ spec:
                   - name
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               pod:
                 description: Pod overlays the operator-generated Pod template.
                 x-kubernetes-preserve-unknown-fields: true
@@ -229,6 +232,8 @@ spec:
                   rule: self == oldSelf
                 - message: projectRef.name is required
                   rule: has(self.name) && size(self.name) > 0
+                - message: projectRef.name must be a valid DNS subdomain
+                  rule: size(self.name) <= 253 && self.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
               replicas:
                 default: 1
                 description: Replicas defines the number of component instances.
@@ -592,7 +597,7 @@ spec:
             - projectRef
             type: object
           status:
-            description: status defines the observed state of Envoy
+            description: Status defines the observed state of Envoy.
             properties:
               conditions:
                 description: Conditions include Ready and its current reconciliation

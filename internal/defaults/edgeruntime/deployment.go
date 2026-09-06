@@ -47,7 +47,7 @@ func FunctionsDeployment(project *ResourceContext, functions []supabasev1alpha1.
 
 	template, err := helper.Overlay(corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{Labels: FunctionsLabels(project)},
-		Spec:       corev1.PodSpec{Volumes: buildFunctionsVolumes(functions), Containers: []corev1.Container{buildFunctionsContainer(project, functions, db)}},
+		Spec:       corev1.PodSpec{Volumes: buildFunctionsVolumes(functions), Containers: []corev1.Container{buildEdgeRuntimeContainer(project, functions, db)}},
 	}, project.Spec.EdgeRuntime.Pod)
 	if err != nil {
 		return nil, err
@@ -78,10 +78,10 @@ func functionsReplicas(project *ResourceContext) *int32 {
 	return ptr.To(int32(1))
 }
 
-// buildFunctionsContainer returns the Functions container specification.
-func buildFunctionsContainer(project *ResourceContext, functions []supabasev1alpha1.Function, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
+// buildEdgeRuntimeContainer returns the EdgeRuntime container specification.
+func buildEdgeRuntimeContainer(project *ResourceContext, functions []supabasev1alpha1.Function, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
-		Name:            "functions",
+		Name:            "edge-runtime",
 		Image:           functionsImage(project),
 		ImagePullPolicy: functionsImagePullPolicy(project),
 		Args:            []string{"start", "--main-service", "/home/deno/functions/main"},
@@ -105,7 +105,7 @@ func functionsImagePullPolicy(project *ResourceContext) corev1.PullPolicy {
 	return corev1.PullIfNotPresent
 }
 
-// functionsPorts returns the container ports for the Functions container.
+// functionsPorts returns the container ports for the EdgeRuntime container.
 func functionsPorts() []corev1.ContainerPort {
 	return []corev1.ContainerPort{
 		{
@@ -116,7 +116,7 @@ func functionsPorts() []corev1.ContainerPort {
 	}
 }
 
-// functionsLivenessProbe returns the liveness probe for the Functions container.
+// functionsLivenessProbe returns the liveness probe for the EdgeRuntime container.
 func functionsLivenessProbe() *corev1.Probe {
 	return &corev1.Probe{
 		ProbeHandler:        functionsProbeHandler(),
@@ -127,7 +127,7 @@ func functionsLivenessProbe() *corev1.Probe {
 	}
 }
 
-// functionsReadinessProbe returns the readiness probe for the Functions container.
+// functionsReadinessProbe returns the readiness probe for the EdgeRuntime container.
 func functionsReadinessProbe() *corev1.Probe {
 	return &corev1.Probe{
 		ProbeHandler:        functionsProbeHandler(),
@@ -138,7 +138,7 @@ func functionsReadinessProbe() *corev1.Probe {
 	}
 }
 
-// functionsStartupProbe returns the startup probe for the Functions container.
+// functionsStartupProbe returns the startup probe for the EdgeRuntime container.
 func functionsStartupProbe() *corev1.Probe {
 	return &corev1.Probe{
 		ProbeHandler:        functionsProbeHandler(),
@@ -162,7 +162,7 @@ func functionsProbeHandler() corev1.ProbeHandler {
 	}
 }
 
-// buildFunctionsEnvVars returns the environment variables for the Functions container.
+// buildFunctionsEnvVars returns the environment variables for the EdgeRuntime container.
 func buildFunctionsEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
 	env := []corev1.EnvVar{
 		helper.EnvVarFromSecret("JWT_SECRET", JWTSecretName(project), JWTSecretKey),
@@ -191,7 +191,7 @@ func buildFunctionsEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolv
 	return helper.MergeEnvVars(env, project.Spec.EdgeRuntime.Config)
 }
 
-// buildFunctionsVolumes returns the ConfigMap volumes for the Functions container.
+// buildFunctionsVolumes returns the ConfigMap volumes for the EdgeRuntime container.
 func buildFunctionsVolumes(functions []supabasev1alpha1.Function) []corev1.Volume {
 	volumes := make([]corev1.Volume, 0, len(functions))
 	for _, f := range functions {
@@ -209,7 +209,7 @@ func buildFunctionsVolumes(functions []supabasev1alpha1.Function) []corev1.Volum
 	return volumes
 }
 
-// buildFunctionsVolumeMounts returns the volume mounts for the Functions container.
+// buildFunctionsVolumeMounts returns the volume mounts for the EdgeRuntime container.
 func buildFunctionsVolumeMounts(functions []supabasev1alpha1.Function) []corev1.VolumeMount {
 	totalFiles := 0
 	for _, f := range functions {
