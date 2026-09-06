@@ -29,10 +29,18 @@ The Operator exposes the following Kubernetes Custom Resources:
 
 | Resource | Short name | Description |
 |---|---|---|
-| `Project` | `projects` | Represents a complete Supabase instance. It is modular, allowing you to enable only the components you need |
+| `Project` | `projects` | Shared configuration, credentials, migrations, and database synchronization |
 | `SingleDatabase` | `singledatabases` | Postgres database managed by the Operator |
 | `Function` | `functions` | Edge Functions deployed in the cluster |
 | `Migration` | `migrations` | Applies SQL scripts to referenced databases. Also used internally by the Operator to manage Supabase upgrade migrations |
+| `Auth` | `auths` | Supabase Auth component |
+| `Rest` | `rests` | PostgREST component |
+| `Meta` | `meta` | Postgres Meta component |
+| `Realtime` | `realtimes` | Supabase Realtime component |
+| `Storage` | `storages` | Supabase Storage component |
+| `Studio` | `studios` | Supabase Studio component |
+| `Envoy` | `envoys` | API gateway component |
+| `EdgeRuntime` | `edgeruntimes` | Runtime for `Function` resources |
 
 ## Quick Start
 
@@ -63,7 +71,7 @@ This installs the CRDs and deploys the controller in a single step.
 
 ### Deploy a Supabase Project
 
-The `supabase-project` chart creates a `SingleDatabase` and a `Project` that references it, with the components you need. Install it setting the required values:
+The `supabase-project` chart creates a `SingleDatabase`, a `Project`, and the enabled component resources. Install it setting the required values:
 
 ```bash
 helm install supabase supabase/supabase-project \
@@ -83,7 +91,7 @@ kubectl get secrets supabase-postgres-auth supabase-envoy-auth supabase-jwt \
 
 ### Access Supabase
 
-Once the Project is ready, forward the Envoy gateway to your local machine:
+Once the resources are ready, forward the Envoy gateway to your local machine:
 
 ```bash
 kubectl port-forward svc/supabase-envoy 8000:8000

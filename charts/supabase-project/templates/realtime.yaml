@@ -1,0 +1,12 @@
+{{- if .Values.realtime.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: Realtime
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  projectRef:
+    name: {{ include "supabase-project.fullname" . | quote }}
+  {{- omit .Values.realtime "enable" | toYaml | nindent 2 }}
+{{- end }}

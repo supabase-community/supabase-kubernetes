@@ -1,0 +1,8 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Realtime
+metadata:
+  name: supabase
+spec:
+  projectRef:
+    name: supabase
+  replicas: 1

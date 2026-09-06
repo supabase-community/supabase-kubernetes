@@ -16,20 +16,24 @@ limitations under the License.
 
 package v1alpha1
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // RestSpec defines the desired state of the Rest component.
 type RestSpec struct {
+	// ProjectRef references a Project in the same namespace.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="projectRef is immutable"
+	// +kubebuilder:validation:XValidation:rule="has(self.name) && size(self.name) > 0",message="projectRef.name is required"
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
+
 	// Pod overlays the operator-generated Pod template.
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
-
-	// Enable defines whether the Rest component is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enable *bool `json:"enable,omitempty"`
 
 	// Replicas defines the number of component instances
 	// +optional
@@ -47,3 +51,51 @@ type RestSpec struct {
 	// +patchStrategy=merge
 	Config []corev1.EnvVar `json:"config,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 }
+
+// RestStatus defines the observed state of Rest.
+type RestStatus struct {
+	// Conditions include Ready and its current reconciliation reason.
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.projectRef.name`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Rest is the Schema for the rests API
+type Rest struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is a standard object metadata
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitzero"`
+
+	// spec defines the desired state of Rest
+	// +required
+	Spec RestSpec `json:"spec"`
+
+	// status defines the observed state of Rest
+	// +optional
+	Status RestStatus `json:"status,omitzero"`
+}
+
+// +kubebuilder:object:root=true
+
+// RestList contains a list of Rest
+type RestList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitzero"`
+	Items           []Rest `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Rest{}, &RestList{})
+}
+
+func (c *Rest) GetConditions() *[]metav1.Condition         { return &c.Status.Conditions }
+func (c *Rest) GetProjectRef() corev1.LocalObjectReference { return c.Spec.ProjectRef }

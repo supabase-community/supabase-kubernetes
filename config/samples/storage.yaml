@@ -1,0 +1,12 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Storage
+metadata:
+  name: supabase
+spec:
+  projectRef:
+    name: supabase
+  replicas: 1
+  storage:
+    accessModes: [ReadWriteOnce]
+    size: 5Gi
+    deletionPolicy: Delete

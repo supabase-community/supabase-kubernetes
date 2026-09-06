@@ -57,6 +57,8 @@ func MutateSecret(keys ...string) func(existing, desired *corev1.Secret) error {
 func MutatePVC() func(existing, desired *corev1.PersistentVolumeClaim) error {
 	return func(existing, desired *corev1.PersistentVolumeClaim) error {
 		existing.Spec.Resources = desired.Spec.Resources
+		existing.OwnerReferences = desired.OwnerReferences
+		existing.Annotations = mergeStringMaps(existing.Annotations, desired.Annotations)
 		return nil
 	}
 }

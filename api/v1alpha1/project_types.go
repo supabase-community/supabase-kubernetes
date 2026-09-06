@@ -35,38 +35,6 @@ type ProjectSpec struct {
 	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
-
-	// Rest defines the Rest component configuration
-	// +optional
-	Rest *RestSpec `json:"rest,omitempty"`
-
-	// Meta defines the Meta component configuration
-	// +optional
-	Meta *MetaSpec `json:"meta,omitempty"`
-
-	// Realtime defines the Realtime component configuration
-	// +optional
-	Realtime *RealtimeSpec `json:"realtime,omitempty"`
-
-	// Auth defines the Auth component configuration
-	// +optional
-	Auth *AuthSpec `json:"auth,omitempty"`
-
-	// Functions defines the Functions component configuration
-	// +optional
-	Functions *FunctionsSpec `json:"functions,omitempty"`
-
-	// Envoy defines the Envoy component configuration
-	// +optional
-	Envoy *EnvoySpec `json:"envoy,omitempty"`
-
-	// Storage defines the Storage component configuration
-	// +optional
-	Storage *StorageSpec `json:"storage,omitempty"`
-
-	// Studio defines the Studio component configuration
-	// +optional
-	Studio *StudioSpec `json:"studio,omitempty"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.

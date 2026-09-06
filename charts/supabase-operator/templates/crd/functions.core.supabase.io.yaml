@@ -18,6 +18,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.projectRef.name
+      name: Project
+      type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
@@ -56,11 +59,24 @@ spec:
                 minLength: 1
                 type: string
               projectRef:
-                description: ProjectRef references the Project resource that owns
-                  this function.
-                maxLength: 253
-                minLength: 1
-                type: string
+                description: ProjectRef references a Project in the same namespace.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: projectRef is immutable
+                  rule: self == oldSelf
+                - message: projectRef.name is required
+                  rule: has(self.name) && size(self.name) > 0
               source:
                 additionalProperties:
                   type: string

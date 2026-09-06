@@ -17,16 +17,17 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // FunctionSpec defines the desired state of Function.
 type FunctionSpec struct {
-	// ProjectRef references the Project resource that owns this function.
+	// ProjectRef references a Project in the same namespace.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	ProjectRef string `json:"projectRef"`
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="projectRef is immutable"
+	// +kubebuilder:validation:XValidation:rule="has(self.name) && size(self.name) > 0",message="projectRef.name is required"
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
 
 	// FunctionName is the logical name of the function inside the project.
 	// +kubebuilder:validation:Required
@@ -49,6 +50,7 @@ type FunctionStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.projectRef.name`
 // +kubebuilder:resource:path=functions,scope=Namespaced
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`

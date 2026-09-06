@@ -36,7 +36,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
-	"github.com/supabase-community/supabase-kubernetes/internal/controller"
+	authcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/auth"
+	edgeruntimecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/edgeruntime"
+	envoycontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/envoy"
+	functioncontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/function"
+	metacontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/meta"
+	migrationcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/migration"
+	projectcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/project"
+	realtimecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/realtime"
+	restcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/rest"
+	singledatabasecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/singledatabase"
+	storagecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/storage"
+	studiocontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/studio"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -195,7 +206,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := (&controller.ProjectReconciler{
+	if err := (&projectcontroller.Reconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Recorder:        mgr.GetEventRecorder("project"),
@@ -204,7 +215,7 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "Project")
 		os.Exit(1)
 	}
-	if err := (&controller.SingleDatabaseReconciler{
+	if err := (&singledatabasecontroller.Reconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Recorder:        mgr.GetEventRecorder("singledatabase"),
@@ -213,7 +224,7 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "SingleDatabase")
 		os.Exit(1)
 	}
-	if err := (&controller.MigrationReconciler{
+	if err := (&migrationcontroller.Reconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Recorder:        mgr.GetEventRecorder("migration"),
@@ -222,7 +233,7 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "Migration")
 		os.Exit(1)
 	}
-	if err := (&controller.FunctionReconciler{
+	if err := (&functioncontroller.Reconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Recorder:        mgr.GetEventRecorder("function"),
@@ -232,6 +243,62 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := (&authcontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Auth")
+		os.Exit(1)
+	}
+	if err := (&restcontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Rest")
+		os.Exit(1)
+	}
+	if err := (&metacontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Meta")
+		os.Exit(1)
+	}
+	if err := (&realtimecontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Realtime")
+		os.Exit(1)
+	}
+	if err := (&storagecontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Storage")
+		os.Exit(1)
+	}
+	if err := (&studiocontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Studio")
+		os.Exit(1)
+	}
+	if err := (&envoycontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Envoy")
+		os.Exit(1)
+	}
+	if err := (&edgeruntimecontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "EdgeRuntime")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

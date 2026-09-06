@@ -1,0 +1,12 @@
+{{- if .Values.auth.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: Auth
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  projectRef:
+    name: {{ include "supabase-project.fullname" . | quote }}
+  {{- omit .Values.auth "enable" | toYaml | nindent 2 }}
+{{- end }}
