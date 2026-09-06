@@ -6,12 +6,7 @@ metadata:
     {{- include "supabase-project.labels" . | nindent 4 }}
 spec:
   jwtExpSec: {{ .Values.project.jwtExpSec }}
-  http:
-    protocol: {{ .Values.project.http.protocol | quote }}
-    hostname: {{ .Values.project.http.hostname | quote }}
-    {{- with .Values.project.http.port }}
-    port: {{ . }}
-    {{- end }}
+  publicUrl: {{ .Values.project.publicUrl | quote }}
   databaseRef:
     kind: SingleDatabase
     name: {{ include "supabase-project.fullname" . | quote }}

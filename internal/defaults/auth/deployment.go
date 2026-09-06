@@ -161,14 +161,14 @@ func authProbeHandler() corev1.ProbeHandler {
 
 // buildAuthEnvVars returns the environment variables for the Auth container.
 func buildAuthEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
-	apiURL := APIExternalURL(project)
+	publicURL := project.Spec.PublicURL
 	auth := project.Spec.Auth
 
 	env := []corev1.EnvVar{
 		helper.EnvVar("GOTRUE_API_HOST", "0.0.0.0"),
 		helper.EnvVar("GOTRUE_API_PORT", strconv.Itoa(int(DefaultAuthPort))),
-		helper.EnvVar("API_EXTERNAL_URL", apiURL),
-		helper.EnvVar("GOTRUE_SITE_URL", apiURL),
+		helper.EnvVar("API_EXTERNAL_URL", publicURL),
+		helper.EnvVar("GOTRUE_SITE_URL", publicURL),
 		helper.EnvVar("GOTRUE_DB_DRIVER", "postgres"),
 		helper.EnvVarFromSecret("DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVar("GOTRUE_DB_DATABASE_URL", fmt.Sprintf(
@@ -183,7 +183,7 @@ func buildAuthEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDat
 		helper.EnvVar("GOTRUE_JWT_EXP", strconv.Itoa(int(*project.Spec.JWTExpSec))),
 		helper.EnvVarFromSecret("GOTRUE_JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVarFromSecret("GOTRUE_JWT_KEYS", JWTSecretName(project), JWTSecretKeys),
-		helper.EnvVar("GOTRUE_JWT_ISSUER", fmt.Sprintf("%s/auth/v1", apiURL)),
+		helper.EnvVar("GOTRUE_JWT_ISSUER", fmt.Sprintf("%s/auth/v1", publicURL)),
 	}
 
 	return helper.MergeEnvVars(env, auth.Config)

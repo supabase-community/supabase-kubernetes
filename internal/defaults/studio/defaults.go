@@ -26,7 +26,6 @@ func StudioSelectorLabels(ctx *ResourceContext) map[string]string {
 
 var JWTSecretName = projectdefaults.JWTSecretName
 var KeysSecretName = projectdefaults.KeysSecretName
-var APIExternalURL = projectdefaults.APIExternalURL
 var MetaServiceName = metadefaults.MetaServiceName
 
 func EnvoyServiceName(ctx *ResourceContext) string {

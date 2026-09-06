@@ -17,7 +17,6 @@ func AuthSelectorLabels(ctx *ResourceContext) map[string]string {
 	return defaults.SelectorLabels(ctx, "Auth", "auth", "auth", "auth")
 }
 
-var APIExternalURL = projectdefaults.APIExternalURL
 var JWTSecretName = projectdefaults.JWTSecretName
 
 const (

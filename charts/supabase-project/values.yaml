@@ -10,10 +10,7 @@
 ##
 project:
   jwtExpSec: 3600
-  http:
-    protocol: http
-    hostname: ""
-    port: null
+  publicUrl: ""
 
 ## SingleDatabase configuration
 ##
