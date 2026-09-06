@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // VolumeClaim defines the desired characteristics of a persistent volume claim.
@@ -94,21 +95,19 @@ type ResolvedDatabase struct {
 	PasswordRef SecretKeyRef `json:"passwordRef"`
 }
 
-// ServiceSpec defines the configuration for a component Service.
-type ServiceSpec struct {
-	// Type defines the type of the Kubernetes Service
+// ServiceTemplate defines the template for a component Service.
+type ServiceTemplate struct {
+	// ObjectMeta defines metadata overlaid on the operator-generated Service.
+	// Name and namespace are managed by the operator and are ignored.
 	// +optional
-	// +kubebuilder:default=ClusterIP
-	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
-	Type *corev1.ServiceType `json:"type,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	ObjectMeta metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Annotations defines annotations to add to the Service
+	// Spec defines the Kubernetes Service specification overlaid on the
+	// operator-generated Service specification.
 	// +optional
-	Annotations map[string]string `json:"annotations,omitempty"`
-
-	// Labels defines labels to add to the Service
-	// +optional
-	Labels map[string]string `json:"labels,omitempty"`
+	Spec corev1.ServiceSpec `json:"spec,omitempty"`
 }
 
 // DatabaseRef references a database resource.

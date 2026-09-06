@@ -17,11 +17,11 @@ limitations under the License.
 package studio
 
 import (
-	"maps"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // StudioServiceName returns the name of the Studio Service for a Project.
@@ -37,13 +37,12 @@ func StudioService(project *ResourceContext) (*corev1.Service, error) {
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        StudioServiceName(project),
-			Namespace:   project.Namespace,
-			Labels:      studioServiceLabels(project),
-			Annotations: studioServiceAnnotations(project),
+			Name:      StudioServiceName(project),
+			Namespace: project.Namespace,
+			Labels:    StudioLabels(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     studioServiceType(project),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: StudioSelectorLabels(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -56,30 +55,5 @@ func StudioService(project *ResourceContext) (*corev1.Service, error) {
 		},
 	}
 
-	return svc, nil
-}
-
-// studioServiceLabels returns the merged Service labels for the Studio component.
-func studioServiceLabels(project *ResourceContext) map[string]string {
-	labels := maps.Clone(StudioLabels(project))
-	if project.Spec.Studio != nil && project.Spec.Studio.Service != nil {
-		maps.Copy(labels, project.Spec.Studio.Service.Labels)
-	}
-	return labels
-}
-
-// studioServiceAnnotations returns the Service annotations for the Studio component.
-func studioServiceAnnotations(project *ResourceContext) map[string]string {
-	if project.Spec.Studio == nil || project.Spec.Studio.Service == nil {
-		return nil
-	}
-	return project.Spec.Studio.Service.Annotations
-}
-
-// studioServiceType returns the service type from the spec or ClusterIP.
-func studioServiceType(project *ResourceContext) corev1.ServiceType {
-	if project.Spec.Studio != nil && project.Spec.Studio.Service != nil && project.Spec.Studio.Service.Type != nil {
-		return *project.Spec.Studio.Service.Type
-	}
-	return corev1.ServiceTypeClusterIP
+	return helper.OverlayService(*svc, project.Spec.Studio.Service)
 }

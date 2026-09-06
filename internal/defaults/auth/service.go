@@ -17,11 +17,11 @@ limitations under the License.
 package auth
 
 import (
-	"maps"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // AuthServiceName returns the name of the Auth Service for a Project.
@@ -37,13 +37,12 @@ func AuthService(project *ResourceContext) (*corev1.Service, error) {
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        AuthServiceName(project),
-			Namespace:   project.Namespace,
-			Labels:      authServiceLabels(project),
-			Annotations: authServiceAnnotations(project),
+			Name:      AuthServiceName(project),
+			Namespace: project.Namespace,
+			Labels:    AuthLabels(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     authServiceType(project),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: AuthSelectorLabels(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -56,30 +55,5 @@ func AuthService(project *ResourceContext) (*corev1.Service, error) {
 		},
 	}
 
-	return svc, nil
-}
-
-// authServiceLabels returns the merged Service labels for the Auth component.
-func authServiceLabels(project *ResourceContext) map[string]string {
-	labels := maps.Clone(AuthLabels(project))
-	if project.Spec.Auth != nil && project.Spec.Auth.Service != nil {
-		maps.Copy(labels, project.Spec.Auth.Service.Labels)
-	}
-	return labels
-}
-
-// authServiceAnnotations returns the Service annotations for the Auth component.
-func authServiceAnnotations(project *ResourceContext) map[string]string {
-	if project.Spec.Auth == nil || project.Spec.Auth.Service == nil {
-		return nil
-	}
-	return project.Spec.Auth.Service.Annotations
-}
-
-// authServiceType returns the service type from the spec or ClusterIP.
-func authServiceType(project *ResourceContext) corev1.ServiceType {
-	if project.Spec.Auth != nil && project.Spec.Auth.Service != nil && project.Spec.Auth.Service.Type != nil {
-		return *project.Spec.Auth.Service.Type
-	}
-	return corev1.ServiceTypeClusterIP
+	return helper.OverlayService(*svc, project.Spec.Auth.Service)
 }

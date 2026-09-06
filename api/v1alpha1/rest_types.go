@@ -43,7 +43,7 @@ type RestSpec struct {
 
 	// Service defines the configuration for the component Service
 	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
+	Service *ServiceTemplate `json:"service,omitempty"`
 
 	// Config defines extra environment variables merged into the Rest container.
 	// +optional

@@ -17,11 +17,11 @@ limitations under the License.
 package envoy
 
 import (
-	"maps"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // EnvoyServiceName returns the name of the Envoy Service for a Project.
@@ -35,15 +35,14 @@ func EnvoyService(project *ResourceContext) (*corev1.Service, error) {
 		return nil, nil
 	}
 
-	return &corev1.Service{
+	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        EnvoyServiceName(project),
-			Namespace:   project.Namespace,
-			Labels:      envoyServiceLabels(project),
-			Annotations: envoyServiceAnnotations(project),
+			Name:      EnvoyServiceName(project),
+			Namespace: project.Namespace,
+			Labels:    EnvoyLabels(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     envoyServiceType(project),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: EnvoySelectorLabels(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -54,30 +53,7 @@ func EnvoyService(project *ResourceContext) (*corev1.Service, error) {
 				},
 			},
 		},
-	}, nil
-}
-
-// envoyServiceLabels returns the merged Service labels for the Envoy component.
-func envoyServiceLabels(project *ResourceContext) map[string]string {
-	labels := maps.Clone(EnvoyLabels(project))
-	if project.Spec.Envoy != nil && project.Spec.Envoy.Service != nil {
-		maps.Copy(labels, project.Spec.Envoy.Service.Labels)
 	}
-	return labels
-}
 
-// envoyServiceAnnotations returns the Service annotations for the Envoy component.
-func envoyServiceAnnotations(project *ResourceContext) map[string]string {
-	if project.Spec.Envoy == nil || project.Spec.Envoy.Service == nil {
-		return nil
-	}
-	return project.Spec.Envoy.Service.Annotations
-}
-
-// envoyServiceType returns the service type from the spec or ClusterIP.
-func envoyServiceType(project *ResourceContext) corev1.ServiceType {
-	if project.Spec.Envoy != nil && project.Spec.Envoy.Service != nil && project.Spec.Envoy.Service.Type != nil {
-		return *project.Spec.Envoy.Service.Type
-	}
-	return corev1.ServiceTypeClusterIP
+	return helper.OverlayService(*svc, project.Spec.Envoy.Service)
 }

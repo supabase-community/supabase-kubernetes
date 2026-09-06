@@ -63,19 +63,79 @@ func MutatePVC() func(existing, desired *corev1.PersistentVolumeClaim) error {
 	}
 }
 
-// MutateService returns a mutateFn that copies the managed Service fields
-// (Type, Selector, Ports) and Labels from desired to existing, merging
-// Annotations so that server-side or third-party annotations are preserved.
-// Server-side defaults such as ClusterIP and ClusterIPs are preserved.
+// MutateService returns a mutateFn that copies the desired Service template
+// while preserving values allocated or defaulted by the API server when the
+// desired template leaves them unset.
 func MutateService() func(existing, desired *corev1.Service) error {
 	return func(existing, desired *corev1.Service) error {
-		existing.Spec.Type = desired.Spec.Type
-		existing.Spec.Selector = desired.Spec.Selector
-		existing.Spec.Ports = desired.Spec.Ports
+		current := existing.Spec.DeepCopy()
+		desired.Spec.DeepCopyInto(&existing.Spec)
+		preserveServiceDefaults(&existing.Spec, &desired.Spec, current)
 		existing.Labels = desired.Labels
 		existing.Annotations = mergeStringMaps(existing.Annotations, desired.Annotations)
 		return nil
 	}
+}
+
+func preserveServiceDefaults(result, desired, current *corev1.ServiceSpec) {
+	if desired.ClusterIP == "" {
+		result.ClusterIP = current.ClusterIP
+	}
+	if desired.ClusterIPs == nil {
+		result.ClusterIPs = current.ClusterIPs
+	}
+	if desired.IPFamilies == nil {
+		result.IPFamilies = current.IPFamilies
+	}
+	if desired.IPFamilyPolicy == nil {
+		result.IPFamilyPolicy = current.IPFamilyPolicy
+	}
+	if desired.HealthCheckNodePort == 0 {
+		result.HealthCheckNodePort = current.HealthCheckNodePort
+	}
+	if desired.AllocateLoadBalancerNodePorts == nil {
+		result.AllocateLoadBalancerNodePorts = current.AllocateLoadBalancerNodePorts
+	}
+	if desired.SessionAffinity == "" {
+		result.SessionAffinity = current.SessionAffinity
+	}
+	if desired.ExternalTrafficPolicy == "" {
+		result.ExternalTrafficPolicy = current.ExternalTrafficPolicy
+	}
+	if desired.InternalTrafficPolicy == nil {
+		result.InternalTrafficPolicy = current.InternalTrafficPolicy
+	}
+	if desired.TrafficDistribution == nil {
+		result.TrafficDistribution = current.TrafficDistribution
+	}
+
+	for i := range result.Ports {
+		currentPort, ok := findServicePort(current.Ports, result.Ports[i])
+		if !ok {
+			continue
+		}
+		if desired.Ports[i].NodePort == 0 {
+			result.Ports[i].NodePort = currentPort.NodePort
+		}
+		if desired.Ports[i].Protocol == "" {
+			result.Ports[i].Protocol = currentPort.Protocol
+		}
+		if desired.Ports[i].TargetPort.IntVal == 0 && desired.Ports[i].TargetPort.StrVal == "" {
+			result.Ports[i].TargetPort = currentPort.TargetPort
+		}
+	}
+}
+
+func findServicePort(ports []corev1.ServicePort, desired corev1.ServicePort) (corev1.ServicePort, bool) {
+	for _, port := range ports {
+		if desired.Name != "" && port.Name == desired.Name {
+			return port, true
+		}
+		if desired.Name == "" && port.Port == desired.Port && port.Protocol == desired.Protocol {
+			return port, true
+		}
+	}
+	return corev1.ServicePort{}, false
 }
 
 // MutateConfigMap returns a mutateFn that copies Data and Labels from desired

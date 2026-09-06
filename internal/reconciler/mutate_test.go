@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
@@ -107,29 +108,57 @@ var _ = Describe("Mutate functions", func() {
 	})
 
 	Context("MutateService", func() {
-		It("should copy Spec and Labels from desired and merge Annotations", func() {
+		It("should copy the full Spec and Labels from desired and merge Annotations", func() {
+			clusterPolicy := corev1.IPFamilyPolicySingleStack
+			internalPolicy := corev1.ServiceInternalTrafficPolicyCluster
+			allocateNodePorts := true
 			existing := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      map[string]string{"old-label": "value"},
 					Annotations: map[string]string{"old-anno": "value"},
 				},
 				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{Port: 80}},
+					ClusterIP:                     "10.0.0.10",
+					ClusterIPs:                    []string{"10.0.0.10"},
+					IPFamilies:                    []corev1.IPFamily{corev1.IPv4Protocol},
+					IPFamilyPolicy:                &clusterPolicy,
+					HealthCheckNodePort:           32000,
+					AllocateLoadBalancerNodePorts: &allocateNodePorts,
+					SessionAffinity:               corev1.ServiceAffinityNone,
+					ExternalTrafficPolicy:         corev1.ServiceExternalTrafficPolicyCluster,
+					InternalTrafficPolicy:         &internalPolicy,
+					Ports: []corev1.ServicePort{{
+						Name:       "http",
+						Port:       80,
+						NodePort:   30080,
+						Protocol:   corev1.ProtocolTCP,
+						TargetPort: intstr.FromInt32(80),
+					}},
 				},
 			}
+			loadBalancerClass := "internal"
 			desired := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      map[string]string{"new-label": "value"},
 					Annotations: map[string]string{"new-anno": "value"},
 				},
 				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{Port: 8080}},
+					Type:              corev1.ServiceTypeLoadBalancer,
+					LoadBalancerClass: &loadBalancerClass,
+					Ports:             []corev1.ServicePort{{Name: "http", Port: 8080}},
 				},
 			}
 
 			err := MutateService()(existing, desired)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(existing.Spec.Ports[0].Port).To(Equal(int32(8080)))
+			Expect(existing.Spec.Ports[0].NodePort).To(Equal(int32(30080)))
+			Expect(existing.Spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
+			Expect(existing.Spec.Ports[0].TargetPort).To(Equal(intstr.FromInt32(80)))
+			Expect(existing.Spec.ClusterIP).To(Equal("10.0.0.10"))
+			Expect(existing.Spec.ClusterIPs).To(Equal([]string{"10.0.0.10"}))
+			Expect(existing.Spec.IPFamilyPolicy).To(Equal(&clusterPolicy))
+			Expect(existing.Spec.LoadBalancerClass).To(Equal(&loadBalancerClass))
 			Expect(existing.Labels).To(HaveKeyWithValue("new-label", "value"))
 			Expect(existing.Labels).NotTo(HaveKey("old-label"))
 			Expect(existing.Annotations).To(HaveKeyWithValue("old-anno", "value"))

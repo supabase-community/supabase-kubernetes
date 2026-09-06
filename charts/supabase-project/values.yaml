@@ -16,10 +16,7 @@ project:
 ##
 singleDatabase:
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   storage:
     accessModes:
       - ReadWriteOnce
@@ -33,10 +30,7 @@ rest:
   enable: true
   replicas: 1
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   config: []
 
 ## Meta component configuration
@@ -45,10 +39,7 @@ meta:
   enable: true
   replicas: 1
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   config: []
 
 ## Realtime component configuration
@@ -57,10 +48,7 @@ realtime:
   enable: true
   replicas: 1
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   config: []
 
 ## Auth component configuration
@@ -69,10 +57,7 @@ auth:
   enable: true
   replicas: 1
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   config: []
 
 ## EdgeRuntime component configuration
@@ -81,10 +66,7 @@ edgeRuntime:
   enable: true
   replicas: 1
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   config: []
 
 ## Envoy component configuration
@@ -93,10 +75,7 @@ envoy:
   enable: true
   replicas: 1
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   config: []
 
 ## Storage component configuration
@@ -105,10 +84,7 @@ storage:
   enable: true
   replicas: 1
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   config: []
   storage:
     accessModes:
@@ -123,10 +99,7 @@ studio:
   enable: true
   replicas: 1
   pod: {}
-  service:
-    type: ClusterIP
-    annotations: {}
-    labels: {}
+  service: {}
   config: []
   storage:
     accessModes:

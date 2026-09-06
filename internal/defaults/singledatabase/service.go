@@ -18,13 +18,13 @@ package singledatabase
 
 import (
 	"fmt"
-	"maps"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // PostgresServiceName returns the name of the Service for a SingleDatabase.
@@ -36,13 +36,12 @@ func PostgresServiceName(db *supabasev1alpha1.SingleDatabase) string {
 func PostgresService(db *supabasev1alpha1.SingleDatabase) (*corev1.Service, error) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        PostgresServiceName(db),
-			Namespace:   db.Namespace,
-			Labels:      serviceLabels(db),
-			Annotations: serviceAnnotations(db),
+			Name:      PostgresServiceName(db),
+			Namespace: db.Namespace,
+			Labels:    PostgresLabels(db),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     getServiceTypeOrDefault(db),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: PostgresSelectorLabels(db),
 			Ports: []corev1.ServicePort{
 				{
@@ -55,30 +54,5 @@ func PostgresService(db *supabasev1alpha1.SingleDatabase) (*corev1.Service, erro
 		},
 	}
 
-	return svc, nil
-}
-
-// serviceLabels returns the merged Service labels for a SingleDatabase.
-func serviceLabels(db *supabasev1alpha1.SingleDatabase) map[string]string {
-	labels := maps.Clone(PostgresLabels(db))
-	if db.Spec.Service != nil {
-		maps.Copy(labels, db.Spec.Service.Labels)
-	}
-	return labels
-}
-
-// serviceAnnotations returns the Service annotations for a SingleDatabase.
-func serviceAnnotations(db *supabasev1alpha1.SingleDatabase) map[string]string {
-	if db.Spec.Service == nil {
-		return nil
-	}
-	return db.Spec.Service.Annotations
-}
-
-// getServiceTypeOrDefault returns the service type from the spec or ClusterIP.
-func getServiceTypeOrDefault(db *supabasev1alpha1.SingleDatabase) corev1.ServiceType {
-	if db.Spec.Service != nil && db.Spec.Service.Type != nil {
-		return *db.Spec.Service.Type
-	}
-	return corev1.ServiceTypeClusterIP
+	return helper.OverlayService(*svc, db.Spec.Service)
 }
