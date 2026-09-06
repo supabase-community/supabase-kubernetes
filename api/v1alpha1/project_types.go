@@ -22,25 +22,25 @@ import (
 
 // ProjectSpec defines the desired state of a Supabase deployment.
 type ProjectSpec struct {
-	// JWTExpSec defines the JWT expiration time in seconds
+	// JWTExpSec defines the JWT expiration time in seconds.
 	// +optional
 	// +kubebuilder:default=3600
 	// +kubebuilder:validation:Minimum=1
 	JWTExpSec *int32 `json:"jwtExpSec,omitempty"`
 
-	// PublicURL defines the public URL for the Project
+	// PublicURL defines the public URL for the Project.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	PublicURL string `json:"publicUrl"`
 
-	// DatabaseRef references the database resource
+	// DatabaseRef references the database resource.
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
 }
 
 // ProjectStatus defines the observed state of a Supabase deployment.
 type ProjectStatus struct {
-	// Conditions represent the latest available observations of the Project's state
+	// Conditions include Ready and its current reconciliation reason.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
@@ -61,10 +61,19 @@ type ProjectStatus struct {
 
 // Project is the Schema for the projects API.
 type Project struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is a standard object metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ProjectSpec   `json:"spec"`
-	Status            ProjectStatus `json:"status,omitempty"`
+
+	// spec defines the desired state of Project
+	// +required
+	Spec ProjectSpec `json:"spec"`
+
+	// status defines the observed state of Project
+	// +optional
+	Status ProjectStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -80,7 +89,4 @@ func init() {
 	SchemeBuilder.Register(&Project{}, &ProjectList{})
 }
 
-// GetConditions returns a pointer to the status conditions slice.
-func (p *Project) GetConditions() *[]metav1.Condition {
-	return &p.Status.Conditions
-}
+func (c *Project) GetConditions() *[]metav1.Condition { return &c.Status.Conditions }

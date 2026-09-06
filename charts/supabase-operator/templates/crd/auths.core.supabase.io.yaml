@@ -30,7 +30,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Auth is the Schema for the auths API
+        description: Auth is the Schema for the auths API.
         properties:
           apiVersion:
             description: |-
@@ -234,12 +234,12 @@ spec:
                   rule: has(self.name) && size(self.name) > 0
               replicas:
                 default: 1
-                description: Replicas defines the number of component instances
+                description: Replicas defines the number of component instances.
                 format: int32
                 minimum: 0
                 type: integer
               service:
-                description: Service defines the configuration for the component Service
+                description: Service defines the configuration for the component Service.
                 properties:
                   metadata:
                     description: |-

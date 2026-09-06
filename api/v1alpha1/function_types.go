@@ -43,24 +43,33 @@ type FunctionSpec struct {
 
 // FunctionStatus defines the observed state of Function.
 type FunctionStatus struct {
-	// Conditions represent the latest available observations of the Function's state
+	// Conditions include Ready and its current reconciliation reason.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.projectRef.name`
 // +kubebuilder:resource:path=functions,scope=Namespaced
+// +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.projectRef.name`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Function is the Schema for the functions API.
 type Function struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is a standard object metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              FunctionSpec   `json:"spec"`
-	Status            FunctionStatus `json:"status,omitempty"`
+
+	// spec defines the desired state of Function
+	// +required
+	Spec FunctionSpec `json:"spec"`
+
+	// status defines the observed state of Function
+	// +optional
+	Status FunctionStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -76,7 +85,4 @@ func init() {
 	SchemeBuilder.Register(&Function{}, &FunctionList{})
 }
 
-// GetConditions returns a pointer to the status conditions slice.
-func (f *Function) GetConditions() *[]metav1.Condition {
-	return &f.Status.Conditions
-}
+func (c *Function) GetConditions() *[]metav1.Condition { return &c.Status.Conditions }

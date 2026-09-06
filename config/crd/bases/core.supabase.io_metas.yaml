@@ -4,13 +4,13 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.1
-  name: meta.core.supabase.io
+  name: metas.core.supabase.io
 spec:
   group: core.supabase.io
   names:
     kind: Meta
     listKind: MetaList
-    plural: meta
+    plural: metas
     singular: meta
   scope: Namespaced
   versions:
@@ -27,7 +27,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Meta is the Schema for the meta API
+        description: Meta is the Schema for the meta API.
         properties:
           apiVersion:
             description: |-
@@ -231,12 +231,12 @@ spec:
                   rule: has(self.name) && size(self.name) > 0
               replicas:
                 default: 1
-                description: Replicas defines the number of component instances
+                description: Replicas defines the number of component instances.
                 format: int32
                 minimum: 0
                 type: integer
               service:
-                description: Service defines the configuration for the component Service
+                description: Service defines the configuration for the component Service.
                 properties:
                   metadata:
                     description: |-

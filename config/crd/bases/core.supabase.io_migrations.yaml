@@ -47,19 +47,19 @@ spec:
           metadata:
             type: object
           spec:
-            description: MigrationSpec defines the desired state of Migration.
+            description: spec defines the desired state of Migration
             properties:
               databaseRef:
-                description: DatabaseRef references the database resource
+                description: DatabaseRef references the database resource.
                 properties:
                   kind:
-                    description: Kind defines the kind of database resource
+                    description: Kind defines the kind of database resource.
                     enum:
                     - SingleDatabase
                     minLength: 1
                     type: string
                   name:
-                    description: Name defines the name of the database resource
+                    description: Name defines the name of the database resource.
                     maxLength: 253
                     minLength: 1
                     type: string
@@ -69,19 +69,19 @@ spec:
                 type: object
               migrations:
                 description: |-
-                  Migrations is the ordered list of migration steps to apply
-                  The entire array is immutable after creation
+                  Migrations is the ordered list of migration steps to apply.
+                  The entire array is immutable after creation.
                 items:
                   description: MigrationEntry defines a single ordered migration step.
                   properties:
                     name:
                       description: Name is a human-readable identifier for this migration
-                        step
+                        step.
                       maxLength: 128
                       minLength: 1
                       type: string
                     sql:
-                      description: SQL is the migration script to execute
+                      description: SQL is the migration script to execute.
                       maxLength: 65536
                       minLength: 1
                       type: string
@@ -103,19 +103,19 @@ spec:
             - message: migrations are immutable after creation
               rule: self.migrations == oldSelf.migrations
           status:
-            description: MigrationStatus defines the observed state of Migration.
+            description: status defines the observed state of Migration
             properties:
               appliedAt:
-                description: AppliedAt is when the batch was successfully applied
+                description: AppliedAt is when the batch was successfully applied.
                 format: date-time
                 type: string
               appliedHash:
                 description: AppliedHash is the SHA-256 hash of the batch that was
-                  successfully applied
+                  successfully applied.
                 type: string
               conditions:
-                description: Conditions represent the latest available observations
-                  of the Migration's state
+                description: Conditions include Ready and its current reconciliation
+                  reason.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

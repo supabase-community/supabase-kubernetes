@@ -29,7 +29,7 @@ type SingleDatabaseSpec struct {
 	// +kubebuilder:validation:Schemaless
 	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
 
-	// Service defines the configuration for the component Service
+	// Service defines the configuration for the component Service.
 	// +optional
 	Service *ServiceTemplate `json:"service,omitempty"`
 
@@ -40,11 +40,11 @@ type SingleDatabaseSpec struct {
 
 // SingleDatabaseStatus defines the observed state of SingleDatabase.
 type SingleDatabaseStatus struct {
-	// Conditions represent the latest available observations of the SingleDatabase's state
+	// Conditions include Ready and its current reconciliation reason.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// ResolvedDatabase exposes the resolved database connection parameters
+	// ResolvedDatabase exposes the resolved database connection parameters.
 	// +optional
 	ResolvedDatabase *ResolvedDatabase `json:"resolvedDatabase,omitempty"`
 }
@@ -57,10 +57,19 @@ type SingleDatabaseStatus struct {
 
 // SingleDatabase is the Schema for the singledatabases API.
 type SingleDatabase struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is a standard object metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              SingleDatabaseSpec   `json:"spec"`
-	Status            SingleDatabaseStatus `json:"status,omitempty"`
+
+	// spec defines the desired state of SingleDatabase
+	// +required
+	Spec SingleDatabaseSpec `json:"spec"`
+
+	// status defines the observed state of SingleDatabase
+	// +optional
+	Status SingleDatabaseStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -76,7 +85,4 @@ func init() {
 	SchemeBuilder.Register(&SingleDatabase{}, &SingleDatabaseList{})
 }
 
-// GetConditions returns a pointer to the status conditions slice.
-func (s *SingleDatabase) GetConditions() *[]metav1.Condition {
-	return &s.Status.Conditions
-}
+func (c *SingleDatabase) GetConditions() *[]metav1.Condition { return &c.Status.Conditions }

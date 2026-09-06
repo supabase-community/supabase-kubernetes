@@ -23,13 +23,13 @@ import (
 
 // SecretKeyRef is a reference to a specific key in a Kubernetes Secret.
 type SecretKeyRef struct {
-	// Name defines the name of the Kubernetes Secret
+	// Name defines the name of the Kubernetes Secret.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name"`
 
-	// Key defines the key within the Kubernetes Secret
+	// Key defines the key within the Kubernetes Secret.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
@@ -38,25 +38,25 @@ type SecretKeyRef struct {
 
 // ResolvedDatabase exposes resolved database connection parameters.
 type ResolvedDatabase struct {
-	// Host defines the database host
+	// Host defines the database host.
 	// +kubebuilder:validation:Required
 	Host string `json:"host"`
 
-	// Port defines the database port
+	// Port defines the database port.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
 	Port int32 `json:"port"`
 
-	// DBName defines the database name
+	// DBName defines the database name.
 	// +kubebuilder:validation:Required
 	DBName string `json:"dbName"`
 
-	// User defines the database user
+	// User defines the database user.
 	// +kubebuilder:validation:Required
 	User string `json:"user"`
 
-	// PasswordRef references the secret containing the database password
+	// PasswordRef references the Secret containing the database password.
 	// +kubebuilder:validation:Required
 	PasswordRef SecretKeyRef `json:"passwordRef"`
 }
@@ -78,13 +78,13 @@ type ServiceTemplate struct {
 
 // DatabaseRef references a database resource.
 type DatabaseRef struct {
-	// Kind defines the kind of database resource
+	// Kind defines the kind of database resource.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Enum=SingleDatabase
 	Kind string `json:"kind"`
 
-	// Name defines the name of the database resource
+	// Name defines the name of the database resource.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253

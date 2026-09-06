@@ -47,13 +47,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: SingleDatabaseSpec defines the desired state of SingleDatabase.
+            description: spec defines the desired state of SingleDatabase
             properties:
               pod:
                 description: Pod overlays the operator-generated Pod template.
                 x-kubernetes-preserve-unknown-fields: true
               service:
-                description: Service defines the configuration for the component Service
+                description: Service defines the configuration for the component Service.
                 properties:
                   metadata:
                     description: |-
@@ -603,11 +603,11 @@ spec:
                 type: object
             type: object
           status:
-            description: SingleDatabaseStatus defines the observed state of SingleDatabase.
+            description: status defines the observed state of SingleDatabase
             properties:
               conditions:
-                description: Conditions represent the latest available observations
-                  of the SingleDatabase's state
+                description: Conditions include Ready and its current reconciliation
+                  reason.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -665,25 +665,25 @@ spec:
                 type: array
               resolvedDatabase:
                 description: ResolvedDatabase exposes the resolved database connection
-                  parameters
+                  parameters.
                 properties:
                   dbName:
-                    description: DBName defines the database name
+                    description: DBName defines the database name.
                     type: string
                   host:
-                    description: Host defines the database host
+                    description: Host defines the database host.
                     type: string
                   passwordRef:
-                    description: PasswordRef references the secret containing the
-                      database password
+                    description: PasswordRef references the Secret containing the
+                      database password.
                     properties:
                       key:
-                        description: Key defines the key within the Kubernetes Secret
+                        description: Key defines the key within the Kubernetes Secret.
                         maxLength: 253
                         minLength: 1
                         type: string
                       name:
-                        description: Name defines the name of the Kubernetes Secret
+                        description: Name defines the name of the Kubernetes Secret.
                         maxLength: 253
                         minLength: 1
                         type: string
@@ -692,13 +692,13 @@ spec:
                     - name
                     type: object
                   port:
-                    description: Port defines the database port
+                    description: Port defines the database port.
                     format: int32
                     maximum: 65535
                     minimum: 1
                     type: integer
                   user:
-                    description: User defines the database user
+                    description: User defines the database user.
                     type: string
                 required:
                 - dbName

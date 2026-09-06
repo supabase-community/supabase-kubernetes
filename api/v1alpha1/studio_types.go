@@ -35,13 +35,13 @@ type StudioSpec struct {
 	// +kubebuilder:validation:Schemaless
 	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
 
-	// Replicas defines the number of Studio instances
+	// Replicas defines the number of Studio instances.
 	// +optional
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Service defines the configuration for the component Service
+	// Service defines the configuration for the component Service.
 	// +optional
 	Service *ServiceTemplate `json:"service,omitempty"`
 
@@ -67,11 +67,12 @@ type StudioStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:path=studios,scope=Namespaced
 // +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.projectRef.name`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// Studio is the Schema for the studios API
+// Studio is the Schema for the studios API.
 type Studio struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -90,7 +91,7 @@ type Studio struct {
 
 // +kubebuilder:object:root=true
 
-// StudioList contains a list of Studio
+// StudioList contains a list of Studio.
 type StudioList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitzero"`

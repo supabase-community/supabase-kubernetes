@@ -19,9 +19,9 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=core.supabase.io,resources=meta,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core.supabase.io,resources=meta/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=core.supabase.io,resources=meta/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core.supabase.io,resources=metas,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.supabase.io,resources=metas/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core.supabase.io,resources=metas/finalizers,verbs=update
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	obj := &core.Meta{}

@@ -44,19 +44,19 @@ spec:
           metadata:
             type: object
           spec:
-            description: ProjectSpec defines the desired state of a Supabase deployment.
+            description: spec defines the desired state of Project
             properties:
               databaseRef:
-                description: DatabaseRef references the database resource
+                description: DatabaseRef references the database resource.
                 properties:
                   kind:
-                    description: Kind defines the kind of database resource
+                    description: Kind defines the kind of database resource.
                     enum:
                     - SingleDatabase
                     minLength: 1
                     type: string
                   name:
-                    description: Name defines the name of the database resource
+                    description: Name defines the name of the database resource.
                     maxLength: 253
                     minLength: 1
                     type: string
@@ -66,12 +66,12 @@ spec:
                 type: object
               jwtExpSec:
                 default: 3600
-                description: JWTExpSec defines the JWT expiration time in seconds
+                description: JWTExpSec defines the JWT expiration time in seconds.
                 format: int32
                 minimum: 1
                 type: integer
               publicUrl:
-                description: PublicURL defines the public URL for the Project
+                description: PublicURL defines the public URL for the Project.
                 minLength: 1
                 type: string
             required:
@@ -79,11 +79,11 @@ spec:
             - publicUrl
             type: object
           status:
-            description: ProjectStatus defines the observed state of a Supabase deployment.
+            description: status defines the observed state of Project
             properties:
               conditions:
-                description: Conditions represent the latest available observations
-                  of the Project's state
+                description: Conditions include Ready and its current reconciliation
+                  reason.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

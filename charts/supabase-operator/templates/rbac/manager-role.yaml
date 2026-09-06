@@ -57,7 +57,7 @@ rules:
   - edgeruntimes
   - envoys
   - functions
-  - meta
+  - metas
   - migrations
   - projects
   - realtimes
@@ -80,7 +80,7 @@ rules:
   - edgeruntimes/finalizers
   - envoys/finalizers
   - functions/finalizers
-  - meta/finalizers
+  - metas/finalizers
   - migrations/finalizers
   - projects/finalizers
   - realtimes/finalizers
@@ -97,7 +97,7 @@ rules:
   - edgeruntimes/status
   - envoys/status
   - functions/status
-  - meta/status
+  - metas/status
   - migrations/status
   - projects/status
   - realtimes/status
