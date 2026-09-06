@@ -17,11 +17,11 @@ limitations under the License.
 package storage
 
 import (
-	"maps"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // StorageServiceName returns the name of the Storage Service for a Project.
@@ -37,13 +37,12 @@ func StorageService(project *ResourceContext) (*corev1.Service, error) {
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        StorageServiceName(project),
-			Namespace:   project.Namespace,
-			Labels:      storageServiceLabels(project),
-			Annotations: storageServiceAnnotations(project),
+			Name:      StorageServiceName(project),
+			Namespace: project.Namespace,
+			Labels:    StorageLabels(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     storageServiceType(project),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: StorageSelectorLabels(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -56,30 +55,5 @@ func StorageService(project *ResourceContext) (*corev1.Service, error) {
 		},
 	}
 
-	return svc, nil
-}
-
-// storageServiceLabels returns the merged Service labels for the Storage component.
-func storageServiceLabels(project *ResourceContext) map[string]string {
-	labels := maps.Clone(StorageLabels(project))
-	if project.Spec.Storage != nil && project.Spec.Storage.Service != nil {
-		maps.Copy(labels, project.Spec.Storage.Service.Labels)
-	}
-	return labels
-}
-
-// storageServiceAnnotations returns the Service annotations for the Storage component.
-func storageServiceAnnotations(project *ResourceContext) map[string]string {
-	if project.Spec.Storage == nil || project.Spec.Storage.Service == nil {
-		return nil
-	}
-	return project.Spec.Storage.Service.Annotations
-}
-
-// storageServiceType returns the service type from the spec or ClusterIP.
-func storageServiceType(project *ResourceContext) corev1.ServiceType {
-	if project.Spec.Storage != nil && project.Spec.Storage.Service != nil && project.Spec.Storage.Service.Type != nil {
-		return *project.Spec.Storage.Service.Type
-	}
-	return corev1.ServiceTypeClusterIP
+	return helper.OverlayService(*svc, project.Spec.Storage.Service)
 }

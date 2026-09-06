@@ -21,6 +21,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
 
 // Overlay merges a user Pod template over an operator-generated base template.
@@ -56,6 +58,46 @@ func Overlay(base corev1.PodTemplateSpec, user *corev1.PodTemplateSpec) (corev1.
 		return corev1.PodTemplateSpec{}, err
 	}
 	return merged, nil
+}
+
+// OverlayService merges a user Service template over an operator-generated
+// Service. Kubernetes strategic-merge rules are used for maps and lists. The
+// Service name and namespace remain managed by the operator.
+func OverlayService(base corev1.Service, user *supabasev1alpha1.ServiceTemplate) (*corev1.Service, error) {
+	if user == nil {
+		return &base, nil
+	}
+
+	managedName, managedNamespace := base.Name, base.Namespace
+	userService := corev1.Service{
+		ObjectMeta: user.ObjectMeta,
+		Spec:       user.Spec,
+	}
+
+	baseJSON, err := json.Marshal(base)
+	if err != nil {
+		return nil, err
+	}
+	userJSON, err := json.Marshal(userService)
+	if err != nil {
+		return nil, err
+	}
+	userJSON, err = omitNulls(userJSON)
+	if err != nil {
+		return nil, err
+	}
+	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, userJSON, corev1.Service{})
+	if err != nil {
+		return nil, err
+	}
+
+	var merged corev1.Service
+	if err := json.Unmarshal(mergedJSON, &merged); err != nil {
+		return nil, err
+	}
+	merged.Name = managedName
+	merged.Namespace = managedNamespace
+	return &merged, nil
 }
 
 // omitNulls removes null values from raw JSON so they are not interpreted as

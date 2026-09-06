@@ -17,11 +17,11 @@ limitations under the License.
 package realtime
 
 import (
-	"maps"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // RealtimeServiceName returns the name of the Realtime Service for a Project.
@@ -37,13 +37,12 @@ func RealtimeService(project *ResourceContext) (*corev1.Service, error) {
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        RealtimeServiceName(project),
-			Namespace:   project.Namespace,
-			Labels:      realtimeServiceLabels(project),
-			Annotations: realtimeServiceAnnotations(project),
+			Name:      RealtimeServiceName(project),
+			Namespace: project.Namespace,
+			Labels:    RealtimeLabels(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     realtimeServiceType(project),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: RealtimeSelectorLabels(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -56,30 +55,5 @@ func RealtimeService(project *ResourceContext) (*corev1.Service, error) {
 		},
 	}
 
-	return svc, nil
-}
-
-// realtimeServiceLabels returns the merged Service labels for the Realtime component.
-func realtimeServiceLabels(project *ResourceContext) map[string]string {
-	labels := maps.Clone(RealtimeLabels(project))
-	if project.Spec.Realtime != nil && project.Spec.Realtime.Service != nil {
-		maps.Copy(labels, project.Spec.Realtime.Service.Labels)
-	}
-	return labels
-}
-
-// realtimeServiceAnnotations returns the Service annotations for the Realtime component.
-func realtimeServiceAnnotations(project *ResourceContext) map[string]string {
-	if project.Spec.Realtime == nil || project.Spec.Realtime.Service == nil {
-		return nil
-	}
-	return project.Spec.Realtime.Service.Annotations
-}
-
-// realtimeServiceType returns the service type from the spec or ClusterIP.
-func realtimeServiceType(project *ResourceContext) corev1.ServiceType {
-	if project.Spec.Realtime != nil && project.Spec.Realtime.Service != nil && project.Spec.Realtime.Service.Type != nil {
-		return *project.Spec.Realtime.Service.Type
-	}
-	return corev1.ServiceTypeClusterIP
+	return helper.OverlayService(*svc, project.Spec.Realtime.Service)
 }

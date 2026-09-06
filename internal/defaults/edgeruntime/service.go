@@ -17,11 +17,11 @@ limitations under the License.
 package edgeruntime
 
 import (
-	"maps"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // FunctionsServiceName returns the name of the Functions Service for a Project.
@@ -37,13 +37,12 @@ func FunctionsService(project *ResourceContext) (*corev1.Service, error) {
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        FunctionsServiceName(project),
-			Namespace:   project.Namespace,
-			Labels:      functionsServiceLabels(project),
-			Annotations: functionsServiceAnnotations(project),
+			Name:      FunctionsServiceName(project),
+			Namespace: project.Namespace,
+			Labels:    FunctionsLabels(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     functionsServiceType(project),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: FunctionsSelectorLabels(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -56,30 +55,5 @@ func FunctionsService(project *ResourceContext) (*corev1.Service, error) {
 		},
 	}
 
-	return svc, nil
-}
-
-// functionsServiceLabels returns the merged Service labels for the Functions component.
-func functionsServiceLabels(project *ResourceContext) map[string]string {
-	labels := maps.Clone(FunctionsLabels(project))
-	if project.Spec.EdgeRuntime != nil && project.Spec.EdgeRuntime.Service != nil {
-		maps.Copy(labels, project.Spec.EdgeRuntime.Service.Labels)
-	}
-	return labels
-}
-
-// functionsServiceAnnotations returns the Service annotations for the Functions component.
-func functionsServiceAnnotations(project *ResourceContext) map[string]string {
-	if project.Spec.EdgeRuntime == nil || project.Spec.EdgeRuntime.Service == nil {
-		return nil
-	}
-	return project.Spec.EdgeRuntime.Service.Annotations
-}
-
-// functionsServiceType returns the service type from the spec or ClusterIP.
-func functionsServiceType(project *ResourceContext) corev1.ServiceType {
-	if project.Spec.EdgeRuntime != nil && project.Spec.EdgeRuntime.Service != nil && project.Spec.EdgeRuntime.Service.Type != nil {
-		return *project.Spec.EdgeRuntime.Service.Type
-	}
-	return corev1.ServiceTypeClusterIP
+	return helper.OverlayService(*svc, project.Spec.EdgeRuntime.Service)
 }

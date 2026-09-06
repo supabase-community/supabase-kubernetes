@@ -31,7 +31,7 @@ type SingleDatabaseSpec struct {
 
 	// Service defines the configuration for the component Service
 	// +optional
-	Service *ServiceSpec `json:"service,omitempty"`
+	Service *ServiceTemplate `json:"service,omitempty"`
 
 	// Storage defines the persistent volume claim configuration
 	// +required

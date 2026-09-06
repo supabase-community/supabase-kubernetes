@@ -17,11 +17,11 @@ limitations under the License.
 package rest
 
 import (
-	"maps"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // RestServiceName returns the name of the Rest Service for a Project.
@@ -37,13 +37,12 @@ func RestService(project *ResourceContext) (*corev1.Service, error) {
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        RestServiceName(project),
-			Namespace:   project.Namespace,
-			Labels:      restServiceLabels(project),
-			Annotations: restServiceAnnotations(project),
+			Name:      RestServiceName(project),
+			Namespace: project.Namespace,
+			Labels:    RestLabels(project),
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     restServiceType(project),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: RestSelectorLabels(project),
 			Ports: []corev1.ServicePort{
 				{
@@ -56,30 +55,5 @@ func RestService(project *ResourceContext) (*corev1.Service, error) {
 		},
 	}
 
-	return svc, nil
-}
-
-// restServiceLabels returns the merged Service labels for the Rest component.
-func restServiceLabels(project *ResourceContext) map[string]string {
-	labels := maps.Clone(RestLabels(project))
-	if project.Spec.Rest != nil && project.Spec.Rest.Service != nil {
-		maps.Copy(labels, project.Spec.Rest.Service.Labels)
-	}
-	return labels
-}
-
-// restServiceAnnotations returns the Service annotations for the Rest component.
-func restServiceAnnotations(project *ResourceContext) map[string]string {
-	if project.Spec.Rest == nil || project.Spec.Rest.Service == nil {
-		return nil
-	}
-	return project.Spec.Rest.Service.Annotations
-}
-
-// restServiceType returns the service type from the spec or ClusterIP.
-func restServiceType(project *ResourceContext) corev1.ServiceType {
-	if project.Spec.Rest != nil && project.Spec.Rest.Service != nil && project.Spec.Rest.Service.Type != nil {
-		return *project.Spec.Rest.Service.Type
-	}
-	return corev1.ServiceTypeClusterIP
+	return helper.OverlayService(*svc, project.Spec.Rest.Service)
 }
