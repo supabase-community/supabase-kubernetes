@@ -105,6 +105,18 @@ var _ = Describe("Mutate functions", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(existing.Spec.Resources.Requests).To(HaveKeyWithValue(corev1.ResourceStorage, resource.MustParse("10Gi")))
 		})
+
+		It("should reject immutable field changes", func() {
+			existing := &corev1.PersistentVolumeClaim{Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			}}
+			desired := &corev1.PersistentVolumeClaim{Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+			}}
+
+			Expect(MutatePVC()(existing, desired)).To(MatchError("PVC accessModes is immutable"))
+			Expect(existing.Spec.AccessModes).To(Equal([]corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}))
+		})
 	})
 
 	Context("MutateService", func() {

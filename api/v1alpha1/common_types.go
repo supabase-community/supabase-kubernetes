@@ -18,41 +18,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// VolumeClaim defines the desired characteristics of a persistent volume claim.
-type VolumeClaim struct {
-	// AccessModes defines the access modes for the persistent volume claim
-	// +kubebuilder:validation:Required
-	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes"`
-
-	// StorageClassName defines the storage class name for the persistent volume claim
-	// +optional
-	StorageClassName *string `json:"storageClassName,omitempty"`
-
-	// Size defines the size of the persistent volume claim
-	// +kubebuilder:validation:Required
-	Size resource.Quantity `json:"size"`
-
-	// DeletionPolicy defines the deletion behavior for the persistent volume claim
-	// +optional
-	// +kubebuilder:default=Delete
-	// +kubebuilder:validation:Enum=Delete;Retain
-	DeletionPolicy *DeletionPolicy `json:"deletionPolicy,omitempty"`
-}
-
-// DeletionPolicy defines the deletion behavior for the PVC.
-// +kubebuilder:validation:Enum=Delete;Retain
-type DeletionPolicy string
-
-const (
-	// DeletionPolicyDelete removes the PVC when the owner is deleted.
-	DeletionPolicyDelete DeletionPolicy = "Delete"
-
-	// DeletionPolicyRetain keeps the PVC after the owner is deleted.
-	DeletionPolicyRetain DeletionPolicy = "Retain"
 )
 
 // SecretKeyRef is a reference to a specific key in a Kubernetes Secret.

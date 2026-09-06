@@ -33,9 +33,9 @@ type SingleDatabaseSpec struct {
 	// +optional
 	Service *ServiceTemplate `json:"service,omitempty"`
 
-	// Storage defines the persistent volume claim configuration
-	// +required
-	Storage VolumeClaim `json:"storage"`
+	// Storage overlays the operator-generated persistent volume claim spec.
+	// +optional
+	Storage *corev1.PersistentVolumeClaimSpec `json:"storage,omitempty"`
 }
 
 // SingleDatabaseStatus defines the observed state of SingleDatabase.

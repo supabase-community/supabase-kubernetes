@@ -100,6 +100,37 @@ func OverlayService(base corev1.Service, user *supabasev1alpha1.ServiceTemplate)
 	return &merged, nil
 }
 
+// OverlayPersistentVolumeClaimSpec merges a user PVC spec over an
+// operator-generated base spec using Kubernetes strategic-merge rules.
+func OverlayPersistentVolumeClaimSpec(base corev1.PersistentVolumeClaimSpec, user *corev1.PersistentVolumeClaimSpec) (corev1.PersistentVolumeClaimSpec, error) {
+	if user == nil {
+		return base, nil
+	}
+
+	baseJSON, err := json.Marshal(base)
+	if err != nil {
+		return corev1.PersistentVolumeClaimSpec{}, err
+	}
+	userJSON, err := json.Marshal(user)
+	if err != nil {
+		return corev1.PersistentVolumeClaimSpec{}, err
+	}
+	userJSON, err = omitNulls(userJSON)
+	if err != nil {
+		return corev1.PersistentVolumeClaimSpec{}, err
+	}
+	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, userJSON, corev1.PersistentVolumeClaimSpec{})
+	if err != nil {
+		return corev1.PersistentVolumeClaimSpec{}, err
+	}
+
+	var merged corev1.PersistentVolumeClaimSpec
+	if err := json.Unmarshal(mergedJSON, &merged); err != nil {
+		return corev1.PersistentVolumeClaimSpec{}, err
+	}
+	return merged, nil
+}
+
 // omitNulls removes null values from raw JSON so they are not interpreted as
 // deletions by the strategic merge patch.
 func omitNulls(data []byte) ([]byte, error) {

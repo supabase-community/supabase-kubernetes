@@ -71,8 +71,3 @@ func PostgresSelectorLabels(db *supabasev1alpha1.SingleDatabase) map[string]stri
 func PostgresServiceHost(db *supabasev1alpha1.SingleDatabase) string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", PostgresServiceName(db), db.Namespace)
 }
-
-// PostgresPVCDeletionPolicy returns the effective deletion policy for the SingleDatabase PVC.
-func PostgresPVCDeletionPolicy(db *supabasev1alpha1.SingleDatabase) supabasev1alpha1.DeletionPolicy {
-	return *db.Spec.Storage.DeletionPolicy
-}
