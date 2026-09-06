@@ -19,6 +19,7 @@ package project
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"text/template"
 
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +36,11 @@ type envoyCluster struct {
 	Port    int32
 }
 
+type envoyIPFamilyPolicy struct {
+	IPv4 bool
+	IPv6 bool
+}
+
 // envoyTemplateData holds the data used to render the Envoy CDS/LDS templates.
 type envoyTemplateData struct {
 	AuthCluster      envoyCluster
@@ -45,6 +51,7 @@ type envoyTemplateData struct {
 	MetaCluster      envoyCluster
 	StudioCluster    envoyCluster
 	RealtimeHost     string
+	IPFamilyPolicy   envoyIPFamilyPolicy
 }
 
 // EnvoyConfigMapName returns the name of the Envoy ConfigMap for a Project.
@@ -109,6 +116,26 @@ func renderEnvoyTemplate(name, tmpl string, data any) (string, error) {
 
 // buildEnvoyTemplateData builds the template data from the Project spec.
 func buildEnvoyTemplateData(project *supabasev1alpha1.Project) envoyTemplateData {
+	ipFamilyPolicy := envoyIPFamilyPolicy{
+		// default
+		IPv4: true,
+		IPv6: false,
+	}
+	if *EnvoyServiceIPFamilyPolicy(project) == corev1.IPFamilyPolicyPreferDualStack || *EnvoyServiceIPFamilyPolicy(project) == corev1.IPFamilyPolicyRequireDualStack {
+		ipFamilyPolicy.IPv4 = true
+		ipFamilyPolicy.IPv6 = true
+	} else {
+		ipFamilies := EnvoyServiceIPFamilies(project)
+		if slices.Contains(ipFamilies, corev1.IPv6Protocol) {
+			ipFamilyPolicy.IPv6 = true
+		}
+		if slices.Contains(ipFamilies, corev1.IPv4Protocol) {
+			ipFamilyPolicy.IPv4 = true
+		} else if ipFamilyPolicy.IPv6 == true {
+			// ipv6 single stack
+			ipFamilyPolicy.IPv4 = false
+		}
+	}
 	return envoyTemplateData{
 		AuthCluster:      buildEnvoyAuthCluster(project),
 		RestCluster:      buildEnvoyRestCluster(project),
@@ -118,6 +145,7 @@ func buildEnvoyTemplateData(project *supabasev1alpha1.Project) envoyTemplateData
 		StorageCluster:   buildEnvoyStorageCluster(project),
 		StudioCluster:    buildEnvoyStudioCluster(project),
 		RealtimeHost:     envoyRealtimeHost(project),
+		IPFamilyPolicy:   ipFamilyPolicy,
 	}
 }
 

@@ -231,6 +231,29 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilies:
+                        default:
+                        - IPv4
+                        description: IPFamilies defines the IPFamilies of the Kubernetes
+                          Service
+                        items:
+                          description: |-
+                            IPFamily represents the IP Family (IPv4 or IPv6). This type is used
+                            to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the IPFamilyPolicy of
+                          the Kubernetes Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -449,6 +472,29 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilies:
+                        default:
+                        - IPv4
+                        description: IPFamilies defines the IPFamilies of the Kubernetes
+                          Service
+                        items:
+                          description: |-
+                            IPFamily represents the IP Family (IPv4 or IPv6). This type is used
+                            to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the IPFamilyPolicy of
+                          the Kubernetes Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -650,6 +696,29 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilies:
+                        default:
+                        - IPv4
+                        description: IPFamilies defines the IPFamilies of the Kubernetes
+                          Service
+                        items:
+                          description: |-
+                            IPFamily represents the IP Family (IPv4 or IPv6). This type is used
+                            to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the IPFamilyPolicy of
+                          the Kubernetes Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -879,6 +948,29 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilies:
+                        default:
+                        - IPv4
+                        description: IPFamilies defines the IPFamilies of the Kubernetes
+                          Service
+                        items:
+                          description: |-
+                            IPFamily represents the IP Family (IPv4 or IPv6). This type is used
+                            to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the IPFamilyPolicy of
+                          the Kubernetes Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -1080,6 +1172,29 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilies:
+                        default:
+                        - IPv4
+                        description: IPFamilies defines the IPFamilies of the Kubernetes
+                          Service
+                        items:
+                          description: |-
+                            IPFamily represents the IP Family (IPv4 or IPv6). This type is used
+                            to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the IPFamilyPolicy of
+                          the Kubernetes Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -1280,6 +1395,29 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilies:
+                        default:
+                        - IPv4
+                        description: IPFamilies defines the IPFamilies of the Kubernetes
+                          Service
+                        items:
+                          description: |-
+                            IPFamily represents the IP Family (IPv4 or IPv6). This type is used
+                            to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the IPFamilyPolicy of
+                          the Kubernetes Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -1480,6 +1618,29 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilies:
+                        default:
+                        - IPv4
+                        description: IPFamilies defines the IPFamilies of the Kubernetes
+                          Service
+                        items:
+                          description: |-
+                            IPFamily represents the IP Family (IPv4 or IPv6). This type is used
+                            to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the IPFamilyPolicy of
+                          the Kubernetes Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
@@ -1720,6 +1881,29 @@ spec:
                         description: Annotations defines annotations to add to the
                           Service
                         type: object
+                      ipFamilies:
+                        default:
+                        - IPv4
+                        description: IPFamilies defines the IPFamilies of the Kubernetes
+                          Service
+                        items:
+                          description: |-
+                            IPFamily represents the IP Family (IPv4 or IPv6). This type is used
+                            to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          enum:
+                          - IPv4
+                          - IPv6
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        default: SingleStack
+                        description: IPFamilyPolicy defines the IPFamilyPolicy of
+                          the Kubernetes Service
+                        enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                        type: string
                       labels:
                         additionalProperties:
                           type: string
