@@ -91,6 +91,13 @@ func EnsureResource[T client.Object](
 		return ResultCreated, nil
 	}
 
+	// Never adopt or overwrite another object's children, including retained PVCs.
+	if owner != nil && !metav1.IsControlledBy(existing, owner) && existing.GetAnnotations()["core.supabase.io/owner-uid"] != string(owner.GetUID()) {
+		return "", fmt.Errorf("resource %s/%s is not controlled by %s", existing.GetNamespace(), existing.GetName(), owner.GetName())
+	}
+	if uid := desired.GetAnnotations()["core.supabase.io/owner-uid"]; uid != "" && existing.GetAnnotations()["core.supabase.io/owner-uid"] != uid {
+		return "", fmt.Errorf("retained resource %s belongs to another owner", existing.GetName())
+	}
 	// Resource exists: apply mutations to a copy of the cluster object.
 	mutated := existing.DeepCopyObject().(T)
 	if err := mutateFn(mutated, original); err != nil {

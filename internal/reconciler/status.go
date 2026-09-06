@@ -20,6 +20,8 @@ import (
 	"context"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/equality"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -65,6 +67,9 @@ func UpdateStatus[T client.Object](ctx context.Context, c client.Client, obj T) 
 		latest := obj.DeepCopyObject().(T)
 		if err := c.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, latest); err != nil {
 			return err
+		}
+		if equality.Semantic.DeepEqual(reflect.ValueOf(obj).Elem().FieldByName("Status").Interface(), reflect.ValueOf(latest).Elem().FieldByName("Status").Interface()) {
+			return nil
 		}
 		copyStatus(obj, latest)
 		return c.Status().Update(ctx, latest)

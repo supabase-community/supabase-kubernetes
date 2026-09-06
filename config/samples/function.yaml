@@ -3,7 +3,8 @@ kind: Function
 metadata:
   name: supabase
 spec:
-  projectRef: supabase
+  projectRef:
+    name: supabase
   functionName: hello
   source:
     index.ts: |

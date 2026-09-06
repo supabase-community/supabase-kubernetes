@@ -16,20 +16,24 @@ limitations under the License.
 
 package v1alpha1
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // RealtimeSpec defines the desired state of the Realtime component.
 type RealtimeSpec struct {
+	// ProjectRef references a Project in the same namespace.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="projectRef is immutable"
+	// +kubebuilder:validation:XValidation:rule="has(self.name) && size(self.name) > 0",message="projectRef.name is required"
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
+
 	// Pod overlays the operator-generated Pod template.
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
-
-	// Enable defines whether the Realtime component is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enable *bool `json:"enable,omitempty"`
 
 	// Replicas defines the number of component instances
 	// +optional
@@ -47,3 +51,51 @@ type RealtimeSpec struct {
 	// +patchStrategy=merge
 	Config []corev1.EnvVar `json:"config,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 }
+
+// RealtimeStatus defines the observed state of Realtime.
+type RealtimeStatus struct {
+	// Conditions include Ready and its current reconciliation reason.
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.projectRef.name`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Realtime is the Schema for the realtimes API
+type Realtime struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is a standard object metadata
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitzero"`
+
+	// spec defines the desired state of Realtime
+	// +required
+	Spec RealtimeSpec `json:"spec"`
+
+	// status defines the observed state of Realtime
+	// +optional
+	Status RealtimeStatus `json:"status,omitzero"`
+}
+
+// +kubebuilder:object:root=true
+
+// RealtimeList contains a list of Realtime
+type RealtimeList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitzero"`
+	Items           []Realtime `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Realtime{}, &RealtimeList{})
+}
+
+func (c *Realtime) GetConditions() *[]metav1.Condition         { return &c.Status.Conditions }
+func (c *Realtime) GetProjectRef() corev1.LocalObjectReference { return c.Spec.ProjectRef }

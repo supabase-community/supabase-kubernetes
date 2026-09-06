@@ -16,20 +16,24 @@ limitations under the License.
 
 package v1alpha1
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // StorageSpec defines the desired state of the Storage component.
 type StorageSpec struct {
+	// ProjectRef references a Project in the same namespace.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="projectRef is immutable"
+	// +kubebuilder:validation:XValidation:rule="has(self.name) && size(self.name) > 0",message="projectRef.name is required"
+	ProjectRef corev1.LocalObjectReference `json:"projectRef"`
+
 	// Pod overlays the operator-generated Pod template.
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
-
-	// Enable defines whether the Storage component is enabled
-	// +optional
-	// +kubebuilder:default=true
-	Enable *bool `json:"enable,omitempty"`
 
 	// Replicas defines the number of Storage instances
 	// +optional
@@ -51,3 +55,51 @@ type StorageSpec struct {
 	// +kubebuilder:validation:Required
 	Storage VolumeClaim `json:"storage"`
 }
+
+// StorageStatus defines the observed state of Storage.
+type StorageStatus struct {
+	// Conditions include Ready and its current reconciliation reason.
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.projectRef.name`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Storage is the Schema for the storages API
+type Storage struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is a standard object metadata
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitzero"`
+
+	// spec defines the desired state of Storage
+	// +required
+	Spec StorageSpec `json:"spec"`
+
+	// status defines the observed state of Storage
+	// +optional
+	Status StorageStatus `json:"status,omitzero"`
+}
+
+// +kubebuilder:object:root=true
+
+// StorageList contains a list of Storage
+type StorageList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitzero"`
+	Items           []Storage `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Storage{}, &StorageList{})
+}
+
+func (c *Storage) GetConditions() *[]metav1.Condition         { return &c.Status.Conditions }
+func (c *Storage) GetProjectRef() corev1.LocalObjectReference { return c.Spec.ProjectRef }

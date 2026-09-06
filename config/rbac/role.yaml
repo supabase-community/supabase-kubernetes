@@ -54,10 +54,18 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
+  - auths
+  - edgeruntimes
+  - envoys
   - functions
+  - meta
   - migrations
   - projects
+  - realtimes
+  - rests
   - singledatabases
+  - storages
+  - studios
   verbs:
   - create
   - delete
@@ -69,19 +77,35 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
+  - auths/finalizers
+  - edgeruntimes/finalizers
+  - envoys/finalizers
   - functions/finalizers
+  - meta/finalizers
   - migrations/finalizers
   - projects/finalizers
+  - realtimes/finalizers
+  - rests/finalizers
   - singledatabases/finalizers
+  - storages/finalizers
+  - studios/finalizers
   verbs:
   - update
 - apiGroups:
   - core.supabase.io
   resources:
+  - auths/status
+  - edgeruntimes/status
+  - envoys/status
   - functions/status
+  - meta/status
   - migrations/status
   - projects/status
+  - realtimes/status
+  - rests/status
   - singledatabases/status
+  - storages/status
+  - studios/status
   verbs:
   - get
   - patch

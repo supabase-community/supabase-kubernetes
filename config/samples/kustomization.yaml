@@ -11,4 +11,12 @@ resources:
   - singledatabase.yaml
   # - migration.yaml
   - project.yaml
-  # - function.yaml
+  - function.yaml
+  - auth.yaml
+  - rest.yaml
+  - meta.yaml
+  - realtime.yaml
+  - storage.yaml
+  - studio.yaml
+  - envoy.yaml
+  - edgeruntime.yaml

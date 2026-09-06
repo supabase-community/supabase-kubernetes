@@ -1,0 +1,190 @@
+/*
+Copyright 2026.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package rest
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/supabase-community/supabase-kubernetes/internal/defaults"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+
+	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
+)
+
+// RestDeploymentName returns the name of the Rest Deployment for a Project.
+func RestDeploymentName(project *ResourceContext) string {
+	return ComponentName(project.Names["Rest"], "rest")
+}
+
+// RestDeployment constructs the Rest Deployment for a Project.
+func RestDeployment(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) (*appsv1.Deployment, error) {
+	if project.Spec.Rest == nil {
+		return nil, nil
+	}
+
+	template, err := helper.Overlay(corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: RestLabels(project)},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildRestContainer(project, db)}},
+	}, project.Spec.Rest.Pod)
+	if err != nil {
+		return nil, err
+	}
+	deploy := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      RestDeploymentName(project),
+			Namespace: project.Namespace,
+			Labels:    RestLabels(project),
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: restReplicas(project),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: RestSelectorLabels(project),
+			},
+			Template: template,
+		},
+	}
+
+	return deploy, nil
+}
+
+// restReplicas returns the number of Rest replicas from the spec or the default.
+func restReplicas(project *ResourceContext) *int32 {
+	if project.Spec.Rest != nil && project.Spec.Rest.Replicas != nil {
+		return project.Spec.Rest.Replicas
+	}
+	return ptr.To(int32(1))
+}
+
+// buildRestContainer returns the Rest container specification.
+func buildRestContainer(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
+	return corev1.Container{
+		Name:            "rest",
+		Image:           restImage(project),
+		ImagePullPolicy: restImagePullPolicy(project),
+		Command:         []string{"postgrest"},
+		Env:             buildRestEnvVars(project, db),
+		Ports:           restPorts(),
+		Resources:       corev1.ResourceRequirements{},
+		LivenessProbe:   restLivenessProbe(),
+		ReadinessProbe:  restReadinessProbe(),
+		StartupProbe:    restStartupProbe(),
+	}
+}
+
+// restImage returns the Rest image from the spec or the default image.
+func restImage(project *ResourceContext) string {
+	return defaults.DefaultRestImage
+}
+
+// restImagePullPolicy returns the Rest image pull policy from the spec or the default.
+func restImagePullPolicy(project *ResourceContext) corev1.PullPolicy {
+	return corev1.PullIfNotPresent
+}
+
+// restPorts returns the container ports for the Rest container.
+func restPorts() []corev1.ContainerPort {
+	return []corev1.ContainerPort{
+		{
+			Name:          "rest",
+			ContainerPort: DefaultRestPort,
+			Protocol:      corev1.ProtocolTCP,
+		},
+	}
+}
+
+// restLivenessProbe returns the liveness probe for the Rest container.
+func restLivenessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:        restProbeHandler(),
+		InitialDelaySeconds: 5,
+		PeriodSeconds:       5,
+		TimeoutSeconds:      5,
+		FailureThreshold:    3,
+	}
+}
+
+// restReadinessProbe returns the readiness probe for the Rest container.
+func restReadinessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:        restProbeHandler(),
+		InitialDelaySeconds: 5,
+		PeriodSeconds:       5,
+		TimeoutSeconds:      5,
+		FailureThreshold:    3,
+	}
+}
+
+// restStartupProbe returns the startup probe for the Rest container.
+func restStartupProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler:        restProbeHandler(),
+		InitialDelaySeconds: 5,
+		PeriodSeconds:       5,
+		TimeoutSeconds:      5,
+		FailureThreshold:    10,
+	}
+}
+
+// restProbeHandler returns the shared probe handler for Rest health checks.
+func restProbeHandler() corev1.ProbeHandler {
+	return corev1.ProbeHandler{
+		Exec: &corev1.ExecAction{
+			Command: []string{"postgrest", "--ready"},
+		},
+	}
+}
+
+// buildRestEnvVars returns the environment variables for the Rest container.
+func buildRestEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
+	env := []corev1.EnvVar{
+		helper.EnvVarFromSecret("PGRST_DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
+		helper.EnvVar("PGRST_DB_URI", fmt.Sprintf("postgres://authenticator:$(PGRST_DB_PASSWORD)@%s:%s/%s", db.Host, strconv.Itoa(int(db.Port)), db.DBName)),
+		helper.EnvVar("PGRST_DB_SCHEMAS", restSchemasOrDefault()),
+		helper.EnvVar("PGRST_DB_MAX_ROWS", restMaxRowsOrDefault()),
+		helper.EnvVar("PGRST_DB_EXTRA_SEARCH_PATH", restExtraSearchPathOrDefault()),
+		helper.EnvVar("PGRST_DB_ANON_ROLE", "anon"),
+		helper.EnvVar("PGRST_ADMIN_SERVER_PORT", strconv.Itoa(int(DefaultRestAdminPort))),
+		helper.EnvVar("PGRST_ADMIN_SERVER_HOST", "localhost"),
+		helper.EnvVarFromSecret("PGRST_JWT_SECRET", JWTSecretName(project), JWTSecretJWKS),
+		helper.EnvVar("PGRST_DB_USE_LEGACY_GUCS", "false"),
+		helper.EnvVarFromSecret("PGRST_APP_SETTINGS_JWT_SECRET", JWTSecretName(project), JWTSecretKey),
+		helper.EnvVar("PGRST_APP_SETTINGS_JWT_EXP", strconv.Itoa(int(*project.Spec.JWTExpSec))),
+	}
+
+	return helper.MergeEnvVars(env, project.Spec.Rest.Config)
+}
+
+// restSchemasOrDefault returns the Rest DB schemas default.
+func restSchemasOrDefault() string {
+	return "public,storage,graphql_public"
+}
+
+// restMaxRowsOrDefault returns the Rest DB max rows default.
+func restMaxRowsOrDefault() string {
+	return "1000"
+}
+
+// restExtraSearchPathOrDefault returns the Rest DB extra search path default.
+func restExtraSearchPathOrDefault() string {
+	return "public"
+}

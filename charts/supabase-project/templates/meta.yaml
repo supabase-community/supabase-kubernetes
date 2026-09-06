@@ -1,0 +1,12 @@
+{{- if .Values.meta.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: Meta
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  projectRef:
+    name: {{ include "supabase-project.fullname" . | quote }}
+  {{- omit .Values.meta "enable" | toYaml | nindent 2 }}
+{{- end }}

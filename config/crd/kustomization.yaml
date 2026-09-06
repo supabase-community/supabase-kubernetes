@@ -6,6 +6,14 @@ resources:
   - bases/core.supabase.io_singledatabases.yaml
   - bases/core.supabase.io_migrations.yaml
   - bases/core.supabase.io_functions.yaml
+  - bases/core.supabase.io_auths.yaml
+  - bases/core.supabase.io_rests.yaml
+  - bases/core.supabase.io_meta.yaml
+  - bases/core.supabase.io_realtimes.yaml
+  - bases/core.supabase.io_storages.yaml
+  - bases/core.supabase.io_studios.yaml
+  - bases/core.supabase.io_envoys.yaml
+  - bases/core.supabase.io_edgeruntimes.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

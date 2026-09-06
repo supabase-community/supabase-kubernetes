@@ -1,0 +1,11 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Auth
+metadata:
+  name: supabase
+spec:
+  projectRef:
+    name: supabase
+  replicas: 1
+  config:
+    - name: GOTRUE_SITE_URL
+      value: https://myapp.supabase.com

@@ -18,7 +18,6 @@ project:
 ## SingleDatabase configuration
 ##
 singleDatabase:
-  enable: true
   pod: {}
   service:
     type: ClusterIP
@@ -28,7 +27,7 @@ singleDatabase:
     accessModes:
       - ReadWriteOnce
     size: 20Gi
-    storageClassName: ""
+    # storageClassName: ""
     deletionPolicy: Delete
 
 ## Rest component configuration
@@ -79,9 +78,9 @@ auth:
     labels: {}
   config: []
 
-## Functions component configuration
+## EdgeRuntime component configuration
 ##
-functions:
+edgeRuntime:
   enable: true
   replicas: 1
   pod: {}
@@ -118,7 +117,7 @@ storage:
     accessModes:
       - ReadWriteOnce
     size: 5Gi
-    storageClassName: ""
+    # storageClassName: ""
     deletionPolicy: Delete
 
 ## Studio component configuration
@@ -136,5 +135,5 @@ studio:
     accessModes:
       - ReadWriteOnce
     size: 1Gi
-    storageClassName: ""
+    # storageClassName: ""
     deletionPolicy: Delete
