@@ -21,7 +21,6 @@ func ProjectLabels(ctx *ResourceContext) map[string]string {
 	return FunctionsLabels(ctx)
 }
 
-var APIExternalURL = projectdefaults.APIExternalURL
 var JWTSecretName = projectdefaults.JWTSecretName
 
 func EnvoyServiceName(ctx *ResourceContext) string {

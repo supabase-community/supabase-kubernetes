@@ -167,10 +167,7 @@ var _ = Describe("Project Controller", func() {
 				Namespace: ns,
 			},
 			Spec: supabasev1alpha1.ProjectSpec{
-				HTTP: supabasev1alpha1.HTTPConfig{
-					Protocol: "http",
-					Hostname: "api.test.local",
-				},
+				PublicURL: "http://api.test.local",
 				DatabaseRef: supabasev1alpha1.DatabaseRef{
 					Kind: "SingleDatabase",
 					Name: dbName,

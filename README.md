@@ -76,8 +76,7 @@ The `supabase-project` chart creates a `SingleDatabase`, a `Project`, and the en
 ```bash
 helm install supabase supabase/supabase-project \
   --set fullnameOverride=supabase \
-  --set project.http.hostname=localhost \
-  --set project.http.port=8000
+  --set project.publicUrl=http://localhost:8000
 ```
 
 The Operator will provision the Postgres StatefulSet, the component Deployments, Services, Secrets, and run sync Jobs to configure JWT keys and the database.

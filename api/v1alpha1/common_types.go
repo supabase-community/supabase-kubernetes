@@ -111,25 +111,6 @@ type ServiceSpec struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-// HTTPConfig defines public HTTP access settings for a Project.
-type HTTPConfig struct {
-	// Protocol defines the HTTP protocol (http or https)
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=http;https
-	Protocol string `json:"protocol"`
-
-	// Hostname defines the public hostname for the Project
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Hostname string `json:"hostname"`
-
-	// Port defines the public port for the Project
-	// +optional
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=65535
-	Port *int32 `json:"port,omitempty"`
-}
-
 // DatabaseRef references a database resource.
 type DatabaseRef struct {
 	// Kind defines the kind of database resource

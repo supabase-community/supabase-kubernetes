@@ -50,12 +50,3 @@ func ComputeJWTSyncHash(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 	h.Write([]byte(strconv.Itoa(int(*project.Spec.JWTExpSec))))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
-
-// APIExternalURL returns the public API URL for a Project.
-func APIExternalURL(project *ResourceContext) string {
-	url := fmt.Sprintf("%s://%s", project.Spec.HTTP.Protocol, project.Spec.HTTP.Hostname)
-	if project.Spec.HTTP.Port != nil {
-		url = fmt.Sprintf("%s:%d", url, *project.Spec.HTTP.Port)
-	}
-	return url
-}

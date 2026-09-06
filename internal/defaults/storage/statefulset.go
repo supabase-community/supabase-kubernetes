@@ -184,7 +184,7 @@ func buildStorageEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolved
 			strconv.Itoa(int(db.Port)),
 			db.DBName,
 		)),
-		helper.EnvVar("STORAGE_PUBLIC_URL", APIExternalURL(project)),
+		helper.EnvVar("STORAGE_PUBLIC_URL", project.Spec.PublicURL),
 		helper.EnvVar("REQUEST_ALLOW_X_FORWARDED_PATH", "true"),
 		helper.EnvVar("FILE_SIZE_LIMIT", "52428800"),
 		helper.EnvVar("STORAGE_BACKEND", "file"),

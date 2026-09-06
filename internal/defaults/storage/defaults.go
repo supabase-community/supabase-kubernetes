@@ -24,7 +24,6 @@ func StorageSelectorLabels(ctx *ResourceContext) map[string]string {
 	return defaults.SelectorLabels(ctx, "Storage", "storage", "storage", "storage")
 }
 
-var APIExternalURL = projectdefaults.APIExternalURL
 var JWTSecretName = projectdefaults.JWTSecretName
 var RestServiceName = restdefaults.RestServiceName
 

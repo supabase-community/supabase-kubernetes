@@ -3,12 +3,8 @@ kind: Project
 metadata:
   name: supabase
 spec:
-  # jwtExpSec: 1800
-
-  http:
-    protocol: "http"
-    hostname: "api.supabase.local"
-
+  jwtExpSec: 3600
+  publicUrl: "http://localhost:8000"
   databaseRef:
     kind: SingleDatabase
     name: supabase

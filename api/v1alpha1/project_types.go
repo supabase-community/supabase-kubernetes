@@ -28,9 +28,10 @@ type ProjectSpec struct {
 	// +kubebuilder:validation:Minimum=1
 	JWTExpSec *int32 `json:"jwtExpSec,omitempty"`
 
-	// HTTP defines the public HTTP access settings
+	// PublicURL defines the public URL for the Project
 	// +kubebuilder:validation:Required
-	HTTP HTTPConfig `json:"http"`
+	// +kubebuilder:validation:MinLength=1
+	PublicURL string `json:"publicUrl"`
 
 	// DatabaseRef references the database resource
 	// +kubebuilder:validation:Required

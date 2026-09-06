@@ -39,6 +39,12 @@ type componentObject interface {
 	GetProjectRef() corev1.LocalObjectReference
 }
 
+const (
+	kindEdgeRuntime = "EdgeRuntime"
+	kindStorage     = "Storage"
+	kindStudio      = "Studio"
+)
+
 type componentTestClient struct{ client.Client }
 
 func (r *componentTestClient) reconcile(ctx context.Context, obj componentObject) (ctrl.Result, error) {
@@ -74,7 +80,7 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 			t.Fatal(err)
 		}
 	}
-	p := &core.Project{ObjectMeta: metav1.ObjectMeta{Name: "shared", Namespace: "test", UID: "project"}, Spec: core.ProjectSpec{JWTExpSec: ptr.To(int32(3600)), HTTP: core.HTTPConfig{Protocol: "http", Hostname: "localhost"}, DatabaseRef: core.DatabaseRef{Kind: "SingleDatabase", Name: "db"}}}
+	p := &core.Project{ObjectMeta: metav1.ObjectMeta{Name: "shared", Namespace: "test", UID: "project"}, Spec: core.ProjectSpec{JWTExpSec: ptr.To(int32(3600)), PublicURL: "https://api.test.local:8443", DatabaseRef: core.DatabaseRef{Kind: "SingleDatabase", Name: "db"}}}
 	reconciler.SetReady(p, "TestReady", "Shared infrastructure ready")
 	db := &core.SingleDatabase{ObjectMeta: metav1.ObjectMeta{Name: "db", Namespace: "test"}, Status: core.SingleDatabaseStatus{ResolvedDatabase: &core.ResolvedDatabase{Host: "db", Port: 5432, DBName: "postgres", User: "postgres", PasswordRef: core.SecretKeyRef{Name: "db-password", Key: "password"}}}}
 	reconciler.SetReady(db, "TestReady", "Database ready")
@@ -95,7 +101,7 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 		o.SetNamespace(p.Namespace)
 		o.SetUID(types.UID(kind))
 		spec := map[string]any{"projectRef": map[string]string{"name": p.Name}, "replicas": 0}
-		if kind == "Storage" || kind == "Studio" {
+		if kind == kindStorage || kind == kindStudio {
 			spec["storage"] = core.VolumeClaim{Size: resource.MustParse("1Gi"), AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}, DeletionPolicy: ptr.To(core.DeletionPolicyDelete)}
 		}
 		data, _ := json.Marshal(map[string]any{"spec": spec})
@@ -129,8 +135,31 @@ func expectReason(t *testing.T, ctx context.Context, r *componentTestClient, o c
 		t.Fatalf("%T condition = %+v, want %s", o, c, reason)
 	}
 }
+func expectEnvValue(t *testing.T, workload client.Object, name, value string) {
+	t.Helper()
+	var containers []corev1.Container
+	switch workload := workload.(type) {
+	case *appsv1.Deployment:
+		containers = workload.Spec.Template.Spec.Containers
+	case *appsv1.StatefulSet:
+		containers = workload.Spec.Template.Spec.Containers
+	default:
+		t.Fatalf("unsupported workload %T", workload)
+	}
+	for _, container := range containers {
+		for _, env := range container.Env {
+			if env.Name == name {
+				if env.Value != value {
+					t.Fatalf("%T environment variable %s = %q, want %q", workload, name, env.Value, value)
+				}
+				return
+			}
+		}
+	}
+	t.Fatalf("%T environment variable %s is missing", workload, name)
+}
 func TestComponentLifecycle(t *testing.T) {
-	for _, kind := range []string{"Auth", "Rest", "Meta", "Realtime", "Storage", "Studio", "Envoy", "EdgeRuntime"} {
+	for _, kind := range []string{"Auth", "Rest", "Meta", "Realtime", kindStorage, kindStudio, "Envoy", kindEdgeRuntime} {
 		t.Run(kind, func(t *testing.T) {
 			ctx, r, p, objects := componentFixture(t)
 			// Envoy credentials must exist before Studio consumes them.
@@ -146,7 +175,7 @@ func TestComponentLifecycle(t *testing.T) {
 				}
 			}
 			runComponent(t, ctx, r, target)
-			if kind == "EdgeRuntime" {
+			if kind == kindEdgeRuntime {
 				functions := &core.FunctionList{}
 				if err := r.List(ctx, functions); err != nil {
 					t.Fatal(err)
@@ -164,10 +193,10 @@ func TestComponentLifecycle(t *testing.T) {
 			expectReason(t, ctx, r, target, "ReconcileSucceeded")
 			var workload client.Object = &appsv1.Deployment{}
 			suffix := strings.ToLower(kind)
-			if kind == "EdgeRuntime" {
+			if kind == kindEdgeRuntime {
 				suffix = "edge-runtime"
 			}
-			if kind == "Storage" || kind == "Studio" {
+			if kind == kindStorage || kind == kindStudio {
 				workload = &appsv1.StatefulSet{}
 			}
 			key := client.ObjectKey{Namespace: p.Namespace, Name: defaults.ComponentName(target.GetName(), suffix)}
@@ -176,6 +205,15 @@ func TestComponentLifecycle(t *testing.T) {
 			}
 			if !metav1.IsControlledBy(workload, target) {
 				t.Fatal("workload owner is not component")
+			}
+			switch kind {
+			case "Auth":
+				expectEnvValue(t, workload, "API_EXTERNAL_URL", p.Spec.PublicURL)
+				expectEnvValue(t, workload, "GOTRUE_JWT_ISSUER", p.Spec.PublicURL+"/auth/v1")
+			case kindStorage:
+				expectEnvValue(t, workload, "STORAGE_PUBLIC_URL", p.Spec.PublicURL)
+			case kindStudio, kindEdgeRuntime:
+				expectEnvValue(t, workload, "SUPABASE_PUBLIC_URL", p.Spec.PublicURL)
 			}
 			rv := workload.GetResourceVersion()
 			runComponent(t, ctx, r, target)

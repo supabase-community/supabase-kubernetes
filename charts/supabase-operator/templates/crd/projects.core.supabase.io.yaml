@@ -67,38 +67,19 @@ spec:
                 - kind
                 - name
                 type: object
-              http:
-                description: HTTP defines the public HTTP access settings
-                properties:
-                  hostname:
-                    description: Hostname defines the public hostname for the Project
-                    minLength: 1
-                    type: string
-                  port:
-                    description: Port defines the public port for the Project
-                    format: int32
-                    maximum: 65535
-                    minimum: 1
-                    type: integer
-                  protocol:
-                    description: Protocol defines the HTTP protocol (http or https)
-                    enum:
-                    - http
-                    - https
-                    type: string
-                required:
-                - hostname
-                - protocol
-                type: object
               jwtExpSec:
                 default: 3600
                 description: JWTExpSec defines the JWT expiration time in seconds
                 format: int32
                 minimum: 1
                 type: integer
+              publicUrl:
+                description: PublicURL defines the public URL for the Project
+                minLength: 1
+                type: string
             required:
             - databaseRef
-            - http
+            - publicUrl
             type: object
           status:
             description: ProjectStatus defines the observed state of a Supabase deployment.

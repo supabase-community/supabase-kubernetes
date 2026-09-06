@@ -46,7 +46,7 @@ var _ = Describe("Function Controller", func() {
 		Expect(k8sClient.Create(ctx, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{Name: ns},
 		})).To(Succeed())
-		Expect(k8sClient.Create(ctx, &supabasev1alpha1.Project{ObjectMeta: metav1.ObjectMeta{Name: "demo", Namespace: ns}, Spec: supabasev1alpha1.ProjectSpec{HTTP: supabasev1alpha1.HTTPConfig{Protocol: "http", Hostname: "test.local"}, DatabaseRef: supabasev1alpha1.DatabaseRef{Kind: "SingleDatabase", Name: "pg"}}})).To(Succeed())
+		Expect(k8sClient.Create(ctx, &supabasev1alpha1.Project{ObjectMeta: metav1.ObjectMeta{Name: "demo", Namespace: ns}, Spec: supabasev1alpha1.ProjectSpec{PublicURL: "http://test.local", DatabaseRef: supabasev1alpha1.DatabaseRef{Kind: "SingleDatabase", Name: "pg"}}})).To(Succeed())
 	})
 
 	newFunction := func(name string, source map[string]string) *supabasev1alpha1.Function {

@@ -3,15 +3,7 @@ kind: SingleDatabase
 metadata:
   name: supabase
 spec:
-  # pod:
-  #   metadata:
-  #     labels:
-  #       workload: database
-  #   spec:
-  #     nodeSelector:
-  #       workload: database
   storage:
-    accessModes:
-      - ReadWriteOnce
+    accessModes: [ReadWriteOnce]
     size: 20Gi
-    # deletionPolicy: Delete ## Or Retain
+    deletionPolicy: Delete

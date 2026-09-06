@@ -189,7 +189,7 @@ func buildStudioEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 			project.Namespace,
 			DefaultEnvoyPort,
 		)),
-		helper.EnvVar("SUPABASE_PUBLIC_URL", APIExternalURL(project)),
+		helper.EnvVar("SUPABASE_PUBLIC_URL", project.Spec.PublicURL),
 		helper.EnvVarFromSecret("SUPABASE_ANON_KEY", jwtSecret, JWTSecretAnonKey),
 		helper.EnvVarFromSecret("SUPABASE_SERVICE_KEY", jwtSecret, JWTSecretServiceKey),
 		helper.EnvVarFromSecret("AUTH_JWT_SECRET", jwtSecret, JWTSecretKey),
