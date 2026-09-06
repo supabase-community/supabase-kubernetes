@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	core "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/controller/component"
 	"github.com/supabase-community/supabase-kubernetes/internal/defaults"
 	storagedefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/storage"
@@ -17,9 +16,5 @@ func (r *Reconciler) reconcilePVC(ctx context.Context, state *defaults.Context) 
 		return fmt.Errorf("building storage pvc: %w", err)
 	}
 	pvc.Annotations = map[string]string{"core.supabase.io/owner-uid": string(state.Owner.GetUID())}
-	var owner = state.Owner
-	if storagedefaults.StoragePVCDeletionPolicy(state) == core.DeletionPolicyRetain {
-		owner = nil
-	}
-	return component.Ensure(ctx, r.Client, pvc, owner, reconciler.MutatePVC(), "Storage PVC")
+	return component.Ensure(ctx, r.Client, pvc, state.Owner, reconciler.MutatePVC(), "Storage PVC")
 }

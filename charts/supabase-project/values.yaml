@@ -18,11 +18,11 @@ singleDatabase:
   pod: {}
   service: {}
   storage:
-    accessModes:
-      - ReadWriteOnce
-    size: 20Gi
+    accessModes: [ReadWriteOnce]
+    resources:
+      requests:
+        storage: 20Gi
     # storageClassName: ""
-    deletionPolicy: Delete
 
 ## Rest component configuration
 ##
@@ -87,11 +87,11 @@ storage:
   service: {}
   config: []
   storage:
-    accessModes:
-      - ReadWriteOnce
-    size: 5Gi
+    accessModes: [ReadWriteOnce]
+    resources:
+      requests:
+        storage: 5Gi
     # storageClassName: ""
-    deletionPolicy: Delete
 
 ## Studio component configuration
 ##
@@ -102,8 +102,8 @@ studio:
   service: {}
   config: []
   storage:
-    accessModes:
-      - ReadWriteOnce
-    size: 1Gi
+    accessModes: [ReadWriteOnce]
+    resources:
+      requests:
+        storage: 1Gi
     # storageClassName: ""
-    deletionPolicy: Delete

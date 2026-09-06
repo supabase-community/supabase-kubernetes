@@ -56,12 +56,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 				Name:      name,
 				Namespace: ns,
 			},
-			Spec: supabasev1alpha1.SingleDatabaseSpec{
-				Storage: supabasev1alpha1.VolumeClaim{
-					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Size:        resource.MustParse("1Gi"),
-				},
-			},
+			Spec: supabasev1alpha1.SingleDatabaseSpec{},
 		}
 	}
 
@@ -101,6 +96,7 @@ var _ = Describe("SingleDatabase Controller", func() {
 				pvc := &corev1.PersistentVolumeClaim{}
 				g.Expect(k8sClient.Get(ctx, pvcKey, pvc)).To(Succeed())
 				g.Expect(pvc.Spec.AccessModes).To(ContainElement(corev1.ReadWriteOnce))
+				g.Expect(pvc.Spec.Resources.Requests.Storage().Cmp(resource.MustParse("1Gi"))).To(Equal(0))
 
 				svc := &corev1.Service{}
 				g.Expect(k8sClient.Get(ctx, svcKey, svc)).To(Succeed())

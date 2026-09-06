@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -167,5 +168,35 @@ func TestOverlayKeepsBaseContainersWhenUserLeavesThemUnset(t *testing.T) {
 	}
 	if merged.Spec.NodeSelector["workload"] != "database" {
 		t.Fatalf("nodeSelector = %#v", merged.Spec.NodeSelector)
+	}
+}
+
+func TestOverlayPersistentVolumeClaimSpecMergesUserConfiguration(t *testing.T) {
+	base := corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+		Resources: corev1.VolumeResourceRequirements{Requests: corev1.ResourceList{
+			corev1.ResourceStorage: resource.MustParse("1Gi"),
+		}},
+	}
+	className := "fast"
+	user := &corev1.PersistentVolumeClaimSpec{
+		StorageClassName: &className,
+		Resources: corev1.VolumeResourceRequirements{Requests: corev1.ResourceList{
+			corev1.ResourceStorage: resource.MustParse("5Gi"),
+		}},
+	}
+
+	merged, err := OverlayPersistentVolumeClaimSpec(base, user)
+	if err != nil {
+		t.Fatalf("OverlayPersistentVolumeClaimSpec() error = %v", err)
+	}
+	if len(merged.AccessModes) != 1 || merged.AccessModes[0] != corev1.ReadWriteOnce {
+		t.Fatalf("accessModes = %#v", merged.AccessModes)
+	}
+	if merged.StorageClassName == nil || *merged.StorageClassName != className {
+		t.Fatalf("storageClassName = %#v", merged.StorageClassName)
+	}
+	if merged.Resources.Requests.Storage().Cmp(resource.MustParse("5Gi")) != 0 {
+		t.Fatalf("storage request = %s", merged.Resources.Requests.Storage())
 	}
 }

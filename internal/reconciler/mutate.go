@@ -17,11 +17,13 @@ limitations under the License.
 package reconciler
 
 import (
+	"fmt"
 	"maps"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
@@ -53,14 +55,47 @@ func MutateSecret(keys ...string) func(existing, desired *corev1.Secret) error {
 	}
 }
 
-// MutatePVC returns a mutateFn that copies Resources from desired to existing.
+// MutatePVC returns a mutateFn that updates mutable PVC fields and rejects
+// changes to immutable fields without recreating the claim.
 func MutatePVC() func(existing, desired *corev1.PersistentVolumeClaim) error {
 	return func(existing, desired *corev1.PersistentVolumeClaim) error {
+		if err := validatePVCImmutableFields(&existing.Spec, &desired.Spec); err != nil {
+			return err
+		}
 		existing.Spec.Resources = desired.Spec.Resources
+		if desired.Spec.VolumeAttributesClassName != nil {
+			existing.Spec.VolumeAttributesClassName = desired.Spec.VolumeAttributesClassName
+		}
+		existing.Labels = desired.Labels
 		existing.OwnerReferences = desired.OwnerReferences
 		existing.Annotations = mergeStringMaps(existing.Annotations, desired.Annotations)
 		return nil
 	}
+}
+
+func validatePVCImmutableFields(existing, desired *corev1.PersistentVolumeClaimSpec) error {
+	if !equality.Semantic.DeepEqual(existing.AccessModes, desired.AccessModes) {
+		return fmt.Errorf("PVC accessModes is immutable")
+	}
+	if desired.Selector != nil && !equality.Semantic.DeepEqual(existing.Selector, desired.Selector) {
+		return fmt.Errorf("PVC selector is immutable")
+	}
+	if desired.VolumeName != "" && existing.VolumeName != desired.VolumeName {
+		return fmt.Errorf("PVC volumeName is immutable")
+	}
+	if desired.StorageClassName != nil && !equality.Semantic.DeepEqual(existing.StorageClassName, desired.StorageClassName) {
+		return fmt.Errorf("PVC storageClassName is immutable")
+	}
+	if desired.VolumeMode != nil && !equality.Semantic.DeepEqual(existing.VolumeMode, desired.VolumeMode) {
+		return fmt.Errorf("PVC volumeMode is immutable")
+	}
+	if desired.DataSource != nil && !equality.Semantic.DeepEqual(existing.DataSource, desired.DataSource) {
+		return fmt.Errorf("PVC dataSource is immutable")
+	}
+	if desired.DataSourceRef != nil && !equality.Semantic.DeepEqual(existing.DataSourceRef, desired.DataSourceRef) {
+		return fmt.Errorf("PVC dataSourceRef is immutable")
+	}
+	return nil
 }
 
 // MutateService returns a mutateFn that copies the desired Service template

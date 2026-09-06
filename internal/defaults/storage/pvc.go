@@ -18,9 +18,10 @@ package storage
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // StoragePVCName returns the name of the Storage PersistentVolumeClaim for a Project.
@@ -40,29 +41,25 @@ func StoragePVC(project *ResourceContext) (*corev1.PersistentVolumeClaim, error)
 			Namespace: project.Namespace,
 			Labels:    StorageLabels(project),
 		},
-		Spec: buildStorageVolumeClaimSpec(project),
+	}
+	var err error
+	pvc.Spec, err = buildStorageVolumeClaimSpec(project)
+	if err != nil {
+		return nil, err
 	}
 
 	return pvc, nil
 }
 
 // buildStorageVolumeClaimSpec returns the PersistentVolumeClaimSpec for the Storage.
-func buildStorageVolumeClaimSpec(project *ResourceContext) corev1.PersistentVolumeClaimSpec {
-	return corev1.PersistentVolumeClaimSpec{
-		AccessModes: project.Spec.Storage.Storage.AccessModes,
+func buildStorageVolumeClaimSpec(project *ResourceContext) (corev1.PersistentVolumeClaimSpec, error) {
+	base := corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 		Resources: corev1.VolumeResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceStorage: project.Spec.Storage.Storage.Size,
+				corev1.ResourceStorage: resource.MustParse("1Gi"),
 			},
 		},
-		StorageClassName: project.Spec.Storage.Storage.StorageClassName,
 	}
-}
-
-// StoragePVCDeletionPolicy returns the deletion policy for the Storage PVC.
-func StoragePVCDeletionPolicy(project *ResourceContext) supabasev1alpha1.DeletionPolicy {
-	if project.Spec.Storage != nil && project.Spec.Storage.Storage.DeletionPolicy != nil {
-		return *project.Spec.Storage.Storage.DeletionPolicy
-	}
-	return supabasev1alpha1.DeletionPolicyDelete
+	return helper.OverlayPersistentVolumeClaimSpec(base, project.Spec.Storage.Storage)
 }

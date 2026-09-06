@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -101,9 +100,6 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 		o.SetNamespace(p.Namespace)
 		o.SetUID(types.UID(kind))
 		spec := map[string]any{"projectRef": map[string]string{"name": p.Name}, "replicas": 0}
-		if kind == kindStorage || kind == kindStudio {
-			spec["storage"] = core.VolumeClaim{Size: resource.MustParse("1Gi"), AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}, DeletionPolicy: ptr.To(core.DeletionPolicyDelete)}
-		}
 		data, _ := json.Marshal(map[string]any{"spec": spec})
 		if err := json.Unmarshal(data, o); err != nil {
 			t.Fatal(err)
@@ -415,7 +411,7 @@ func TestRoutesAndFunctionContent(t *testing.T) {
 	expectReason(t, ctx, r, edge, "ProjectNotFound")
 }
 
-func TestRetentionAndForeignOwnership(t *testing.T) {
+func TestPVCOwnershipAndForeignOwnership(t *testing.T) {
 	ctx, r, p, objects := componentFixture(t)
 	storage := objects[4].(*core.Storage)
 	runComponent(t, ctx, r, storage)
@@ -425,31 +421,25 @@ func TestRetentionAndForeignOwnership(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !metav1.IsControlledBy(pvc, storage) {
-		t.Fatal("Delete PVC missing component owner")
+		t.Fatal("PVC missing component owner")
 	}
-	storage.Spec.Storage.DeletionPolicy = ptr.To(core.DeletionPolicyRetain)
+	storage.Spec.Storage = &corev1.PersistentVolumeClaimSpec{StorageClassName: ptr.To("another-class")}
 	if err := r.Update(ctx, storage); err != nil {
 		t.Fatal(err)
 	}
 	runComponent(t, ctx, r, storage)
-	if err := r.Get(ctx, key, pvc); err != nil {
-		t.Fatal(err)
-	}
-	if len(pvc.OwnerReferences) != 0 {
-		t.Fatal("Retain PVC still has owner reference")
-	}
-	storage.Spec.Storage.DeletionPolicy = ptr.To(core.DeletionPolicyDelete)
-	if err := r.Update(ctx, storage); err != nil {
-		t.Fatal(err)
-	}
-	runComponent(t, ctx, r, storage)
+	expectReason(t, ctx, r, storage, "ReconcileFailed")
 	if err := r.Get(ctx, key, pvc); err != nil {
 		t.Fatal(err)
 	}
 	if !metav1.IsControlledBy(pvc, storage) {
-		t.Fatal("Delete policy did not restore owner")
+		t.Fatal("immutable update removed PVC owner")
 	}
-	// A retained PVC from a previous CR must not be reused implicitly.
+	storage.Spec.Storage = nil
+	if err := r.Update(ctx, storage); err != nil {
+		t.Fatal(err)
+	}
+	// A PVC from a previous CR must not be reused implicitly.
 	pvc.Annotations["core.supabase.io/owner-uid"] = "previous-owner"
 	if err := r.Update(ctx, pvc); err != nil {
 		t.Fatal(err)

@@ -8,5 +8,6 @@ spec:
   replicas: 1
   storage:
     accessModes: [ReadWriteOnce]
-    size: 5Gi
-    deletionPolicy: Delete
+    resources:
+      requests:
+        storage: 5Gi

@@ -5,5 +5,6 @@ metadata:
 spec:
   storage:
     accessModes: [ReadWriteOnce]
-    size: 20Gi
-    deletionPolicy: Delete
+    resources:
+      requests:
+        storage: 20Gi

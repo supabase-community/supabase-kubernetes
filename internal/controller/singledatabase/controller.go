@@ -199,17 +199,12 @@ func (r *Reconciler) ensurePVC(ctx context.Context, db *supabasev1alpha1.SingleD
 		return reconciler.DeletePersistentVolumeClaimIfExists(ctx, r.Client, singledatabase.PostgresPVCName(db), db.Namespace)
 	}
 
-	var owner client.Object = db
-	if singledatabase.PostgresPVCDeletionPolicy(db) == supabasev1alpha1.DeletionPolicyRetain {
-		owner = nil
-	}
-
 	logger := log.FromContext(ctx).WithValues(
 		"name", pvc.GetName(),
 		"namespace", pvc.GetNamespace(),
 	)
 
-	result, err := reconciler.EnsureResource(ctx, r.Client, pvc, owner, reconciler.MutatePVC())
+	result, err := reconciler.EnsureResource(ctx, r.Client, pvc, db, reconciler.MutatePVC())
 	if err != nil {
 		return fmt.Errorf("ensuring pvc: %w", err)
 	}

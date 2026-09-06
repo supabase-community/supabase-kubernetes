@@ -51,9 +51,9 @@ type StorageSpec struct {
 	// +patchStrategy=merge
 	Config []corev1.EnvVar `json:"config,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 
-	// Storage defines the persistent volume claim for Storage data
-	// +kubebuilder:validation:Required
-	Storage VolumeClaim `json:"storage"`
+	// Storage overlays the operator-generated persistent volume claim spec.
+	// +optional
+	Storage *corev1.PersistentVolumeClaimSpec `json:"storage,omitempty"`
 }
 
 // StorageStatus defines the observed state of Storage.

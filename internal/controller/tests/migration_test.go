@@ -26,7 +26,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -62,12 +61,7 @@ var _ = Describe("Migration Controller", func() {
 				Name:      name,
 				Namespace: ns,
 			},
-			Spec: supabasev1alpha1.SingleDatabaseSpec{
-				Storage: supabasev1alpha1.VolumeClaim{
-					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Size:        resource.MustParse("1Gi"),
-				},
-			},
+			Spec: supabasev1alpha1.SingleDatabaseSpec{},
 		}
 		Expect(k8sClient.Create(ctx, db)).To(Succeed())
 

@@ -6,7 +6,6 @@ import (
 	core "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -18,7 +17,6 @@ var _ = Describe("Storage API", func() {
 		ns := "schema-" + rand.String(6)
 		Expect(k8sClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})).To(Succeed())
 		c := &core.Storage{ObjectMeta: metav1.ObjectMeta{Name: "arbitrary-name", Namespace: ns}}
-		c.Spec.Storage = core.VolumeClaim{Size: resource.MustParse("1Gi"), AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}}
 		Expect(apierrors.IsInvalid(k8sClient.Create(ctx, c))).To(BeTrue())
 		c.Spec.ProjectRef = corev1.LocalObjectReference{Name: "missing"}
 		zero := int32(0)
