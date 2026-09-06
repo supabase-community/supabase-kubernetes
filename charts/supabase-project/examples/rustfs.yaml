@@ -1,0 +1,95 @@
+# Demonstration-only credentials. Replace them before using this configuration
+# outside a local or development cluster.
+#
+# This example requires Kubernetes 1.29+ for native sidecar init containers.
+# RustFS starts first and remains running, rustfs-createbucket then creates the
+# bucket, and finally the operator-managed Storage container starts.
+storage:
+  config:
+    - name: STORAGE_BACKEND
+      value: s3
+    - name: GLOBAL_S3_BUCKET
+      value: stub
+    - name: GLOBAL_S3_ENDPOINT
+      value: http://127.0.0.1:9000
+    - name: GLOBAL_S3_PROTOCOL
+      value: http
+    - name: GLOBAL_S3_FORCE_PATH_STYLE
+      value: "true"
+    - name: REGION
+      value: us-east-1
+    - name: AWS_ACCESS_KEY_ID
+      value: supa-storage
+    - name: AWS_SECRET_ACCESS_KEY
+      value: secret1234
+  pod:
+    spec:
+      initContainers:
+        # A native sidecar init container keeps RustFS running for the lifetime
+        # of the Pod while allowing the next init container to create its bucket.
+        - name: rustfs
+          image: rustfs/rustfs:1.0.0-beta.11
+          restartPolicy: Always
+          ports:
+            - name: s3
+              containerPort: 9000
+              protocol: TCP
+            - name: console
+              containerPort: 9001
+              protocol: TCP
+          env:
+            - name: RUSTFS_ACCESS_KEY
+              value: supa-storage
+            - name: RUSTFS_SECRET_KEY
+              value: secret1234
+            - name: RUSTFS_CONSOLE_ADDRESS
+              value: 0.0.0.0:9001
+            - name: RUSTFS_CORS_ALLOWED_ORIGINS
+              value: "*"
+            - name: RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS
+              value: "*"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: s3
+            periodSeconds: 2
+            timeoutSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: s3
+            periodSeconds: 2
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: s3
+            periodSeconds: 2
+            timeoutSeconds: 10
+            failureThreshold: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            # Reuse the Storage PVC without sharing its file backend directory.
+            - name: storage-data
+              mountPath: /data
+              subPath: rustfs-data
+        - name: rustfs-createbucket
+          image: rustfs/rc:v0.1.29
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              until rc alias set supa-rustfs http://127.0.0.1:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" && rc mb --ignore-existing supa-rustfs/stub; do
+                echo "Waiting for RustFS and bucket creation"
+                sleep 2
+              done
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: supa-storage
+            - name: AWS_SECRET_ACCESS_KEY
+              value: secret1234
+          securityContext:
+            allowPrivilegeEscalation: false
