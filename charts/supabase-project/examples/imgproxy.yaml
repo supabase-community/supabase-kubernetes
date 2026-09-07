@@ -48,4 +48,4 @@ storage:
             # This is the operator-managed Storage PVC, also mounted by Storage.
             - name: storage-data
               mountPath: /var/lib/storage
-              subPath: data
+              subPath: storage-data
