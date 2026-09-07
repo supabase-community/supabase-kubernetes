@@ -1,5 +1,11 @@
-# Demonstration-only credentials. Replace them before using this configuration
-# outside a local or development cluster.
+# Use RustFS as an S3-compatible backend for Storage.
+#
+# Before installing this example, create a Secret in the release namespace.
+# Do not put access keys directly in this file or commit them to Git:
+#
+# kubectl -n <namespace> create secret generic rustfs-credentials \
+#   --from-literal=access-key-id='<access-key-id>' \
+#   --from-literal=secret-access-key='<secret-access-key>'
 #
 # This example requires Kubernetes 1.29+ for native sidecar init containers.
 # RustFS starts first and remains running, rustfs-createbucket then creates the
@@ -19,9 +25,15 @@ storage:
     - name: REGION
       value: us-east-1
     - name: AWS_ACCESS_KEY_ID
-      value: supa-storage
+      valueFrom:
+        secretKeyRef:
+          name: rustfs-credentials
+          key: access-key-id
     - name: AWS_SECRET_ACCESS_KEY
-      value: secret1234
+      valueFrom:
+        secretKeyRef:
+          name: rustfs-credentials
+          key: secret-access-key
   pod:
     spec:
       initContainers:
@@ -39,9 +51,15 @@ storage:
               protocol: TCP
           env:
             - name: RUSTFS_ACCESS_KEY
-              value: supa-storage
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-credentials
+                  key: access-key-id
             - name: RUSTFS_SECRET_KEY
-              value: secret1234
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-credentials
+                  key: secret-access-key
             - name: RUSTFS_CONSOLE_ADDRESS
               value: 0.0.0.0:9001
             - name: RUSTFS_CORS_ALLOWED_ORIGINS
@@ -88,8 +106,14 @@ storage:
               done
           env:
             - name: AWS_ACCESS_KEY_ID
-              value: supa-storage
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-credentials
+                  key: access-key-id
             - name: AWS_SECRET_ACCESS_KEY
-              value: secret1234
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-credentials
+                  key: secret-access-key
           securityContext:
             allowPrivilegeEscalation: false
