@@ -111,26 +111,6 @@ var _ = Describe("Project Controller", func() {
 		}, defaultTimeout, defaultPolling).Should(Succeed())
 	}
 
-	// driveChildMigrationReady waits for the Project's child Migration to be
-	// created, then marks its Job as succeeded so that the Migration controller
-	// itself flips it to Ready=True. This is a stable steady state.
-	driveChildMigrationReady := func(migrationName string) {
-		migKey := types.NamespacedName{Name: migrationName, Namespace: ns}
-		Eventually(func() error {
-			return k8sClient.Get(ctx, migKey, &supabasev1alpha1.Migration{})
-		}, defaultTimeout, defaultPolling).Should(Succeed())
-
-		// The Migration controller creates a Job named "<migration>-job".
-		jobName := migrationName + "-job"
-		markJobSucceeded(jobName)
-
-		Eventually(func(g Gomega) {
-			got := &supabasev1alpha1.Migration{}
-			g.Expect(k8sClient.Get(ctx, migKey, got)).To(Succeed())
-			g.Expect(apimeta.IsStatusConditionTrue(got.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
-		}, defaultTimeout, defaultPolling).Should(Succeed())
-	}
-
 	markDeploymentReady := func(name string) {
 		key := types.NamespacedName{Name: name, Namespace: ns}
 		Eventually(func() error {
@@ -188,54 +168,13 @@ var _ = Describe("Project Controller", func() {
 		})
 	})
 
-	// ---- Phase 2: child resources on the happy path ----
+	// ---- Phase 2: shared resources on the happy path ----
 
 	Context("when the database is ready", func() {
-		It("creates the child Migration CR with the expected entries", func() {
+		It("creates the JWT and Keys Secrets without creating a Migration", func() {
 			driveSingleDatabaseReady("pg")
 			proj := newProject("demo", "pg")
 			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
-
-			migKey := types.NamespacedName{
-				Name:      project.ProjectMigration1Name(project.NewContext(proj)),
-				Namespace: ns,
-			}
-			Eventually(func(g Gomega) {
-				mig := &supabasev1alpha1.Migration{}
-				g.Expect(k8sClient.Get(ctx, migKey, mig)).To(Succeed())
-				g.Expect(mig.Spec.DatabaseRef.Kind).To(Equal("SingleDatabase"))
-				g.Expect(mig.Spec.DatabaseRef.Name).To(Equal("pg"))
-				g.Expect(mig.Spec.Migrations).To(HaveLen(5))
-				names := make([]string, 0, len(mig.Spec.Migrations))
-				for _, m := range mig.Spec.Migrations {
-					names = append(names, m.Name)
-				}
-				g.Expect(names).To(ConsistOf("supabase.sql", "realtime.sql", "logs.sql", "pooler.sql", "webhooks.sql"))
-				g.Expect(mig.OwnerReferences).To(HaveLen(1))
-				g.Expect(mig.OwnerReferences[0].Kind).To(Equal("Project"))
-			}, defaultTimeout, defaultPolling).Should(Succeed())
-		})
-
-		It("reports Ready=False with reason MigrationNotReady while the child Migration is pending", func() {
-			driveSingleDatabaseReady("pg")
-			proj := newProject("demo", "pg")
-			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
-
-			Eventually(func(g Gomega) {
-				got := &supabasev1alpha1.Project{}
-				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: proj.Name, Namespace: ns}, got)).To(Succeed())
-				cond := apimeta.FindStatusCondition(got.Status.Conditions, reconciler.ConditionTypeReady)
-				g.Expect(cond).NotTo(BeNil())
-				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal("MigrationNotReady"))
-			}, defaultTimeout, defaultPolling).Should(Succeed())
-		})
-
-		It("creates the JWT and Keys Secrets after the child Migration becomes ready", func() {
-			driveSingleDatabaseReady("pg")
-			proj := newProject("demo", "pg")
-			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
-			driveChildMigrationReady(project.ProjectMigration1Name(project.NewContext(proj)))
 
 			jwtKey := types.NamespacedName{Name: project.JWTSecretName(project.NewContext(proj)), Namespace: ns}
 			keysKey := types.NamespacedName{Name: project.KeysSecretName(project.NewContext(proj)), Namespace: ns}
@@ -257,7 +196,6 @@ var _ = Describe("Project Controller", func() {
 			driveSingleDatabaseReady("pg")
 			proj := newProject("demo", "pg")
 			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
-			driveChildMigrationReady(project.ProjectMigration1Name(project.NewContext(proj)))
 
 			markJobSucceeded(project.SyncJWTJobName(project.NewContext(proj)))
 			markJobSucceeded(project.SyncPasswordJobName(project.NewContext(proj)))
@@ -281,7 +219,6 @@ var _ = Describe("Project Controller", func() {
 			Expect(k8sClient.Create(ctx, rest)).To(Succeed())
 			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
 
-			driveChildMigrationReady(project.ProjectMigration1Name(project.NewContext(proj)))
 			markJobSucceeded(project.SyncJWTJobName(project.NewContext(proj)))
 			markJobSucceeded(project.SyncPasswordJobName(project.NewContext(proj)))
 

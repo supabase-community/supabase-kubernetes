@@ -12,6 +12,12 @@ project:
   jwtExpSec: 3600
   publicUrl: ""
 
+## Initial database migration configuration.
+## The migration contains the Supabase bootstrap SQL bundled with this chart.
+migrations:
+  enable: true
+  pod: {}
+
 ## SingleDatabase configuration
 ##
 singleDatabase:
