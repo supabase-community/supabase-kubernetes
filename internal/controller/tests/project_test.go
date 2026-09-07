@@ -150,6 +150,26 @@ var _ = Describe("Project Controller", func() {
 		}
 	}
 
+	newMigration := func(name, dbName string) *supabasev1alpha1.Migration {
+		return &supabasev1alpha1.Migration{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+			Spec: supabasev1alpha1.MigrationSpec{
+				DatabaseRef: supabasev1alpha1.DatabaseRef{Kind: "SingleDatabase", Name: dbName},
+				Migrations: []supabasev1alpha1.MigrationEntry{
+					{Name: "01-init", SQL: "CREATE TABLE project_migration_test (id integer);"},
+				},
+			},
+		}
+	}
+
+	waitForMigrationPending := func(name string) {
+		Eventually(func(g Gomega) {
+			migration := &supabasev1alpha1.Migration{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, migration)).To(Succeed())
+			g.Expect(apimeta.IsStatusConditionTrue(migration.Status.Conditions, reconciler.ConditionTypeReady)).To(BeFalse())
+		}, defaultTimeout, defaultPolling).Should(Succeed())
+	}
+
 	// ---- Phase 1: gating ----
 
 	Context("when the DatabaseRef is missing", func() {
@@ -171,6 +191,34 @@ var _ = Describe("Project Controller", func() {
 	// ---- Phase 2: shared resources on the happy path ----
 
 	Context("when the database is ready", func() {
+		It("waits for matching Migrations before creating Project resources", func() {
+			driveSingleDatabaseReady("pg")
+			migration := newMigration("bootstrap", "pg")
+			Expect(k8sClient.Create(ctx, migration)).To(Succeed())
+			waitForMigrationPending(migration.Name)
+
+			proj := newProject("demo", "pg")
+			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				got := &supabasev1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: proj.Name, Namespace: ns}, got)).To(Succeed())
+				cond := apimeta.FindStatusCondition(got.Status.Conditions, reconciler.ConditionTypeReady)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(cond.Reason).To(Equal("MigrationsNotReady"))
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+
+			Consistently(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: project.JWTSecretName(project.NewContext(proj)), Namespace: ns}, &corev1.Secret{})
+			}, 2*time.Second, defaultPolling).ShouldNot(Succeed())
+
+			markJobSucceeded(migration.Name + "-job")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: project.JWTSecretName(project.NewContext(proj)), Namespace: ns}, &corev1.Secret{})
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+		})
+
 		It("creates the JWT and Keys Secrets without creating a Migration", func() {
 			driveSingleDatabaseReady("pg")
 			proj := newProject("demo", "pg")
@@ -205,6 +253,32 @@ var _ = Describe("Project Controller", func() {
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: proj.Name, Namespace: ns}, got)).To(Succeed())
 				g.Expect(got.Status.JWTSyncHash).NotTo(BeEmpty())
 				g.Expect(got.Status.PasswordSyncHash).NotTo(BeEmpty())
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+		})
+
+		It("returns to NotReady when a matching Migration is created", func() {
+			driveSingleDatabaseReady("pg")
+			proj := newProject("demo", "pg")
+			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+			markJobSucceeded(project.SyncJWTJobName(project.NewContext(proj)))
+			markJobSucceeded(project.SyncPasswordJobName(project.NewContext(proj)))
+
+			Eventually(func(g Gomega) {
+				got := &supabasev1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: proj.Name, Namespace: ns}, got)).To(Succeed())
+				g.Expect(apimeta.IsStatusConditionTrue(got.Status.Conditions, reconciler.ConditionTypeReady)).To(BeTrue())
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+
+			migration := newMigration("late", "pg")
+			Expect(k8sClient.Create(ctx, migration)).To(Succeed())
+			waitForMigrationPending(migration.Name)
+
+			Eventually(func(g Gomega) {
+				got := &supabasev1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: proj.Name, Namespace: ns}, got)).To(Succeed())
+				cond := apimeta.FindStatusCondition(got.Status.Conditions, reconciler.ConditionTypeReady)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Reason).To(Equal("MigrationsNotReady"))
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 		})
 	})

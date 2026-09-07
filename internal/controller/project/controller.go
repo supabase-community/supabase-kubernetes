@@ -19,10 +19,13 @@ package project
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -59,6 +62,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&supabasev1alpha1.SingleDatabase{},
 			handler.EnqueueRequestsFromMapFunc(r.mapSingleDatabaseToProjects),
 		).
+		Watches(
+			&supabasev1alpha1.Migration{},
+			handler.EnqueueRequestsFromMapFunc(r.mapMigrationToProjects),
+		).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.mapSecretToProjects)).
 		Named("project").
 		Complete(r)
@@ -89,6 +96,28 @@ func (r *Reconciler) mapSingleDatabaseToProjects(ctx context.Context, obj client
 	return requests
 }
 
+func (r *Reconciler) mapMigrationToProjects(ctx context.Context, obj client.Object) []reconcile.Request {
+	migration, ok := obj.(*supabasev1alpha1.Migration)
+	if !ok {
+		return nil
+	}
+
+	projects := &supabasev1alpha1.ProjectList{}
+	if err := r.List(ctx, projects, client.InNamespace(migration.Namespace)); err != nil {
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for _, proj := range projects.Items {
+		if proj.Spec.DatabaseRef == migration.Spec.DatabaseRef {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: proj.Name, Namespace: proj.Namespace},
+			})
+		}
+	}
+	return requests
+}
+
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=projects/finalizers,verbs=update
@@ -100,6 +129,7 @@ func (r *Reconciler) mapSingleDatabaseToProjects(ctx context.Context, obj client
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get
+// +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/finalizers,verbs=update
@@ -139,6 +169,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		reconciler.SetNotReady(proj, "DatabaseNotReady", "Referenced database is not ready")
 		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status while waiting for database")
+		}
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+	}
+
+	migrationsReady, pendingMigrations, err := r.migrationsReady(ctx, proj)
+	if err != nil {
+		logger.Error(err, "Failed to list Migrations")
+		reconciler.SetNotReady(proj, "MigrationsListFailed", err.Error())
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after listing migrations")
+		}
+		return ctrl.Result{}, err
+	}
+	if !migrationsReady {
+		logger.Info("Waiting for Migrations to be ready", "migrations", pendingMigrations)
+		reconciler.SetNotReady(proj, "MigrationsNotReady", fmt.Sprintf("Waiting for migrations to be ready: %s", strings.Join(pendingMigrations, ", ")))
+		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status while waiting for migrations")
 		}
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
@@ -266,6 +314,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	logger.Info("Reconciliation completed successfully")
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) migrationsReady(ctx context.Context, proj *supabasev1alpha1.Project) (bool, []string, error) {
+	migrations := &supabasev1alpha1.MigrationList{}
+	if err := r.List(ctx, migrations, client.InNamespace(proj.Namespace)); err != nil {
+		return false, nil, err
+	}
+
+	pending := make([]string, 0)
+	for _, migration := range migrations.Items {
+		if migration.Spec.DatabaseRef != proj.Spec.DatabaseRef {
+			continue
+		}
+		if !meta.IsStatusConditionTrue(migration.Status.Conditions, reconciler.ConditionTypeReady) {
+			pending = append(pending, migration.Name)
+		}
+	}
+	sort.Strings(pending)
+	return len(pending) == 0, pending, nil
 }
 
 func (r *Reconciler) ensureSyncJWTJob(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {
