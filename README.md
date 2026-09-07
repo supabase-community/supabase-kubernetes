@@ -35,7 +35,7 @@ The Operator exposes the following Kubernetes Custom Resources:
 | `Migration` | `migrations` | Applies SQL scripts to referenced databases. Also used internally by the Operator to manage Supabase upgrade migrations |
 | `Auth` | `auths` | Supabase Auth component |
 | `Rest` | `rests` | PostgREST component |
-| `Meta` | `meta` | Postgres Meta component |
+| `Meta` | `metas` | Postgres Meta component |
 | `Realtime` | `realtimes` | Supabase Realtime component |
 | `Storage` | `storages` | Supabase Storage component |
 | `Studio` | `studios` | Supabase Studio component |
