@@ -16,25 +16,7 @@ limitations under the License.
 
 package assets
 
-import "embed"
-
-//go:embed migrations/*.sql
-var MigrationFiles embed.FS
-
-//go:embed migrations/supabase.sql
-var SupabaseMigration string
-
-//go:embed migrations/realtime.sql
-var RealtimeMigration string
-
-//go:embed migrations/logs.sql
-var LogsMigration string
-
-//go:embed migrations/pooler.sql
-var PoolerMigration string
-
-//go:embed migrations/webhooks.sql
-var WebhooksMigration string
+import _ "embed"
 
 //go:embed scripts/migration-apply.sh
 var MigrationApplyScript string

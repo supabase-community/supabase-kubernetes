@@ -23,7 +23,6 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -56,7 +55,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&batchv1.Job{}).
-		Owns(&supabasev1alpha1.Migration{}).
 		Watches(
 			&supabasev1alpha1.SingleDatabase{},
 			handler.EnqueueRequestsFromMapFunc(r.mapSingleDatabaseToProjects),
@@ -102,8 +100,6 @@ func (r *Reconciler) mapSingleDatabaseToProjects(ctx context.Context, obj client
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get
-// +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core.supabase.io,resources=migrations/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=functions/finalizers,verbs=update
@@ -143,29 +139,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		reconciler.SetNotReady(proj, "DatabaseNotReady", "Referenced database is not ready")
 		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status while waiting for database")
-		}
-		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
-	}
-
-	if err := r.ensureMigration1(ctx, proj); err != nil {
-		logger.Error(err, "Failed to ensure Migration")
-		reconciler.SetNotReady(proj, "MigrationFailed", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after migration failure")
-		}
-		return ctrl.Result{}, err
-	}
-
-	migration := &supabasev1alpha1.Migration{}
-	if err := r.Get(ctx, types.NamespacedName{Name: project.ProjectMigration1Name(project.NewContext(proj)), Namespace: proj.Namespace}, migration); err != nil {
-		logger.Error(err, "Failed to get Migration")
-		return ctrl.Result{}, err
-	}
-	if !meta.IsStatusConditionTrue(migration.Status.Conditions, reconciler.ConditionTypeReady) {
-		logger.Info("Waiting for Migration to be ready")
-		reconciler.SetNotReady(proj, "MigrationNotReady", "Waiting for migration to be ready")
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status while waiting for migration")
 		}
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
@@ -293,37 +266,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	logger.Info("Reconciliation completed successfully")
 	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) ensureMigration1(ctx context.Context, proj *supabasev1alpha1.Project) error {
-	migration, err := project.ProjectMigration1(project.NewContext(proj))
-	if err != nil {
-		return fmt.Errorf("building migration: %w", err)
-	}
-	if migration == nil {
-		return reconciler.DeleteMigrationIfExists(ctx, r.Client, project.ProjectMigration1Name(project.NewContext(proj)), proj.Namespace)
-	}
-
-	logger := log.FromContext(ctx).WithValues(
-		"name", migration.GetName(),
-		"namespace", migration.GetNamespace(),
-	)
-
-	result, err := reconciler.EnsureResource(ctx, r.Client, migration, proj, reconciler.MutateMigration())
-	if err != nil {
-		return fmt.Errorf("ensuring migration: %w", err)
-	}
-
-	switch result {
-	case reconciler.ResultCreated:
-		logger.Info("Created Migration")
-	case reconciler.ResultUpdated:
-		logger.Info("Updated Migration")
-	default:
-		logger.V(1).Info("Migration unchanged")
-	}
-
-	return nil
 }
 
 func (r *Reconciler) ensureSyncJWTJob(ctx context.Context, proj *supabasev1alpha1.Project, db *supabasev1alpha1.ResolvedDatabase) error {

@@ -1,0 +1,32 @@
+{{- if .Values.migrations.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: Migration
+metadata:
+  name: {{ include "supabase-project.fullname" . }}-migration-001
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  databaseRef:
+    kind: SingleDatabase
+    name: {{ include "supabase-project.fullname" . | quote }}
+  migrations:
+    - name: supabase.sql
+      sql: |-
+{{ .Files.Get "files/migrations/supabase.sql" | indent 8 }}
+    - name: realtime.sql
+      sql: |-
+{{ .Files.Get "files/migrations/realtime.sql" | indent 8 }}
+    - name: logs.sql
+      sql: |-
+{{ .Files.Get "files/migrations/logs.sql" | indent 8 }}
+    - name: pooler.sql
+      sql: |-
+{{ .Files.Get "files/migrations/pooler.sql" | indent 8 }}
+    - name: webhooks.sql
+      sql: |-
+{{ .Files.Get "files/migrations/webhooks.sql" | indent 8 }}
+  {{- with .Values.migrations.pod }}
+  pod:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
