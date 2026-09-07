@@ -1,0 +1,31 @@
+# Use an existing AWS S3 bucket as the Storage backend.
+#
+# Before installing this example, create the bucket and a Secret in the release
+# namespace. Do not put AWS credentials in this file or commit them to Git:
+#
+# kubectl -n <namespace> create secret generic aws-s3-credentials \
+#   --from-literal=access-key-id='<access-key-id>' \
+#   --from-literal=secret-access-key='<secret-access-key>'
+#
+# The IAM identity needs permission to list the bucket and read, write, and
+# delete its objects. Set the bucket name and region below to their AWS values.
+# AWS S3 resolves its endpoint from REGION, so GLOBAL_S3_ENDPOINT and
+# GLOBAL_S3_FORCE_PATH_STYLE are intentionally omitted.
+storage:
+  config:
+    - name: STORAGE_BACKEND
+      value: s3
+    - name: GLOBAL_S3_BUCKET
+      value: <bucket-name>
+    - name: REGION
+      value: <aws-region>
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: aws-s3-credentials
+          key: access-key-id
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: aws-s3-credentials
+          key: secret-access-key
