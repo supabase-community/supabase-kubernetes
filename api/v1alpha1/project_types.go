@@ -17,8 +17,24 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// ProjectMigrationsSpec defines the initial database migration configuration.
+type ProjectMigrationsSpec struct {
+	// Enable controls whether the Project creates its initial Migration.
+	// When omitted, the initial Migration is enabled.
+	// +optional
+	// +kubebuilder:default=true
+	Enable *bool `json:"enable,omitempty"`
+
+	// Pod overlays the Pod template used by the initial Migration.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
+}
 
 // ProjectSpec defines the desired state of Project.
 type ProjectSpec struct {
@@ -36,6 +52,10 @@ type ProjectSpec struct {
 	// DatabaseRef references the database resource.
 	// +kubebuilder:validation:Required
 	DatabaseRef DatabaseRef `json:"databaseRef"`
+
+	// Migrations configures the initial database Migration managed by the Project.
+	// +optional
+	Migrations *ProjectMigrationsSpec `json:"migrations,omitempty"`
 }
 
 // ProjectStatus defines the observed state of Project.

@@ -5,8 +5,7 @@ metadata:
   labels:
     {{- include "supabase-project.labels" . | nindent 4 }}
 spec:
-  jwtExpSec: {{ .Values.project.jwtExpSec }}
-  publicUrl: {{ .Values.project.publicUrl | quote }}
   databaseRef:
     kind: SingleDatabase
     name: {{ include "supabase-project.fullname" . | quote }}
+  {{- .Values.project | toYaml | nindent 2 }}

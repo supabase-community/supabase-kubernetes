@@ -71,6 +71,21 @@ spec:
                 format: int32
                 minimum: 1
                 type: integer
+              migrations:
+                description: Migrations configures the initial database Migration
+                  managed by the Project.
+                properties:
+                  enable:
+                    default: true
+                    description: |-
+                      Enable controls whether the Project creates its initial Migration.
+                      When omitted, the initial Migration is enabled.
+                    type: boolean
+                  pod:
+                    description: Pod overlays the Pod template used by the initial
+                      Migration.
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
               publicUrl:
                 description: PublicURL defines the public URL for the Project.
                 minLength: 1
