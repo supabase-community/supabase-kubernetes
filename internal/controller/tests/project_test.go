@@ -170,6 +170,10 @@ var _ = Describe("Project Controller", func() {
 		}, defaultTimeout, defaultPolling).Should(Succeed())
 	}
 
+	markProjectMigrationSucceeded := func(proj *supabasev1alpha1.Project) {
+		markJobSucceeded(project.ProjectMigration1Name(project.NewContext(proj)) + "-job")
+	}
+
 	// ---- Phase 1: gating ----
 
 	Context("when the DatabaseRef is missing", func() {
@@ -191,6 +195,28 @@ var _ = Describe("Project Controller", func() {
 	// ---- Phase 2: shared resources on the happy path ----
 
 	Context("when the database is ready", func() {
+		It("creates the initial Migration with the configured Pod overlay", func() {
+			driveSingleDatabaseReady("pg")
+			proj := newProject("demo", "pg")
+			proj.Spec.Migrations = &supabasev1alpha1.ProjectMigrationsSpec{
+				Pod: &corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{NodeSelector: map[string]string{"workload": "migration"}},
+				},
+			}
+			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+
+			migrationKey := types.NamespacedName{Name: project.ProjectMigration1Name(project.NewContext(proj)), Namespace: ns}
+			Eventually(func(g Gomega) {
+				migration := &supabasev1alpha1.Migration{}
+				g.Expect(k8sClient.Get(ctx, migrationKey, migration)).To(Succeed())
+				g.Expect(migration.Spec.Migrations).To(HaveLen(5))
+				g.Expect(migration.Spec.Pod).NotTo(BeNil())
+				g.Expect(migration.Spec.Pod.Spec.NodeSelector).To(HaveKeyWithValue("workload", "migration"))
+				g.Expect(migration.OwnerReferences).To(HaveLen(1))
+				g.Expect(migration.OwnerReferences[0].Kind).To(Equal("Project"))
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+		})
+
 		It("waits for matching Migrations before creating Project resources", func() {
 			driveSingleDatabaseReady("pg")
 			migration := newMigration("bootstrap", "pg")
@@ -214,15 +240,17 @@ var _ = Describe("Project Controller", func() {
 			}, 2*time.Second, defaultPolling).ShouldNot(Succeed())
 
 			markJobSucceeded(migration.Name + "-job")
+			markProjectMigrationSucceeded(proj)
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{Name: project.JWTSecretName(project.NewContext(proj)), Namespace: ns}, &corev1.Secret{})
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 		})
 
-		It("creates the JWT and Keys Secrets without creating a Migration", func() {
+		It("creates the JWT and Keys Secrets after the initial Migration succeeds", func() {
 			driveSingleDatabaseReady("pg")
 			proj := newProject("demo", "pg")
 			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+			markProjectMigrationSucceeded(proj)
 
 			jwtKey := types.NamespacedName{Name: project.JWTSecretName(project.NewContext(proj)), Namespace: ns}
 			keysKey := types.NamespacedName{Name: project.KeysSecretName(project.NewContext(proj)), Namespace: ns}
@@ -244,6 +272,7 @@ var _ = Describe("Project Controller", func() {
 			driveSingleDatabaseReady("pg")
 			proj := newProject("demo", "pg")
 			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+			markProjectMigrationSucceeded(proj)
 
 			markJobSucceeded(project.SyncJWTJobName(project.NewContext(proj)))
 			markJobSucceeded(project.SyncPasswordJobName(project.NewContext(proj)))
@@ -260,6 +289,7 @@ var _ = Describe("Project Controller", func() {
 			driveSingleDatabaseReady("pg")
 			proj := newProject("demo", "pg")
 			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+			markProjectMigrationSucceeded(proj)
 			markJobSucceeded(project.SyncJWTJobName(project.NewContext(proj)))
 			markJobSucceeded(project.SyncPasswordJobName(project.NewContext(proj)))
 
@@ -281,6 +311,31 @@ var _ = Describe("Project Controller", func() {
 				g.Expect(cond.Reason).To(Equal("MigrationsNotReady"))
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 		})
+
+		It("does not create the initial Migration when disabled but still waits for external Migrations", func() {
+			driveSingleDatabaseReady("pg")
+			externalMigration := newMigration("external", "pg")
+			Expect(k8sClient.Create(ctx, externalMigration)).To(Succeed())
+			waitForMigrationPending(externalMigration.Name)
+
+			disabled := false
+			proj := newProject("demo", "pg")
+			proj.Spec.Migrations = &supabasev1alpha1.ProjectMigrationsSpec{Enable: &disabled}
+			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+
+			initialMigrationKey := types.NamespacedName{Name: project.ProjectMigration1Name(project.NewContext(proj)), Namespace: ns}
+			Consistently(func() error {
+				return k8sClient.Get(ctx, initialMigrationKey, &supabasev1alpha1.Migration{})
+			}, 2*time.Second, defaultPolling).ShouldNot(Succeed())
+
+			Eventually(func(g Gomega) {
+				got := &supabasev1alpha1.Project{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: proj.Name, Namespace: ns}, got)).To(Succeed())
+				condition := apimeta.FindStatusCondition(got.Status.Conditions, reconciler.ConditionTypeReady)
+				g.Expect(condition).NotTo(BeNil())
+				g.Expect(condition.Reason).To(Equal("MigrationsNotReady"))
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+		})
 	})
 
 	// ---- Phase 3: one enabled component end-to-end ----
@@ -292,6 +347,7 @@ var _ = Describe("Project Controller", func() {
 			rest := &supabasev1alpha1.Rest{ObjectMeta: metav1.ObjectMeta{Name: "custom-api", Namespace: ns}, Spec: supabasev1alpha1.RestSpec{ProjectRef: corev1.LocalObjectReference{Name: proj.Name}}}
 			Expect(k8sClient.Create(ctx, rest)).To(Succeed())
 			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+			markProjectMigrationSucceeded(proj)
 
 			markJobSucceeded(project.SyncJWTJobName(project.NewContext(proj)))
 			markJobSucceeded(project.SyncPasswordJobName(project.NewContext(proj)))
