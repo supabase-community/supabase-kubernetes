@@ -1,0 +1,7 @@
+title = "repo gitleaks config"
+
+[allowlist]
+paths = [
+  '''charts/supabase/templates/test/.*''',
+  '''charts/supabase/values\.example\.yaml'''
+]

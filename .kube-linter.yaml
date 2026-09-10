@@ -1,0 +1,6 @@
+checks:
+  addAllBuiltIn: true
+  exclude:
+    - latest-tag
+    - unset-cpu-requirements
+    - unset-memory-requirements
