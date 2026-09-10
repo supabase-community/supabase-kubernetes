@@ -589,7 +589,7 @@ image:
   auth:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "v2.189.0"
+    tag: "v2.196.0"
     pullSecrets: []
 
   db:
@@ -601,13 +601,13 @@ image:
   functions:
     repository: supabase/edge-runtime
     pullPolicy: IfNotPresent
-    tag: "v1.74.0"
+    tag: "v1.76.2"
     pullSecrets: []
 
   imgproxy:
     repository: darthsim/imgproxy
     pullPolicy: IfNotPresent
-    tag: "v3.30.1"
+    tag: "v3.31.4"
     pullSecrets: []
 
   kong:
@@ -619,7 +619,7 @@ image:
   meta:
     repository: supabase/postgres-meta
     pullPolicy: IfNotPresent
-    tag: "v0.96.6"
+    tag: "v0.99.0"
     pullSecrets: []
 
   minio:
@@ -631,25 +631,25 @@ image:
   realtime:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
-    tag: "v2.102.3"
+    tag: "v2.134.10"
     pullSecrets: []
 
   rest:
     repository: postgrest/postgrest
     pullPolicy: IfNotPresent
-    tag: "v14.12"
+    tag: "v14.17"
     pullSecrets: []
 
   storage:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "v1.60.4"
+    tag: "v1.74.0"
     pullSecrets: []
 
   studio:
     repository: supabase/studio
     pullPolicy: IfNotPresent
-    tag: "2026.08.03-sha-022b374"
+    tag: "2026.09.07-sha-7996410"
     pullSecrets: []
 
   vector:
