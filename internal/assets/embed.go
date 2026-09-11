@@ -18,6 +18,9 @@ package assets
 
 import _ "embed"
 
+//go:embed scripts/functions-sync.py
+var FunctionsSyncScript string
+
 //go:embed migrations/supabase.sql
 var SupabaseMigration string
 

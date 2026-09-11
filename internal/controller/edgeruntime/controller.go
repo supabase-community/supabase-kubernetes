@@ -9,6 +9,7 @@ import (
 	edgedefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/edgeruntime"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,7 +65,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err := r.reconcileService(ctx, state); err != nil {
 		return component.NotReady(ctx, r.Client, obj, "ReconcileFailed", err.Error())
 	}
-	if err := r.reconcileDeployment(ctx, state, db, functions); err != nil {
+	if err := r.reconcileDeployment(ctx, state, db); err != nil {
 		return component.NotReady(ctx, r.Client, obj, "ReconcileFailed", err.Error())
 	}
 	if err := component.DeploymentReady(ctx, r.Client, client.ObjectKey{Namespace: obj.Namespace, Name: edgedefaults.FunctionsDeploymentName(state)}); err != nil {
@@ -73,5 +74,5 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return component.Ready(ctx, r.Client, obj)
 }
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.EdgeRuntime{}, NewList: func() client.ObjectList { return &core.EdgeRuntimeList{} }, Owns: []client.Object{&appsv1.Deployment{}, &corev1.Service{}, &core.Function{}}, Related: []component.Object{&core.Envoy{}}, WatchFunctions: true})
+	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.EdgeRuntime{}, NewList: func() client.ObjectList { return &core.EdgeRuntimeList{} }, Owns: []client.Object{&appsv1.Deployment{}, &corev1.Service{}, &core.Function{}, &corev1.ServiceAccount{}, &rbacv1.Role{}, &rbacv1.RoleBinding{}}, Related: []component.Object{&core.Envoy{}}, WatchFunctions: true})
 }

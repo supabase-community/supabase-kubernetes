@@ -9,6 +9,7 @@ import (
 	studiodefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/studio"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,7 +64,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return component.NotReady(ctx, r.Client, obj, "ReconcileFailed", err.Error())
 		}
 	}
-	if err := r.reconcileStatefulSet(ctx, state, db, functions); err != nil {
+	if err := r.reconcileStatefulSet(ctx, state, db); err != nil {
 		return component.NotReady(ctx, r.Client, obj, "ReconcileFailed", err.Error())
 	}
 	if err := component.StatefulSetReady(ctx, r.Client, client.ObjectKey{Namespace: obj.Namespace, Name: studiodefaults.StudioStatefulSetName(state)}); err != nil {
@@ -72,5 +73,5 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return component.Ready(ctx, r.Client, obj)
 }
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.Studio{}, NewList: func() client.ObjectList { return &core.StudioList{} }, Owns: []client.Object{&appsv1.StatefulSet{}, &corev1.Service{}, &corev1.PersistentVolumeClaim{}}, Related: []component.Object{&core.Meta{}, &core.Envoy{}}, WatchFunctions: true})
+	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.Studio{}, NewList: func() client.ObjectList { return &core.StudioList{} }, Owns: []client.Object{&appsv1.StatefulSet{}, &corev1.Service{}, &corev1.PersistentVolumeClaim{}, &corev1.ServiceAccount{}, &rbacv1.Role{}, &rbacv1.RoleBinding{}}, Related: []component.Object{&core.Meta{}, &core.Envoy{}}, WatchFunctions: true})
 }

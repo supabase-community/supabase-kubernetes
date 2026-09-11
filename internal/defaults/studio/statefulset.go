@@ -18,8 +18,6 @@ package studio
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 	"strconv"
 
 	"github.com/supabase-community/supabase-kubernetes/internal/defaults"
@@ -40,15 +38,17 @@ func StudioStatefulSetName(project *ResourceContext) string {
 }
 
 // StudioStatefulSet constructs the Studio StatefulSet for a Project.
-func StudioStatefulSet(project *ResourceContext, functions []supabasev1alpha1.Function, db *supabasev1alpha1.ResolvedDatabase) (*appsv1.StatefulSet, error) {
+func StudioStatefulSet(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) (*appsv1.StatefulSet, error) {
 	if project.Spec.Studio == nil {
 		return nil, nil
 	}
 
-	template, err := helper.Overlay(corev1.PodTemplateSpec{
+	base := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{Labels: StudioLabels(project)},
-		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildStudioContainer(project, functions, db)}, Volumes: buildStudioVolumes(project, functions)},
-	}, project.Spec.Studio.Pod)
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildStudioContainer(project, db)}, Volumes: []corev1.Volume{buildStudioVolume(project)}},
+	}
+	function.AddSync(&base.Spec, project.Name, StudioStatefulSetName(project), false)
+	template, err := helper.Overlay(base, project.Spec.Studio.Pod)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func studioReplicas(project *ResourceContext) *int32 {
 }
 
 // buildStudioContainer returns the Studio container specification.
-func buildStudioContainer(project *ResourceContext, functions []supabasev1alpha1.Function, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
+func buildStudioContainer(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
 		Name:            "studio",
 		Image:           studioImage(project),
@@ -91,7 +91,10 @@ func buildStudioContainer(project *ResourceContext, functions []supabasev1alpha1
 		LivenessProbe:   studioLivenessProbe(),
 		ReadinessProbe:  studioReadinessProbe(),
 		StartupProbe:    studioStartupProbe(),
-		VolumeMounts:    buildStudioVolumeMounts(functions),
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "studio-data", MountPath: StudioSnippetsMountPath, SubPath: StudioSnippetsSubPath},
+			{Name: function.SyncVolumeName, MountPath: StudioFunctionsMountPath, ReadOnly: true},
+		},
 	}
 }
 
@@ -203,14 +206,6 @@ func buildStudioEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 	return helper.MergeEnvVars(env, project.Spec.Studio.Config)
 }
 
-// buildStudioVolumes returns the volumes for the Studio container.
-func buildStudioVolumes(project *ResourceContext, functions []supabasev1alpha1.Function) []corev1.Volume {
-	volumes := make([]corev1.Volume, 0, len(functions)+1)
-	volumes = append(volumes, buildStudioVolume(project))
-	volumes = append(volumes, buildStudioFunctionVolumes(functions)...)
-	return volumes
-}
-
 // buildStudioVolume returns the snippets PVC volume specification.
 func buildStudioVolume(project *ResourceContext) corev1.Volume {
 	return corev1.Volume{
@@ -221,54 +216,4 @@ func buildStudioVolume(project *ResourceContext) corev1.Volume {
 			},
 		},
 	}
-}
-
-// buildStudioFunctionVolumes returns the ConfigMap volumes for Studio functions.
-func buildStudioFunctionVolumes(functions []supabasev1alpha1.Function) []corev1.Volume {
-	volumes := make([]corev1.Volume, 0, len(functions))
-	for _, f := range functions {
-		volumes = append(volumes, corev1.Volume{
-			Name: studioFunctionsVolumeName(&f),
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: function.FunctionConfigMapName(&f),
-					},
-				},
-			},
-		})
-	}
-	return volumes
-}
-
-// buildStudioVolumeMounts returns the volume mounts for the Studio container.
-func buildStudioVolumeMounts(functions []supabasev1alpha1.Function) []corev1.VolumeMount {
-	totalFiles := 0
-	for _, f := range functions {
-		totalFiles += len(f.Spec.Source)
-	}
-
-	mounts := make([]corev1.VolumeMount, 0, totalFiles+1)
-	mounts = append(mounts, corev1.VolumeMount{
-		Name:      "studio-data",
-		MountPath: StudioSnippetsMountPath,
-		SubPath:   StudioSnippetsSubPath,
-	})
-
-	for _, f := range functions {
-		for _, filename := range slices.Sorted(maps.Keys(f.Spec.Source)) {
-			mounts = append(mounts, corev1.VolumeMount{
-				Name:      studioFunctionsVolumeName(&f),
-				MountPath: fmt.Sprintf("%s/%s/%s", StudioFunctionsMountPath, f.Spec.FunctionName, filename),
-				SubPath:   filename,
-			})
-		}
-	}
-
-	return mounts
-}
-
-// studioFunctionsVolumeName returns a valid volume name for a Function ConfigMap volume.
-func studioFunctionsVolumeName(fn *supabasev1alpha1.Function) string {
-	return ComponentName(fn.Name, "studio-function")
 }

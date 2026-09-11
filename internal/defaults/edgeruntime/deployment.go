@@ -18,8 +18,6 @@ package edgeruntime
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 	"strconv"
 
 	"github.com/supabase-community/supabase-kubernetes/internal/defaults"
@@ -40,15 +38,17 @@ func FunctionsDeploymentName(project *ResourceContext) string {
 }
 
 // FunctionsDeployment constructs the Functions Deployment for a Project.
-func FunctionsDeployment(project *ResourceContext, functions []supabasev1alpha1.Function, db *supabasev1alpha1.ResolvedDatabase) (*appsv1.Deployment, error) {
+func FunctionsDeployment(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) (*appsv1.Deployment, error) {
 	if project.Spec.EdgeRuntime == nil {
 		return nil, nil
 	}
 
-	template, err := helper.Overlay(corev1.PodTemplateSpec{
+	base := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{Labels: FunctionsLabels(project)},
-		Spec:       corev1.PodSpec{Volumes: buildFunctionsVolumes(functions), Containers: []corev1.Container{buildEdgeRuntimeContainer(project, functions, db)}},
-	}, project.Spec.EdgeRuntime.Pod)
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildEdgeRuntimeContainer(project, db)}},
+	}
+	function.AddSync(&base.Spec, project.Name, FunctionsDeploymentName(project), true)
+	template, err := helper.Overlay(base, project.Spec.EdgeRuntime.Pod)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func functionsReplicas(project *ResourceContext) *int32 {
 }
 
 // buildEdgeRuntimeContainer returns the EdgeRuntime container specification.
-func buildEdgeRuntimeContainer(project *ResourceContext, functions []supabasev1alpha1.Function, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
+func buildEdgeRuntimeContainer(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) corev1.Container {
 	return corev1.Container{
 		Name:            "edge-runtime",
 		Image:           functionsImage(project),
@@ -91,7 +91,7 @@ func buildEdgeRuntimeContainer(project *ResourceContext, functions []supabasev1a
 		LivenessProbe:   functionsLivenessProbe(),
 		ReadinessProbe:  functionsReadinessProbe(),
 		StartupProbe:    functionsStartupProbe(),
-		VolumeMounts:    buildFunctionsVolumeMounts(functions),
+		VolumeMounts:    []corev1.VolumeMount{{Name: function.SyncVolumeName, MountPath: "/home/deno/functions", ReadOnly: true}},
 	}
 }
 
@@ -189,47 +189,4 @@ func buildFunctionsEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolv
 	}
 
 	return helper.MergeEnvVars(env, project.Spec.EdgeRuntime.Config)
-}
-
-// buildFunctionsVolumes returns the ConfigMap volumes for the EdgeRuntime container.
-func buildFunctionsVolumes(functions []supabasev1alpha1.Function) []corev1.Volume {
-	volumes := make([]corev1.Volume, 0, len(functions))
-	for _, f := range functions {
-		volumes = append(volumes, corev1.Volume{
-			Name: functionsVolumeName(&f),
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: function.FunctionConfigMapName(&f),
-					},
-				},
-			},
-		})
-	}
-	return volumes
-}
-
-// buildFunctionsVolumeMounts returns the volume mounts for the EdgeRuntime container.
-func buildFunctionsVolumeMounts(functions []supabasev1alpha1.Function) []corev1.VolumeMount {
-	totalFiles := 0
-	for _, f := range functions {
-		totalFiles += len(f.Spec.Source)
-	}
-
-	mounts := make([]corev1.VolumeMount, 0, totalFiles)
-	for _, f := range functions {
-		for _, filename := range slices.Sorted(maps.Keys(f.Spec.Source)) {
-			mounts = append(mounts, corev1.VolumeMount{
-				Name:      functionsVolumeName(&f),
-				MountPath: fmt.Sprintf("/home/deno/functions/%s/%s", f.Spec.FunctionName, filename),
-				SubPath:   filename,
-			})
-		}
-	}
-	return mounts
-}
-
-// functionsVolumeName returns a valid volume name for a Function ConfigMap volume.
-func functionsVolumeName(fn *supabasev1alpha1.Function) string {
-	return ComponentName(fn.Name, "function")
 }

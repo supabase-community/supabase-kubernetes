@@ -22,6 +22,7 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +75,7 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 	t.Helper()
 	ctx := context.Background()
 	scheme := runtime.NewScheme()
-	for _, add := range []func(*runtime.Scheme) error{core.AddToScheme, corev1.AddToScheme, appsv1.AddToScheme} {
+	for _, add := range []func(*runtime.Scheme) error{core.AddToScheme, corev1.AddToScheme, appsv1.AddToScheme, rbacv1.AddToScheme} {
 		if err := add(scheme); err != nil {
 			t.Fatal(err)
 		}
@@ -83,7 +84,7 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 	reconciler.SetReady(p, "TestReady", "Shared infrastructure ready")
 	db := &core.SingleDatabase{ObjectMeta: metav1.ObjectMeta{Name: "db", Namespace: "test"}, Status: core.SingleDatabaseStatus{ResolvedDatabase: &core.ResolvedDatabase{Host: "db", Port: 5432, DBName: "postgres", User: "postgres", PasswordRef: core.SecretKeyRef{Name: "db-password", Key: "password"}}}}
 	reconciler.SetReady(db, "TestReady", "Database ready")
-	b := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(p, db, &core.Function{}, &appsv1.Deployment{}, &appsv1.StatefulSet{}).WithObjects(p, db)
+	b := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(p, db, &core.Function{}, &appsv1.Deployment{}, &appsv1.StatefulSet{}).WithObjects(p, db, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "kube-root-ca.crt", Namespace: p.Namespace}, Data: map[string]string{"ca.crt": "test-ca"}})
 	objects := []componentObject{
 		&core.Auth{},
 		&core.Rest{},
@@ -375,7 +376,7 @@ func TestRoutesAndFunctionContent(t *testing.T) {
 	if rv != d.ResourceVersion {
 		t.Fatal("function ordering is not deterministic")
 	}
-	// Direct ConfigMap edits are inputs even if Function source has not changed.
+	// Function ConfigMaps are no longer pod inputs; the sidecar reads Function resources.
 	cm := &corev1.ConfigMap{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: "user-code-function"}, cm); err != nil {
 		t.Fatal(err)
@@ -392,8 +393,8 @@ func TestRoutesAndFunctionContent(t *testing.T) {
 	if err := r.Get(ctx, studioKey, sts); err != nil {
 		t.Fatal(err)
 	}
-	if edgeHash == d.Spec.Template.Annotations["core.supabase.io/inputs-hash"] || studioHash == sts.Spec.Template.Annotations["core.supabase.io/inputs-hash"] {
-		t.Fatal("code change failed to roll consumers")
+	if edgeHash != d.Spec.Template.Annotations["core.supabase.io/inputs-hash"] || studioHash != sts.Spec.Template.Annotations["core.supabase.io/inputs-hash"] {
+		t.Fatal("Function ConfigMap change rolled consumers")
 	}
 	collision := user.DeepCopy()
 	collision.Name = "collision"
