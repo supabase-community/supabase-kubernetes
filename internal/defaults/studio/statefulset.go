@@ -169,9 +169,8 @@ func buildStudioEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 	env := []corev1.EnvVar{
 		helper.EnvVar("HOSTNAME", "0.0.0.0"),
 		helper.EnvVar("STUDIO_PG_META_URL", fmt.Sprintf(
-			"http://%s.%s.svc.cluster.local:%d",
-			MetaServiceName(project),
-			project.Namespace,
+			"http://%s:%d",
+			helper.ServiceFQDN(MetaServiceName(project), project.Namespace),
 			DefaultMetaPort,
 		)),
 		helper.EnvVar("POSTGRES_PORT", strconv.Itoa(int(db.Port))),
@@ -184,9 +183,8 @@ func buildStudioEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 		helper.EnvVar("PGRST_DB_MAX_ROWS", restMaxRowsOrDefault()),
 		helper.EnvVar("PGRST_DB_EXTRA_SEARCH_PATH", restExtraSearchPathOrDefault()),
 		helper.EnvVar("SUPABASE_URL", fmt.Sprintf(
-			"http://%s.%s.svc.cluster.local:%d",
-			EnvoyServiceName(project),
-			project.Namespace,
+			"http://%s:%d",
+			helper.ServiceFQDN(EnvoyServiceName(project), project.Namespace),
 			DefaultEnvoyPort,
 		)),
 		helper.EnvVar("SUPABASE_PUBLIC_URL", project.Spec.PublicURL),

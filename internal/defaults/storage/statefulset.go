@@ -170,9 +170,8 @@ func buildStorageEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolved
 		helper.EnvVarFromSecret("ANON_KEY", jwtSecret, JWTSecretAnonKey),
 		helper.EnvVarFromSecret("SERVICE_KEY", jwtSecret, JWTSecretServiceKey),
 		helper.EnvVar("POSTGREST_URL", fmt.Sprintf(
-			"http://%s.%s.svc.cluster.local:%d",
-			RestServiceName(project),
-			project.Namespace,
+			"http://%s:%d",
+			helper.ServiceFQDN(RestServiceName(project), project.Namespace),
 			DefaultRestPort,
 		)),
 		helper.EnvVarFromSecret("AUTH_JWT_SECRET", jwtSecret, JWTSecretKey),

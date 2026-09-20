@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 // envoyCluster holds the data needed to render a single Envoy CDS cluster.
@@ -192,7 +193,7 @@ func buildEnvoyStudioCluster(project *ResourceContext) envoyCluster {
 
 // envoyServiceHost returns the fully qualified DNS name for a Project service.
 func envoyServiceHost(project *ResourceContext, serviceName string) string {
-	return fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, project.Namespace)
+	return helper.ServiceFQDN(serviceName, project.Namespace)
 }
 
 // envoyRealtimeHost returns the host used to select Realtime's default self-hosted tenant.
