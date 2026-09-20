@@ -167,9 +167,8 @@ func buildFunctionsEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolv
 	env := []corev1.EnvVar{
 		helper.EnvVarFromSecret("JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVar("SUPABASE_URL", fmt.Sprintf(
-			"http://%s.%s.svc.cluster.local:%d",
-			EnvoyServiceName(project),
-			project.Namespace,
+			"http://%s:%d",
+			helper.ServiceFQDN(EnvoyServiceName(project), project.Namespace),
 			DefaultEnvoyPort,
 		)),
 		helper.EnvVar("SUPABASE_PUBLIC_URL", project.Spec.PublicURL),

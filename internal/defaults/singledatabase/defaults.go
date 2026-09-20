@@ -17,9 +17,8 @@ limitations under the License.
 package singledatabase
 
 import (
-	"fmt"
-
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 )
 
 const (
@@ -69,5 +68,5 @@ func PostgresSelectorLabels(db *supabasev1alpha1.SingleDatabase) map[string]stri
 
 // PostgresServiceHost returns the fully qualified DNS name of the SingleDatabase service.
 func PostgresServiceHost(db *supabasev1alpha1.SingleDatabase) string {
-	return fmt.Sprintf("%s.%s.svc.cluster.local", PostgresServiceName(db), db.Namespace)
+	return helper.ServiceFQDN(PostgresServiceName(db), db.Namespace)
 }

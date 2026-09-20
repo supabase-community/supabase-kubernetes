@@ -48,6 +48,7 @@ import (
 	singledatabasecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/singledatabase"
 	storagecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/storage"
 	studiocontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/studio"
+	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -74,6 +75,7 @@ func main() {
 		webhookCertKey       string
 		enableLeaderElection bool
 		probeAddr            string
+		clusterDomain        string
 		secureMetrics        bool
 		enableHTTP2          bool
 		tlsOpts              []func(*tls.Config)
@@ -145,12 +147,19 @@ func main() {
 		false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers",
 	)
+	flag.StringVar(
+		&clusterDomain,
+		"cluster-domain",
+		helper.DefaultClusterDomain,
+		"The cluster domain used to address Supabase services, matching kubelet's --cluster-domain.",
+	)
 
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	helper.SetClusterDomain(clusterDomain)
 
 	disableHTTP2 := func(c *tls.Config) {
 		setupLog.Info("Disabling HTTP/2")
