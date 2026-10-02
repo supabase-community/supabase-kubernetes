@@ -15,6 +15,16 @@ project:
     enable: true
     pod: {}
 
+## Expose Studio and APIs on the same host through Envoy.
+## Set project.publicUrl to the corresponding public URL.
+##
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: ""
+  tls: []
+
 ## SingleDatabase configuration
 ##
 singleDatabase:

@@ -6,6 +6,22 @@ Expand the name of the chart.
 {{- end }}
 
 {{/*
+Match internal/helper.ResourceName for the operator-managed Envoy Service.
+*/}}
+{{- define "supabase-project.envoyServiceName" -}}
+{{- $original := printf "%s-envoy" (include "supabase-project.fullname" .) -}}
+{{- $normalized := replace "." "-" $original -}}
+{{- if regexMatch "^[0-9]" $normalized -}}
+{{- $normalized = printf "c-%s" $normalized -}}
+{{- end -}}
+{{- if and (le (len $normalized) 63) (eq $normalized $original) -}}
+{{- $normalized -}}
+{{- else -}}
+{{- printf "%s-%s" (regexReplaceAll "-+$" (trunc 46 $normalized) "") (trunc 16 (sha256sum $original)) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.

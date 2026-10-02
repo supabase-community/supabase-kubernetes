@@ -98,6 +98,15 @@ kubectl port-forward svc/supabase-envoy 8000:8000
 
 The Studio and the Supabase APIs are available at [http://localhost:8000](http://localhost:8000).
 
+### Access through Ingress
+
+Set `ingress.enabled: true` and `ingress.host` to expose Studio and APIs on the
+same host. The Ingress forwards `/` to Envoy, preserving Studio authentication.
+Set `project.publicUrl` to the corresponding public URL. Optional `className`,
+`annotations` and `tls` fields configure the controller and TLS termination.
+The cluster must provide the Ingress Controller and TLS Secrets. Envoy must be
+enabled, and Service overrides must preserve its named port `envoy`.
+
 ## Contributing
 
 Contributions are welcome. Before starting significant work, please open an issue to discuss your idea or bug report. When you are ready, fork the repository, make your changes, and open a pull request.
