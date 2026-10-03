@@ -100,7 +100,7 @@ The Studio and the Supabase APIs are available at [http://localhost:8000](http:/
 
 ### Access through Ingress
 
-Set `ingress.enabled: true` and `ingress.host` to expose Studio and APIs on the
+Set `ingress.enable: true` and `ingress.host` to expose Studio and APIs on the
 same host. The Ingress forwards `/` to Envoy, preserving Studio authentication.
 Set `project.publicUrl` to the corresponding public URL. Optional `className`,
 `annotations` and `tls` fields configure the controller and TLS termination.

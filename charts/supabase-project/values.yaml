@@ -19,7 +19,7 @@ project:
 ## Set project.publicUrl to the corresponding public URL.
 ##
 ingress:
-  enabled: false
+  enable: false
   className: ""
   annotations: {}
   host: ""
