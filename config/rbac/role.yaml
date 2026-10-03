@@ -66,6 +66,7 @@ rules:
   - singledatabases
   - storages
   - studios
+  - supavisors
   verbs:
   - create
   - delete
@@ -89,6 +90,7 @@ rules:
   - singledatabases/finalizers
   - storages/finalizers
   - studios/finalizers
+  - supavisors/finalizers
   verbs:
   - update
 - apiGroups:
@@ -106,6 +108,7 @@ rules:
   - singledatabases/status
   - storages/status
   - studios/status
+  - supavisors/status
   verbs:
   - get
   - patch

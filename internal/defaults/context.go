@@ -19,6 +19,7 @@ type Configuration struct {
 	Rest        *core.RestSpec
 	Meta        *core.MetaSpec
 	Realtime    *core.RealtimeSpec
+	Supavisor   *core.SupavisorSpec
 	Storage     *core.StorageSpec
 	Studio      *core.StudioSpec
 	Envoy       *core.EnvoySpec

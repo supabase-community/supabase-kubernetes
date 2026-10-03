@@ -37,6 +37,7 @@ The Operator exposes the following Kubernetes Custom Resources:
 | `Rest` | `rests` | PostgREST component |
 | `Meta` | `metas` | Postgres Meta component |
 | `Realtime` | `realtimes` | Supabase Realtime component |
+| `Supavisor` | `supavisors` | PostgreSQL connection pooler (session and transaction modes) |
 | `Storage` | `storages` | Supabase Storage component |
 | `Studio` | `studios` | Supabase Studio component |
 | `Envoy` | `envoys` | API gateway component |

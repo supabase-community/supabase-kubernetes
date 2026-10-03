@@ -62,3 +62,6 @@ var EnvoyCDSTemplate string
 
 //go:embed envoy/lds.tmpl
 var EnvoyLDSTemplate string
+
+//go:embed pooler/pooler.exs
+var SupavisorPoolerScript string

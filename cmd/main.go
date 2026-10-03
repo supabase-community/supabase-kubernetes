@@ -48,6 +48,7 @@ import (
 	singledatabasecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/singledatabase"
 	storagecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/storage"
 	studiocontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/studio"
+	supavisorcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/supavisor"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	// +kubebuilder:scaffold:imports
 )
@@ -306,6 +307,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "EdgeRuntime")
+		os.Exit(1)
+	}
+	if err := (&supavisorcontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Supavisor")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

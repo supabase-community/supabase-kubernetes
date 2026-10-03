@@ -121,4 +121,13 @@ resources:
   kind: EdgeRuntime
   path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: supabase.io
+  group: core
+  kind: Supavisor
+  path: github.com/supabase-community/supabase-kubernetes/api/v1alpha1
+  version: v1alpha1
 version: "3"

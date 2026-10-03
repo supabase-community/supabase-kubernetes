@@ -1,6 +1,7 @@
 package defaults
 
 const (
+	DefaultSupavisorImage   = "supabase/supavisor:2.9.12"
 	DefaultPostgresImage    = "supabase/postgres:17.6.1.084"
 	DefaultAuthImage        = "supabase/gotrue:v2.189.0"
 	DefaultRestImage        = "postgrest/postgrest:v14.12"

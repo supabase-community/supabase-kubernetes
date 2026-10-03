@@ -16,6 +16,7 @@ resources:
   - rest.yaml
   - meta.yaml
   - realtime.yaml
+  - supavisor.yaml
   - storage.yaml
   - studio.yaml
   - envoy.yaml
