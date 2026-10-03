@@ -1,6 +1,6 @@
-{{- if .Values.ingress.enabled -}}
+{{- if .Values.ingress.enable -}}
 {{- if not .Values.envoy.enable -}}
-{{- fail "ingress.enabled requires envoy.enable=true" -}}
+{{- fail "ingress.enable requires envoy.enable=true" -}}
 {{- end -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
