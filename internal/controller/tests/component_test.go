@@ -17,6 +17,7 @@ import (
 	restcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/rest"
 	storagecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/storage"
 	studiocontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/studio"
+	supavisorcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/supavisor"
 	"github.com/supabase-community/supabase-kubernetes/internal/defaults"
 	functiondefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/function"
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
@@ -55,6 +56,8 @@ func (r *componentTestClient) reconcile(ctx context.Context, obj componentObject
 		return (&restcontroller.Reconciler{Client: r.Client}).Reconcile(ctx, req)
 	case *core.Meta:
 		return (&metacontroller.Reconciler{Client: r.Client}).Reconcile(ctx, req)
+	case *core.Supavisor:
+		return (&supavisorcontroller.Reconciler{Client: r.Client}).Reconcile(ctx, req)
 	case *core.Realtime:
 		return (&realtimecontroller.Reconciler{Client: r.Client}).Reconcile(ctx, req)
 	case *core.Storage:
@@ -93,13 +96,17 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 		&core.Studio{},
 		&core.Envoy{},
 		&core.EdgeRuntime{},
+		&core.Supavisor{},
 	}
 	for _, o := range objects {
 		kind := strings.TrimPrefix(fmt.Sprintf("%T", o), "*v1alpha1.")
 		o.SetName("custom-" + strings.ToLower(kind))
 		o.SetNamespace(p.Namespace)
 		o.SetUID(types.UID(kind))
-		spec := map[string]any{"projectRef": map[string]string{"name": p.Name}, "replicas": 0}
+		spec := map[string]any{"projectRef": map[string]string{"name": p.Name}}
+		if _, fixedReplicas := o.(*core.Supavisor); !fixedReplicas {
+			spec["replicas"] = 0
+		}
 		data, _ := json.Marshal(map[string]any{"spec": spec})
 		if err := json.Unmarshal(data, o); err != nil {
 			t.Fatal(err)
@@ -155,7 +162,7 @@ func expectEnvValue(t *testing.T, workload client.Object, name, value string) {
 	t.Fatalf("%T environment variable %s is missing", workload, name)
 }
 func TestComponentLifecycle(t *testing.T) {
-	for _, kind := range []string{"Auth", "Rest", "Meta", "Realtime", kindStorage, kindStudio, "Envoy", kindEdgeRuntime} {
+	for _, kind := range []string{"Auth", "Rest", "Meta", "Realtime", "Supavisor", kindStorage, kindStudio, "Envoy", kindEdgeRuntime} {
 		t.Run(kind, func(t *testing.T) {
 			ctx, r, p, objects := componentFixture(t)
 			// Envoy credentials must exist before Studio consumes them.
@@ -171,6 +178,11 @@ func TestComponentLifecycle(t *testing.T) {
 				}
 			}
 			runComponent(t, ctx, r, target)
+			if pooler, ok := target.(*core.Supavisor); ok {
+				expectReason(t, ctx, r, pooler, "WorkloadNotReady")
+				markSupavisorReady(t, ctx, r, pooler)
+				runComponent(t, ctx, r, pooler)
+			}
 			if kind == kindEdgeRuntime {
 				functions := &core.FunctionList{}
 				if err := r.List(ctx, functions); err != nil {

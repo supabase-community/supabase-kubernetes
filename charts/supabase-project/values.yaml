@@ -120,3 +120,11 @@ studio:
       requests:
         storage: 1Gi
     # storageClassName: ""
+
+## Supavisor component configuration
+##
+supavisor:
+  enable: true
+  pod: {}
+  service: {}
+  config: []

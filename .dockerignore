@@ -13,5 +13,6 @@
 # Re-include embedded files
 !internal/assets/migrations/*.sql
 !internal/assets/scripts/*.sh
+!internal/assets/pooler/*.exs
 !internal/assets/envoy/*.tmpl
 !internal/assets/functions/main/index.ts

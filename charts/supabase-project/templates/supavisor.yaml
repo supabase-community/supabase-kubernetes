@@ -1,0 +1,12 @@
+{{- if .Values.supavisor.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: Supavisor
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  projectRef:
+    name: {{ include "supabase-project.fullname" . | quote }}
+  {{- omit .Values.supavisor "enable" | toYaml | nindent 2 }}
+{{- end }}
