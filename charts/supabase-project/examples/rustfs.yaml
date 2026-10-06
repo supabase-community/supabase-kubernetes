@@ -40,7 +40,7 @@ storage:
         # A native sidecar init container keeps RustFS running for the lifetime
         # of the Pod while allowing the next init container to create its bucket.
         - name: rustfs
-          image: rustfs/rustfs:1.0.0-beta.11
+          image: rustfs/rustfs:v1.0.0-rc.5
           restartPolicy: Always
           ports:
             - name: s3
