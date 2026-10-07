@@ -1,0 +1,21 @@
+{{- if and .Values.deployment.db.enabled .Values.migration.job.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "supabase.db.fullname" . }}-migrations-job
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: runner
+          image: postgres:15-alpine
+          env:
+            - name: DB_HOST
+              value: {{ include "supabase.db.fullname" . }}
+            - name: PGPASSWORD
+              valueFrom: { secretKeyRef: { name: {{ include "supabase.secret.db.name" . }}, key: password } }
+          command: ["/bin/sh", "-c"]
+          args: [ {{ .Values.migration.job.scripts | quote }} ]
+{{- end }}
