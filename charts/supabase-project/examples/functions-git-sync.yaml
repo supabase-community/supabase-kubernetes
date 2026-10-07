@@ -1,0 +1,61 @@
+# Download functions from Git into EdgeRuntime and Studio.
+# Use with: -f charts/supabase-project/examples/functions-git-sync.yaml
+# Set your repository, branch and functions folder below.
+x-functions:
+  volumes: &functionsVolumes
+    - name: functions
+      emptyDir: {}
+  sidecar: &functionsSync
+    name: functions-sync
+    image: alpine/git:2.47.2
+    env:
+      - name: GIT_REPOSITORY
+        value: https://github.com/supabase/supabase.git
+      - name: GIT_BRANCH
+        value: master
+      - name: FUNCTIONS_PATH
+        value: docker/volumes/functions
+      - name: SYNC_INTERVAL_SECONDS
+        value: "300"
+    command: ["/bin/sh", "-ec"]
+    args:
+      - |
+        git clone --depth 1 --filter=blob:none --no-checkout \
+          --branch "$GIT_BRANCH" "$GIT_REPOSITORY" /tmp/repo
+        cd /tmp/repo
+        # Check out only this folder, preserving the operator-managed main.
+        git sparse-checkout set --no-cone "/$FUNCTIONS_PATH/" "!/$FUNCTIONS_PATH/main/" "!/$FUNCTIONS_PATH/deno.jsonc"
+        while true; do
+          git fetch --depth 1 origin "$GIT_BRANCH" \
+            && git checkout --force FETCH_HEAD \
+            && cp -R "$FUNCTIONS_PATH/." /functions/ \
+            || echo "Could not update functions" >&2
+          sleep "$SYNC_INTERVAL_SECONDS"
+        done
+    volumeMounts:
+      - name: functions
+        mountPath: /functions
+
+edgeRuntime:
+  enable: true
+  pod:
+    spec:
+      volumes: *functionsVolumes
+      containers:
+        - name: edge-runtime
+          volumeMounts:
+            - name: functions
+              mountPath: /home/deno/functions
+        - *functionsSync
+
+studio:
+  enable: true
+  pod:
+    spec:
+      volumes: *functionsVolumes
+      containers:
+        - name: studio
+          volumeMounts:
+            - name: functions
+              mountPath: /app/edge-functions
+        - *functionsSync
