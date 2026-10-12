@@ -65,7 +65,7 @@ spec:
         - name: {{ include "supabase.kong.name" $ }}
           image: "{{ .Values.image.kong.repository }}:{{ .Values.image.kong.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.kong.pullPolicy }}
-          command: ["/bin/bash"]
+          command: ["/bin/sh"]
           args: ["/scripts/kong-entrypoint.sh"]
           ports:
             - name: http

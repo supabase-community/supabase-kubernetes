@@ -93,7 +93,7 @@ services:
       - name: cors
   - name: auth-v1
     _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/*"
-    url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}
+    url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/
     routes:
       - name: auth-v1-all
         strip_path: true

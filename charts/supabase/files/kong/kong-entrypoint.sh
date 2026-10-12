@@ -1,6 +1,4 @@
-#!/bin/bash
-
-set -euo pipefail
+#!/bin/sh
 
 # Export empty optional keys so awk removes their placeholders in legacy mode.
 export SUPABASE_PUBLISHABLE_KEY="${SUPABASE_PUBLISHABLE_KEY:-}"
@@ -17,16 +15,13 @@ fi
 echo "Replacing env placeholders of ${KONG_DECLARATIVE_CONFIG}"
 
 # Substitute once, preserving YAML quoting, Lua expressions and literal values
-# containing sed replacement characters. Accept ${VAR} for existing ConfigMaps
-# as well as the upstream $VAR syntax. Leave unknown variables unchanged.
+# containing sed replacement characters. Use the upstream $VAR syntax and
+# leave unknown variables unchanged.
 awk '{
   result = ""
   rest = $0
-  while (match(rest, /\$[A-Za-z_][A-Za-z_0-9]*|\$\{[A-Za-z_][A-Za-z_0-9]*\}/)) {
+  while (match(rest, /\$[A-Za-z_][A-Za-z_0-9]*/)) {
     varname = substr(rest, RSTART + 1, RLENGTH - 1)
-    if (substr(varname, 1, 1) == "{") {
-      varname = substr(varname, 2, length(varname) - 2)
-    }
     if (varname in ENVIRON) {
       result = result substr(rest, 1, RSTART - 1) ENVIRON[varname]
     } else {
