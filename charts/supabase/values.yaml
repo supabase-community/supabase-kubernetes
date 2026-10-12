@@ -826,15 +826,23 @@ environment:
       value: "off"
     - name: KONG_DECLARATIVE_CONFIG
       value: /usr/local/kong/kong.yml
+    - name: KONG_ROUTER_FLAVOR
+      value: expressions
     ## https://github.com/supabase/cli/issues/14
     - name: KONG_DNS_ORDER
       value: LAST,A,CNAME
+    - name: KONG_DNS_NOT_FOUND_TTL
+      value: "1"
+    - name: KONG_DNS_VALID_TTL
+      value: "5"
     - name: KONG_PLUGINS
-      value: request-transformer,cors,key-auth,acl,basic-auth,post-function
+      value: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction,post-function
     - name: KONG_NGINX_PROXY_PROXY_BUFFER_SIZE
       value: 160k
     - name: KONG_NGINX_PROXY_PROXY_BUFFERS
       value: 64 160k
+    - name: KONG_PROXY_ACCESS_LOG
+      value: /dev/stdout combined
     - name: KONG_LOG_LEVEL
       value: warn
 

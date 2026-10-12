@@ -7,12 +7,12 @@ consumers:
 {{- end }}
   - username: anon
     keyauth_credentials:
-        - key: ${SUPABASE_ANON_KEY}
-        - key: ${SUPABASE_PUBLISHABLE_KEY}
+        - key: $SUPABASE_ANON_KEY
+        - key: $SUPABASE_PUBLISHABLE_KEY
   - username: service_role
     keyauth_credentials:
-        - key: ${SUPABASE_SERVICE_KEY}
-        - key: ${SUPABASE_SECRET_KEY}
+        - key: $SUPABASE_SERVICE_KEY
+        - key: $SUPABASE_SECRET_KEY
 acls:
   - consumer: anon
     group: anon
@@ -21,8 +21,8 @@ acls:
 {{- if .Values.secret.dashboard }}
 basicauth_credentials:
   - consumer: DASHBOARD
-    username: '${DASHBOARD_USERNAME}'
-    password: '${DASHBOARD_PASSWORD}'
+    username: '$DASHBOARD_USERNAME'
+    password: '$DASHBOARD_PASSWORD'
 {{- end }}
 services:
 {{- if .Values.deployment.auth.enabled }}
@@ -72,28 +72,28 @@ services:
           - /.well-known/oauth-authorization-server
     plugins:
       - name: cors
-      
+
   - name: auth-v1-open-sso-acs
-    url: "http://auth:9999/sso/saml/acs"
+    url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/sso/saml/acs
     routes:
       - name: auth-v1-open-sso-acs
         strip_path: true
         paths:
-        - /sso/saml/acs
+          - /auth/v1/sso/saml/acs
     plugins:
       - name: cors
   - name: auth-v1-open-sso-metadata
-    url: "http://auth:9999/sso/saml/metadata"
+    url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/sso/saml/metadata
     routes:
       - name: auth-v1-open-sso-metadata
         strip_path: true
         paths:
-        - /sso/saml/metadata
+          - /auth/v1/sso/saml/metadata
     plugins:
       - name: cors
   - name: auth-v1
     _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/*"
-    url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}
+    url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.service.auth.port }}/
     routes:
       - name: auth-v1-all
         strip_path: true
@@ -108,10 +108,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
           replace:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
       - name: acl
         config:
           hide_groups_header: true
@@ -120,6 +120,33 @@ services:
             - anon
 {{- end }}
 {{- if .Values.deployment.rest.enabled }}
+  # Restrict the PostgREST OpenAPI root to admin consumers.
+  - name: rest-v1-openapi
+    _comment: 'PostgREST OpenAPI root: /rest/v1/ -> <http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/> (admin only). See <https://github.com/orgs/supabase/discussions/42949>'
+    url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/
+    routes:
+      - name: rest-v1-openapi-root
+        strip_path: true
+        expression: 'http.path == "/rest/v1/"'
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "Authorization: $LUA_AUTH_EXPR"
+          replace:
+            headers:
+              - "Authorization: $LUA_AUTH_EXPR"
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+
   - name: rest-v1
     _comment: "PostgREST: /rest/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/*"
     url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.service.rest.port }}/
@@ -137,10 +164,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
           replace:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
       - name: acl
         config:
           hide_groups_header: true
@@ -165,10 +192,10 @@ services:
           add:
             headers:
               - "Content-Profile: graphql_public"
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
           replace:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
       - name: acl
         config:
           hide_groups_header: true
@@ -195,18 +222,50 @@ services:
         config:
           add:
             headers:
-              - "x-api-key:${LUA_RT_WS_EXPR}"
+              - "x-api-key:$LUA_RT_WS_EXPR"
           replace:
             querystring:
-              - "apikey:${LUA_RT_WS_EXPR}"
+              - "apikey:$LUA_RT_WS_EXPR"
       - name: acl
         config:
           hide_groups_header: true
           allow:
             - admin
             - anon
+  # Block Realtime management endpoints.
+  - name: realtime-v1-rest-openapi
+    _comment: 'Block access to the Realtime OpenAPI endpoint'
+    url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/api/openapi
+    protocol: http
+    routes:
+      - name: realtime-v1-rest-openapi
+        strip_path: true
+        paths:
+          - /realtime/v1/api/openapi
+    plugins:
+      - name: request-termination
+        config:
+          status_code: 403
+          message: "Access is forbidden."
+
+  # Block access to /realtime/v1/api/tenants
+  - name: realtime-v1-rest-tenants
+    _comment: 'Block access to Realtime tenant management'
+    url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/api/tenants
+    protocol: http
+    routes:
+      - name: realtime-v1-rest-tenants
+        strip_path: true
+        paths:
+          - /realtime/v1/api/tenants
+    plugins:
+      - name: request-termination
+        config:
+          status_code: 403
+          message: "Access is forbidden."
+
   - name: realtime-v1-rest
-    _comment: 'Realtime: /realtime/v1/* -> http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/api/*'
+    _comment: 'Realtime: /realtime/v1/api/* -> http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/api/*'
     url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.service.realtime.port }}/api
     protocol: http
     routes:
@@ -223,10 +282,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
           replace:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
       - name: acl
         config:
           hide_groups_header: true
@@ -249,10 +308,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
           replace:
             headers:
-              - "Authorization: ${LUA_AUTH_EXPR}"
+              - "Authorization: $LUA_AUTH_EXPR"
       - name: post-function
         config:
           access:
@@ -312,6 +371,38 @@ services:
           hide_groups_header: true
           allow:
             - admin
+{{- end }}
+{{- if .Values.deployment.studio.enabled }}
+  # Block both MCP entry points by default.
+  - name: mcp-blocker
+    _comment: 'Block direct access to /api/mcp'
+    url: http://{{ include "supabase.studio.fullname" . }}:{{ .Values.service.studio.port }}/api/mcp
+    routes:
+      - name: mcp-blocker-route
+        strip_path: true
+        paths:
+          - /api/mcp
+    plugins:
+      - name: request-termination
+        config:
+          status_code: 403
+          message: "Access is forbidden."
+
+  ## MCP endpoint - blocked by default
+  - name: mcp
+    _comment: 'Block access to MCP through the public gateway'
+    url: http://{{ include "supabase.studio.fullname" . }}:{{ .Values.service.studio.port }}/api/mcp
+    routes:
+      - name: mcp
+        strip_path: true
+        paths:
+          - /mcp
+    plugins:
+      # Block access to /mcp by default
+      - name: request-termination
+        config:
+          status_code: 403
+          message: "Access is forbidden."
 {{- end }}
   - name: dashboard
     _comment: 'Studio: /* -> http://{{ include "supabase.studio.fullname" . }}:{{ .Values.service.studio.port }}/*'
