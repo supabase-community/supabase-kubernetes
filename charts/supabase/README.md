@@ -10,6 +10,27 @@ For the moment we are using a root container to permit the installation of the m
 
 The database configuration we provide is an example using only one master. If you want to go to production, we highly recommend you to use a replicated database.
 
+## Kong configuration
+
+The bundled Kong configuration follows the Supabase Docker configuration, adapted
+to Kubernetes Service names and configurable ports. The PostgREST OpenAPI root
+(`/rest/v1/`) requires an admin API key. Realtime management endpoints
+(`/realtime/v1/api/openapi` and `/realtime/v1/api/tenants`) and Studio MCP endpoints
+(`/api/mcp` and `/mcp`) return HTTP 403 by default when those components are enabled.
+
+If you override `environment.kong`, include `KONG_ROUTER_FLAVOR=expressions` and
+the plugins from the default values, including `request-termination`,
+`ip-restriction` and `post-function`. Helm replaces the environment list rather
+than merging its entries. The defaults also set DNS cache TTLs and the proxy
+access log format to match Docker.
+
+When using `deployment.kong.configMapRef`, update your external ConfigMap's
+`kong.yml` and `kong-entrypoint.sh` together; Helm does not update that ConfigMap.
+The bundled entrypoint accepts both `$VAR` and `${VAR}` placeholders and writes
+to `KONG_DECLARATIVE_CONFIG`. Changes to the bundled routing configuration or
+entrypoint trigger a Kong rollout. External ConfigMap changes require a rollout
+managed separately.
+
 ## Usage example
 
 > For this section we're using Minikube and Docker to create a Kubernetes cluster
