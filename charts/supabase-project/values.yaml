@@ -80,7 +80,9 @@ edgeRuntime:
   replicas: 1
   pod: {}
   service: {}
-  config: []
+  config:
+    - name: VERIFY_JWT
+      value: "true"
 
 ## Envoy component configuration
 ##
