@@ -30,6 +30,7 @@ func EnvoyServiceName(ctx *ResourceContext) string {
 const (
 	DefaultEnvoyPort        int32 = 8000
 	JWTSecretKey                  = projectdefaults.JWTSecretKey
+	JWTSecretJWKS                 = projectdefaults.JWTSecretJWKS
 	JWTSecretAnonKey              = projectdefaults.JWTSecretAnonKey
 	JWTSecretServiceKey           = projectdefaults.JWTSecretServiceKey
 	JWTSecretPublishableKey       = projectdefaults.JWTSecretPublishableKey

@@ -39,7 +39,6 @@ import (
 	authcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/auth"
 	edgeruntimecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/edgeruntime"
 	envoycontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/envoy"
-	functioncontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/function"
 	metacontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/meta"
 	migrationcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/migration"
 	projectcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/project"
@@ -243,16 +242,6 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "Migration")
 		os.Exit(1)
 	}
-	if err := (&functioncontroller.Reconciler{
-		Client:          mgr.GetClient(),
-		Scheme:          mgr.GetScheme(),
-		Recorder:        mgr.GetEventRecorder("function"),
-		RequeueInterval: 10 * time.Second,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "Function")
-		os.Exit(1)
-	}
-
 	if err := (&authcontroller.Reconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

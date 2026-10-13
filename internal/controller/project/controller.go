@@ -131,9 +131,6 @@ func (r *Reconciler) mapMigrationToProjects(ctx context.Context, obj client.Obje
 // +kubebuilder:rbac:groups=core.supabase.io,resources=singledatabases/status,verbs=get
 // +kubebuilder:rbac:groups=core.supabase.io,resources=migrations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.supabase.io,resources=migrations/status,verbs=get
-// +kubebuilder:rbac:groups=core.supabase.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core.supabase.io,resources=functions/status,verbs=get
-// +kubebuilder:rbac:groups=core.supabase.io,resources=functions/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile handles the reconciliation loop for Project resources.

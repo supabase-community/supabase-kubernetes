@@ -43,13 +43,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil || !proceed {
 		return result, err
 	}
-	functions, err := component.ListFunctions(ctx, r.Client, obj.Namespace, project.Name)
-	if err != nil {
-		return component.NotReady(ctx, r.Client, obj, "FunctionsFetchFailed", err.Error())
-	}
-	if reason, err := component.ValidateFunctions(functions, obj, false); err != nil {
-		return component.NotReady(ctx, r.Client, obj, reason, err.Error())
-	}
 	state := defaults.NewContext(project)
 	state.Owner = obj
 	state.Spec.Studio = &obj.Spec
@@ -63,7 +56,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return component.NotReady(ctx, r.Client, obj, "ReconcileFailed", err.Error())
 		}
 	}
-	if err := r.reconcileStatefulSet(ctx, state, db, functions); err != nil {
+	if err := r.reconcileStatefulSet(ctx, state, db); err != nil {
 		return component.NotReady(ctx, r.Client, obj, "ReconcileFailed", err.Error())
 	}
 	if err := component.StatefulSetReady(ctx, r.Client, client.ObjectKey{Namespace: obj.Namespace, Name: studiodefaults.StudioStatefulSetName(state)}); err != nil {
@@ -72,5 +65,5 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return component.Ready(ctx, r.Client, obj)
 }
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.Studio{}, NewList: func() client.ObjectList { return &core.StudioList{} }, Owns: []client.Object{&appsv1.StatefulSet{}, &corev1.Service{}, &corev1.PersistentVolumeClaim{}}, Related: []component.Object{&core.Meta{}, &core.Envoy{}}, WatchFunctions: true})
+	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.Studio{}, NewList: func() client.ObjectList { return &core.StudioList{} }, Owns: []client.Object{&appsv1.StatefulSet{}, &corev1.Service{}, &corev1.PersistentVolumeClaim{}}, Related: []component.Object{&core.Meta{}, &core.Envoy{}}})
 }

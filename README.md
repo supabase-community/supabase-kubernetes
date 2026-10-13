@@ -31,7 +31,6 @@ The Operator exposes the following Kubernetes Custom Resources:
 |---|---|---|
 | `Project` | `projects` | Shared configuration, credentials, migrations, and database synchronization |
 | `SingleDatabase` | `singledatabases` | Postgres database managed by the Operator |
-| `Function` | `functions` | Edge Functions deployed in the cluster |
 | `Migration` | `migrations` | Applies SQL scripts to referenced databases. Also used internally by the Operator to manage Supabase upgrade migrations |
 | `Auth` | `auths` | Supabase Auth component |
 | `Rest` | `rests` | PostgREST component |
@@ -41,7 +40,7 @@ The Operator exposes the following Kubernetes Custom Resources:
 | `Storage` | `storages` | Supabase Storage component |
 | `Studio` | `studios` | Supabase Studio component |
 | `Envoy` | `envoys` | API gateway component |
-| `EdgeRuntime` | `edgeruntimes` | Runtime for `Function` resources |
+| `EdgeRuntime` | `edgeruntimes` | Edge Functions runtime with operator-managed router and import map |
 
 ## Quick Start
 
