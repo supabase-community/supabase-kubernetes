@@ -57,6 +57,9 @@ var EnvoyEntrypoint string
 //go:embed functions/main/index.ts
 var MainFunction string
 
+//go:embed functions/deno.jsonc
+var FunctionsDenoConfig string
+
 //go:embed envoy/envoy.yaml.tmpl
 var EnvoyBaseTemplate string
 

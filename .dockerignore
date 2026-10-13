@@ -17,3 +17,4 @@
 !internal/assets/envoy/*.tmpl
 !internal/assets/envoy/*.sh
 !internal/assets/functions/main/index.ts
+!internal/assets/functions/deno.jsonc

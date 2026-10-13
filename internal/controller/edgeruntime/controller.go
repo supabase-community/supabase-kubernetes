@@ -44,27 +44,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	state.Names["EdgeRuntime"] = obj.Name
 	state.Spec.Envoy = &envoy.Spec
 	state.Names["Envoy"] = envoy.Name
-	functions, err := component.ListFunctions(ctx, r.Client, obj.Namespace, project.Name)
-	if err != nil {
-		return component.NotReady(ctx, r.Client, obj, "FunctionsFetchFailed", err.Error())
-	}
-	if reason, err := component.ValidateFunctions(functions, obj, true); err != nil && reason == component.ConflictingFunctionsReason {
-		return component.NotReady(ctx, r.Client, obj, reason, err.Error())
-	}
-	if err := r.reconcileMainFunction(ctx, state); err != nil {
-		return component.NotReady(ctx, r.Client, obj, "MainFunctionFailed", err.Error())
-	}
-	functions, err = component.ListFunctions(ctx, r.Client, obj.Namespace, project.Name)
-	if err != nil {
-		return component.NotReady(ctx, r.Client, obj, "FunctionsFetchFailed", err.Error())
-	}
-	if reason, err := component.ValidateFunctions(functions, obj, true); err != nil {
-		return component.NotReady(ctx, r.Client, obj, reason, err.Error())
+	if err := r.reconcileConfigMap(ctx, state); err != nil {
+		return component.NotReady(ctx, r.Client, obj, "RuntimeConfigFailed", err.Error())
 	}
 	if err := r.reconcileService(ctx, state); err != nil {
 		return component.NotReady(ctx, r.Client, obj, "ReconcileFailed", err.Error())
 	}
-	if err := r.reconcileDeployment(ctx, state, db, functions); err != nil {
+	if err := r.reconcileDeployment(ctx, state, db); err != nil {
 		return component.NotReady(ctx, r.Client, obj, "ReconcileFailed", err.Error())
 	}
 	if err := component.DeploymentReady(ctx, r.Client, client.ObjectKey{Namespace: obj.Namespace, Name: edgedefaults.FunctionsDeploymentName(state)}); err != nil {
@@ -73,5 +59,5 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return component.Ready(ctx, r.Client, obj)
 }
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.EdgeRuntime{}, NewList: func() client.ObjectList { return &core.EdgeRuntimeList{} }, Owns: []client.Object{&appsv1.Deployment{}, &corev1.Service{}, &core.Function{}}, Related: []component.Object{&core.Envoy{}}, WatchFunctions: true})
+	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.EdgeRuntime{}, NewList: func() client.ObjectList { return &core.EdgeRuntimeList{} }, Owns: []client.Object{&appsv1.Deployment{}, &corev1.Service{}, &corev1.ConfigMap{}}, Related: []component.Object{&core.Envoy{}}})
 }

@@ -1,4 +1,7 @@
-# Download functions from Git into EdgeRuntime and Studio.
+# Download user functions from Git into EdgeRuntime and Studio.
+# Each Pod has its own emptyDir and sync container; these are not shared volumes.
+# The operator mounts main/index.ts and deno.jsonc individually in /home/deno/functions.
+# VERIFY_JWT defaults to "false"; functions handle their own authentication.
 # Use with: -f charts/supabase-project/examples/functions-git-sync.yaml
 # Set your repository, branch and functions folder below.
 x-functions:
@@ -23,7 +26,7 @@ x-functions:
         git clone --depth 1 --filter=blob:none --no-checkout \
           --branch "$GIT_BRANCH" "$GIT_REPOSITORY" /tmp/repo
         cd /tmp/repo
-        # Check out only this folder, preserving the operator-managed main.
+        # Exclude operator-managed files to avoid overwriting their read-only mounts.
         git sparse-checkout set --no-cone "/$FUNCTIONS_PATH/" "!/$FUNCTIONS_PATH/main/" "!/$FUNCTIONS_PATH/deno.jsonc"
         while true; do
           git fetch --depth 1 origin "$GIT_BRANCH" \
@@ -58,4 +61,5 @@ studio:
           volumeMounts:
             - name: functions
               mountPath: /app/edge-functions
+              readOnly: true
         - *functionsSync

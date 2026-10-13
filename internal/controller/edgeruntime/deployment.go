@@ -11,8 +11,8 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 )
 
-func (r *Reconciler) reconcileDeployment(ctx context.Context, state *defaults.Context, db *core.ResolvedDatabase, functions []core.Function) error {
-	deployment, err := edgedefaults.FunctionsDeployment(state, functions, db)
+func (r *Reconciler) reconcileDeployment(ctx context.Context, state *defaults.Context, db *core.ResolvedDatabase) error {
+	deployment, err := edgedefaults.FunctionsDeployment(state, db)
 	if err != nil {
 		return fmt.Errorf("building functions deployment: %w", err)
 	}

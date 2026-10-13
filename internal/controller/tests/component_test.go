@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	core "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 	authcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/auth"
 	componentcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/component"
 	edgeruntimecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/edgeruntime"
@@ -19,11 +20,9 @@ import (
 	studiocontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/studio"
 	supavisorcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/supavisor"
 	"github.com/supabase-community/supabase-kubernetes/internal/defaults"
-	functiondefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/function"
 	"github.com/supabase-community/supabase-kubernetes/internal/reconciler"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -86,7 +85,7 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 	reconciler.SetReady(p, "TestReady", "Shared infrastructure ready")
 	db := &core.SingleDatabase{ObjectMeta: metav1.ObjectMeta{Name: "db", Namespace: "test"}, Status: core.SingleDatabaseStatus{ResolvedDatabase: &core.ResolvedDatabase{Host: "db", Port: 5432, DBName: "postgres", User: "postgres", PasswordRef: core.SecretKeyRef{Name: "db-password", Key: "password"}}}}
 	reconciler.SetReady(db, "TestReady", "Database ready")
-	b := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(p, db, &core.Function{}, &appsv1.Deployment{}, &appsv1.StatefulSet{}).WithObjects(p, db)
+	b := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(p, db, &appsv1.Deployment{}, &appsv1.StatefulSet{}).WithObjects(p, db)
 	objects := []componentObject{
 		&core.Auth{},
 		&core.Rest{},
@@ -113,7 +112,6 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 		}
 		b = b.WithStatusSubresource(o).WithObjects(o).WithIndex(o, componentcontroller.ProjectRefIndex, func(obj client.Object) []string { return []string{obj.(componentObject).GetProjectRef().Name} })
 	}
-	b = b.WithIndex(&core.Function{}, componentcontroller.ProjectRefIndex, func(o client.Object) []string { return []string{o.(*core.Function).Spec.ProjectRef.Name} })
 	for _, name := range []string{"db-password", "shared-jwt", "shared-keys"} {
 		b = b.WithObjects(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: p.Namespace}, Data: map[string][]byte{"password": []byte("password"), "secret": []byte("jwt")}})
 	}
@@ -182,21 +180,6 @@ func TestComponentLifecycle(t *testing.T) {
 				expectReason(t, ctx, r, pooler, "WorkloadNotReady")
 				markSupavisorReady(t, ctx, r, pooler)
 				runComponent(t, ctx, r, pooler)
-			}
-			if kind == kindEdgeRuntime {
-				functions := &core.FunctionList{}
-				if err := r.List(ctx, functions); err != nil {
-					t.Fatal(err)
-				}
-				if len(functions.Items) != 1 {
-					t.Fatalf("expected main Function, got %d", len(functions.Items))
-				}
-				f := &functions.Items[0]
-				if !metav1.IsControlledBy(f, target) {
-					t.Fatal("main Function has wrong owner")
-				}
-				reconcileFunction(t, ctx, r, f)
-				runComponent(t, ctx, r, target)
 			}
 			expectReason(t, ctx, r, target, "ReconcileSucceeded")
 			var workload client.Object = &appsv1.Deployment{}
@@ -329,7 +312,7 @@ func TestConsumedSecretRollout(t *testing.T) {
 	}
 }
 
-func TestRoutesAndFunctionContent(t *testing.T) {
+func TestRoutesAndRuntimeConfig(t *testing.T) {
 	ctx, r, p, objects := componentFixture(t)
 	envoy, edge, studio := objects[6], objects[7], objects[5]
 	runComponent(t, ctx, r, envoy)
@@ -352,75 +335,123 @@ func TestRoutesAndFunctionContent(t *testing.T) {
 		t.Fatal("deleted component remains routed")
 	}
 	runComponent(t, ctx, r, edge)
-	fn := &core.Function{}
-	mainKey := client.ObjectKey{Namespace: p.Namespace, Name: "custom-edgeruntime-edge-runtime-main"}
-	if err := r.Get(ctx, mainKey, fn); err != nil {
-		t.Fatal(err)
-	}
-	reconcileFunction(t, ctx, r, fn)
-	user := &core.Function{ObjectMeta: metav1.ObjectMeta{Name: "user-code", Namespace: p.Namespace, UID: "user-code"}, Spec: core.FunctionSpec{ProjectRef: corev1.LocalObjectReference{Name: p.Name}, FunctionName: "hello", Source: map[string]string{"z.ts": "z", "index.ts": "before", "a.ts": "a"}}}
-	if err := r.Create(ctx, user); err != nil {
-		t.Fatal(err)
-	}
-	reconcileFunction(t, ctx, r, user)
-	runComponent(t, ctx, r, edge)
 	runComponent(t, ctx, r, studio)
-	edgeKey := client.ObjectKey{Namespace: p.Namespace, Name: "custom-edgeruntime-edge-runtime"}
-	studioKey := client.ObjectKey{Namespace: p.Namespace, Name: "custom-studio-studio"}
-	d := &appsv1.Deployment{}
+	configKey.Name = "custom-edgeruntime-config"
+	if err := r.Get(ctx, configKey, config); err != nil {
+		t.Fatal(err)
+	}
+	if !metav1.IsControlledBy(config, edge) {
+		t.Fatal("runtime configuration has wrong owner")
+	}
+	if config.Data["index.ts"] != assets.MainFunction || config.Data["deno.jsonc"] != assets.FunctionsDenoConfig {
+		t.Fatal("runtime configuration differs from embedded defaults")
+	}
+	rv := config.ResourceVersion
+	runComponent(t, ctx, r, edge)
+	if err := r.Get(ctx, configKey, config); err != nil {
+		t.Fatal(err)
+	}
+	if config.ResourceVersion != rv {
+		t.Fatal("unchanged configuration was rewritten")
+	}
+	// Drift is repaired; there is no second controller or Function CR involved.
+	config.Data["index.ts"] = "invalid router"
+	if err := r.Update(ctx, config); err != nil {
+		t.Fatal(err)
+	}
+	runComponent(t, ctx, r, edge)
+	if err := r.Get(ctx, configKey, config); err != nil {
+		t.Fatal(err)
+	}
+	if config.Data["index.ts"] != assets.MainFunction {
+		t.Fatal("configuration drift was not repaired")
+	}
 	sts := &appsv1.StatefulSet{}
-	if err := r.Get(ctx, edgeKey, d); err != nil {
+	if err := r.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: "custom-studio-studio"}, sts); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Get(ctx, studioKey, sts); err != nil {
-		t.Fatal(err)
+	for _, volume := range sts.Spec.Template.Spec.Volumes {
+		if volume.ConfigMap != nil {
+			t.Fatal("Studio must not mount runtime configuration")
+		}
 	}
-	edgeHash := d.Spec.Template.Annotations["core.supabase.io/inputs-hash"]
-	studioHash := sts.Spec.Template.Annotations["core.supabase.io/inputs-hash"]
-	rv := d.ResourceVersion
-	for range 5 {
-		runComponent(t, ctx, r, edge)
-	}
-	if err := r.Get(ctx, edgeKey, d); err != nil {
-		t.Fatal(err)
-	}
-	if rv != d.ResourceVersion {
-		t.Fatal("function ordering is not deterministic")
-	}
-	// Direct ConfigMap edits are inputs even if Function source has not changed.
-	cm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: "user-code-function"}, cm); err != nil {
-		t.Fatal(err)
-	}
-	cm.Data["index.ts"] = "after"
-	if err := r.Update(ctx, cm); err != nil {
+	if err := r.Delete(ctx, config); err != nil {
 		t.Fatal(err)
 	}
 	runComponent(t, ctx, r, edge)
-	runComponent(t, ctx, r, studio)
-	if err := r.Get(ctx, edgeKey, d); err != nil {
+	if err := r.Get(ctx, configKey, config); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Get(ctx, studioKey, sts); err != nil {
-		t.Fatal(err)
-	}
-	if edgeHash == d.Spec.Template.Annotations["core.supabase.io/inputs-hash"] || studioHash == sts.Spec.Template.Annotations["core.supabase.io/inputs-hash"] {
-		t.Fatal("code change failed to roll consumers")
-	}
-	collision := user.DeepCopy()
-	collision.Name = "collision"
-	collision.UID = "collision"
-	collision.ResourceVersion = ""
-	if err := r.Create(ctx, collision); err != nil {
-		t.Fatal(err)
-	}
-	runComponent(t, ctx, r, edge)
-	expectReason(t, ctx, r, edge, componentcontroller.ConflictingFunctionsReason)
 	if err := r.Delete(ctx, p); err != nil {
 		t.Fatal(err)
 	}
 	runComponent(t, ctx, r, edge)
 	expectReason(t, ctx, r, edge, "ProjectNotFound")
+}
+
+func TestEdgeRuntimePodConfiguration(t *testing.T) {
+	for _, persistent := range []bool{false, true} {
+		t.Run(fmt.Sprintf("persistent-cache=%t", persistent), func(t *testing.T) {
+			ctx, r, p, objects := componentFixture(t)
+			edge := objects[7].(*core.EdgeRuntime)
+			// A user function volume must coexist with the operator's file mounts.
+			edge.Spec.Pod = &corev1.PodTemplateSpec{Spec: corev1.PodSpec{
+				Volumes: []corev1.Volume{{Name: "functions", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}},
+				Containers: []corev1.Container{{Name: "edge-runtime", VolumeMounts: []corev1.VolumeMount{
+					{Name: "functions", MountPath: "/home/deno/functions"},
+				}}},
+			}}
+			if persistent {
+				edge.Spec.Pod.Spec.Volumes = append(edge.Spec.Pod.Spec.Volumes, corev1.Volume{
+					Name: "deno-cache", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "existing-cache"}},
+				})
+				edge.Spec.Config = []corev1.EnvVar{{Name: "VERIFY_JWT", Value: "true"}}
+			}
+			if err := r.Update(ctx, edge); err != nil {
+				t.Fatal(err)
+			}
+			runComponent(t, ctx, r, edge)
+			deployment := &appsv1.Deployment{}
+			if err := r.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: "custom-edgeruntime-edge-runtime"}, deployment); err != nil {
+				t.Fatal(err)
+			}
+			expectEnvValue(t, deployment, "VERIFY_JWT", fmt.Sprint(persistent))
+			container := deployment.Spec.Template.Spec.Containers[0]
+			if strings.Join(container.Args, " ") != "start --main-service /home/deno/functions/main" {
+				t.Fatalf("unexpected runtime arguments: %v", container.Args)
+			}
+			mounts := map[string]corev1.VolumeMount{}
+			for _, mount := range container.VolumeMounts {
+				mounts[mount.MountPath] = mount
+			}
+			for _, file := range []struct{ path, subPath string }{{"main/index.ts", "index.ts"}, {"deno.jsonc", "deno.jsonc"}} {
+				mount := mounts["/home/deno/functions/"+file.path]
+				if mount.Name != "edge-runtime-config" || mount.SubPath != file.subPath || !mount.ReadOnly {
+					t.Fatalf("runtime file mount is missing or invalid: %+v", mount)
+				}
+			}
+			if mounts["/home/deno/functions"].Name != "functions" || mounts["/root/.cache/deno"].Name != "deno-cache" {
+				t.Fatalf("function or cache mount missing: %v", mounts)
+			}
+			cacheCount := 0
+			for _, volume := range deployment.Spec.Template.Spec.Volumes {
+				if volume.Name != "deno-cache" {
+					continue
+				}
+				cacheCount++
+				if persistent {
+					if volume.EmptyDir != nil || volume.PersistentVolumeClaim == nil || volume.PersistentVolumeClaim.ClaimName != "existing-cache" {
+						t.Fatalf("PVC must replace the default cache source: %+v", volume)
+					}
+				} else if volume.EmptyDir == nil || volume.PersistentVolumeClaim != nil {
+					t.Fatalf("expected emptyDir cache: %+v", volume)
+				}
+			}
+			if cacheCount != 1 {
+				t.Fatalf("expected one cache volume, got %d", cacheCount)
+			}
+		})
+	}
 }
 
 func TestPVCOwnershipAndForeignOwnership(t *testing.T) {
@@ -500,19 +531,4 @@ func updateComponentConfig(t *testing.T, ctx context.Context, r *componentTestCl
 		t.Fatal("updated workload did not stabilize")
 	}
 	return rv
-}
-
-func reconcileFunction(t *testing.T, ctx context.Context, r *componentTestClient, functionObj *core.Function) {
-	t.Helper()
-	configMap, err := functiondefaults.FunctionConfigMap(functionObj)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := r.Create(ctx, configMap); err != nil && !apierrors.IsAlreadyExists(err) {
-		t.Fatal(err)
-	}
-	reconciler.SetReady(functionObj, "ReconcileSucceeded", "Function source reconciled successfully")
-	if err := r.Status().Update(ctx, functionObj); err != nil {
-		t.Fatal(err)
-	}
 }

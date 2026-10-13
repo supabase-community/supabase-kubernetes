@@ -3,7 +3,6 @@ package component
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
 	core "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
@@ -12,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -20,8 +18,7 @@ import (
 )
 
 const (
-	ProjectRefIndex            = "spec.projectRef.name"
-	ConflictingFunctionsReason = "ConflictingFunctions"
+	ProjectRefIndex = "spec.projectRef.name"
 )
 
 type Object interface {
@@ -30,11 +27,10 @@ type Object interface {
 }
 
 type SetupOptions struct {
-	Object         Object
-	NewList        func() client.ObjectList
-	Owns           []client.Object
-	Related        []Object
-	WatchFunctions bool
+	Object  Object
+	NewList func() client.ObjectList
+	Owns    []client.Object
+	Related []Object
 }
 
 func SetupWithManager(mgr ctrl.Manager, r reconcile.Reconciler, options SetupOptions) error {
@@ -60,12 +56,6 @@ func SetupWithManager(mgr ctrl.Manager, r reconcile.Reconciler, options SetupOpt
 		Watches(&corev1.ConfigMap{}, enqueueNamespace)
 	for _, related := range options.Related {
 		b = b.Watches(related, enqueueReference)
-	}
-	if options.WatchFunctions {
-		enqueueFunction := enqueueForProject(mgr, options.NewList, func(obj client.Object) string {
-			return obj.(*core.Function).Spec.ProjectRef.Name
-		})
-		b = b.Watches(&core.Function{}, enqueueFunction)
 	}
 	return b.Complete(r)
 }
@@ -175,39 +165,6 @@ func ListOptional(ctx context.Context, c client.Client, namespace, projectName s
 		return nil, nil
 	}
 	return items[0].(client.Object), nil
-}
-
-func ListFunctions(ctx context.Context, c client.Client, namespace, projectName string) ([]core.Function, error) {
-	list := &core.FunctionList{}
-	if err := c.List(ctx, list, client.InNamespace(namespace)); err != nil {
-		return nil, fmt.Errorf("listing functions: %w", err)
-	}
-	functions := make([]core.Function, 0, len(list.Items))
-	for _, function := range list.Items {
-		if function.Spec.ProjectRef.Name == projectName {
-			functions = append(functions, function)
-		}
-	}
-	sort.Slice(functions, func(i, j int) bool { return functions[i].Name < functions[j].Name })
-	return functions, nil
-}
-
-func ValidateFunctions(functions []core.Function, owner client.Object, claimMain bool) (string, error) {
-	names := map[string]bool{}
-	for i := range functions {
-		function := &functions[i]
-		if names[function.Spec.FunctionName] {
-			return ConflictingFunctionsReason, fmt.Errorf("duplicate logical function name: %s", function.Spec.FunctionName)
-		}
-		names[function.Spec.FunctionName] = true
-		if claimMain && function.Spec.FunctionName == "main" && !metav1.IsControlledBy(function, owner) {
-			return ConflictingFunctionsReason, fmt.Errorf("logical function main is already claimed")
-		}
-		if !meta.IsStatusConditionTrue(function.Status.Conditions, reconciler.ConditionTypeReady) {
-			return "FunctionNotReady", fmt.Errorf("waiting for Function %s", function.Name)
-		}
-	}
-	return "", nil
 }
 
 func NotReady(ctx context.Context, c client.Client, obj Object, reason, message string) (ctrl.Result, error) {

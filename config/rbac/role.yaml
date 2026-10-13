@@ -57,7 +57,6 @@ rules:
   - auths
   - edgeruntimes
   - envoys
-  - functions
   - metas
   - migrations
   - projects
@@ -81,7 +80,6 @@ rules:
   - auths/finalizers
   - edgeruntimes/finalizers
   - envoys/finalizers
-  - functions/finalizers
   - metas/finalizers
   - migrations/finalizers
   - projects/finalizers
@@ -99,7 +97,6 @@ rules:
   - auths/status
   - edgeruntimes/status
   - envoys/status
-  - functions/status
   - metas/status
   - migrations/status
   - projects/status
