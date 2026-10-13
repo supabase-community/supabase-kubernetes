@@ -72,7 +72,8 @@ func EnvoyConfigMap(project *ResourceContext) (*corev1.ConfigMap, error) {
 // renderEnvoyConfigMapData renders the static and templated Envoy configuration files.
 func renderEnvoyConfigMapData(project *ResourceContext) (map[string]string, error) {
 	data := map[string]string{
-		"envoy.yaml": assets.EnvoyBaseTemplate,
+		"envoy.yaml":           assets.EnvoyBaseTemplate,
+		"docker-entrypoint.sh": assets.EnvoyEntrypoint,
 	}
 
 	tmplData := buildEnvoyTemplateData(project)

@@ -93,7 +93,6 @@ func buildEnvoyInitContainer(project *ResourceContext) corev1.Container {
 		ImagePullPolicy: envoyImagePullPolicy(project),
 		Command:         []string{"/bin/sh", "-c"},
 		Args:            []string{assets.ProjectEnvoyInitContainer},
-		Env:             buildEnvoyEnvVars(project),
 		VolumeMounts:    envoyInitVolumeMounts(),
 	}
 }
@@ -104,7 +103,7 @@ func buildEnvoyContainer(project *ResourceContext) corev1.Container {
 		Name:            "envoy",
 		Image:           envoyImage(project),
 		ImagePullPolicy: envoyImagePullPolicy(project),
-		Args:            []string{"-c", fmt.Sprintf("%s/envoy.yaml", EnvoyConfigMountPath)},
+		Command:         []string{"/bin/sh", fmt.Sprintf("%s/docker-entrypoint.sh", EnvoyConfigMountPath)},
 		Env:             buildEnvoyEnvVars(project),
 		Ports:           envoyPorts(),
 		Resources:       corev1.ResourceRequirements{},
@@ -147,6 +146,7 @@ func buildEnvoyEnvVars(project *ResourceContext) []corev1.EnvVar {
 		helper.EnvVarFromSecret("SUPABASE_SECRET_KEY", jwtSecret, JWTSecretOpaqueKey),
 		helper.EnvVarFromSecret("ANON_KEY_ASYMMETRIC", jwtSecret, JWTSecretAnonKeyAsym),
 		helper.EnvVarFromSecret("SERVICE_ROLE_KEY_ASYMMETRIC", jwtSecret, JWTSecretServiceKeyAsym),
+		helper.EnvVar("SUPABASE_PUBLIC_URL", project.Spec.PublicURL),
 		helper.EnvVarFromSecret("DASHBOARD_USERNAME", envoySecret, DefaultEnvoySecretKeyUsername),
 		helper.EnvVarFromSecret("DASHBOARD_PASSWORD", envoySecret, DefaultEnvoySecretKeyPassword),
 	}
