@@ -147,6 +147,7 @@ func buildEnvoyEnvVars(project *ResourceContext) []corev1.EnvVar {
 		helper.EnvVarFromSecret("SUPABASE_SECRET_KEY", jwtSecret, JWTSecretOpaqueKey),
 		helper.EnvVarFromSecret("ANON_KEY_ASYMMETRIC", jwtSecret, JWTSecretAnonKeyAsym),
 		helper.EnvVarFromSecret("SERVICE_ROLE_KEY_ASYMMETRIC", jwtSecret, JWTSecretServiceKeyAsym),
+		helper.EnvVar("SUPABASE_PUBLIC_URL", project.Spec.PublicURL),
 		helper.EnvVarFromSecret("DASHBOARD_USERNAME", envoySecret, DefaultEnvoySecretKeyUsername),
 		helper.EnvVarFromSecret("DASHBOARD_PASSWORD", envoySecret, DefaultEnvoySecretKeyPassword),
 	}
