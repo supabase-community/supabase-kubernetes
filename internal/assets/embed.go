@@ -51,6 +51,9 @@ var ProjectSyncPasswordScript string
 //go:embed scripts/project-envoy-init-container.sh
 var ProjectEnvoyInitContainer string
 
+//go:embed envoy/docker-entrypoint.sh
+var EnvoyEntrypoint string
+
 //go:embed functions/main/index.ts
 var MainFunction string
 
