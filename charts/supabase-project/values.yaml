@@ -82,7 +82,7 @@ edgeRuntime:
   service: {}
   config:
     - name: VERIFY_JWT
-      value: "true"
+      value: "false"
 
 ## Envoy component configuration
 ##

@@ -1,0 +1,16 @@
+# Persist Deno downloads across Pod replacements using an existing PVC.
+# Use with: -f charts/supabase-project/examples/functions-cache-pvc.yaml
+# Create the claim in the project's namespace and set claimName below.
+# The default emptyDir cache only survives container restarts within a Pod.
+# Select storage whose access mode supports all replicas and rolling updates;
+# a shared ReadWriteMany claim allows Pods on different nodes to mount it.
+# Helm replaces volume lists across values files: when combining this with
+# functions-git-sync.yaml, include both the functions and deno-cache volumes
+# in the final values file.
+edgeRuntime:
+  pod:
+    spec:
+      volumes:
+        - name: deno-cache
+          persistentVolumeClaim:
+            claimName: functions-deno-cache

@@ -11,3 +11,46 @@ spec:
     resources:
       requests:
         storage: 1Gi
+  # Download user functions from Git. Each component has its own copy.
+  # Set GIT_REPOSITORY, GIT_BRANCH, and FUNCTIONS_PATH for your repository.
+  # The operator manages main/index.ts and deno.jsonc; they are excluded below.
+  pod:
+    spec:
+      volumes:
+        - name: functions
+          emptyDir: {}
+      containers:
+        - name: studio
+          volumeMounts:
+            - name: functions
+              mountPath: /app/edge-functions
+              readOnly: true
+        - name: functions-sync
+          image: alpine/git:2.47.2
+          env:
+            - name: GIT_REPOSITORY
+              value: https://github.com/supabase/supabase.git
+            - name: GIT_BRANCH
+              value: master
+            - name: FUNCTIONS_PATH
+              value: docker/volumes/functions
+            - name: SYNC_INTERVAL_SECONDS
+              value: "300"
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              git clone --depth 1 --filter=blob:none --no-checkout \
+                --branch "$GIT_BRANCH" "$GIT_REPOSITORY" /tmp/repo
+              cd /tmp/repo
+              # Exclude operator-managed files to avoid overwriting their read-only mounts.
+              git sparse-checkout set --no-cone "/$FUNCTIONS_PATH/" "!/$FUNCTIONS_PATH/main/" "!/$FUNCTIONS_PATH/deno.jsonc"
+              while true; do
+                git fetch --depth 1 origin "$GIT_BRANCH" \
+                  && git checkout --force FETCH_HEAD \
+                  && cp -R "$FUNCTIONS_PATH/." /functions/ \
+                  || echo "Could not update functions" >&2
+                sleep "$SYNC_INTERVAL_SECONDS"
+              done
+          volumeMounts:
+            - name: functions
+              mountPath: /functions

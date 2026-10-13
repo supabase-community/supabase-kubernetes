@@ -93,6 +93,7 @@ func buildEdgeRuntimeContainer(project *ResourceContext, db *supabasev1alpha1.Re
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "edge-runtime-config", MountPath: RuntimeConfigPath + "/main/index.ts", SubPath: "index.ts", ReadOnly: true},
 			{Name: "edge-runtime-config", MountPath: RuntimeConfigPath + "/deno.jsonc", SubPath: "deno.jsonc", ReadOnly: true},
+			{Name: "deno-cache", MountPath: "/root/.cache/deno"},
 		},
 	}
 }
@@ -167,6 +168,7 @@ func functionsProbeHandler() corev1.ProbeHandler {
 // buildFunctionsEnvVars returns the environment variables for the EdgeRuntime container.
 func buildFunctionsEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
 	env := []corev1.EnvVar{
+		helper.EnvVar("VERIFY_JWT", "false"),
 		helper.EnvVarFromSecret("JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVarFromSecret("SUPABASE_JWKS", JWTSecretName(project), JWTSecretJWKS),
 		helper.EnvVar("SUPABASE_URL", fmt.Sprintf(
@@ -193,12 +195,25 @@ func buildFunctionsEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolv
 	return helper.MergeEnvVars(env, project.Spec.EdgeRuntime.Config)
 }
 
-// buildConfigVolumes projects runtime configuration separately from user functions.
+// buildConfigVolumes supplies runtime configuration and the Deno dependency cache.
 func buildConfigVolumes(project *ResourceContext) []corev1.Volume {
-	return []corev1.Volume{{
+	volumes := []corev1.Volume{{
 		Name: "edge-runtime-config",
 		VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: RuntimeConfigMapName(project)},
 		}},
 	}}
+	// Let the Pod overlay supply the entire cache volume source (for example,
+	// a PVC). Merging it with emptyDir would produce an invalid volume.
+	if project.Spec.EdgeRuntime.Pod != nil {
+		for _, volume := range project.Spec.EdgeRuntime.Pod.Spec.Volumes {
+			if volume.Name == "deno-cache" {
+				return volumes
+			}
+		}
+	}
+	return append(volumes, corev1.Volume{
+		Name:         "deno-cache",
+		VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+	})
 }

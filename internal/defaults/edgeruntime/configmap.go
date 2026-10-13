@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// RuntimeConfigPath keeps runtime configuration separate from user functions.
-const RuntimeConfigPath = "/home/deno/config"
+// RuntimeConfigPath contains the router, shared import map, and user functions.
+const RuntimeConfigPath = "/home/deno/functions"
 
 func RuntimeConfigMapName(project *ResourceContext) string {
 	return ComponentName(project.Names["EdgeRuntime"], "config")

@@ -205,7 +205,7 @@ Deno.serve(async (req: Request) => {
   const noModuleCache = false
   // Using a common Import Map for all functions
   // to use a scope 'deno.json' it must be dinamically resolved base on the 'service_name'
-  const importMapPath = `/home/deno/config/deno.jsonc`
+  const importMapPath = `/home/deno/functions/deno.jsonc`
   // SUPABASE_FUNCTION_SLUG is listed after the container env snapshot so
   // nothing in it can shadow the value, and it is per-request because only this
   // worker knows which function the request resolved to.
@@ -218,9 +218,7 @@ Deno.serve(async (req: Request) => {
       memoryLimitMb,
       workerTimeoutMs,
       noModuleCache,
-      // v1.76.2 reads explicit import maps from context. The config lives outside
-      // the user function tree, so ancestor-based discovery cannot find it.
-      context: { importMapPath },
+      importMapPath,
       envVars,
     })
     return await worker.fetch(req)

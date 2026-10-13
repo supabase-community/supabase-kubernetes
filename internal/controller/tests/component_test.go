@@ -389,6 +389,71 @@ func TestRoutesAndRuntimeConfig(t *testing.T) {
 	expectReason(t, ctx, r, edge, "ProjectNotFound")
 }
 
+func TestEdgeRuntimePodConfiguration(t *testing.T) {
+	for _, persistent := range []bool{false, true} {
+		t.Run(fmt.Sprintf("persistent-cache=%t", persistent), func(t *testing.T) {
+			ctx, r, p, objects := componentFixture(t)
+			edge := objects[7].(*core.EdgeRuntime)
+			// A user function volume must coexist with the operator's file mounts.
+			edge.Spec.Pod = &corev1.PodTemplateSpec{Spec: corev1.PodSpec{
+				Volumes: []corev1.Volume{{Name: "functions", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}},
+				Containers: []corev1.Container{{Name: "edge-runtime", VolumeMounts: []corev1.VolumeMount{
+					{Name: "functions", MountPath: "/home/deno/functions"},
+				}}},
+			}}
+			if persistent {
+				edge.Spec.Pod.Spec.Volumes = append(edge.Spec.Pod.Spec.Volumes, corev1.Volume{
+					Name: "deno-cache", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "existing-cache"}},
+				})
+				edge.Spec.Config = []corev1.EnvVar{{Name: "VERIFY_JWT", Value: "true"}}
+			}
+			if err := r.Update(ctx, edge); err != nil {
+				t.Fatal(err)
+			}
+			runComponent(t, ctx, r, edge)
+			deployment := &appsv1.Deployment{}
+			if err := r.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: "custom-edgeruntime-edge-runtime"}, deployment); err != nil {
+				t.Fatal(err)
+			}
+			expectEnvValue(t, deployment, "VERIFY_JWT", fmt.Sprint(persistent))
+			container := deployment.Spec.Template.Spec.Containers[0]
+			if strings.Join(container.Args, " ") != "start --main-service /home/deno/functions/main" {
+				t.Fatalf("unexpected runtime arguments: %v", container.Args)
+			}
+			mounts := map[string]corev1.VolumeMount{}
+			for _, mount := range container.VolumeMounts {
+				mounts[mount.MountPath] = mount
+			}
+			for _, file := range []struct{ path, subPath string }{{"main/index.ts", "index.ts"}, {"deno.jsonc", "deno.jsonc"}} {
+				mount := mounts["/home/deno/functions/"+file.path]
+				if mount.Name != "edge-runtime-config" || mount.SubPath != file.subPath || !mount.ReadOnly {
+					t.Fatalf("runtime file mount is missing or invalid: %+v", mount)
+				}
+			}
+			if mounts["/home/deno/functions"].Name != "functions" || mounts["/root/.cache/deno"].Name != "deno-cache" {
+				t.Fatalf("function or cache mount missing: %v", mounts)
+			}
+			cacheCount := 0
+			for _, volume := range deployment.Spec.Template.Spec.Volumes {
+				if volume.Name != "deno-cache" {
+					continue
+				}
+				cacheCount++
+				if persistent {
+					if volume.EmptyDir != nil || volume.PersistentVolumeClaim == nil || volume.PersistentVolumeClaim.ClaimName != "existing-cache" {
+						t.Fatalf("PVC must replace the default cache source: %+v", volume)
+					}
+				} else if volume.EmptyDir == nil || volume.PersistentVolumeClaim != nil {
+					t.Fatalf("expected emptyDir cache: %+v", volume)
+				}
+			}
+			if cacheCount != 1 {
+				t.Fatalf("expected one cache volume, got %d", cacheCount)
+			}
+		})
+	}
+}
+
 func TestPVCOwnershipAndForeignOwnership(t *testing.T) {
 	ctx, r, p, objects := componentFixture(t)
 	storage := objects[4].(*core.Storage)
