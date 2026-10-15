@@ -72,7 +72,7 @@ func TestFunctionVolumesAndMountsAreStable(t *testing.T) {
 		}
 	}
 
-	var paths []string
+	paths := make([]string, 0, len(wantMounts))
 	for _, m := range wantMounts {
 		paths = append(paths, m.MountPath)
 	}
