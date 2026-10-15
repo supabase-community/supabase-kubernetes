@@ -17,8 +17,10 @@ limitations under the License.
 package project
 
 import (
+	"cmp"
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -215,10 +217,19 @@ func buildFunctionsEnvVars(project *supabasev1alpha1.Project, db *supabasev1alph
 	}
 }
 
+// sortedFunctions returns the functions ordered by name, so the pod templates
+// built from them do not change between reconciles (the cache lists them in
+// no particular order).
+func sortedFunctions(functions []supabasev1alpha1.Function) []supabasev1alpha1.Function {
+	sorted := slices.Clone(functions)
+	slices.SortFunc(sorted, func(a, b supabasev1alpha1.Function) int { return cmp.Compare(a.Name, b.Name) })
+	return sorted
+}
+
 // buildFunctionsVolumes returns the ConfigMap volumes for the Functions container.
 func buildFunctionsVolumes(functions []supabasev1alpha1.Function) []corev1.Volume {
 	volumes := make([]corev1.Volume, 0, len(functions))
-	for _, f := range functions {
+	for _, f := range sortedFunctions(functions) {
 		volumes = append(volumes, corev1.Volume{
 			Name: functionsVolumeName(&f),
 			VolumeSource: corev1.VolumeSource{
@@ -241,8 +252,8 @@ func buildFunctionsVolumeMounts(functions []supabasev1alpha1.Function) []corev1.
 	}
 
 	mounts := make([]corev1.VolumeMount, 0, totalFiles)
-	for _, f := range functions {
-		for filename := range f.Spec.Source {
+	for _, f := range sortedFunctions(functions) {
+		for _, filename := range slices.Sorted(maps.Keys(f.Spec.Source)) {
 			mounts = append(mounts, corev1.VolumeMount{
 				Name:      functionsVolumeName(&f),
 				MountPath: fmt.Sprintf("/home/deno/functions/%s/%s", f.Spec.FunctionName, filename),

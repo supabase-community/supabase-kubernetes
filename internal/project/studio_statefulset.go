@@ -19,6 +19,7 @@ package project
 import (
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -261,7 +262,7 @@ func buildStudioVolume(project *supabasev1alpha1.Project) corev1.Volume {
 // buildStudioFunctionVolumes returns the ConfigMap volumes for Studio functions.
 func buildStudioFunctionVolumes(functions []supabasev1alpha1.Function) []corev1.Volume {
 	volumes := make([]corev1.Volume, 0, len(functions))
-	for _, f := range functions {
+	for _, f := range sortedFunctions(functions) {
 		volumes = append(volumes, corev1.Volume{
 			Name: studioFunctionsVolumeName(&f),
 			VolumeSource: corev1.VolumeSource{
@@ -290,8 +291,8 @@ func buildStudioVolumeMounts(functions []supabasev1alpha1.Function) []corev1.Vol
 		SubPath:   StudioSnippetsSubPath,
 	})
 
-	for _, f := range functions {
-		for filename := range f.Spec.Source {
+	for _, f := range sortedFunctions(functions) {
+		for _, filename := range slices.Sorted(maps.Keys(f.Spec.Source)) {
 			mounts = append(mounts, corev1.VolumeMount{
 				Name:      studioFunctionsVolumeName(&f),
 				MountPath: fmt.Sprintf("%s/%s/%s", StudioFunctionsMountPath, f.Spec.FunctionName, filename),
