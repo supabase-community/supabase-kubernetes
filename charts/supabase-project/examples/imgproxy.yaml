@@ -1,6 +1,0 @@
-# Disable image transformations in Storage.
-
-storage:
-  config:
-    - name: ENABLE_IMAGE_TRANSFORMATION
-      value: "false"
