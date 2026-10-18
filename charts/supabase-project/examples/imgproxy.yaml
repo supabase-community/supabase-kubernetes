@@ -1,4 +1,4 @@
-# Disable image transformations and the operator-generated imgproxy sidecar.
+# Disable image transformations in Storage.
 
 storage:
   config:

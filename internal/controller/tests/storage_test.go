@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"strconv"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,32 +32,32 @@ func TestStorageImgproxyConfiguration(t *testing.T) {
 		LocalObjectReference: corev1.LocalObjectReference{Name: "image-config"}, Key: "enabled",
 	}}
 	for _, tc := range []struct {
-		name      string
-		config    []corev1.EnvVar
-		wantEnv   corev1.EnvVar
-		wantURL   *corev1.EnvVar
-		wantCount int
+		name    string
+		config  []corev1.EnvVar
+		wantEnv corev1.EnvVar
+		wantURL corev1.EnvVar
 	}{
 		{name: "default", wantEnv: corev1.EnvVar{Name: imageTransformationEnv, Value: "true"},
-			wantURL: &corev1.EnvVar{Name: imgproxyURLEnv, Value: localImgproxyURL}, wantCount: 2},
+			wantURL: corev1.EnvVar{Name: imgproxyURLEnv, Value: localImgproxyURL}},
 		{name: "explicitly enabled", config: []corev1.EnvVar{{Name: imageTransformationEnv, Value: "true"}},
 			wantEnv: corev1.EnvVar{Name: imageTransformationEnv, Value: "true"},
-			wantURL: &corev1.EnvVar{Name: imgproxyURLEnv, Value: localImgproxyURL}, wantCount: 2},
-		{name: "disabled", config: []corev1.EnvVar{{Name: imageTransformationEnv, Value: "false"}},
-			wantEnv: corev1.EnvVar{Name: imageTransformationEnv, Value: "false"}, wantCount: 1},
+			wantURL: corev1.EnvVar{Name: imgproxyURLEnv, Value: localImgproxyURL}},
+		{name: "transformations disabled", config: []corev1.EnvVar{{Name: imageTransformationEnv, Value: "false"}},
+			wantEnv: corev1.EnvVar{Name: imageTransformationEnv, Value: "false"},
+			wantURL: corev1.EnvVar{Name: imgproxyURLEnv, Value: localImgproxyURL}},
 		{name: "external URL keeps sidecar", config: []corev1.EnvVar{{Name: imgproxyURLEnv, Value: externalImgproxyURL}},
 			wantEnv: corev1.EnvVar{Name: imageTransformationEnv, Value: "true"},
-			wantURL: &corev1.EnvVar{Name: imgproxyURLEnv, Value: externalImgproxyURL}, wantCount: 2},
+			wantURL: corev1.EnvVar{Name: imgproxyURLEnv, Value: externalImgproxyURL}},
 		{name: "disabled preserves custom URL", config: []corev1.EnvVar{
 			{Name: imageTransformationEnv, Value: "false"}, {Name: imgproxyURLEnv, Value: externalImgproxyURL}},
 			wantEnv: corev1.EnvVar{Name: imageTransformationEnv, Value: "false"},
-			wantURL: &corev1.EnvVar{Name: imgproxyURLEnv, Value: externalImgproxyURL}, wantCount: 1},
+			wantURL: corev1.EnvVar{Name: imgproxyURLEnv, Value: externalImgproxyURL}},
 		{name: "runtime setting keeps sidecar", config: []corev1.EnvVar{{Name: imageTransformationEnv, ValueFrom: fromConfigMap}},
 			wantEnv: corev1.EnvVar{Name: imageTransformationEnv, ValueFrom: fromConfigMap},
-			wantURL: &corev1.EnvVar{Name: imgproxyURLEnv, Value: localImgproxyURL}, wantCount: 2},
+			wantURL: corev1.EnvVar{Name: imgproxyURLEnv, Value: localImgproxyURL}},
 		{name: "runtime URL keeps sidecar", config: []corev1.EnvVar{{Name: imgproxyURLEnv, ValueFrom: fromConfigMap}},
 			wantEnv: corev1.EnvVar{Name: imageTransformationEnv, Value: "true"},
-			wantURL: &corev1.EnvVar{Name: imgproxyURLEnv, ValueFrom: fromConfigMap}, wantCount: 2},
+			wantURL: corev1.EnvVar{Name: imgproxyURLEnv, ValueFrom: fromConfigMap}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -65,41 +66,33 @@ func TestStorageImgproxyConfiguration(t *testing.T) {
 			state.Names["Storage"] = "test"
 			sts, err := storagedefaults.StorageStatefulSet(state, &core.ResolvedDatabase{})
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(sts.Spec.Template.Spec.Containers).To(HaveLen(tc.wantCount))
+			g.Expect(sts.Spec.Template.Spec.Containers).To(HaveLen(2))
 			env := sts.Spec.Template.Spec.Containers[0].Env
 			g.Expect(env).To(ContainElement(tc.wantEnv))
-			if tc.wantURL == nil {
-				for _, variable := range env {
-					g.Expect(variable.Name).NotTo(Equal(imgproxyURLEnv))
-				}
-			} else {
-				g.Expect(env).To(ContainElement(*tc.wantURL))
+			g.Expect(env).To(ContainElement(tc.wantURL))
+			imgproxy := sts.Spec.Template.Spec.Containers[1]
+			g.Expect(imgproxy.Name).To(Equal("imgproxy"))
+			g.Expect(imgproxy.Image).To(Equal(defaults.DefaultImgproxyImage))
+			g.Expect(imgproxy.ImagePullPolicy).To(Equal(corev1.PullIfNotPresent))
+			g.Expect(imgproxy.Ports).To(ContainElement(corev1.ContainerPort{Name: "http", ContainerPort: 5001, Protocol: corev1.ProtocolTCP}))
+			g.Expect(imgproxy.Env).To(ContainElements(
+				corev1.EnvVar{Name: "IMGPROXY_BIND", Value: ":5001"},
+				corev1.EnvVar{Name: "IMGPROXY_LOCAL_FILESYSTEM_ROOT", Value: "/"},
+				corev1.EnvVar{Name: "IMGPROXY_USE_ETAG", Value: "true"},
+				corev1.EnvVar{Name: "IMGPROXY_AUTO_WEBP", Value: "true"},
+				corev1.EnvVar{Name: "IMGPROXY_MAX_SRC_RESOLUTION", Value: "16.8"},
+			))
+			for _, probe := range []*corev1.Probe{imgproxy.LivenessProbe, imgproxy.ReadinessProbe} {
+				g.Expect(probe).NotTo(BeNil())
+				g.Expect(probe.Exec.Command).To(Equal([]string{"imgproxy", "health"}))
+				g.Expect(probe.TimeoutSeconds).To(Equal(int32(5)))
+				g.Expect(probe.PeriodSeconds).To(Equal(int32(5)))
+				g.Expect(probe.FailureThreshold).To(Equal(int32(3)))
 			}
-			if tc.wantCount == 2 {
-				imgproxy := sts.Spec.Template.Spec.Containers[1]
-				g.Expect(imgproxy.Name).To(Equal("imgproxy"))
-				g.Expect(imgproxy.Image).To(Equal(defaults.DefaultImgproxyImage))
-				g.Expect(imgproxy.ImagePullPolicy).To(Equal(corev1.PullIfNotPresent))
-				g.Expect(imgproxy.Ports).To(ContainElement(corev1.ContainerPort{Name: "http", ContainerPort: 5001, Protocol: corev1.ProtocolTCP}))
-				g.Expect(imgproxy.Env).To(ContainElements(
-					corev1.EnvVar{Name: "IMGPROXY_BIND", Value: ":5001"},
-					corev1.EnvVar{Name: "IMGPROXY_LOCAL_FILESYSTEM_ROOT", Value: "/"},
-					corev1.EnvVar{Name: "IMGPROXY_USE_ETAG", Value: "true"},
-					corev1.EnvVar{Name: "IMGPROXY_AUTO_WEBP", Value: "true"},
-					corev1.EnvVar{Name: "IMGPROXY_MAX_SRC_RESOLUTION", Value: "16.8"},
-				))
-				for _, probe := range []*corev1.Probe{imgproxy.LivenessProbe, imgproxy.ReadinessProbe} {
-					g.Expect(probe).NotTo(BeNil())
-					g.Expect(probe.Exec.Command).To(Equal([]string{"imgproxy", "health"}))
-					g.Expect(probe.TimeoutSeconds).To(Equal(int32(5)))
-					g.Expect(probe.PeriodSeconds).To(Equal(int32(5)))
-					g.Expect(probe.FailureThreshold).To(Equal(int32(3)))
-				}
-				g.Expect(imgproxy.VolumeMounts).To(Equal(sts.Spec.Template.Spec.Containers[0].VolumeMounts))
-				g.Expect(imgproxy.VolumeMounts).To(ContainElement(corev1.VolumeMount{
-					Name: "storage-data", MountPath: "/var/lib/storage", SubPath: "storage-data",
-				}))
-			}
+			g.Expect(imgproxy.VolumeMounts).To(Equal(sts.Spec.Template.Spec.Containers[0].VolumeMounts))
+			g.Expect(imgproxy.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+				Name: "storage-data", MountPath: "/var/lib/storage", SubPath: "storage-data",
+			}))
 		})
 	}
 }
@@ -129,7 +122,7 @@ func TestStorageImgproxyOverlays(t *testing.T) {
 	sts, err = storagedefaults.StorageStatefulSet(state, &core.ResolvedDatabase{})
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(sts.Spec.Template.Spec.Containers).To(HaveLen(2))
-	g.Expect(sts.Spec.Template.Spec.Containers[1]).To(Equal(state.Spec.Storage.Pod.Spec.Containers[1]))
+	g.Expect(sts.Spec.Template.Spec.Containers[1]).To(Equal(imgproxy))
 }
 
 func TestStorageImgproxyReconciliation(t *testing.T) {
@@ -139,16 +132,17 @@ func TestStorageImgproxyReconciliation(t *testing.T) {
 	key := client.ObjectKey{Namespace: project.Namespace, Name: "custom-storage-storage"}
 	for _, enabled := range []bool{true, false, true} {
 		storage.Spec.Config = nil
-		wantCount := 2
 		if !enabled {
 			storage.Spec.Config = []corev1.EnvVar{{Name: imageTransformationEnv, Value: "false"}}
-			wantCount = 1
 		}
 		g.Expect(r.Update(ctx, storage)).To(Succeed())
 		runComponent(t, ctx, r, storage)
 		sts := &appsv1.StatefulSet{}
 		g.Expect(r.Get(ctx, key, sts)).To(Succeed())
-		g.Expect(sts.Spec.Template.Spec.Containers).To(HaveLen(wantCount))
+		g.Expect(sts.Spec.Template.Spec.Containers).To(HaveLen(2))
+		g.Expect(sts.Spec.Template.Spec.Containers[1].Name).To(Equal("imgproxy"))
+		expectEnvValue(t, sts, imageTransformationEnv, strconv.FormatBool(enabled))
+		expectEnvValue(t, sts, imgproxyURLEnv, localImgproxyURL)
 		g.Expect(metav1.IsControlledBy(sts, storage)).To(BeTrue())
 		before := sts.DeepCopy()
 		runComponent(t, ctx, r, storage)

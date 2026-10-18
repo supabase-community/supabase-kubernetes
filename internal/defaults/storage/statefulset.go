@@ -42,13 +42,12 @@ func StorageStatefulSet(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 		return nil, nil
 	}
 
-	containers := []corev1.Container{buildStorageContainer(project, db)}
-	if imgproxyEnabled(project) {
-		containers = append(containers, buildImgproxyContainer())
-	}
 	template, err := helper.Overlay(corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{Labels: StorageLabels(project)},
-		Spec:       corev1.PodSpec{Containers: containers, Volumes: []corev1.Volume{buildStorageVolume(project)}},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{buildStorageContainer(project, db), buildImgproxyContainer()},
+			Volumes:    []corev1.Volume{buildStorageVolume(project)},
+		},
 	}, project.Spec.Storage.Pod)
 	if err != nil {
 		return nil, err
@@ -196,25 +195,12 @@ func buildStorageEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolved
 		helper.EnvVar("TENANT_ID", project.Name),
 		helper.EnvVar("REGION", project.Name),
 		helper.EnvVar("ENABLE_IMAGE_TRANSFORMATION", "true"),
+		helper.EnvVar("IMGPROXY_URL", "http://127.0.0.1:5001"),
 		helper.EnvVarFromSecret("S3_PROTOCOL_ACCESS_KEY_ID", storageSecret, StorageSecretAccessKeyID),
 		helper.EnvVarFromSecret("S3_PROTOCOL_ACCESS_KEY_SECRET", storageSecret, StorageSecretAccessKeySecret),
 	}
 
-	if imgproxyEnabled(project) {
-		env = append(env, helper.EnvVar("IMGPROXY_URL", "http://127.0.0.1:5001"))
-	}
 	return helper.MergeEnvVars(env, project.Spec.Storage.Config)
-}
-
-// imgproxyEnabled reports whether Storage should provision imgproxy.
-func imgproxyEnabled(project *ResourceContext) bool {
-	enabled := true
-	for _, env := range project.Spec.Storage.Config {
-		if env.Name == "ENABLE_IMAGE_TRANSFORMATION" {
-			enabled = env.ValueFrom != nil || env.Value != "false"
-		}
-	}
-	return enabled
 }
 
 func buildImgproxyContainer() corev1.Container {
