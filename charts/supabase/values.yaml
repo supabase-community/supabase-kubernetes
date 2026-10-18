@@ -818,8 +818,10 @@ environment:
       value: /
     - name: IMGPROXY_USE_ETAG
       value: "true"
-    - name: IMGPROXY_ENABLE_WEBP_DETECTION
+    - name: IMGPROXY_AUTO_WEBP
       value: "true"
+    - name: IMGPROXY_MAX_SRC_RESOLUTION
+      value: "16.8"
 
   kong:
     - name: KONG_DATABASE
@@ -890,7 +892,7 @@ environment:
 
   rest:
     - name: PGRST_DB_SCHEMAS
-      value: public,storage,graphql_public
+      value: public,graphql_public
     - name: PGRST_DB_ANON_ROLE
       value: anon
     - name: PGRST_DB_USE_LEGACY_GUCS
