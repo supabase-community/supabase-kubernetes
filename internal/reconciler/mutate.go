@@ -235,6 +235,11 @@ func mergePodSpec(existing, desired *corev1.PodSpec) {
 	existing.ServiceAccountName = desired.ServiceAccountName
 	existing.ImagePullSecrets = desired.ImagePullSecrets
 	existing.HostAliases = desired.HostAliases
+	existing.TopologySpreadConstraints = desired.TopologySpreadConstraints
+	existing.RuntimeClassName = desired.RuntimeClassName
+	existing.DNSConfig = desired.DNSConfig
+	existing.AutomountServiceAccountToken = desired.AutomountServiceAccountToken
+	existing.ShareProcessNamespace = desired.ShareProcessNamespace
 	existing.InitContainers = mergeContainers(existing.InitContainers, desired.InitContainers)
 	existing.Containers = mergeContainers(existing.Containers, desired.Containers)
 }
@@ -281,6 +286,7 @@ func mergeContainer(existing, desired *corev1.Container) {
 	existing.Lifecycle = desired.Lifecycle
 	existing.ImagePullPolicy = desired.ImagePullPolicy
 	existing.SecurityContext = desired.SecurityContext
+	existing.RestartPolicy = desired.RestartPolicy
 
 	existing.LivenessProbe = mergeProbe(existing.LivenessProbe, desired.LivenessProbe)
 	existing.ReadinessProbe = mergeProbe(existing.ReadinessProbe, desired.ReadinessProbe)
