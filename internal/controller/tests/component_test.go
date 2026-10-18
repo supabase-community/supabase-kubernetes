@@ -159,6 +159,88 @@ func expectEnvValue(t *testing.T, workload client.Object, name, value string) {
 	}
 	t.Fatalf("%T environment variable %s is missing", workload, name)
 }
+func TestPostgRESTSchemaConfiguration(t *testing.T) {
+	for _, kind := range []string{"Rest", kindStudio} {
+		t.Run(kind, func(t *testing.T) {
+			ctx, r, p, objects := componentFixture(t)
+			var target componentObject
+			for _, o := range objects {
+				if _, ok := o.(*core.Envoy); ok {
+					runComponent(t, ctx, r, o)
+				}
+				if strings.TrimPrefix(fmt.Sprintf("%T", o), "*v1alpha1.") == kind {
+					target = o
+				}
+			}
+			var workload client.Object = &appsv1.Deployment{}
+			if kind == kindStudio {
+				workload = &appsv1.StatefulSet{}
+			}
+			key := client.ObjectKey{Namespace: p.Namespace, Name: defaults.ComponentName(target.GetName(), strings.ToLower(kind))}
+			runComponent(t, ctx, r, target)
+			if err := r.Get(ctx, key, workload); err != nil {
+				t.Fatal(err)
+			}
+			expectEnvValue(t, workload, "PGRST_DB_SCHEMAS", "public,graphql_public")
+
+			// Simulate a workload created with the previous operator default.
+			var podSpec *corev1.PodSpec
+			switch workload := workload.(type) {
+			case *appsv1.Deployment:
+				podSpec = &workload.Spec.Template.Spec
+			case *appsv1.StatefulSet:
+				podSpec = &workload.Spec.Template.Spec
+			}
+			for i := range podSpec.Containers {
+				for j := range podSpec.Containers[i].Env {
+					if podSpec.Containers[i].Env[j].Name == "PGRST_DB_SCHEMAS" {
+						podSpec.Containers[i].Env[j].Value = "public,storage,graphql_public"
+					}
+				}
+			}
+			if err := r.Update(ctx, workload); err != nil {
+				t.Fatal(err)
+			}
+
+			for _, schemas := range []string{"", "public,storage,graphql_public", "public,custom", ""} {
+				if err := r.Get(ctx, client.ObjectKeyFromObject(target), target); err != nil {
+					t.Fatal(err)
+				}
+				var config []corev1.EnvVar
+				if schemas != "" {
+					config = []corev1.EnvVar{{Name: "PGRST_DB_SCHEMAS", Value: schemas}}
+				}
+				switch target := target.(type) {
+				case *core.Rest:
+					target.Spec.Config = config
+				case *core.Studio:
+					target.Spec.Config = config
+				}
+				if err := r.Update(ctx, target); err != nil {
+					t.Fatal(err)
+				}
+				runComponent(t, ctx, r, target)
+				if err := r.Get(ctx, key, workload); err != nil {
+					t.Fatal(err)
+				}
+				want := schemas
+				if want == "" {
+					want = "public,graphql_public"
+				}
+				expectEnvValue(t, workload, "PGRST_DB_SCHEMAS", want)
+				rv := workload.GetResourceVersion()
+				runComponent(t, ctx, r, target)
+				if err := r.Get(ctx, key, workload); err != nil {
+					t.Fatal(err)
+				}
+				if rv != workload.GetResourceVersion() {
+					t.Fatalf("schema configuration %q did not stabilize", want)
+				}
+			}
+		})
+	}
+}
+
 func TestComponentLifecycle(t *testing.T) {
 	for _, kind := range []string{"Auth", "Rest", "Meta", "Realtime", "Supavisor", kindStorage, kindStudio, "Envoy", kindEdgeRuntime} {
 		t.Run(kind, func(t *testing.T) {

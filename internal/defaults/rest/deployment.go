@@ -176,7 +176,7 @@ func buildRestEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDat
 
 // restSchemasOrDefault returns the Rest DB schemas default.
 func restSchemasOrDefault() string {
-	return "public,storage,graphql_public"
+	return "public,graphql_public"
 }
 
 // restMaxRowsOrDefault returns the Rest DB max rows default.
