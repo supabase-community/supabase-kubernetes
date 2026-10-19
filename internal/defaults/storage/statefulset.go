@@ -44,7 +44,10 @@ func StorageStatefulSet(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 
 	template, err := helper.Overlay(corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{Labels: StorageLabels(project)},
-		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildStorageContainer(project, db)}, Volumes: []corev1.Volume{buildStorageVolume(project)}},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{buildStorageContainer(project, db), buildImgproxyContainer()},
+			Volumes:    []corev1.Volume{buildStorageVolume(project)},
+		},
 	}, project.Spec.Storage.Pod)
 	if err != nil {
 		return nil, err
@@ -191,12 +194,45 @@ func buildStorageEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolved
 		helper.EnvVar("FILE_STORAGE_BACKEND_PATH", StorageDataMountPath),
 		helper.EnvVar("TENANT_ID", project.Name),
 		helper.EnvVar("REGION", project.Name),
-		helper.EnvVar("ENABLE_IMAGE_TRANSFORMATION", "false"),
+		helper.EnvVar("ENABLE_IMAGE_TRANSFORMATION", "true"),
+		helper.EnvVar("IMGPROXY_URL", "http://127.0.0.1:5001"),
 		helper.EnvVarFromSecret("S3_PROTOCOL_ACCESS_KEY_ID", storageSecret, StorageSecretAccessKeyID),
 		helper.EnvVarFromSecret("S3_PROTOCOL_ACCESS_KEY_SECRET", storageSecret, StorageSecretAccessKeySecret),
 	}
 
 	return helper.MergeEnvVars(env, project.Spec.Storage.Config)
+}
+
+func buildImgproxyContainer() corev1.Container {
+	return corev1.Container{
+		Name:            "imgproxy",
+		Image:           defaults.DefaultImgproxyImage,
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Ports: []corev1.ContainerPort{{
+			Name: "http", ContainerPort: 5001, Protocol: corev1.ProtocolTCP,
+		}},
+		Env: []corev1.EnvVar{
+			helper.EnvVar("IMGPROXY_BIND", ":5001"),
+			helper.EnvVar("IMGPROXY_LOCAL_FILESYSTEM_ROOT", "/"),
+			helper.EnvVar("IMGPROXY_USE_ETAG", "true"),
+			helper.EnvVar("IMGPROXY_AUTO_WEBP", "true"),
+			helper.EnvVar("IMGPROXY_MAX_SRC_RESOLUTION", "16.8"),
+		},
+		LivenessProbe:  imgproxyProbe(),
+		ReadinessProbe: imgproxyProbe(),
+		VolumeMounts:   buildStorageVolumeMounts(),
+	}
+}
+
+func imgproxyProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{Command: []string{"imgproxy", "health"}},
+		},
+		TimeoutSeconds:   5,
+		PeriodSeconds:    5,
+		FailureThreshold: 3,
+	}
 }
 
 // buildStorageVolume returns the Storage data volume specification.
