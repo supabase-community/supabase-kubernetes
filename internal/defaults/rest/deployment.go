@@ -167,7 +167,6 @@ func buildRestEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDat
 		helper.EnvVar("PGRST_ADMIN_SERVER_HOST", "localhost"),
 		helper.EnvVarFromSecret("PGRST_JWT_SECRET", JWTSecretName(project), JWTSecretJWKS),
 		helper.EnvVar("PGRST_DB_USE_LEGACY_GUCS", "false"),
-		helper.EnvVarFromSecret("PGRST_APP_SETTINGS_JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVar("PGRST_APP_SETTINGS_JWT_EXP", strconv.Itoa(int(*project.Spec.JWTExpSec))),
 	}
 
