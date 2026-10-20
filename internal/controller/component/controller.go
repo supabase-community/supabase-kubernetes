@@ -27,10 +27,11 @@ type Object interface {
 }
 
 type SetupOptions struct {
-	Object  Object
-	NewList func() client.ObjectList
-	Owns    []client.Object
-	Related []Object
+	Object           Object
+	NewList          func() client.ObjectList
+	Owns             []client.Object
+	Related          []Object
+	NamespaceRelated []client.Object
 }
 
 func SetupWithManager(mgr ctrl.Manager, r reconcile.Reconciler, options SetupOptions) error {
@@ -57,13 +58,19 @@ func SetupWithManager(mgr ctrl.Manager, r reconcile.Reconciler, options SetupOpt
 	for _, related := range options.Related {
 		b = b.Watches(related, enqueueReference)
 	}
+	for _, related := range options.NamespaceRelated {
+		b = b.Watches(related, enqueueNamespace)
+	}
 	return b.Complete(r)
 }
 
 func enqueueForProject(mgr ctrl.Manager, newList func() client.ObjectList, projectName func(client.Object) string) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, changed client.Object) []reconcile.Request {
 		list := newList()
-		options := []client.ListOption{client.InNamespace(changed.GetNamespace())}
+		options := []client.ListOption{}
+		if changed.GetNamespace() != "" {
+			options = append(options, client.InNamespace(changed.GetNamespace()))
+		}
 		if name := projectName(changed); name != "" {
 			options = append(options, client.MatchingFields{ProjectRefIndex: name})
 		}

@@ -38,6 +38,8 @@ The Operator exposes the following Kubernetes Custom Resources:
 | `Realtime` | `realtimes` | Supabase Realtime component |
 | `Supavisor` | `supavisors` | PostgreSQL connection pooler (session and transaction modes) |
 | `Storage` | `storages` | Supabase Storage component |
+| `Analytics` | `analytics` | Logflare log management and analytics |
+| `Vector` | `vectors` | Per-project Kubernetes log collection (DaemonSet) |
 | `Studio` | `studios` | Supabase Studio component |
 | `Envoy` | `envoys` | API gateway component |
 | `EdgeRuntime` | `edgeruntimes` | Edge Functions runtime with operator-managed router and import map |

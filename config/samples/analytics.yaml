@@ -1,0 +1,7 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Analytics
+metadata:
+  name: supabase
+spec:
+  projectRef:
+    name: supabase

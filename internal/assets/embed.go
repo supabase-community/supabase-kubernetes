@@ -18,6 +18,9 @@ package assets
 
 import _ "embed"
 
+//go:embed logs/vector.yml.tmpl
+var VectorTemplate string
+
 //go:embed migrations/supabase.sql
 var SupabaseMigration string
 

@@ -14,7 +14,8 @@ done
 # does not expand variables -- psql handles all substitution.
 DB_URL="postgresql://${DB_ADMIN_USER}:${PGPASSWORD}@${DB_SRV_NAME}:${DB_SRV_PORT}/postgres"
 
-psql -v ON_ERROR_STOP=1 \
+# Match docker/utils/db-passwd.sh: all SQL runs in the internal database.
+psql -d _supabase -v ON_ERROR_STOP=1 \
      -v pgpassword="$PGPASSWORD" \
      -v db_url="$DB_URL" <<'EOSQL'
 ALTER USER anon WITH PASSWORD :'pgpassword';
@@ -30,7 +31,7 @@ ALTER USER supabase_functions_admin WITH PASSWORD :'pgpassword';
 ALTER USER supabase_replication_admin WITH PASSWORD :'pgpassword';
 ALTER USER supabase_storage_admin WITH PASSWORD :'pgpassword';
 
-DROP SCHEMA IF EXISTS _supavisor CASCADE;
+DROP SCHEMA _supavisor CASCADE;
 CREATE SCHEMA IF NOT EXISTS _supavisor;
 ALTER SCHEMA _supavisor OWNER TO supabase_admin;
 

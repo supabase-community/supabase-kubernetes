@@ -86,6 +86,7 @@ func componentFixture(t *testing.T) (context.Context, *componentTestClient, *cor
 	db := &core.SingleDatabase{ObjectMeta: metav1.ObjectMeta{Name: "db", Namespace: "test"}, Status: core.SingleDatabaseStatus{ResolvedDatabase: &core.ResolvedDatabase{Host: "db", Port: 5432, DBName: "postgres", User: "postgres", PasswordRef: core.SecretKeyRef{Name: "db-password", Key: "password"}}}}
 	reconciler.SetReady(db, "TestReady", "Database ready")
 	b := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(p, db, &appsv1.Deployment{}, &appsv1.StatefulSet{}).WithObjects(p, db)
+	b = b.WithIndex(&core.Analytics{}, componentcontroller.ProjectRefIndex, func(obj client.Object) []string { return []string{obj.(*core.Analytics).Spec.ProjectRef.Name} })
 	objects := []componentObject{
 		&core.Auth{},
 		&core.Rest{},

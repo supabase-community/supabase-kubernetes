@@ -134,3 +134,18 @@ func podInputs(pod *corev1.PodTemplateSpec) (map[string]bool, map[string]bool) {
 	}
 	return secrets, configs
 }
+
+func DaemonSetReady(ctx context.Context, c client.Client, key client.ObjectKey) error {
+	workload := &appsv1.DaemonSet{}
+	if err := c.Get(ctx, key, workload); err != nil {
+		return err
+	}
+	s := workload.Status
+	if s.DesiredNumberScheduled == 0 {
+		return fmt.Errorf("no eligible nodes for Vector")
+	}
+	if s.ObservedGeneration < workload.Generation || s.UpdatedNumberScheduled < s.DesiredNumberScheduled || s.NumberAvailable < s.DesiredNumberScheduled || s.NumberMisscheduled > 0 {
+		return fmt.Errorf("waiting for DaemonSet rollout")
+	}
+	return nil
+}

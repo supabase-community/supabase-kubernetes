@@ -11,6 +11,7 @@
 !go.sum
 
 # Re-include embedded files
+!internal/assets/logs/*.tmpl
 !internal/assets/migrations/*.sql
 !internal/assets/scripts/*.sh
 !internal/assets/pooler/*.exs

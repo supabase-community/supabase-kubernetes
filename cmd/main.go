@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	analyticscontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/analytics"
 	authcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/auth"
 	edgeruntimecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/edgeruntime"
 	envoycontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/envoy"
@@ -48,6 +49,7 @@ import (
 	storagecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/storage"
 	studiocontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/studio"
 	supavisorcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/supavisor"
+	vectorcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/vector"
 	"github.com/supabase-community/supabase-kubernetes/internal/helper"
 	// +kubebuilder:scaffold:imports
 )
@@ -303,6 +305,20 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "Supavisor")
+		os.Exit(1)
+	}
+	if err := (&analyticscontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Analytics")
+		os.Exit(1)
+	}
+	if err := (&vectorcontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "Vector")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

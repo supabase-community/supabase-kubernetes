@@ -1,6 +1,8 @@
 package defaults
 
 const (
+	DefaultAnalyticsImage   = "supabase/logflare:1.50.10"
+	DefaultVectorImage      = "timberio/vector:0.53.0-alpine"
 	DefaultSupavisorImage   = "supabase/supavisor:2.9.12"
 	DefaultPostgresImage    = "supabase/postgres:17.6.1.136"
 	DefaultAuthImage        = "supabase/gotrue:v2.196.0"

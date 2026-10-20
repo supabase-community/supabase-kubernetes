@@ -1,0 +1,7 @@
+apiVersion: core.supabase.io/v1alpha1
+kind: Vector
+metadata:
+  name: supabase
+spec:
+  projectRef:
+    name: supabase
