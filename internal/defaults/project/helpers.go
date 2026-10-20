@@ -41,11 +41,9 @@ func ComputePasswordSyncHash(project *ResourceContext, db *supabasev1alpha1.Reso
 
 // ComputeJWTSyncHash returns a stable hash of the JWT configuration that the
 // sync-jwt job applies. It is used to decide whether the job needs to run again.
-func ComputeJWTSyncHash(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase, dbPassword, jwtSecret string) string {
+func ComputeJWTSyncHash(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase, dbPassword string) string {
 	h := sha256.New()
 	h.Write([]byte(ComputePasswordSyncHash(project, db, dbPassword)))
-	h.Write([]byte("\x00"))
-	h.Write([]byte(jwtSecret))
 	h.Write([]byte("\x00"))
 	h.Write([]byte(strconv.Itoa(int(*project.Spec.JWTExpSec))))
 	return fmt.Sprintf("%x", h.Sum(nil))

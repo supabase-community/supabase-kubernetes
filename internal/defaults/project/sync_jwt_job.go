@@ -85,7 +85,6 @@ func buildSyncJWTEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolved
 		helper.EnvVar("PGUSER", db.User),
 		helper.EnvVarFromSecret("PGPASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVar("PGDATABASE", db.DBName),
-		helper.EnvVarFromSecret("JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVar("JWT_EXP", strconv.Itoa(int(*project.Spec.JWTExpSec))),
 	}
 }

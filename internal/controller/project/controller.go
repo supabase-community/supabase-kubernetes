@@ -216,16 +216,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	jwtSecret, err := r.getJWTSecretValue(ctx, proj)
-	if err != nil {
-		logger.Error(err, "Failed to get JWT secret value")
-		reconciler.SetNotReady(proj, "JWTSecretValueFailed", err.Error())
-		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after JWT secret value failure")
-		}
-		return ctrl.Result{}, err
-	}
-
 	dbPassword, err := r.getDBPasswordValue(ctx, proj.Namespace, db)
 	if err != nil {
 		logger.Error(err, "Failed to get database password value")
@@ -236,7 +226,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	if project.ComputeJWTSyncHash(project.NewContext(proj), db, dbPassword, jwtSecret) != proj.Status.JWTSyncHash {
+	if project.ComputeJWTSyncHash(project.NewContext(proj), db, dbPassword) != proj.Status.JWTSyncHash {
 		if err := r.ensureSyncJWTJob(ctx, proj, db); err != nil {
 			logger.Error(err, "Failed to ensure SyncJWTJob")
 			reconciler.SetNotReady(proj, "SyncJWTJobFailed", err.Error())
@@ -268,7 +258,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 		}
 
-		proj.Status.JWTSyncHash = project.ComputeJWTSyncHash(project.NewContext(proj), db, dbPassword, jwtSecret)
+		proj.Status.JWTSyncHash = project.ComputeJWTSyncHash(project.NewContext(proj), db, dbPassword)
 		if statusErr := reconciler.UpdateStatus(ctx, r.Client, proj); statusErr != nil {
 			logger.Error(statusErr, "Failed to update JWTSyncHash status")
 			return ctrl.Result{}, statusErr
@@ -508,18 +498,6 @@ func (r *Reconciler) ensureKeysSecret(ctx context.Context, proj *supabasev1alpha
 	}
 
 	return nil
-}
-
-func (r *Reconciler) getJWTSecretValue(ctx context.Context, proj *supabasev1alpha1.Project) (string, error) {
-	secret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Name: project.JWTSecretName(project.NewContext(proj)), Namespace: proj.Namespace}, secret); err != nil {
-		return "", fmt.Errorf("getting JWT secret: %w", err)
-	}
-	value, ok := secret.Data[project.JWTSecretKey]
-	if !ok {
-		return "", fmt.Errorf("JWT secret key %q not found", project.JWTSecretKey)
-	}
-	return string(value), nil
 }
 
 func (r *Reconciler) getDBPasswordValue(ctx context.Context, namespace string, db *supabasev1alpha1.ResolvedDatabase) (string, error) {

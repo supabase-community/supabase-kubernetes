@@ -124,11 +124,6 @@ spec:
                   name: {{ include "supabase.secret.jwt.name" . }}
                   key: {{ include "supabase.secret.jwt.key.secret" . }}
                   {{- end }}
-            - name: PGRST_APP_SETTINGS_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.secret" . }}
             {{- include "supabase.env.render" (dict "env" .Values.environment.rest) | nindent 12 }}
           {{- with .Values.deployment.rest.envFrom }}
           envFrom:

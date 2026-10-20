@@ -137,11 +137,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.db.name" . }}
                   key: {{ include "supabase.secret.db.key.database" . }}
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.secret.jwt.name" . }}
-                  key: {{ include "supabase.secret.jwt.key.secret" . }}
             {{- include "supabase.env.render" (dict "env" .Values.environment.db) | nindent 12 }}
           {{- with .Values.deployment.db.envFrom }}
           envFrom:
