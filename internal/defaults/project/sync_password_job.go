@@ -84,7 +84,7 @@ func buildSyncPasswordEnvVars(db *supabasev1alpha1.ResolvedDatabase) []corev1.En
 		helper.EnvVar("PGPORT", strconv.Itoa(int(db.Port))),
 		helper.EnvVar("PGUSER", db.User),
 		helper.EnvVarFromSecret("PGPASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
-		helper.EnvVar("PGDATABASE", db.DBName),
+		helper.EnvVar("PGDATABASE", "_supabase"),
 		helper.EnvVar("DB_ADMIN_USER", db.User),
 		helper.EnvVar("DB_SRV_NAME", db.Host),
 		helper.EnvVar("DB_SRV_PORT", strconv.Itoa(int(db.Port))),

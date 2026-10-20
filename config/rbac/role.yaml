@@ -10,6 +10,7 @@ rules:
   - configmaps
   - persistentvolumeclaims
   - secrets
+  - serviceaccounts
   - services
   verbs:
   - create
@@ -27,8 +28,19 @@ rules:
   - create
   - patch
 - apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - nodes
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - apps
   resources:
+  - daemonsets
   - deployments
   - statefulsets
   verbs:
@@ -54,6 +66,7 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
+  - analytics
   - auths
   - edgeruntimes
   - envoys
@@ -66,6 +79,7 @@ rules:
   - storages
   - studios
   - supavisors
+  - vectors
   verbs:
   - create
   - delete
@@ -77,6 +91,7 @@ rules:
 - apiGroups:
   - core.supabase.io
   resources:
+  - analytics/finalizers
   - auths/finalizers
   - edgeruntimes/finalizers
   - envoys/finalizers
@@ -89,11 +104,13 @@ rules:
   - storages/finalizers
   - studios/finalizers
   - supavisors/finalizers
+  - vectors/finalizers
   verbs:
   - update
 - apiGroups:
   - core.supabase.io
   resources:
+  - analytics/status
   - auths/status
   - edgeruntimes/status
   - envoys/status
@@ -106,7 +123,21 @@ rules:
   - storages/status
   - studios/status
   - supavisors/status
+  - vectors/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - clusterroles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

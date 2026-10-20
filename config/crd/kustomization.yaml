@@ -14,6 +14,8 @@ resources:
   - bases/core.supabase.io_envoys.yaml
   - bases/core.supabase.io_edgeruntimes.yaml
   - bases/core.supabase.io_supavisors.yaml
+  - bases/core.supabase.io_analytics.yaml
+  - bases/core.supabase.io_vectors.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

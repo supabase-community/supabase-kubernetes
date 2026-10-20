@@ -130,3 +130,19 @@ supavisor:
   pod: {}
   service: {}
   config: []
+
+## Analytics component configuration
+##
+analytics:
+  enable: true
+  replicas: 1
+  pod: {}
+  service: {}
+  config: []
+
+## Vector component configuration
+##
+vector:
+  enable: true
+  pod: {}
+  config: []

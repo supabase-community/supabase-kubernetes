@@ -29,6 +29,9 @@ import (
 // needs to run again.
 func ComputePasswordSyncHash(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase, dbPassword string) string {
 	h := sha256.New()
+	h.Write([]byte("supabase-password-sync-v2\x00"))
+	h.Write([]byte(db.DBName))
+	h.Write([]byte("\x00"))
 	h.Write([]byte(db.User))
 	h.Write([]byte("\x00"))
 	h.Write([]byte(db.Host))

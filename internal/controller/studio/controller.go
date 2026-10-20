@@ -43,7 +43,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil || !proceed {
 		return result, err
 	}
+	analytics, err := component.ListOptional(ctx, r.Client, obj.Namespace, project.Name, &core.AnalyticsList{}, "Analytics")
+	if err != nil {
+		return component.NotReady(ctx, r.Client, obj, "AmbiguousDependency", err.Error())
+	}
 	state := defaults.NewContext(project)
+	if analytics != nil && analytics.GetDeletionTimestamp().IsZero() {
+		a := analytics.(*core.Analytics)
+		state.Spec.Analytics = &a.Spec
+		state.Names["Analytics"] = a.Name
+	}
+
 	state.Owner = obj
 	state.Spec.Studio = &obj.Spec
 	state.Names["Studio"] = obj.Name
@@ -65,5 +75,5 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return component.Ready(ctx, r.Client, obj)
 }
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.Studio{}, NewList: func() client.ObjectList { return &core.StudioList{} }, Owns: []client.Object{&appsv1.StatefulSet{}, &corev1.Service{}, &corev1.PersistentVolumeClaim{}}, Related: []component.Object{&core.Meta{}, &core.Envoy{}}})
+	return component.SetupWithManager(mgr, r, component.SetupOptions{Object: &core.Studio{}, NewList: func() client.ObjectList { return &core.StudioList{} }, Owns: []client.Object{&appsv1.StatefulSet{}, &corev1.Service{}, &corev1.PersistentVolumeClaim{}}, Related: []component.Object{&core.Analytics{}, &core.Meta{}, &core.Envoy{}}})
 }

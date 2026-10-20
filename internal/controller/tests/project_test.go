@@ -265,6 +265,7 @@ var _ = Describe("Project Controller", func() {
 				keys := &corev1.Secret{}
 				g.Expect(k8sClient.Get(ctx, keysKey, keys)).To(Succeed())
 				g.Expect(keys.Data).NotTo(BeEmpty())
+				g.Expect(keys.Data).To(HaveLen(4))
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 		})
 
@@ -275,6 +276,19 @@ var _ = Describe("Project Controller", func() {
 			markProjectMigrationSucceeded(proj)
 
 			markJobSucceeded(project.SyncJWTJobName(project.NewContext(proj)))
+			Eventually(func(g Gomega) {
+				job := &batchv1.Job{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: project.SyncPasswordJobName(project.NewContext(proj)), Namespace: ns}, job)).To(Succeed())
+				container := job.Spec.Template.Spec.Containers[0]
+				g.Expect(container.Env).To(ContainElement(corev1.EnvVar{Name: "PGDATABASE", Value: "_supabase"}))
+				for _, env := range container.Env {
+					g.Expect(env.Name).NotTo(Equal("ANALYTICS_BACKEND_URL"))
+					if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
+						g.Expect(env.Name).To(Equal("PGPASSWORD"))
+					}
+				}
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+
 			markJobSucceeded(project.SyncPasswordJobName(project.NewContext(proj)))
 
 			Eventually(func(g Gomega) {

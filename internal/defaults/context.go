@@ -15,6 +15,8 @@ type Context struct {
 }
 type Configuration struct {
 	core.ProjectSpec
+	Analytics   *core.AnalyticsSpec
+	Vector      *core.VectorSpec
 	Auth        *core.AuthSpec
 	Rest        *core.RestSpec
 	Meta        *core.MetaSpec

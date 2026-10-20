@@ -1,0 +1,15 @@
+{{- if and .Values.vector.enable (not .Values.analytics.enable) }}
+{{- fail "vector.enable requires analytics.enable" }}
+{{- end }}
+{{- if .Values.vector.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: Vector
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  projectRef:
+    name: {{ include "supabase-project.fullname" . | quote }}
+  {{- omit .Values.vector "enable" | toYaml | nindent 2 }}
+{{- end }}

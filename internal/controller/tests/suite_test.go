@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	corev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
+	analyticscontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/analytics"
 	authcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/auth"
 	edgeruntimecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/edgeruntime"
 	envoycontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/envoy"
@@ -46,6 +47,7 @@ import (
 	singledatabasecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/singledatabase"
 	storagecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/storage"
 	studiocontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/studio"
+	vectorcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/vector"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -124,6 +126,9 @@ var _ = BeforeSuite(func() {
 		RequeueInterval: 100 * time.Millisecond,
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
+
+	Expect((&analyticscontroller.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}).SetupWithManager(mgr)).To(Succeed())
+	Expect((&vectorcontroller.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}).SetupWithManager(mgr)).To(Succeed())
 
 	Expect((&authcontroller.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}).SetupWithManager(mgr)).To(Succeed())
 

@@ -354,3 +354,13 @@ func MutateMigration() func(existing, desired *supabasev1alpha1.Migration) error
 		return nil
 	}
 }
+
+func MutateDaemonSet() func(existing, desired *appsv1.DaemonSet) error {
+	return func(existing, desired *appsv1.DaemonSet) error {
+		existing.Spec.Selector = desired.Spec.Selector
+		mergePodTemplateSpec(&existing.Spec.Template, &desired.Spec.Template)
+		existing.Labels = desired.Labels
+		existing.Annotations = mergeStringMaps(existing.Annotations, desired.Annotations)
+		return nil
+	}
+}

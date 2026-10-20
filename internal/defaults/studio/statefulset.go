@@ -21,6 +21,7 @@ import (
 	"strconv"
 
 	"github.com/supabase-community/supabase-kubernetes/internal/defaults"
+	analyticsdefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/analytics"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -195,6 +196,13 @@ func buildStudioEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 		helper.EnvVar("EDGE_FUNCTIONS_MANAGEMENT_FOLDER", StudioFunctionsMountPath),
 	}
 
+	if project.Spec.Analytics != nil {
+		env = helper.MergeEnvVars(env, []corev1.EnvVar{
+			helper.EnvVar("ENABLED_FEATURES_LOGS_ALL", "true"),
+			helper.EnvVar("LOGFLARE_URL", analyticsdefaults.URL(project)),
+			helper.EnvVarFromSecret("LOGFLARE_PRIVATE_ACCESS_TOKEN", analyticsdefaults.AnalyticsAuthSecretName(project), analyticsdefaults.AuthSecretPrivateTokenKey),
+		})
+	}
 	return helper.MergeEnvVars(env, project.Spec.Studio.Config)
 }
 

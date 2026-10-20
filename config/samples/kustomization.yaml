@@ -20,3 +20,5 @@ resources:
   - studio.yaml
   - envoy.yaml
   - edgeruntime.yaml
+  - vector.yaml
+  - analytics.yaml
