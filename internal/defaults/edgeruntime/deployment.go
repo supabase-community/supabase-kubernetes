@@ -81,7 +81,7 @@ func buildEdgeRuntimeContainer(project *ResourceContext, db *supabasev1alpha1.Re
 		Name:            "edge-runtime",
 		Image:           functionsImage(project),
 		ImagePullPolicy: functionsImagePullPolicy(project),
-		Args:            []string{"start", "--main-service", RuntimeConfigPath + "/main"},
+		Args:            []string{"start", "--user-worker-request-idle-timeout", "150000", "--main-service", RuntimeConfigPath + "/main"},
 		Env:             buildFunctionsEnvVars(project, db),
 		Ports:           functionsPorts(),
 		Resources:       corev1.ResourceRequirements{},
