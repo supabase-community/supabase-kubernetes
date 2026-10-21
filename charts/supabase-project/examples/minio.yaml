@@ -1,0 +1,115 @@
+# Use MinIO as an S3-compatible backend for Storage.
+#
+# Before installing this example, create a Secret in the release namespace.
+# Do not put access keys directly in this file or commit them to Git:
+#
+# kubectl -n <namespace> create secret generic minio-credentials \
+#   --from-literal=access-key-id='<access-key-id>' \
+#   --from-literal=secret-access-key='<secret-access-key>'
+#
+# This example requires Kubernetes 1.29+ for native sidecar init containers.
+# MinIO starts first and remains running, minio-createbucket then creates the
+# bucket, and finally the operator-managed Storage container starts.
+storage:
+  config:
+    - name: STORAGE_BACKEND
+      value: s3
+    - name: GLOBAL_S3_BUCKET
+      value: stub
+    - name: GLOBAL_S3_ENDPOINT
+      value: http://127.0.0.1:9000
+    - name: GLOBAL_S3_PROTOCOL
+      value: http
+    - name: GLOBAL_S3_FORCE_PATH_STYLE
+      value: "true"
+    - name: REGION
+      value: us-east-1
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: access-key-id
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: secret-access-key
+  pod:
+    spec:
+      initContainers:
+        # A native sidecar init container keeps MinIO running for the lifetime
+        # of the Pod while allowing the next init container to create its bucket.
+        - name: minio
+          image: cgr.dev/chainguard/minio
+          args:
+            - server
+            - --console-address
+            - ":9001"
+            - /data
+          restartPolicy: Always
+          ports:
+            - name: s3
+              containerPort: 9000
+              protocol: TCP
+            - name: console
+              containerPort: 9001
+              protocol: TCP
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key-id
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-access-key
+          startupProbe:
+            exec:
+              command: [mc, ready, local]
+            periodSeconds: 2
+            timeoutSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command: [mc, ready, local]
+            periodSeconds: 2
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command: [mc, ready, local]
+            periodSeconds: 2
+            timeoutSeconds: 10
+            failureThreshold: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            # Reuse the Storage PVC without sharing its file backend directory.
+            - name: storage-data
+              mountPath: /data
+              subPath: minio-data
+        - name: minio-createbucket
+          image: cgr.dev/chainguard/minio-client:latest-dev
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              until mc alias set supa-minio http://127.0.0.1:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" && mc mb --ignore-existing supa-minio/stub; do
+                echo "Waiting for MinIO and bucket creation"
+                sleep 2
+              done
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-access-key
+          securityContext:
+            allowPrivilegeEscalation: false
