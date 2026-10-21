@@ -1,12 +1,15 @@
 package envoy
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/supabase-community/supabase-kubernetes/internal/assets"
 	"sigs.k8s.io/yaml"
 )
+
+const testAuthCluster = "auth"
 
 type testRoute struct {
 	Name  string `json:"name"`
@@ -93,6 +96,65 @@ func TestFunctionsTimeouts(t *testing.T) {
 		}
 		if (enabled && found != 1) || (!enabled && found != 0) {
 			t.Fatalf("functions enabled=%t: got %d routes", enabled, found)
+		}
+	}
+}
+
+func matchRoute(routes []testRoute, path string) (testRoute, bool) {
+	for _, route := range routes {
+		if route.Match.Path == path || (route.Match.Prefix != "" && strings.HasPrefix(path, route.Match.Prefix)) {
+			return route, true
+		}
+	}
+	return testRoute{}, false
+}
+
+func TestAuthDiscoveryRoutes(t *testing.T) {
+	routes := renderedRoutes(t, envoyTemplateData{
+		AuthCluster:   envoyCluster{Enabled: true},
+		StudioCluster: envoyCluster{Enabled: true},
+	})
+	for path, upstream := range map[string]string{
+		"/.well-known/oauth-authorization-server/auth/v1": "/.well-known/oauth-authorization-server",
+		"/auth/v1/.well-known/oauth-authorization-server": "/.well-known/oauth-authorization-server",
+		"/auth/v1/.well-known/openid-configuration":       "/.well-known/openid-configuration",
+		"/auth/v1/.well-known/jwks.json":                  "/.well-known/jwks.json",
+	} {
+		t.Run(path, func(t *testing.T) {
+			route, found := matchRoute(routes, path)
+			if !found || route.Route.Cluster != testAuthCluster || route.Route.PrefixRewrite != upstream {
+				t.Fatalf("discovery request %q does not reach %q on Auth: %+v", path, upstream, route)
+			}
+			if !route.Filters["envoy.filters.http.basic_auth"].Disabled {
+				t.Fatal("discovery must not require Studio credentials")
+			}
+			rules := route.Filters["envoy.filters.http.rbac"].RBAC.Rules
+			if rules.Action != "ALLOW" || rules.Policies["allow_all"] == nil {
+				t.Fatal("discovery must be accessible without an API key")
+			}
+		})
+	}
+	for _, path := range []string{
+		"/.well-known/oauth-authorization-server",
+		"/.well-known/oauth-authorization-server/auth/v1/unexpected",
+	} {
+		route, _ := matchRoute(routes, path)
+		if route.Route.Cluster == testAuthCluster {
+			t.Errorf("unsupported discovery path %q still reaches Auth", path)
+		}
+	}
+	// The public discovery exceptions must not make the rest of Auth public.
+	private, found := matchRoute(routes, "/auth/v1/user")
+	if !found || private.Route.Cluster != testAuthCluster || private.Filters["envoy.filters.http.rbac"].RBAC.Rules.Policies["allow_all"] != nil {
+		t.Fatal("regular Auth requests must still require an API key")
+	}
+}
+
+func TestAuthDiscoveryRemovedWithComponent(t *testing.T) {
+	routes := renderedRoutes(t, envoyTemplateData{StudioCluster: envoyCluster{Enabled: true}})
+	for _, route := range routes {
+		if route.Route.Cluster == testAuthCluster {
+			t.Fatal("disabled Auth component still has a gateway route")
 		}
 	}
 }
