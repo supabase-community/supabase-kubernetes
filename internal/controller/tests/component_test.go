@@ -500,7 +500,7 @@ func TestEdgeRuntimePodConfiguration(t *testing.T) {
 			}
 			expectEnvValue(t, deployment, "VERIFY_JWT", fmt.Sprint(persistent))
 			container := deployment.Spec.Template.Spec.Containers[0]
-			if strings.Join(container.Args, " ") != "start --main-service /home/deno/functions/main" {
+			if strings.Join(container.Args, " ") != "start --user-worker-request-idle-timeout 150000 --main-service /home/deno/functions/main" {
 				t.Fatalf("unexpected runtime arguments: %v", container.Args)
 			}
 			mounts := map[string]corev1.VolumeMount{}
