@@ -71,7 +71,212 @@ auth:
   replicas: 1
   pod: {}
   service: {}
-  config: []
+  config:
+    # Set these URLs for your deployment.
+    - name: GOTRUE_SITE_URL
+      value: "http://localhost:3000"
+    - name: GOTRUE_URI_ALLOW_LIST
+      value: ""
+    - name: GOTRUE_DISABLE_SIGNUP
+      value: "false"
+
+    # Email authentication
+    - name: GOTRUE_EXTERNAL_EMAIL_ENABLED
+      value: "true"
+    - name: GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED
+      value: "false"
+    - name: GOTRUE_MAILER_AUTOCONFIRM
+      value: "false"
+
+    # SMTP
+    # - name: GOTRUE_SMTP_ADMIN_EMAIL
+    #   value: "admin@example.com"
+    # - name: GOTRUE_SMTP_HOST
+    #   value: "supabase-mail"
+    # - name: GOTRUE_SMTP_PORT
+    #   value: "2500"
+    # Create this Secret in the project namespace with your SMTP credentials.
+    # - name: GOTRUE_SMTP_USER
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: smtp-credentials
+    #       key: username
+    # - name: GOTRUE_SMTP_PASS
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: smtp-credentials
+    #       key: password
+    # - name: GOTRUE_SMTP_SENDER_NAME
+    #   value: "fake_sender"
+
+    # Uncomment to use with SMTP
+    # - name: GOTRUE_MAILER_URLPATHS_INVITE
+    #   value: "/auth/v1/verify"
+    # - name: GOTRUE_MAILER_URLPATHS_CONFIRMATION
+    #   value: "/auth/v1/verify"
+    # - name: GOTRUE_MAILER_URLPATHS_RECOVERY
+    #   value: "/auth/v1/verify"
+    # - name: GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE
+    #   value: "/auth/v1/verify"
+
+    # Phone authentication
+    - name: GOTRUE_EXTERNAL_PHONE_ENABLED
+      value: "true"
+    - name: GOTRUE_SMS_AUTOCONFIRM
+      value: "true"
+
+    # Uncomment to bypass nonce checking in the ID token flow.
+    # - name: GOTRUE_EXTERNAL_SKIP_NONCE_CHECK
+    #   value: "true"
+
+    # Optional mail settings
+    # - name: GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_SMTP_MAX_FREQUENCY
+    #   value: "1s"
+
+    # OAuth / social login providers
+    # Create the referenced Secrets in the project namespace before enabling these examples.
+    # - name: GOTRUE_EXTERNAL_GOOGLE_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: google-oauth-credentials
+    #       key: client-id
+    # - name: GOTRUE_EXTERNAL_GOOGLE_SECRET
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: google-oauth-credentials
+    #       key: client-secret
+    # - name: GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI
+    #   value: "http://localhost:8000/auth/v1/callback"
+    # - name: GOTRUE_EXTERNAL_GITHUB_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_EXTERNAL_GITHUB_CLIENT_ID
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: github-oauth-credentials
+    #       key: client-id
+    # - name: GOTRUE_EXTERNAL_GITHUB_SECRET
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: github-oauth-credentials
+    #       key: client-secret
+    # - name: GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI
+    #   value: "http://localhost:8000/auth/v1/callback"
+    # - name: GOTRUE_EXTERNAL_AZURE_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_EXTERNAL_AZURE_CLIENT_ID
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: azure-oauth-credentials
+    #       key: client-id
+    # - name: GOTRUE_EXTERNAL_AZURE_SECRET
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: azure-oauth-credentials
+    #       key: client-secret
+    # - name: GOTRUE_EXTERNAL_AZURE_REDIRECT_URI
+    #   value: "http://localhost:8000/auth/v1/callback"
+
+    # SMS delivery and Twilio credentials
+    # - name: GOTRUE_SMS_PROVIDER
+    #   value: "twilio"
+    # - name: GOTRUE_SMS_OTP_EXP
+    #   value: "60"
+    # - name: GOTRUE_SMS_OTP_LENGTH
+    #   value: "6"
+    # - name: GOTRUE_SMS_MAX_FREQUENCY
+    #   value: "60s"
+    # - name: GOTRUE_SMS_TEMPLATE
+    #   value: "Your code is {{ .Code }}"
+    # - name: GOTRUE_SMS_TWILIO_ACCOUNT_SID
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: twilio-credentials
+    #       key: account-sid
+    # - name: GOTRUE_SMS_TWILIO_AUTH_TOKEN
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: twilio-credentials
+    #       key: auth-token
+    # - name: GOTRUE_SMS_TWILIO_MESSAGE_SERVICE_SID
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: twilio-credentials
+    #       key: message-service-sid
+    # - name: GOTRUE_SMS_TEST_OTP
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: sms-test-otp
+    #       key: mappings
+
+    # Multi-factor authentication (MFA)
+    # - name: GOTRUE_MFA_TOTP_ENROLL_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_MFA_TOTP_VERIFY_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_MFA_PHONE_ENROLL_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_MFA_PHONE_VERIFY_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_MFA_MAX_ENROLLED_FACTORS
+    #   value: "10"
+
+    # SAML SSO
+    # - name: GOTRUE_SAML_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_SAML_PRIVATE_KEY
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: saml-credentials
+    #       key: private-key
+    # - name: GOTRUE_SAML_ALLOW_ENCRYPTED_ASSERTIONS
+    #   value: "false"
+    # - name: GOTRUE_SAML_RELAY_STATE_VALIDITY_PERIOD
+    #   value: "2m0s"
+    # - name: GOTRUE_SAML_RATE_LIMIT_ASSERTION
+    #   value: "15"
+    # - name: GOTRUE_SAML_EXTERNAL_URL
+    #   value: "https://supabase.example.com:8000/auth/v1"
+
+    # Authentication hooks
+    # - name: GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI
+    #   value: "pg-functions://postgres/public/custom_access_token_hook"
+    # - name: GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_SECRETS
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: auth-hook-secrets
+    #       key: custom-access-token
+    # - name: GOTRUE_HOOK_MFA_VERIFICATION_ATTEMPT_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_HOOK_MFA_VERIFICATION_ATTEMPT_URI
+    #   value: "pg-functions://postgres/public/mfa_verification_attempt"
+    # - name: GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI
+    #   value: "pg-functions://postgres/public/password_verification_attempt"
+    # - name: GOTRUE_HOOK_SEND_SMS_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_HOOK_SEND_SMS_URI
+    #   value: "pg-functions://postgres/public/custom_access_token_hook"
+    # - name: GOTRUE_HOOK_SEND_SMS_SECRETS
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: auth-hook-secrets
+    #       key: send-sms
+    # - name: GOTRUE_HOOK_SEND_EMAIL_ENABLED
+    #   value: "false"
+    # - name: GOTRUE_HOOK_SEND_EMAIL_URI
+    #   value: "http://host.docker.internal:54321/functions/v1/email_sender"
+    # - name: GOTRUE_HOOK_SEND_EMAIL_SECRETS
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: auth-hook-secrets
+    #       key: send-email
 
 ## EdgeRuntime component configuration
 ##
@@ -100,7 +305,9 @@ storage:
   replicas: 1
   pod: {}
   service: {}
-  config: []
+  config:
+    - name: FILE_SIZE_LIMIT
+      value: "52428800"
   storage:
     accessModes: [ReadWriteOnce]
     resources:
@@ -115,7 +322,17 @@ studio:
   replicas: 1
   pod: {}
   service: {}
-  config: []
+  config:
+    - name: DEFAULT_ORGANIZATION_NAME
+      value: "Default Organization"
+    - name: DEFAULT_PROJECT_NAME
+      value: "Default Project"
+    # Create this Secret in the project namespace and uncomment to enable the AI Assistant.
+    # - name: OPENAI_API_KEY
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: openai-credentials
+    #       key: api-key
   storage:
     accessModes: [ReadWriteOnce]
     resources:
@@ -129,7 +346,17 @@ supavisor:
   enable: true
   pod: {}
   service: {}
-  config: []
+  config:
+    # The operator uses the project name as the tenant ID by default.
+    # Uncomment to use a custom tenant ID.
+    # - name: POOLER_TENANT_ID
+    #   value: "my-tenant-id"
+    - name: POOLER_DEFAULT_POOL_SIZE
+      value: "20"
+    - name: POOLER_MAX_CLIENT_CONN
+      value: "100"
+    - name: DB_POOL_SIZE
+      value: "5"
 
 ## Analytics component configuration
 ##
