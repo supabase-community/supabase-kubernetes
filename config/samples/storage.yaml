@@ -6,6 +6,9 @@ spec:
   projectRef:
     name: supabase
   replicas: 1
+  config:
+    - name: FILE_SIZE_LIMIT
+      value: "52428800"
   storage:
     accessModes: [ReadWriteOnce]
     resources:

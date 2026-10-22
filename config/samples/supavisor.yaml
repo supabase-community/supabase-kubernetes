@@ -5,3 +5,10 @@ metadata:
 spec:
   projectRef:
     name: supabase
+  config:
+    - name: POOLER_DEFAULT_POOL_SIZE
+      value: "20"
+    - name: POOLER_MAX_CLIENT_CONN
+      value: "100"
+    - name: DB_POOL_SIZE
+      value: "5"

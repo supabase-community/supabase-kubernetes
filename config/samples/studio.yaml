@@ -6,6 +6,11 @@ spec:
   projectRef:
     name: supabase
   replicas: 1
+  config:
+    - name: DEFAULT_ORGANIZATION_NAME
+      value: "Default Organization"
+    - name: DEFAULT_PROJECT_NAME
+      value: "Default Project"
   storage:
     accessModes: [ReadWriteOnce]
     resources:

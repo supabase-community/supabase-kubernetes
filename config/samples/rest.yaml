@@ -6,3 +6,4 @@ spec:
   projectRef:
     name: supabase
   replicas: 1
+  config: []

@@ -6,6 +6,9 @@ spec:
   projectRef:
     name: supabase
   replicas: 1
+  config:
+    - name: VERIFY_JWT
+      value: "false"
   # Download user functions from Git. Each component has its own copy.
   # Set GIT_REPOSITORY, GIT_BRANCH, and FUNCTIONS_PATH for your repository.
   # The operator manages main/index.ts and deno.jsonc; they are excluded below.
