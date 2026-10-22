@@ -25,10 +25,13 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/defaults/project"
@@ -349,6 +352,73 @@ var _ = Describe("Project Controller", func() {
 				g.Expect(condition).NotTo(BeNil())
 				g.Expect(condition.Reason).To(Equal("MigrationsNotReady"))
 			}, defaultTimeout, defaultPolling).Should(Succeed())
+		})
+	})
+
+	Context("shared PostgREST settings", func() {
+		It("defaults optional fields and rejects invalid values", func() {
+			for _, spec := range []*supabasev1alpha1.ProjectPostgRESTSpec{
+				{Schemas: ptr.To("")}, {MaxRows: ptr.To(int64(0))}, {MaxRows: ptr.To(int64(-1))},
+			} {
+				proj := newProject("invalid-"+rand.String(6), "missing-db")
+				proj.Spec.PostgREST = spec
+				Expect(apierrors.IsInvalid(k8sClient.Create(ctx, proj))).To(BeTrue())
+			}
+			for _, spec := range []*supabasev1alpha1.ProjectPostgRESTSpec{
+				{}, {MaxRows: ptr.To(int64(2000))}, {ExtraSearchPath: ptr.To("")},
+			} {
+				proj := newProject("defaults-"+rand.String(6), "missing-db")
+				proj.Spec.PostgREST = spec
+				Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+				got := &supabasev1alpha1.Project{}
+				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(proj), got)).To(Succeed())
+				Expect(got.Spec.PostgREST.Schemas).To(HaveValue(Equal("public,graphql_public")))
+				Expect(got.Spec.PostgREST.MaxRows).To(HaveValue(Equal(ptr.Deref(spec.MaxRows, 1000))))
+				Expect(got.Spec.PostgREST.ExtraSearchPath).To(HaveValue(Equal(ptr.Deref(spec.ExtraSearchPath, "public"))))
+			}
+		})
+
+		It("updates Rest and Studio when the Project changes", func() {
+			driveSingleDatabaseReady("pg")
+			proj := newProject("shared", "pg")
+			Expect(k8sClient.Create(ctx, proj)).To(Succeed())
+			markProjectMigrationSucceeded(proj)
+			markJobSucceeded(project.SyncJWTJobName(project.NewContext(proj)))
+			markJobSucceeded(project.SyncPasswordJobName(project.NewContext(proj)))
+			metadata := metav1.ObjectMeta{Name: "shared", Namespace: ns}
+			ref := corev1.LocalObjectReference{Name: proj.Name}
+			for _, component := range []client.Object{
+				&supabasev1alpha1.Rest{ObjectMeta: metadata, Spec: supabasev1alpha1.RestSpec{ProjectRef: ref, Replicas: ptr.To(int32(0))}},
+				&supabasev1alpha1.Studio{ObjectMeta: metadata, Spec: supabasev1alpha1.StudioSpec{ProjectRef: ref, Replicas: ptr.To(int32(0))}},
+				&supabasev1alpha1.Meta{ObjectMeta: metadata, Spec: supabasev1alpha1.MetaSpec{ProjectRef: ref, Replicas: ptr.To(int32(0))}},
+				&supabasev1alpha1.Envoy{ObjectMeta: metadata, Spec: supabasev1alpha1.EnvoySpec{ProjectRef: ref, Replicas: ptr.To(int32(0))}},
+			} {
+				Expect(k8sClient.Create(ctx, component)).To(Succeed())
+			}
+			checkWorkloads := func(schemas, maxRows, searchPath string) {
+				Eventually(func(g Gomega) {
+					rest := &appsv1.Deployment{}
+					studio := &appsv1.StatefulSet{}
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "shared-rest", Namespace: ns}, rest)).To(Succeed())
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "shared-studio", Namespace: ns}, studio)).To(Succeed())
+					for _, pod := range []corev1.PodSpec{rest.Spec.Template.Spec, studio.Spec.Template.Spec} {
+						g.Expect(pod.Containers).NotTo(BeEmpty())
+						g.Expect(pod.Containers[0].Env).To(ContainElements(
+							corev1.EnvVar{Name: "PGRST_DB_SCHEMAS", Value: schemas},
+							corev1.EnvVar{Name: "PGRST_DB_MAX_ROWS", Value: maxRows},
+							corev1.EnvVar{Name: "PGRST_DB_EXTRA_SEARCH_PATH", Value: searchPath},
+						))
+					}
+				}, defaultTimeout, defaultPolling).Should(Succeed())
+			}
+			checkWorkloads("public,graphql_public", "1000", "public")
+			// Update only the Project; the manager's watches must reconcile both components.
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(proj), proj)).To(Succeed())
+				proj.Spec.PostgREST = &supabasev1alpha1.ProjectPostgRESTSpec{Schemas: ptr.To("public,custom"), MaxRows: ptr.To(int64(2000)), ExtraSearchPath: ptr.To("")}
+				g.Expect(k8sClient.Update(ctx, proj)).To(Succeed())
+			}, defaultTimeout, defaultPolling).Should(Succeed())
+			checkWorkloads("public,custom", "2000", "")
 		})
 	})
 

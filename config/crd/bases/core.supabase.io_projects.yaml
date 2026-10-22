@@ -86,6 +86,28 @@ spec:
                       Migration.
                     x-kubernetes-preserve-unknown-fields: true
                 type: object
+              postgrest:
+                description: PostgREST configures shared defaults for Rest and Studio.
+                properties:
+                  extraSearchPath:
+                    default: public
+                    description: |-
+                      ExtraSearchPath lists additional schemas in the search path, separated by commas.
+                      An explicit empty string disables the additional search path.
+                    type: string
+                  maxRows:
+                    default: 1000
+                    description: MaxRows limits the number of rows returned by PostgREST.
+                    format: int64
+                    minimum: 1
+                    type: integer
+                  schemas:
+                    default: public,graphql_public
+                    description: Schemas lists the database schemas exposed by PostgREST,
+                      separated by commas.
+                    minLength: 1
+                    type: string
+                type: object
               publicUrl:
                 description: PublicURL defines the public URL for the Project.
                 minLength: 1

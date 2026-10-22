@@ -36,6 +36,28 @@ type ProjectMigrationsSpec struct {
 	Pod *corev1.PodTemplateSpec `json:"pod,omitempty"`
 }
 
+// ProjectPostgRESTSpec configures PostgREST settings shared by Rest and Studio.
+// Each component's Config and Pod overlay can override these settings locally.
+type ProjectPostgRESTSpec struct {
+	// Schemas lists the database schemas exposed by PostgREST, separated by commas.
+	// +optional
+	// +kubebuilder:default="public,graphql_public"
+	// +kubebuilder:validation:MinLength=1
+	Schemas *string `json:"schemas,omitempty"`
+
+	// MaxRows limits the number of rows returned by PostgREST.
+	// +optional
+	// +kubebuilder:default=1000
+	// +kubebuilder:validation:Minimum=1
+	MaxRows *int64 `json:"maxRows,omitempty"`
+
+	// ExtraSearchPath lists additional schemas in the search path, separated by commas.
+	// An explicit empty string disables the additional search path.
+	// +optional
+	// +kubebuilder:default="public"
+	ExtraSearchPath *string `json:"extraSearchPath,omitempty"`
+}
+
 // ProjectSpec defines the desired state of Project.
 type ProjectSpec struct {
 	// JWTExpSec defines the JWT expiration time in seconds.
@@ -56,6 +78,10 @@ type ProjectSpec struct {
 	// Migrations configures the initial database Migration managed by the Project.
 	// +optional
 	Migrations *ProjectMigrationsSpec `json:"migrations,omitempty"`
+
+	// PostgREST configures shared defaults for Rest and Studio.
+	// +optional
+	PostgREST *ProjectPostgRESTSpec `json:"postgrest,omitempty"`
 }
 
 // ProjectStatus defines the observed state of Project.

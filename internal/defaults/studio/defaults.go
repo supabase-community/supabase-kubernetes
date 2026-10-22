@@ -4,7 +4,6 @@ import (
 	"github.com/supabase-community/supabase-kubernetes/internal/defaults"
 	metadefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/meta"
 	projectdefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/project"
-	restdefaults "github.com/supabase-community/supabase-kubernetes/internal/defaults/rest"
 )
 
 type ResourceContext = defaults.Context
@@ -42,7 +41,3 @@ const (
 	JWTSecretPublishableKey       = projectdefaults.JWTSecretPublishableKey
 	JWTSecretOpaqueKey            = projectdefaults.JWTSecretOpaqueKey
 )
-
-func restSchemasOrDefault() string         { return restdefaults.SchemasOrDefault() }
-func restMaxRowsOrDefault() string         { return restdefaults.MaxRowsOrDefault() }
-func restExtraSearchPathOrDefault() string { return restdefaults.ExtraSearchPathOrDefault() }

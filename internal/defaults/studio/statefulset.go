@@ -164,7 +164,7 @@ func studioProbeHandler() corev1.ProbeHandler {
 func buildStudioEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
 	jwtSecret := JWTSecretName(project)
 
-	env := []corev1.EnvVar{
+	env := append(defaults.PostgRESTEnvVars(project.Spec.PostgREST),
 		helper.EnvVar("HOSTNAME", "0.0.0.0"),
 		helper.EnvVar("STUDIO_PG_META_URL", fmt.Sprintf(
 			"http://%s:%d",
@@ -177,9 +177,6 @@ func buildStudioEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 		helper.EnvVarFromSecret("POSTGRES_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVar("POSTGRES_USER_READ_WRITE", "postgres"),
 		helper.EnvVarFromSecret("PG_META_CRYPTO_KEY", KeysSecretName(project), KeysSecretCryptoKey),
-		helper.EnvVar("PGRST_DB_SCHEMAS", restSchemasOrDefault()),
-		helper.EnvVar("PGRST_DB_MAX_ROWS", restMaxRowsOrDefault()),
-		helper.EnvVar("PGRST_DB_EXTRA_SEARCH_PATH", restExtraSearchPathOrDefault()),
 		helper.EnvVar("SUPABASE_URL", fmt.Sprintf(
 			"http://%s:%d",
 			helper.ServiceFQDN(EnvoyServiceName(project), project.Namespace),
@@ -194,7 +191,7 @@ func buildStudioEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedD
 		helper.EnvVar("ENABLED_FEATURES_LOGS_ALL", "false"),
 		helper.EnvVar("SNIPPETS_MANAGEMENT_FOLDER", StudioSnippetsMountPath),
 		helper.EnvVar("EDGE_FUNCTIONS_MANAGEMENT_FOLDER", StudioFunctionsMountPath),
-	}
+	)
 
 	if project.Spec.Analytics != nil {
 		env = helper.MergeEnvVars(env, []corev1.EnvVar{

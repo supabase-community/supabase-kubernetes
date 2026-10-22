@@ -5,6 +5,10 @@ metadata:
 spec:
   jwtExpSec: 3600
   publicUrl: "http://localhost:8000"
+  postgrest:
+    schemas: public,graphql_public
+    maxRows: 1000
+    extraSearchPath: public
   databaseRef:
     kind: SingleDatabase
     name: supabase

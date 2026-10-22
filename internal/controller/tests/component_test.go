@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -161,84 +162,138 @@ func expectEnvValue(t *testing.T, workload client.Object, name, value string) {
 	t.Fatalf("%T environment variable %s is missing", workload, name)
 }
 func TestPostgRESTSchemaConfiguration(t *testing.T) {
-	for _, kind := range []string{"Rest", kindStudio} {
-		t.Run(kind, func(t *testing.T) {
-			ctx, r, p, objects := componentFixture(t)
-			var target componentObject
-			for _, o := range objects {
-				if _, ok := o.(*core.Envoy); ok {
-					runComponent(t, ctx, r, o)
-				}
-				if strings.TrimPrefix(fmt.Sprintf("%T", o), "*v1alpha1.") == kind {
-					target = o
-				}
-			}
-			var workload client.Object = &appsv1.Deployment{}
-			if kind == kindStudio {
-				workload = &appsv1.StatefulSet{}
-			}
-			key := client.ObjectKey{Namespace: p.Namespace, Name: defaults.ComponentName(target.GetName(), strings.ToLower(kind))}
+	ctx, r, p, objects := componentFixture(t)
+	rest := objects[1].(*core.Rest)
+	studio := objects[5].(*core.Studio)
+	runComponent(t, ctx, r, objects[6]) // Create Envoy credentials for Studio.
+	targets := []componentObject{rest, studio}
+	workloads := []client.Object{&appsv1.Deployment{}, &appsv1.StatefulSet{}}
+	keys := []client.ObjectKey{
+		{Namespace: p.Namespace, Name: defaults.ComponentName(rest.Name, "rest")},
+		{Namespace: p.Namespace, Name: defaults.ComponentName(studio.Name, "studio")},
+	}
+	envVars := func(schemas, maxRows, searchPath string) []corev1.EnvVar {
+		return []corev1.EnvVar{
+			{Name: "PGRST_DB_SCHEMAS", Value: schemas},
+			{Name: "PGRST_DB_MAX_ROWS", Value: maxRows},
+			{Name: "PGRST_DB_EXTRA_SEARCH_PATH", Value: searchPath},
+		}
+	}
+	check := func(wants ...[]corev1.EnvVar) {
+		t.Helper()
+		for i, target := range targets {
 			runComponent(t, ctx, r, target)
-			if err := r.Get(ctx, key, workload); err != nil {
+			workload := workloads[i]
+			if err := r.Get(ctx, keys[i], workload); err != nil {
 				t.Fatal(err)
 			}
-			expectEnvValue(t, workload, "PGRST_DB_SCHEMAS", "public,graphql_public")
-
-			// Simulate a workload created with the previous operator default.
-			var podSpec *corev1.PodSpec
-			switch workload := workload.(type) {
+			var env []corev1.EnvVar
+			switch w := workload.(type) {
 			case *appsv1.Deployment:
-				podSpec = &workload.Spec.Template.Spec
+				env = w.Spec.Template.Spec.Containers[0].Env
 			case *appsv1.StatefulSet:
-				podSpec = &workload.Spec.Template.Spec
+				env = w.Spec.Template.Spec.Containers[0].Env
 			}
-			for i := range podSpec.Containers {
-				for j := range podSpec.Containers[i].Env {
-					if podSpec.Containers[i].Env[j].Name == "PGRST_DB_SCHEMAS" {
-						podSpec.Containers[i].Env[j].Value = "public,storage,graphql_public"
+			for _, want := range wants[i] {
+				var matches []corev1.EnvVar
+				for _, got := range env {
+					if got.Name == want.Name {
+						matches = append(matches, got)
 					}
 				}
+				if len(matches) != 1 || !reflect.DeepEqual(matches[0], want) {
+					t.Fatalf("%T: got %+v, want %+v", target, matches, want)
+				}
 			}
-			if err := r.Update(ctx, workload); err != nil {
+			rv := workload.GetResourceVersion()
+			runComponent(t, ctx, r, target)
+			if err := r.Get(ctx, keys[i], workload); err != nil {
 				t.Fatal(err)
 			}
-
-			for _, schemas := range []string{"", "public,storage,graphql_public", "public,custom", ""} {
-				if err := r.Get(ctx, client.ObjectKeyFromObject(target), target); err != nil {
-					t.Fatal(err)
-				}
-				var config []corev1.EnvVar
-				if schemas != "" {
-					config = []corev1.EnvVar{{Name: "PGRST_DB_SCHEMAS", Value: schemas}}
-				}
-				switch target := target.(type) {
-				case *core.Rest:
-					target.Spec.Config = config
-				case *core.Studio:
-					target.Spec.Config = config
-				}
-				if err := r.Update(ctx, target); err != nil {
-					t.Fatal(err)
-				}
-				runComponent(t, ctx, r, target)
-				if err := r.Get(ctx, key, workload); err != nil {
-					t.Fatal(err)
-				}
-				want := schemas
-				if want == "" {
-					want = "public,graphql_public"
-				}
-				expectEnvValue(t, workload, "PGRST_DB_SCHEMAS", want)
-				rv := workload.GetResourceVersion()
-				runComponent(t, ctx, r, target)
-				if err := r.Get(ctx, key, workload); err != nil {
-					t.Fatal(err)
-				}
-				if rv != workload.GetResourceVersion() {
-					t.Fatalf("schema configuration %q did not stabilize", want)
-				}
+			if rv != workload.GetResourceVersion() {
+				t.Fatalf("%T did not stabilize", target)
 			}
-		})
+		}
+	}
+	updateProject := func(spec *core.ProjectPostgRESTSpec) {
+		t.Helper()
+		if err := r.Get(ctx, client.ObjectKeyFromObject(p), p); err != nil {
+			t.Fatal(err)
+		}
+		p.Spec.PostgREST = spec
+		if err := r.Update(ctx, p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct {
+		name string
+		spec *core.ProjectPostgRESTSpec
+		want []corev1.EnvVar
+	}{
+		{"absent", nil, envVars("public,graphql_public", "1000", "public")},
+		{"empty", &core.ProjectPostgRESTSpec{}, envVars("public,graphql_public", "1000", "public")},
+		{"partial", &core.ProjectPostgRESTSpec{MaxRows: ptr.To(int64(2000))}, envVars("public,graphql_public", "2000", "public")},
+		{"custom", &core.ProjectPostgRESTSpec{Schemas: ptr.To("public,custom"), MaxRows: ptr.To(int64(2500)), ExtraSearchPath: ptr.To("public,extensions")}, envVars("public,custom", "2500", "public,extensions")},
+		{"empty search path", &core.ProjectPostgRESTSpec{ExtraSearchPath: ptr.To("")}, envVars("public,graphql_public", "1000", "")},
+		{"removed", nil, envVars("public,graphql_public", "1000", "public")},
+	} {
+		t.Log(tc.name)
+		updateProject(tc.spec)
+		check(tc.want, tc.want)
+	}
+	shared := &core.ProjectPostgRESTSpec{Schemas: ptr.To("public,shared"), MaxRows: ptr.To(int64(3000)), ExtraSearchPath: ptr.To("extensions")}
+	updateProject(shared)
+	sharedEnv := envVars("public,shared", "3000", "extensions")
+	if err := r.Create(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "local-config", Namespace: p.Namespace}, Data: map[string]string{"schemas": "public,local"}}); err != nil {
+		t.Fatal(err)
+	}
+	local := envVars("public,local", "4000", "")
+	local[0].Value = ""
+	local[0].ValueFrom = &corev1.EnvVarSource{ConfigMapKeyRef: &corev1.ConfigMapKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: "local-config"}, Key: "schemas"}}
+	for i, target := range targets {
+		switch target := target.(type) {
+		case *core.Rest:
+			target.Spec.Config = local
+		case *core.Studio:
+			target.Spec.Config = local
+		}
+		if err := r.Update(ctx, target); err != nil {
+			t.Fatal(err)
+		}
+		wants := [][]corev1.EnvVar{sharedEnv, sharedEnv}
+		wants[i] = local
+		check(wants...)
+		// Pod overlays retain final precedence over Project and component config.
+		containerName := "rest"
+		if i == 1 {
+			containerName = "studio"
+		}
+		pod := &corev1.PodTemplateSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: containerName, Env: []corev1.EnvVar{{Name: "PGRST_DB_MAX_ROWS", Value: "5000"}}}}}}
+		switch target := target.(type) {
+		case *core.Rest:
+			target.Spec.Pod = pod
+		case *core.Studio:
+			target.Spec.Pod = pod
+		}
+		if err := r.Update(ctx, target); err != nil {
+			t.Fatal(err)
+		}
+		overlayEnv := append([]corev1.EnvVar(nil), local...)
+		overlayEnv[1].Value = "5000"
+		wants[i] = overlayEnv
+		check(wants...)
+		switch target := target.(type) {
+		case *core.Rest:
+			target.Spec.Config = nil
+			target.Spec.Pod = nil
+		case *core.Studio:
+			target.Spec.Config = nil
+			target.Spec.Pod = nil
+		}
+		if err := r.Update(ctx, target); err != nil {
+			t.Fatal(err)
+		}
+		check(sharedEnv, sharedEnv)
 	}
 }
 
