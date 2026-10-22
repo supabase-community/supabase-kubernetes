@@ -74,9 +74,6 @@ func supavisorEnv(ctx *ResourceContext, db *core.ResolvedDatabase) []corev1.EnvV
 		helper.EnvVar("REGION", "local"),
 		helper.EnvVar("ERL_AFLAGS", "-proto_dist inet_tcp"),
 		helper.EnvVar("POOLER_TENANT_ID", ctx.Name),
-		helper.EnvVar("POOLER_DEFAULT_POOL_SIZE", "20"),
-		helper.EnvVar("POOLER_MAX_CLIENT_CONN", "100"),
 		helper.EnvVar("POOLER_POOL_MODE", "transaction"),
-		helper.EnvVar("DB_POOL_SIZE", "5"),
 	}, ctx.Spec.Supavisor.Config)
 }

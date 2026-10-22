@@ -31,9 +31,9 @@ func TestSupavisorCredentialsAndRollouts(t *testing.T) {
 	g.Expect(deployment.Spec.Strategy.Type).To(Equal(appsv1.RecreateDeploymentStrategyType))
 	g.Expect(deployment.Spec.Replicas).To(Equal(ptr.To(int32(1))))
 	expectEnvValue(t, deployment, "POOLER_TENANT_ID", project.Name)
-	expectEnvValue(t, deployment, "POOLER_DEFAULT_POOL_SIZE", "20")
-	expectEnvValue(t, deployment, "POOLER_MAX_CLIENT_CONN", "100")
-	expectEnvValue(t, deployment, "DB_POOL_SIZE", "5")
+	expectEnvAbsent(t, deployment, "POOLER_DEFAULT_POOL_SIZE")
+	expectEnvAbsent(t, deployment, "POOLER_MAX_CLIENT_CONN")
+	expectEnvAbsent(t, deployment, "DB_POOL_SIZE")
 	for _, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 		if env.Name == "DATABASE_URL" || env.Name == "POSTGRES_PASSWORD" || env.Name == "VAULT_ENC_KEY" {
 			g.Expect(env.Value).To(BeEmpty())

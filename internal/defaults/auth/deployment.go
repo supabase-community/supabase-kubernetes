@@ -170,7 +170,6 @@ func buildAuthEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDat
 		helper.EnvVar("GOTRUE_API_HOST", "0.0.0.0"),
 		helper.EnvVar("GOTRUE_API_PORT", strconv.Itoa(int(DefaultAuthPort))),
 		helper.EnvVar("API_EXTERNAL_URL", authURL),
-		helper.EnvVar("GOTRUE_SITE_URL", publicURL),
 		helper.EnvVar("GOTRUE_DB_DRIVER", "postgres"),
 		helper.EnvVarFromSecret("DB_PASSWORD", db.PasswordRef.Name, db.PasswordRef.Key),
 		helper.EnvVar("GOTRUE_DB_DATABASE_URL", fmt.Sprintf(

@@ -161,6 +161,26 @@ func expectEnvValue(t *testing.T, workload client.Object, name, value string) {
 	}
 	t.Fatalf("%T environment variable %s is missing", workload, name)
 }
+func expectEnvAbsent(t *testing.T, workload client.Object, name string) {
+	t.Helper()
+	var containers []corev1.Container
+	switch workload := workload.(type) {
+	case *appsv1.Deployment:
+		containers = workload.Spec.Template.Spec.Containers
+	case *appsv1.StatefulSet:
+		containers = workload.Spec.Template.Spec.Containers
+	default:
+		t.Fatalf("unsupported workload %T", workload)
+	}
+	for _, container := range containers {
+		for _, env := range container.Env {
+			if env.Name == name {
+				t.Fatalf("%T environment variable %s should be absent", workload, name)
+			}
+		}
+	}
+}
+
 func TestPostgRESTSchemaConfiguration(t *testing.T) {
 	ctx, r, p, objects := componentFixture(t)
 	rest := objects[1].(*core.Rest)
@@ -553,7 +573,11 @@ func TestEdgeRuntimePodConfiguration(t *testing.T) {
 			if err := r.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: "custom-edgeruntime-edge-runtime"}, deployment); err != nil {
 				t.Fatal(err)
 			}
-			expectEnvValue(t, deployment, "VERIFY_JWT", fmt.Sprint(persistent))
+			if persistent {
+				expectEnvValue(t, deployment, "VERIFY_JWT", "true")
+			} else {
+				expectEnvAbsent(t, deployment, "VERIFY_JWT")
+			}
 			container := deployment.Spec.Template.Spec.Containers[0]
 			if strings.Join(container.Args, " ") != "start --user-worker-request-idle-timeout 150000 --main-service /home/deno/functions/main" {
 				t.Fatalf("unexpected runtime arguments: %v", container.Args)
@@ -647,7 +671,29 @@ func updateComponentConfig(t *testing.T, ctx context.Context, r *componentTestCl
 	t.Helper()
 	rv := workload.GetResourceVersion()
 	// Every controller must propagate a spec update into its own Pod template.
-	if err := json.Unmarshal([]byte(`{"spec":{"config":[{"name":"CONTRACT_SETTING","value":"updated"}]}}`), target); err != nil {
+	config := []corev1.EnvVar{{Name: "CONTRACT_SETTING", Value: "updated"}}
+	switch target.(type) {
+	case *core.Auth:
+		config = append(config, corev1.EnvVar{Name: "GOTRUE_SITE_URL", Value: "http://localhost:3000"})
+	case *core.EdgeRuntime:
+		config = append(config, corev1.EnvVar{Name: "VERIFY_JWT", Value: "false"})
+	case *core.Storage:
+		config = append(config, corev1.EnvVar{Name: "FILE_SIZE_LIMIT", Value: "52428800"})
+	case *core.Supavisor:
+		config = append(config,
+			corev1.EnvVar{Name: "POOLER_DEFAULT_POOL_SIZE", Value: "20"},
+			corev1.EnvVar{Name: "POOLER_MAX_CLIENT_CONN", Value: "100"},
+			corev1.EnvVar{Name: "DB_POOL_SIZE", Value: "5"},
+		)
+	}
+	for _, env := range config[1:] {
+		expectEnvAbsent(t, workload, env.Name)
+	}
+	data, err := json.Marshal(map[string]any{"spec": map[string]any{"config": config}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(data, target); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Update(ctx, target); err != nil {
@@ -660,6 +706,9 @@ func updateComponentConfig(t *testing.T, ctx context.Context, r *componentTestCl
 	if rv == workload.GetResourceVersion() {
 		t.Fatal("component config update did not change workload")
 	}
+	for _, env := range config {
+		expectEnvValue(t, workload, env.Name, env.Value)
+	}
 	rv = workload.GetResourceVersion()
 	runComponent(t, ctx, r, target)
 	if err := r.Get(ctx, key, workload); err != nil {
@@ -667,6 +716,22 @@ func updateComponentConfig(t *testing.T, ctx context.Context, r *componentTestCl
 	}
 	if rv != workload.GetResourceVersion() {
 		t.Fatal("updated workload did not stabilize")
+	}
+	if len(config) > 1 {
+		if err := json.Unmarshal([]byte(`{"spec":{"config":[{"name":"CONTRACT_SETTING","value":"updated"}]}}`), target); err != nil {
+			t.Fatal(err)
+		}
+		if err := r.Update(ctx, target); err != nil {
+			t.Fatal(err)
+		}
+		runComponent(t, ctx, r, target)
+		if err := r.Get(ctx, key, workload); err != nil {
+			t.Fatal(err)
+		}
+		for _, env := range config[1:] {
+			expectEnvAbsent(t, workload, env.Name)
+		}
+		rv = workload.GetResourceVersion()
 	}
 	return rv
 }

@@ -168,7 +168,6 @@ func functionsProbeHandler() corev1.ProbeHandler {
 // buildFunctionsEnvVars returns the environment variables for the EdgeRuntime container.
 func buildFunctionsEnvVars(project *ResourceContext, db *supabasev1alpha1.ResolvedDatabase) []corev1.EnvVar {
 	env := []corev1.EnvVar{
-		helper.EnvVar("VERIFY_JWT", "false"),
 		helper.EnvVarFromSecret("JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVarFromSecret("SUPABASE_JWKS", JWTSecretName(project), JWTSecretJWKS),
 		helper.EnvVar("SUPABASE_URL", fmt.Sprintf(
