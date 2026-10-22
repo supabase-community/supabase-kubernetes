@@ -8,4 +8,18 @@ spec:
   replicas: 1
   config:
     - name: GOTRUE_SITE_URL
-      value: https://myapp.supabase.com
+      value: "http://localhost:3000"
+    - name: GOTRUE_URI_ALLOW_LIST
+      value: ""
+    - name: GOTRUE_DISABLE_SIGNUP
+      value: "false"
+    - name: GOTRUE_EXTERNAL_EMAIL_ENABLED
+      value: "true"
+    - name: GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED
+      value: "false"
+    - name: GOTRUE_MAILER_AUTOCONFIRM
+      value: "false"
+    - name: GOTRUE_EXTERNAL_PHONE_ENABLED
+      value: "true"
+    - name: GOTRUE_SMS_AUTOCONFIRM
+      value: "true"

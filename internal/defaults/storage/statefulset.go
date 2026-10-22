@@ -188,7 +188,6 @@ func buildStorageEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolved
 		)),
 		helper.EnvVar("STORAGE_PUBLIC_URL", project.Spec.PublicURL),
 		helper.EnvVar("REQUEST_ALLOW_X_FORWARDED_PATH", "true"),
-		helper.EnvVar("FILE_SIZE_LIMIT", "52428800"),
 		helper.EnvVar("STORAGE_BACKEND", "file"),
 		helper.EnvVar("GLOBAL_S3_BUCKET", project.Name),
 		helper.EnvVar("FILE_STORAGE_BACKEND_PATH", StorageDataMountPath),

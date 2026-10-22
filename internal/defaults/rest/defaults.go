@@ -23,7 +23,3 @@ func RestSelectorLabels(ctx *ResourceContext) map[string]string {
 var JWTSecretName = projectdefaults.JWTSecretName
 
 const JWTSecretJWKS = projectdefaults.JWTSecretJWKS
-
-func SchemasOrDefault() string         { return restSchemasOrDefault() }
-func MaxRowsOrDefault() string         { return restMaxRowsOrDefault() }
-func ExtraSearchPathOrDefault() string { return restExtraSearchPathOrDefault() }
