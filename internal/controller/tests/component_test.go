@@ -282,7 +282,7 @@ func TestComponentLifecycle(t *testing.T) {
 			}
 			switch kind {
 			case "Auth":
-				expectEnvValue(t, workload, "API_EXTERNAL_URL", p.Spec.PublicURL)
+				expectEnvValue(t, workload, "API_EXTERNAL_URL", p.Spec.PublicURL+"/auth/v1")
 				expectEnvValue(t, workload, "GOTRUE_JWT_ISSUER", p.Spec.PublicURL+"/auth/v1")
 			case kindStorage:
 				expectEnvValue(t, workload, "STORAGE_PUBLIC_URL", p.Spec.PublicURL)
