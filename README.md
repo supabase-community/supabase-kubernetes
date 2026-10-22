@@ -73,12 +73,10 @@ This installs the CRDs and deploys the controller in a single step.
 
 ### Deploy a Supabase Project
 
-The `supabase-project` chart creates a `SingleDatabase`, a `Project`, and the enabled component resources. Install it setting the required values:
+The `supabase-project` chart creates a `SingleDatabase`, a `Project`, and the enabled component resources. Install it with the default public URL (`http://localhost:8000`):
 
 ```bash
-helm install supabase supabase/supabase-project \
-  --set fullnameOverride=supabase \
-  --set project.publicUrl=http://localhost:8000
+helm install supabase supabase/supabase-project --set fullnameOverride=supabase
 ```
 
 The Operator will provision the Postgres StatefulSet, the component Deployments, Services, Secrets, and run sync Jobs to configure JWT keys and the database.

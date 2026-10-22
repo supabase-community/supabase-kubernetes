@@ -10,7 +10,7 @@
 ##
 project:
   jwtExpSec: 3600
-  publicUrl: ""
+  publicUrl: "http://localhost:8000"
   migrations:
     enable: true
     pod: {}
