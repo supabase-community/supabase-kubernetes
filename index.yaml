@@ -253,6 +253,21 @@ entries:
     version: 0.3.0
   supabase-operator:
   - apiVersion: v2
+    appVersion: 0.8.3
+    created: "2026-11-04T13:08:45.963863357Z"
+    description: Helm chart to deploy a Supabase Operator
+    digest: 53d3d1ac26c3d7477def18efd2442e1371232b238c803c41b39e95e90702160b
+    icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
+    keywords:
+    - kubernetes
+    - operator
+    - supabase
+    name: supabase-operator
+    type: application
+    urls:
+    - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-operator-0.8.3/supabase-operator-0.8.3.tgz
+    version: 0.8.3
+  - apiVersion: v2
     created: "2026-07-23T09:51:13.885279127Z"
     description: Helm chart to deploy a Supabase Operator
     digest: a969320150878aa5a0d6f4abaf0ba0375f2b976225f25d46fc577aeafbe778d4
@@ -310,6 +325,21 @@ entries:
     version: 0.1.0
   supabase-project:
   - apiVersion: v2
+    appVersion: 0.8.3
+    created: "2026-11-04T13:08:46.125940727Z"
+    description: Helm chart to deploy a Supabase CRDs
+    digest: eaf7160f7bb87eb729741ba96aeb7be47c103acf86e4418513e202df58ddf758
+    icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
+    keywords:
+    - kubernetes
+    - operator
+    - supabase
+    name: supabase-project
+    type: application
+    urls:
+    - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-project-0.8.3/supabase-project-0.8.3.tgz
+    version: 0.8.3
+  - apiVersion: v2
     created: "2026-07-18T14:42:36.53050984Z"
     description: Helm chart to deploy a Supabase CRDs
     digest: 1d465e99477bb9a5a304be8da3ff6a373565b111e8a7c6cc2f76f87d29e4abd5
@@ -323,4 +353,4 @@ entries:
     urls:
     - https://github.com/supabase-community/supabase-kubernetes/releases/download/supabase-project-0.1.0/supabase-project-0.1.0.tgz
     version: 0.1.0
-generated: "2026-09-05T19:16:00.29805669Z"
+generated: "2026-11-04T13:08:46.125975209Z"
