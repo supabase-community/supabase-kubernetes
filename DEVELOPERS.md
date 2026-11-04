@@ -1,6 +1,12 @@
 # Developer Guide
 
-This guide is for anyone who wants to build, run, test, or contribute to the **Supabase Kubernetes Operator**. For end-user deployment instructions, see the [README](./README.md). For the Helm chart, see [`charts/supabase/README.md`](./charts/supabase/README.md).
+This guide is for anyone who wants to build, run, test, or contribute to the **Supabase Kubernetes Operator**. For end-user deployment instructions, see the [README](./README.md).
+
+## Following upstream
+
+The Operator aims to follow the behavior of the [Supabase self-hosted Docker setup](https://github.com/supabase/supabase/tree/master/docker), adapting configuration and lifecycle management to Kubernetes. For a fix or behavior change shared with that setup, consider opening a pull request upstream first and link it in the pull request here. Changes specific to Kubernetes belong here. Document intentional differences from upstream and why they are needed.
+
+When adopting an upstream release, review its [self-hosted changelog](https://github.com/supabase/supabase/blob/master/docker/CHANGELOG.md), image versions, configuration, initialization SQL, gateway rules, and function assets. Matching image tags alone does not establish behavioral compatibility. Preserve the relevant upstream change references in pull requests and release notes.
 
 ## Prerequisites
 

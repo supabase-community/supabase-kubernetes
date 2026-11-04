@@ -7,21 +7,20 @@
 ---
 
 <p align="center">
-  Kubernetes-native ways to run <a href="https://github.com/supabase/supabase">Supabase</a> on your own cluster.
+  Run <a href="https://github.com/supabase/supabase">Supabase</a> on your own cluster with the Supabase Kubernetes Operator.
 </p>
 
 <p align="center">
   <a href="#overview">Overview</a> |
   <a href="#quick-start">Quick Start</a> |
-  <a href="./charts/supabase/README.md">Helm Chart</a> |
+  <a href="#versions-and-upstream">Versions and Upstream</a> |
   <a href="https://supabase.io/docs">Supabase Docs</a> |
   <a href="#contributing">Contributing</a>
 </p>
 
-You can choose between two approaches:
+The **Supabase Kubernetes Operator** manages Supabase through Kubernetes Custom Resources (`core.supabase.io/v1alpha1`). Use the `supabase-operator` chart to install the controller and CRDs, and the `supabase-project` chart to create a Supabase project.
 
-- **Supabase Kubernetes Operator**: manage Supabase through Kubernetes Custom Resources (`core.supabase.io/v1alpha1`). The Operator is in an early stage of development and its API may change.
-- **Supabase Helm Chart**: deploy Supabase using a traditional Helm chart. See [`charts/supabase`](./charts/supabase/README.md) for details.
+The Operator is in an early stage of development and its API may change.
 
 ## Overview
 
@@ -65,6 +64,7 @@ Deploy the Operator into the `supabase-operator` namespace:
 
 ```bash
 helm install supabase-operator supabase/supabase-operator \
+  --version 0.8.3 \
   --namespace supabase-operator \
   --create-namespace
 ```
@@ -76,7 +76,9 @@ This installs the CRDs and deploys the controller in a single step.
 The `supabase-project` chart creates a `SingleDatabase`, a `Project`, and the enabled component resources. Install it with the default public URL (`http://localhost:8000`):
 
 ```bash
-helm install supabase supabase/supabase-project --set fullnameOverride=supabase
+helm install supabase supabase/supabase-project \
+  --version 0.8.3 \
+  --set fullnameOverride=supabase
 ```
 
 The Operator will provision the Postgres StatefulSet, the component Deployments, Services, Secrets, and run sync Jobs to configure JWT keys and the database.
@@ -107,12 +109,22 @@ Set `project.publicUrl` to the corresponding public URL. Optional `className`,
 The cluster must provide the Ingress Controller and TLS Secrets. Envoy must be
 enabled, and Service overrides must preserve its named port `envoy`.
 
+## Versions and Upstream
+
+The Operator and the `supabase-operator` and `supabase-project` charts share the version of the Supabase self-hosted release they target. Operator `v0.8.3` and both charts at `0.8.3` target upstream [`self-hosted/v0.8.3`](https://github.com/supabase/supabase/releases/tag/self-hosted/v0.8.3). Install matching versions of the two charts.
+
+This version identifies the upstream baseline. The Operator aims to follow its behavior while adapting it to Kubernetes; it does not imply support for every optional Docker Compose configuration or a stable Kubernetes API.
+
+Before upgrading, read the [upstream self-hosted changelog](https://github.com/supabase/supabase/blob/master/docker/CHANGELOG.md) for component changes and upgrade requirements, and the [Operator release notes](https://github.com/supabase-community/supabase-kubernetes/releases) for Kubernetes-specific changes. Release notes link to the changelog at the corresponding upstream tag.
+
 ## Contributing
 
 Contributions are welcome. Before starting significant work, please open an issue to discuss your idea or bug report. When you are ready, fork the repository, make your changes, and open a pull request.
+
+The Operator aims to follow the behavior of the [upstream self-hosted setup](https://github.com/supabase/supabase/tree/master/docker). For fixes or behavior changes that also apply there, consider opening a pull request upstream first, then link it in your contribution here. Kubernetes-specific changes belong in this repository; explain any intentional differences from upstream.
 
 For setup instructions, build commands, and testing workflows, see [DEVELOPERS.md](./DEVELOPERS.md).
 
 ## Support
 
-This project is supported by the community and not officially supported by Supabase. Please do not create issues on the official Supabase repositories if you face problems using this project. Instead, open an issue on this repository.
+This project is supported by the community and not officially supported by Supabase. Report problems with the Operator, its charts, or Kubernetes integration in this repository. If a problem also reproduces in the upstream self-hosted setup, report it upstream with a reproduction and link the related issues.

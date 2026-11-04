@@ -1,5 +1,15 @@
 ---
-Thank you for installing {{ .Chart.Name }}!
+WARNING: {{ .Chart.Name }} is deprecated and receives critical fixes only.
+
+Use the Supabase Kubernetes Operator for new deployments and plan to migrate
+existing installations. Installing the Operator does not migrate your data,
+credentials, or volumes automatically.
+
+Migration considerations:
+https://github.com/supabase-community/supabase-kubernetes/blob/main/charts/supabase/README.md
+
+Operator installation:
+https://github.com/supabase-community/supabase-kubernetes#quick-start
 {{ if .Values.ingress.enabled }}
 Visit the Studio dashboard at http://{{ (index .Values.ingress.hosts 0).host }}
 {{- end }}

@@ -1,6 +1,7 @@
 apiVersion: v2
 name: supabase
-description: Supabase is the Postgres development platform.
+description: Deprecated Supabase chart. Use supabase-operator and supabase-project instead. Critical fixes only.
+deprecated: true
 
 # A chart can be either an 'application' or a 'library' chart.
 #
