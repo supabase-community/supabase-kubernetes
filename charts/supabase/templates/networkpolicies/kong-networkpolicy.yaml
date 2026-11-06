@@ -1,0 +1,83 @@
+{{- if and (.Values.networkPolicies.enabled | default false) .Values.deployment.kong.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "supabase.kong.fullname" . }}-netpol
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "supabase.kong.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 8000
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+      ports:
+      - protocol: UDP
+        port: 53
+    {{- if .Values.deployment.auth.enabled }}
+    - to:
+      - podSelector:
+          matchLabels:
+            {{- include "supabase.auth.selectorLabels" . | nindent 12 }}
+      ports:
+      - protocol: TCP
+        port: {{ .Values.service.auth.port }}
+    {{- end }}
+    {{- if .Values.deployment.rest.enabled }}
+    - to:
+      - podSelector:
+          matchLabels:
+            {{- include "supabase.rest.selectorLabels" . | nindent 12 }}
+      ports:
+      - protocol: TCP
+        port: {{ .Values.service.rest.port }}
+    {{- end }}
+    {{- if .Values.deployment.realtime.enabled }}
+    - to:
+      - podSelector:
+          matchLabels:
+            {{- include "supabase.realtime.selectorLabels" . | nindent 12 }}
+      ports:
+      - protocol: TCP
+        port: {{ .Values.service.realtime.port }}
+    {{- end }}
+    {{- if .Values.deployment.storage.enabled }}
+    - to:
+      - podSelector:
+          matchLabels:
+            {{- include "supabase.storage.selectorLabels" . | nindent 12 }}
+      ports:
+      - protocol: TCP
+        port: {{ .Values.service.storage.port }}
+    {{- end }}
+    {{- if .Values.deployment.studio.enabled }}
+    - to:
+      - podSelector:
+          matchLabels:
+            {{- include "supabase.studio.selectorLabels" . | nindent 12 }}
+      ports:
+      - protocol: TCP
+        port: {{ .Values.service.studio.port }}
+    {{- end }}
+    {{- if .Values.deployment.meta.enabled }}
+    - to:
+      - podSelector:
+          matchLabels:
+            {{- include "supabase.meta.selectorLabels" . | nindent 12 }}
+      ports:
+      - protocol: TCP
+        port: {{ .Values.service.meta.port }}
+    {{- end }}
+{{- end }}
