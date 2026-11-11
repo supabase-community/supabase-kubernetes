@@ -139,7 +139,7 @@ auth:
     # - name: GOTRUE_SMTP_MAX_FREQUENCY
     #   value: "1s"
 
-    # OAuth / social login providers
+    # OAuth / social sign-in providers
     # Create the referenced Secrets in the project namespace before enabling these examples.
     # - name: GOTRUE_EXTERNAL_GOOGLE_ENABLED
     #   value: "false"
