@@ -2,8 +2,8 @@ apiVersion: v2
 name: supabase-project
 description: Helm chart to deploy a Supabase CRDs
 type: application
-version: 0.8.3
-appVersion: "0.8.3"
+version: 0.8.4
+appVersion: "0.8.4"
 icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4
 
 keywords:

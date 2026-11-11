@@ -164,7 +164,7 @@ storage:
     spec:
       containers:
         - name: imgproxy
-          image: darthsim/imgproxy:v3.31.4
+          image: darthsim/imgproxy:v4.0.21
           ports:
             - name: http
               containerPort: 5001
