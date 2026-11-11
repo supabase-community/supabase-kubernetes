@@ -1,6 +1,6 @@
 # Download user functions from Git into EdgeRuntime and Studio.
 # Each Pod has its own emptyDir and sync container; these are not shared volumes.
-# The operator mounts main/index.ts and deno.jsonc individually in /home/deno/functions.
+# The operator mounts main/index.ts, main/memory-pressure.ts and deno.jsonc individually in /home/deno/functions.
 # VERIFY_JWT defaults to "false"; functions handle their own authentication.
 # Use with: -f charts/supabase-project/examples/functions-git-sync.yaml
 # Set your repository, branch and functions folder below.
@@ -46,6 +46,10 @@ edgeRuntime:
       volumes: *functionsVolumes
       containers:
         - name: edge-runtime
+          # This list replaces the chart defaults; retain the shared memory budget.
+          resources:
+            limits:
+              memory: 2Gi
           volumeMounts:
             - name: functions
               mountPath: /home/deno/functions

@@ -60,6 +60,9 @@ var EnvoyEntrypoint string
 //go:embed functions/main/index.ts
 var MainFunction string
 
+//go:embed functions/main/memory-pressure.ts
+var FunctionsMemoryPressure string
+
 //go:embed functions/deno.jsonc
 var FunctionsDenoConfig string
 
