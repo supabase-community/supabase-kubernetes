@@ -22,8 +22,9 @@ func RuntimeConfigMap(project *ResourceContext) *corev1.ConfigMap {
 			Labels:    FunctionsLabels(project),
 		},
 		Data: map[string]string{
-			"index.ts":   assets.MainFunction,
-			"deno.jsonc": assets.FunctionsDenoConfig,
+			"index.ts":           assets.MainFunction,
+			"memory-pressure.ts": assets.FunctionsMemoryPressure,
+			"deno.jsonc":         assets.FunctionsDenoConfig,
 		},
 	}
 }

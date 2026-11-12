@@ -139,7 +139,7 @@ auth:
     # - name: GOTRUE_SMTP_MAX_FREQUENCY
     #   value: "1s"
 
-    # OAuth / social login providers
+    # OAuth / social sign-in providers
     # Create the referenced Secrets in the project namespace before enabling these examples.
     # - name: GOTRUE_EXTERNAL_GOOGLE_ENABLED
     #   value: "false"
@@ -287,7 +287,16 @@ auth:
 edgeRuntime:
   enable: true
   replicas: 1
-  pod: {}
+  # Shared container budget; individual function workers are limited to 256 MiB.
+  # Kubernetes may default the memory request to this limit. Set requests explicitly
+  # below if the scheduler should reserve less. Container lists replace chart defaults.
+  pod:
+    spec:
+      containers:
+        - name: edge-runtime
+          resources:
+            limits:
+              memory: 2Gi
   service: {}
   config:
     - name: VERIFY_JWT

@@ -92,6 +92,7 @@ func buildEdgeRuntimeContainer(project *ResourceContext, db *supabasev1alpha1.Re
 		// StampInputs rolls the Pod when their contents change.
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "edge-runtime-config", MountPath: RuntimeConfigPath + "/main/index.ts", SubPath: "index.ts", ReadOnly: true},
+			{Name: "edge-runtime-config", MountPath: RuntimeConfigPath + "/main/memory-pressure.ts", SubPath: "memory-pressure.ts", ReadOnly: true},
 			{Name: "edge-runtime-config", MountPath: RuntimeConfigPath + "/deno.jsonc", SubPath: "deno.jsonc", ReadOnly: true},
 			{Name: "deno-cache", MountPath: "/root/.cache/deno"},
 		},
