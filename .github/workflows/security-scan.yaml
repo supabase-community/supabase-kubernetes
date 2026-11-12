@@ -1,0 +1,93 @@
+name: Security Scan
+
+on:
+    push:
+        branches:
+            - main
+            - security/**
+    pull_request:
+        branches:
+            - main
+
+permissions:
+    contents: read
+    security-events: write
+
+jobs:
+    security-scan:
+        name: Run security scanners
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Run Trivy config scan
+              uses: aquasecurity/trivy-action@master
+              with:
+                  version: v0.67.0
+                  scan-type: config
+                  ignore-unfixed: true
+                  severity: HIGH,CRITICAL
+                  format: sarif
+                  output: trivy-results.sarif
+                  scan-ref: ./charts/supabase
+
+            - name: Upload Trivy results
+              if: always()
+              uses: github/codeql-action/upload-sarif@v3
+              with:
+                  sarif_file: trivy-results.sarif
+
+            - name: Set up Helm
+              uses: azure/setup-helm@v4
+
+            - name: Render Helm chart (no tests)
+              run: |
+                  helm template test-release ./charts/supabase \
+                    --skip-tests \
+                    --no-hooks \
+                    > rendered.yaml
+
+            - name: Run KubeLinter (rendered, no tests)
+              continue-on-error: true
+              run: |
+                  docker run --rm \
+                    -v "${{ github.workspace }}:/project" \
+                    ghcr.io/stackrox/kube-linter:v0.6.7 \
+                    lint /project/rendered.yaml | tee kubelinter.log
+
+            - name: Run Checkov
+              if: always()
+              uses: bridgecrewio/checkov-action@v12
+              with:
+                  directory: ./charts/supabase
+                  framework: kubernetes
+                  config_file: .checkov.yaml
+                  quiet: true
+                  soft_fail: false
+                  output_format: sarif
+                  output_file_path: checkov.sarif
+            - name: Run Gitleaks (path-based allowlist)
+              if: always()
+              uses: gitleaks/gitleaks-action@v2
+              with:
+                  args: detect --no-git --path . --verbose --redact --config=.gitleaks.toml --report-format sarif --report-path results.sarif --exit-code 0
+
+            - name: Upload Gitleaks results
+              if: always()
+              uses: github/codeql-action/upload-sarif@v3
+              with:
+                  sarif_file: results.sarif
+
+            - name: Upload logs
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: security-scan-logs
+                  path: |
+                      trivy-results.sarif
+                      rendered.yaml
+                      kubelinter.log
+                      checkov_report*
+                      results.sarif
