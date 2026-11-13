@@ -1,4 +1,4 @@
-{{- if .Values.deployment.db.enabled -}}
+{{- if and .Values.deployment.db.enabled (not .Values.migrationConfigRef) -}}
 kind: ConfigMap
 apiVersion: v1
 metadata:
