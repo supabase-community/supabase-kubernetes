@@ -29,7 +29,9 @@ import (
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/database"
@@ -51,6 +53,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&supabasev1alpha1.Migration{}).
 		Owns(&batchv1.Job{}).
 		Owns(&corev1.ConfigMap{}).
+		Watches(&supabasev1alpha1.ExternalDatabase{}, handler.EnqueueRequestsFromMapFunc(r.mapExternalDatabaseToMigrations)).
 		Named("migration").
 		Complete(r)
 }
@@ -111,7 +114,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if migration.Status.AppliedHash != "" {
 		logger.Info("Migration already applied", "appliedHash", migration.Status.AppliedHash)
-		return ctrl.Result{}, nil
+		// Restore readiness after the database reference recovers without applying SQL again.
+		reconciler.SetReady(migration, "ReconcileSucceeded", "Migration applied successfully")
+		return ctrl.Result{}, reconciler.UpdateStatus(ctx, r.Client, migration)
 	}
 
 	if err := r.ensureJob(ctx, migration, db); err != nil {
@@ -230,4 +235,18 @@ func (r *Reconciler) markReady(ctx context.Context, migration *supabasev1alpha1.
 
 	reconciler.SetReady(migration, "ReconcileSucceeded", "Migration applied successfully")
 	return reconciler.UpdateStatus(ctx, r.Client, migration)
+}
+
+func (r *Reconciler) mapExternalDatabaseToMigrations(ctx context.Context, obj client.Object) []reconcile.Request {
+	migrations := &supabasev1alpha1.MigrationList{}
+	if err := r.List(ctx, migrations, client.InNamespace(obj.GetNamespace())); err != nil {
+		return nil
+	}
+	var requests []reconcile.Request
+	for _, migration := range migrations.Items {
+		if migration.Spec.DatabaseRef.Kind == "ExternalDatabase" && migration.Spec.DatabaseRef.Name == obj.GetName() {
+			requests = append(requests, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&migration)})
+		}
+	}
+	return requests
 }

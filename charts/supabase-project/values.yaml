@@ -29,6 +29,20 @@ ingress:
   host: ""
   tls: []
 
+## Use an existing compatible database instead of provisioning SingleDatabase.
+## The referenced Secret must already exist in the release namespace.
+## Project migrations and synchronization keep their existing behavior.
+##
+externalDatabase:
+  enable: false
+  host: ""
+  port: 5432
+  dbName: "postgres"
+  user: "postgres"
+  passwordRef:
+    name: ""
+    key: "password"
+
 ## SingleDatabase configuration
 ##
 singleDatabase:

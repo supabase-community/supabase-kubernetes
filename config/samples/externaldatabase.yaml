@@ -1,0 +1,24 @@
+# Create this password Secret separately in the same namespace.
+# The database must already be compatible with SingleDatabase.
+apiVersion: core.supabase.io/v1alpha1
+kind: ExternalDatabase
+metadata:
+  name: externaldatabase-sample
+spec:
+  host: postgres.example.com
+  port: 5432
+  dbName: postgres
+  user: postgres
+  passwordRef:
+    name: external-postgres
+    key: password
+---
+apiVersion: core.supabase.io/v1alpha1
+kind: Project
+metadata:
+  name: external-project
+spec:
+  publicUrl: "http://localhost:8000"
+  databaseRef:
+    kind: ExternalDatabase
+    name: externaldatabase-sample

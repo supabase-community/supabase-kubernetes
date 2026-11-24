@@ -1,0 +1,16 @@
+{{- if .Values.externalDatabase.enable }}
+apiVersion: core.supabase.io/v1alpha1
+kind: ExternalDatabase
+metadata:
+  name: {{ include "supabase-project.fullname" . }}
+  labels:
+    {{- include "supabase-project.labels" . | nindent 4 }}
+spec:
+  host: {{ required "externalDatabase.host is required" .Values.externalDatabase.host | quote }}
+  port: {{ required "externalDatabase.port is required" .Values.externalDatabase.port }}
+  dbName: {{ required "externalDatabase.dbName is required" .Values.externalDatabase.dbName | quote }}
+  user: {{ required "externalDatabase.user is required" .Values.externalDatabase.user | quote }}
+  passwordRef:
+    name: {{ required "externalDatabase.passwordRef.name is required" .Values.externalDatabase.passwordRef.name | quote }}
+    key: {{ required "externalDatabase.passwordRef.key is required" .Values.externalDatabase.passwordRef.key | quote }}
+{{- end }}

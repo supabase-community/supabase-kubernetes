@@ -113,6 +113,7 @@ rules:
   - auths/status
   - edgeruntimes/status
   - envoys/status
+  - externaldatabases/status
   - metas/status
   - migrations/status
   - projects/status
@@ -127,6 +128,14 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - core.supabase.io
+  resources:
+  - externaldatabases
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

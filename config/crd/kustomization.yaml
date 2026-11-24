@@ -16,6 +16,7 @@ resources:
   - bases/core.supabase.io_supavisors.yaml
   - bases/core.supabase.io_analytics.yaml
   - bases/core.supabase.io_vectors.yaml
+  - bases/core.supabase.io_externaldatabases.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

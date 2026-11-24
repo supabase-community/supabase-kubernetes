@@ -40,6 +40,7 @@ import (
 	authcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/auth"
 	edgeruntimecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/edgeruntime"
 	envoycontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/envoy"
+	externaldatabasecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/externaldatabase"
 	metacontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/meta"
 	migrationcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/migration"
 	projectcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/project"
@@ -319,6 +320,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "Vector")
+		os.Exit(1)
+	}
+	if err := (&externaldatabasecontroller.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "ExternalDatabase")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

@@ -39,6 +39,7 @@ import (
 	authcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/auth"
 	edgeruntimecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/edgeruntime"
 	envoycontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/envoy"
+	externaldatabasecontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/externaldatabase"
 	metacontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/meta"
 	migrationcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/migration"
 	projectcontroller "github.com/supabase-community/supabase-kubernetes/internal/controller/project"
@@ -118,6 +119,8 @@ var _ = BeforeSuite(func() {
 		RequeueInterval: 100 * time.Millisecond,
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
+
+	Expect((&externaldatabasecontroller.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}).SetupWithManager(mgr)).To(Succeed())
 
 	err = (&migrationcontroller.Reconciler{
 		Client:          mgr.GetClient(),

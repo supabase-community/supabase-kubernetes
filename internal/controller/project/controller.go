@@ -60,8 +60,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&batchv1.Job{}).
 		Watches(
 			&supabasev1alpha1.SingleDatabase{},
-			handler.EnqueueRequestsFromMapFunc(r.mapSingleDatabaseToProjects),
+			handler.EnqueueRequestsFromMapFunc(r.mapDatabaseToProjects),
 		).
+		Watches(&supabasev1alpha1.ExternalDatabase{}, handler.EnqueueRequestsFromMapFunc(r.mapDatabaseToProjects)).
 		Watches(
 			&supabasev1alpha1.Migration{},
 			handler.EnqueueRequestsFromMapFunc(r.mapMigrationToProjects),
@@ -71,20 +72,25 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *Reconciler) mapSingleDatabaseToProjects(ctx context.Context, obj client.Object) []reconcile.Request {
-	singleDB, ok := obj.(*supabasev1alpha1.SingleDatabase)
-	if !ok {
+func (r *Reconciler) mapDatabaseToProjects(ctx context.Context, obj client.Object) []reconcile.Request {
+	var kind string
+	switch obj.(type) {
+	case *supabasev1alpha1.SingleDatabase:
+		kind = "SingleDatabase"
+	case *supabasev1alpha1.ExternalDatabase:
+		kind = "ExternalDatabase"
+	default:
 		return nil
 	}
 
 	projects := &supabasev1alpha1.ProjectList{}
-	if err := r.List(ctx, projects, client.InNamespace(singleDB.Namespace)); err != nil {
+	if err := r.List(ctx, projects, client.InNamespace(obj.GetNamespace())); err != nil {
 		return nil
 	}
 
 	var requests []reconcile.Request
 	for _, proj := range projects.Items {
-		if proj.Spec.DatabaseRef.Kind == "SingleDatabase" && proj.Spec.DatabaseRef.Name == singleDB.Name {
+		if proj.Spec.DatabaseRef.Kind == kind && proj.Spec.DatabaseRef.Name == obj.GetName() {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      proj.Name,

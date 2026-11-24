@@ -30,6 +30,7 @@ The Operator exposes the following Kubernetes Custom Resources:
 |---|---|---|
 | `Project` | `projects` | Shared configuration, credentials, migrations, and database synchronization |
 | `SingleDatabase` | `singledatabases` | Postgres database managed by the Operator |
+| `ExternalDatabase` | `externaldatabases` | Connection reference to an existing compatible Postgres database |
 | `Migration` | `migrations` | Applies SQL scripts to referenced databases. Also used internally by the Operator to manage Supabase upgrade migrations |
 | `Auth` | `auths` | Supabase Auth component |
 | `Rest` | `rests` | PostgREST component |
