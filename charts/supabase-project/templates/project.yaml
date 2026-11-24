@@ -6,6 +6,6 @@ metadata:
     {{- include "supabase-project.labels" . | nindent 4 }}
 spec:
   databaseRef:
-    kind: SingleDatabase
+    kind: {{ ternary "ExternalDatabase" "SingleDatabase" .Values.externalDatabase.enable }}
     name: {{ include "supabase-project.fullname" . | quote }}
   {{- .Values.project | toYaml | nindent 2 }}

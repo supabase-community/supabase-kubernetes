@@ -38,6 +38,8 @@ func ResolveRef(
 	namespace string,
 ) (*supabasev1alpha1.ResolvedDatabase, bool, error) {
 	switch ref.Kind {
+	case "ExternalDatabase":
+		return resolveExternalDatabase(ctx, c, ref, namespace)
 	case "SingleDatabase":
 		return resolveSingleDatabase(ctx, c, ref, namespace)
 	default:
@@ -67,4 +69,19 @@ func resolveSingleDatabase(
 	}
 
 	return singleDB.Status.ResolvedDatabase, true, nil
+}
+
+func resolveExternalDatabase(ctx context.Context, c client.Client, ref supabasev1alpha1.DatabaseRef, namespace string) (*supabasev1alpha1.ResolvedDatabase, bool, error) {
+	db := &supabasev1alpha1.ExternalDatabase{}
+	if err := c.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: namespace}, db); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("getting ExternalDatabase %q: %w", ref.Name, err)
+	}
+	condition := meta.FindStatusCondition(db.Status.Conditions, "Ready")
+	if !db.DeletionTimestamp.IsZero() || condition == nil || condition.Status != "True" || condition.ObservedGeneration != db.Generation || db.Status.ResolvedDatabase == nil {
+		return nil, false, nil
+	}
+	return db.Status.ResolvedDatabase, true, nil
 }

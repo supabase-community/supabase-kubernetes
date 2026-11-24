@@ -59,6 +59,7 @@ spec:
                     description: Kind defines the kind of database resource.
                     enum:
                     - SingleDatabase
+                    - ExternalDatabase
                     minLength: 1
                     type: string
                   name:

@@ -1,3 +1,4 @@
+{{- if not .Values.externalDatabase.enable }}
 apiVersion: core.supabase.io/v1alpha1
 kind: SingleDatabase
 metadata:
@@ -6,3 +7,4 @@ metadata:
     {{- include "supabase-project.labels" . | nindent 4 }}
 spec:
   {{- .Values.singleDatabase | toYaml | nindent 2 }}
+{{- end }}

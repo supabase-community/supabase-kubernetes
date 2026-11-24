@@ -83,7 +83,7 @@ type DatabaseRef struct {
 	// Kind defines the kind of database resource.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:Enum=SingleDatabase
+	// +kubebuilder:validation:Enum=SingleDatabase;ExternalDatabase
 	Kind string `json:"kind"`
 
 	// Name defines the name of the database resource.

@@ -53,6 +53,7 @@ func SetupWithManager(mgr ctrl.Manager, r reconcile.Reconciler, options SetupOpt
 	}
 	b = b.Watches(&core.Project{}, enqueueProject).
 		Watches(&core.SingleDatabase{}, enqueueNamespace).
+		Watches(&core.ExternalDatabase{}, enqueueNamespace).
 		Watches(&corev1.Secret{}, enqueueNamespace).
 		Watches(&corev1.ConfigMap{}, enqueueNamespace)
 	for _, related := range options.Related {
