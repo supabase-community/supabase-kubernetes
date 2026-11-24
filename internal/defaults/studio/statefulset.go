@@ -45,7 +45,10 @@ func StudioStatefulSet(project *ResourceContext, db *supabasev1alpha1.ResolvedDa
 
 	template, err := helper.Overlay(corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{Labels: StudioLabels(project)},
-		Spec:       corev1.PodSpec{Containers: []corev1.Container{buildStudioContainer(project, db)}, Volumes: []corev1.Volume{buildStudioVolume(project)}},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{buildStudioContainer(project, db)},
+			Volumes:    buildStudioVolumes(project),
+		},
 	}, project.Spec.Studio.Pod)
 	if err != nil {
 		return nil, err
@@ -215,7 +218,38 @@ func buildStudioVolume(project *ResourceContext) corev1.Volume {
 	}
 }
 
-// buildStudioVolumeMounts returns the snippets volume mount.
+// buildStudioVolumes supplies snippets storage and an empty functions directory.
+func buildStudioVolumes(project *ResourceContext) []corev1.Volume {
+	volumes := []corev1.Volume{buildStudioVolume(project)}
+	if pod := project.Spec.Studio.Pod; pod != nil {
+		// Let the overlay supply the entire source, since merging a PVC with
+		// the default emptyDir would produce an invalid volume.
+		for _, volume := range pod.Spec.Volumes {
+			if volume.Name == "functions" {
+				return volumes
+			}
+		}
+		for _, container := range pod.Spec.Containers {
+			if container.Name != "studio" {
+				continue
+			}
+			for _, mount := range container.VolumeMounts {
+				if mount.MountPath == StudioFunctionsMountPath && mount.Name != "functions" {
+					return volumes
+				}
+			}
+		}
+	}
+	return append(volumes, corev1.Volume{
+		Name:         "functions",
+		VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+	})
+}
+
+// buildStudioVolumeMounts returns the snippets and functions directory mounts.
 func buildStudioVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{{Name: "studio-data", MountPath: StudioSnippetsMountPath, SubPath: StudioSnippetsSubPath}}
+	return []corev1.VolumeMount{
+		{Name: "studio-data", MountPath: StudioSnippetsMountPath, SubPath: StudioSnippetsSubPath},
+		{Name: "functions", MountPath: StudioFunctionsMountPath},
+	}
 }
