@@ -44,7 +44,21 @@ type testRoute struct {
 	} `json:"typed_per_filter_config"`
 }
 
+type testConnectionManager struct {
+	StreamIdleTimeout string `json:"stream_idle_timeout"`
+	RouteConfig       struct {
+		VirtualHosts []struct {
+			Routes []testRoute `json:"routes"`
+		} `json:"virtual_hosts"`
+	} `json:"route_config"`
+}
+
 func renderedRoutes(t *testing.T, data envoyTemplateData) []testRoute {
+	t.Helper()
+	return renderedConnectionManager(t, data).RouteConfig.VirtualHosts[0].Routes
+}
+
+func renderedConnectionManager(t *testing.T, data envoyTemplateData) testConnectionManager {
 	t.Helper()
 	config, err := renderEnvoyTemplate("lds", assets.EnvoyLDSTemplate, data)
 	if err != nil {
@@ -54,13 +68,7 @@ func renderedRoutes(t *testing.T, data envoyTemplateData) []testRoute {
 		Resources []struct {
 			FilterChains []struct {
 				Filters []struct {
-					Config struct {
-						RouteConfig struct {
-							VirtualHosts []struct {
-								Routes []testRoute `json:"routes"`
-							} `json:"virtual_hosts"`
-						} `json:"route_config"`
-					} `json:"typed_config"`
+					Config testConnectionManager `json:"typed_config"`
 				} `json:"filters"`
 			} `json:"filter_chains"`
 		} `json:"resources"`
@@ -72,13 +80,13 @@ func renderedRoutes(t *testing.T, data envoyTemplateData) []testRoute {
 		for _, chain := range resource.FilterChains {
 			for _, filter := range chain.Filters {
 				if hosts := filter.Config.RouteConfig.VirtualHosts; len(hosts) == 1 {
-					return hosts[0].Routes
+					return filter.Config
 				}
 			}
 		}
 	}
 	t.Fatal("expected an HTTP connection manager with one virtual host")
-	return nil
+	return testConnectionManager{}
 }
 
 func TestFunctionsTimeouts(t *testing.T) {
@@ -222,6 +230,28 @@ func TestOAuthServerRoutes(t *testing.T) {
 					t.Errorf("%s must remain protected: %+v", path, route)
 				}
 			}
+		}
+	}
+}
+
+func TestGatewayTimeouts(t *testing.T) {
+	data := envoyTemplateData{
+		AuthCluster: envoyCluster{Enabled: true}, RestCluster: envoyCluster{Enabled: true},
+		StudioCluster: envoyCluster{Enabled: true}, StorageCluster: envoyCluster{Enabled: true},
+		RealtimeCluster: envoyCluster{Enabled: true}, MetaCluster: envoyCluster{Enabled: true},
+		FunctionsCluster: envoyCluster{Enabled: true},
+	}
+	manager := renderedConnectionManager(t, data)
+	if manager.StreamIdleTimeout != "300s" {
+		t.Fatalf("stream idle timeout = %q", manager.StreamIdleTimeout)
+	}
+	for _, route := range manager.RouteConfig.VirtualHosts[0].Routes {
+		if route.Route.Cluster == "functions" {
+			if route.Route.Timeout != "410s" || route.Route.IdleTimeout != "160s" {
+				t.Fatal("Functions must retain runtime-specific timeout ordering")
+			}
+		} else if route.Route.Timeout != "0s" || route.Route.IdleTimeout != "" {
+			t.Errorf("%s route must allow long active responses and inherit the stream idle timeout: %+v", route.Route.Cluster, route.Route)
 		}
 	}
 }
