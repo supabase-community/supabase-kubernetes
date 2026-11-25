@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -14,14 +15,23 @@ const testAuthCluster = "auth"
 type testRoute struct {
 	Name  string `json:"name"`
 	Match struct {
-		Path   string `json:"path"`
-		Prefix string `json:"prefix"`
+		Path      string `json:"path"`
+		Prefix    string `json:"prefix"`
+		SafeRegex struct {
+			Regex string `json:"regex"`
+		} `json:"safe_regex"`
 	} `json:"match"`
 	Route struct {
 		Cluster       string `json:"cluster"`
 		PrefixRewrite string `json:"prefix_rewrite"`
 		Timeout       string `json:"timeout"`
 		IdleTimeout   string `json:"idle_timeout"`
+		RegexRewrite  struct {
+			Pattern struct {
+				Regex string `json:"regex"`
+			} `json:"pattern"`
+			Substitution string `json:"substitution"`
+		} `json:"regex_rewrite"`
 	} `json:"route"`
 	Filters map[string]struct {
 		Disabled bool `json:"disabled"`
@@ -101,7 +111,11 @@ func TestFunctionsTimeouts(t *testing.T) {
 }
 
 func matchRoute(routes []testRoute, path string) (testRoute, bool) {
+	path, _, _ = strings.Cut(path, "?")
 	for _, route := range routes {
+		if pattern := route.Match.SafeRegex.Regex; pattern != "" && regexp.MustCompile("^(?:"+pattern+")$").MatchString(path) {
+			return route, true
+		}
 		if route.Match.Path == path || (route.Match.Prefix != "" && strings.HasPrefix(path, route.Match.Prefix)) {
 			return route, true
 		}
@@ -155,6 +169,59 @@ func TestAuthDiscoveryRemovedWithComponent(t *testing.T) {
 	for _, route := range routes {
 		if route.Route.Cluster == testAuthCluster {
 			t.Fatal("disabled Auth component still has a gateway route")
+		}
+	}
+}
+
+func TestOAuthServerRoutes(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		routes := renderedRoutes(t, envoyTemplateData{
+			AuthCluster:   envoyCluster{Enabled: enabled},
+			StudioCluster: envoyCluster{Enabled: true},
+		})
+		for _, endpoint := range []string{"authorize", "clients/register", "token", "userinfo"} {
+			path := "/auth/v1/oauth/" + endpoint
+			route, found := matchRoute(routes, path+"?client_id=example")
+			if !found {
+				t.Fatalf("missing route for %s", path)
+			}
+			if !enabled {
+				if route.Route.Cluster == testAuthCluster {
+					t.Fatalf("disabled Auth still serves %s", path)
+				}
+				continue
+			}
+			if route.Name != "auth-v1-open-oauth" || route.Route.Cluster != testAuthCluster {
+				t.Fatalf("OAuth endpoint %s matched %+v", path, route)
+			}
+			rewrite := route.Route.RegexRewrite
+			if got := regexp.MustCompile(rewrite.Pattern.Regex).ReplaceAllString(path, rewrite.Substitution); got != "/oauth/"+endpoint {
+				t.Errorf("OAuth upstream path = %q", got)
+			}
+			for _, filter := range []string{"envoy.filters.http.basic_auth", "envoy.filters.http.lua"} {
+				if !route.Filters[filter].Disabled {
+					t.Errorf("%s must preserve client credentials without gateway authentication", filter)
+				}
+			}
+			rules := route.Filters["envoy.filters.http.rbac"].RBAC.Rules
+			if rules.Action != "ALLOW" || rules.Policies["allow_all"] == nil {
+				t.Fatal("OAuth clients must reach Auth without an API key")
+			}
+		}
+		if enabled {
+			for _, path := range []string{
+				"/auth/v1/oauth/authorizations/test",
+				"/auth/v1/admin/oauth/clients",
+				"/auth/v1/oauth/token/extra",
+				"/auth/v1/oauth/token/",
+				"/auth/v1/oauth/userinfo-extra",
+				"/auth/v1/oauth/clients/register/extra",
+			} {
+				route, found := matchRoute(routes, path)
+				if !found || route.Name != "auth-v1-protected" || route.Filters["envoy.filters.http.lua"].Disabled {
+					t.Errorf("%s must remain protected: %+v", path, route)
+				}
+			}
 		}
 	}
 }
