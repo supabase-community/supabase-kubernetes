@@ -55,6 +55,10 @@ func TestVectorIsolationLifecycleAndRBAC(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertSecretEnv(t, ds.Spec.Template.Spec.Containers[0], "LOGFLARE_PUBLIC_ACCESS_TOKEN", "logs-analytics-auth", "public-access-token")
+	expectEnvValue(t, ds, "VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION", "true")
+	if !strings.Contains(cfg, "${VECTOR_SELF_NODE_NAME}") || !strings.Contains(cfg, "${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}") {
+		t.Fatal("Vector must retain node-name and token interpolation")
+	}
 	version := ds.ResourceVersion
 	if _, err := r.Reconcile(ctx, req); err != nil {
 		t.Fatal(err)
@@ -82,6 +86,7 @@ func TestVectorIsolationLifecycleAndRBAC(t *testing.T) {
 	if ds.Spec.Template.Annotations["core.supabase.io/inputs-hash"] == beforeTokenChange {
 		t.Fatal("Analytics token change did not update Vector")
 	}
+	checkVectorInterpolationOverride(t, ctx, c, v)
 	binding := &rbacv1.ClusterRoleBinding{}
 	if err := c.Get(ctx, client.ObjectKey{Name: "supabase-vector-" + string(v.UID)}, binding); err != nil {
 		t.Fatal(err)
@@ -114,4 +119,27 @@ func TestVectorIsolationLifecycleAndRBAC(t *testing.T) {
 	if err := c.Get(ctx, client.ObjectKey{Name: "supabase-vector-" + string(v.UID)}, role); err == nil {
 		t.Fatal("role leaked")
 	}
+}
+
+func checkVectorInterpolationOverride(t *testing.T, ctx context.Context, c client.Client, v *core.Vector) {
+	t.Helper()
+	r := &vectorcontroller.Reconciler{Client: c, Scheme: c.Scheme()}
+	req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(v)}
+	key := client.ObjectKey{Namespace: v.Namespace, Name: v.Name + "-vector"}
+	ds := &appsv1.DaemonSet{}
+	// Explicit settings remain authoritative for users supplying their own config.
+	if err := c.Get(ctx, client.ObjectKeyFromObject(v), v); err != nil {
+		t.Fatal(err)
+	}
+	v.Spec.Config = []corev1.EnvVar{{Name: "VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION", Value: "false"}}
+	if err := c.Update(ctx, v); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Reconcile(ctx, req); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Get(ctx, key, ds); err != nil {
+		t.Fatal(err)
+	}
+	expectEnvValue(t, ds, "VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION", "false")
 }

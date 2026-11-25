@@ -56,6 +56,7 @@ func buildVectorContainer(project *ResourceContext) corev1.Container {
 
 func buildVectorEnvVars(project *ResourceContext) []corev1.EnvVar {
 	return helper.MergeEnvVars([]corev1.EnvVar{
+		helper.EnvVar("VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION", "true"),
 		{
 			Name: "VECTOR_SELF_NODE_NAME",
 			ValueFrom: &corev1.EnvVarSource{
