@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 
 	supabasev1alpha1 "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 )
@@ -312,6 +313,97 @@ var _ = Describe("Mutate functions", func() {
 			Expect(existing.Spec.Template.Spec.InitContainers[0].Image).To(Equal("new-init-image"))
 			Expect(existing.Spec.Template.Spec.Containers).To(HaveLen(1))
 			Expect(existing.Spec.Template.Spec.Containers[0].Image).To(Equal("new-main-image"))
+		})
+
+		It("should copy Pod overlay scheduling and runtime fields from desired", func() {
+			sidecar := corev1.ContainerRestartPolicyAlways
+			existing := &appsv1.Deployment{
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							InitContainers: []corev1.Container{
+								{Name: "sidecar", Image: "sidecar-image"},
+							},
+							Containers: []corev1.Container{
+								{Name: "server", Image: "server-image"},
+							},
+						},
+					},
+				},
+			}
+			desired := &appsv1.Deployment{
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+								{
+									MaxSkew:           1,
+									TopologyKey:       "kubernetes.io/hostname",
+									WhenUnsatisfiable: corev1.ScheduleAnyway,
+								},
+							},
+							RuntimeClassName:             ptr.To("gvisor"),
+							DNSConfig:                    &corev1.PodDNSConfig{Nameservers: []string{"10.96.0.10"}},
+							AutomountServiceAccountToken: ptr.To(false),
+							ShareProcessNamespace:        ptr.To(true),
+							InitContainers: []corev1.Container{
+								{Name: "sidecar", Image: "sidecar-image", RestartPolicy: &sidecar},
+							},
+							Containers: []corev1.Container{
+								{Name: "server", Image: "server-image"},
+							},
+						},
+					},
+				},
+			}
+
+			err := MutateDeployment()(existing, desired)
+			Expect(err).NotTo(HaveOccurred())
+			spec := existing.Spec.Template.Spec
+			Expect(spec.TopologySpreadConstraints).To(Equal(desired.Spec.Template.Spec.TopologySpreadConstraints))
+			Expect(spec.RuntimeClassName).To(Equal(ptr.To("gvisor")))
+			Expect(spec.DNSConfig).To(Equal(desired.Spec.Template.Spec.DNSConfig))
+			Expect(spec.AutomountServiceAccountToken).To(Equal(ptr.To(false)))
+			Expect(spec.ShareProcessNamespace).To(Equal(ptr.To(true)))
+			Expect(spec.InitContainers[0].RestartPolicy).To(Equal(&sidecar))
+		})
+
+		It("should remove Pod overlay fields that desired no longer sets", func() {
+			existing := &appsv1.Deployment{
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+								{
+									MaxSkew:           1,
+									TopologyKey:       "kubernetes.io/hostname",
+									WhenUnsatisfiable: corev1.DoNotSchedule,
+								},
+							},
+							RuntimeClassName: ptr.To("gvisor"),
+							Containers: []corev1.Container{
+								{Name: "api", Image: "api-image"},
+							},
+						},
+					},
+				},
+			}
+			desired := &appsv1.Deployment{
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{Name: "api", Image: "api-image"},
+							},
+						},
+					},
+				},
+			}
+
+			err := MutateDeployment()(existing, desired)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(existing.Spec.Template.Spec.TopologySpreadConstraints).To(BeEmpty())
+			Expect(existing.Spec.Template.Spec.RuntimeClassName).To(BeNil())
 		})
 	})
 
