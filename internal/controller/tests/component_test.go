@@ -146,6 +146,8 @@ func expectEnvValue(t *testing.T, workload client.Object, name, value string) {
 		containers = workload.Spec.Template.Spec.Containers
 	case *appsv1.StatefulSet:
 		containers = workload.Spec.Template.Spec.Containers
+	case *appsv1.DaemonSet:
+		containers = workload.Spec.Template.Spec.Containers
 	default:
 		t.Fatalf("unsupported workload %T", workload)
 	}

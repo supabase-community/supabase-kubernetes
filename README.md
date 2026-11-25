@@ -65,7 +65,7 @@ Deploy the Operator into the `supabase-operator` namespace:
 
 ```bash
 helm install supabase-operator supabase/supabase-operator \
-  --version 0.8.4 \
+  --version 0.8.5 \
   --namespace supabase-operator \
   --create-namespace
 ```
@@ -78,7 +78,7 @@ The `supabase-project` chart creates a `SingleDatabase`, a `Project`, and the en
 
 ```bash
 helm install supabase supabase/supabase-project \
-  --version 0.8.4 \
+  --version 0.8.5 \
   --set fullnameOverride=supabase
 ```
 
@@ -112,7 +112,7 @@ enabled, and Service overrides must preserve its named port `envoy`.
 
 ## Versions and Upstream
 
-The Operator and the `supabase-operator` and `supabase-project` charts share the version of the Supabase self-hosted release they target. Operator `v0.8.4` and both charts at `0.8.4` target upstream [`self-hosted/v0.8.4`](https://github.com/supabase/supabase/releases/tag/self-hosted/v0.8.4). Install matching versions of the two charts.
+The Operator and the `supabase-operator` and `supabase-project` charts share the version of the Supabase self-hosted release they target. Operator `v0.8.5` and both charts at `0.8.5` target upstream [`self-hosted/v0.8.5`](https://github.com/supabase/supabase/releases/tag/self-hosted/v0.8.5). Install matching versions of the two charts.
 
 This version identifies the upstream baseline. The Operator aims to follow its behavior while adapting it to Kubernetes; it does not imply support for every optional Docker Compose configuration or a stable Kubernetes API.
 

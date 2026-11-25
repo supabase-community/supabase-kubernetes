@@ -153,6 +153,14 @@ auth:
     # - name: GOTRUE_SMTP_MAX_FREQUENCY
     #   value: "1s"
 
+    # OAuth 2.1 server (opt-in)
+    # - name: GOTRUE_OAUTH_SERVER_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH
+    #   value: "/oauth/consent"
+    # - name: GOTRUE_OAUTH_SERVER_ALLOW_DYNAMIC_REGISTRATION
+    #   value: "false"
+
     # OAuth / social sign-in providers
     # Create the referenced Secrets in the project namespace before enabling these examples.
     # - name: GOTRUE_EXTERNAL_GOOGLE_ENABLED

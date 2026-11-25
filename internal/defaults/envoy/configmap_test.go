@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -14,14 +15,23 @@ const testAuthCluster = "auth"
 type testRoute struct {
 	Name  string `json:"name"`
 	Match struct {
-		Path   string `json:"path"`
-		Prefix string `json:"prefix"`
+		Path      string `json:"path"`
+		Prefix    string `json:"prefix"`
+		SafeRegex struct {
+			Regex string `json:"regex"`
+		} `json:"safe_regex"`
 	} `json:"match"`
 	Route struct {
 		Cluster       string `json:"cluster"`
 		PrefixRewrite string `json:"prefix_rewrite"`
 		Timeout       string `json:"timeout"`
 		IdleTimeout   string `json:"idle_timeout"`
+		RegexRewrite  struct {
+			Pattern struct {
+				Regex string `json:"regex"`
+			} `json:"pattern"`
+			Substitution string `json:"substitution"`
+		} `json:"regex_rewrite"`
 	} `json:"route"`
 	Filters map[string]struct {
 		Disabled bool `json:"disabled"`
@@ -34,7 +44,21 @@ type testRoute struct {
 	} `json:"typed_per_filter_config"`
 }
 
+type testConnectionManager struct {
+	StreamIdleTimeout string `json:"stream_idle_timeout"`
+	RouteConfig       struct {
+		VirtualHosts []struct {
+			Routes []testRoute `json:"routes"`
+		} `json:"virtual_hosts"`
+	} `json:"route_config"`
+}
+
 func renderedRoutes(t *testing.T, data envoyTemplateData) []testRoute {
+	t.Helper()
+	return renderedConnectionManager(t, data).RouteConfig.VirtualHosts[0].Routes
+}
+
+func renderedConnectionManager(t *testing.T, data envoyTemplateData) testConnectionManager {
 	t.Helper()
 	config, err := renderEnvoyTemplate("lds", assets.EnvoyLDSTemplate, data)
 	if err != nil {
@@ -44,13 +68,7 @@ func renderedRoutes(t *testing.T, data envoyTemplateData) []testRoute {
 		Resources []struct {
 			FilterChains []struct {
 				Filters []struct {
-					Config struct {
-						RouteConfig struct {
-							VirtualHosts []struct {
-								Routes []testRoute `json:"routes"`
-							} `json:"virtual_hosts"`
-						} `json:"route_config"`
-					} `json:"typed_config"`
+					Config testConnectionManager `json:"typed_config"`
 				} `json:"filters"`
 			} `json:"filter_chains"`
 		} `json:"resources"`
@@ -62,13 +80,13 @@ func renderedRoutes(t *testing.T, data envoyTemplateData) []testRoute {
 		for _, chain := range resource.FilterChains {
 			for _, filter := range chain.Filters {
 				if hosts := filter.Config.RouteConfig.VirtualHosts; len(hosts) == 1 {
-					return hosts[0].Routes
+					return filter.Config
 				}
 			}
 		}
 	}
 	t.Fatal("expected an HTTP connection manager with one virtual host")
-	return nil
+	return testConnectionManager{}
 }
 
 func TestFunctionsTimeouts(t *testing.T) {
@@ -101,7 +119,11 @@ func TestFunctionsTimeouts(t *testing.T) {
 }
 
 func matchRoute(routes []testRoute, path string) (testRoute, bool) {
+	path, _, _ = strings.Cut(path, "?")
 	for _, route := range routes {
+		if pattern := route.Match.SafeRegex.Regex; pattern != "" && regexp.MustCompile("^(?:"+pattern+")$").MatchString(path) {
+			return route, true
+		}
 		if route.Match.Path == path || (route.Match.Prefix != "" && strings.HasPrefix(path, route.Match.Prefix)) {
 			return route, true
 		}
@@ -155,6 +177,81 @@ func TestAuthDiscoveryRemovedWithComponent(t *testing.T) {
 	for _, route := range routes {
 		if route.Route.Cluster == testAuthCluster {
 			t.Fatal("disabled Auth component still has a gateway route")
+		}
+	}
+}
+
+func TestOAuthServerRoutes(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		routes := renderedRoutes(t, envoyTemplateData{
+			AuthCluster:   envoyCluster{Enabled: enabled},
+			StudioCluster: envoyCluster{Enabled: true},
+		})
+		for _, endpoint := range []string{"authorize", "clients/register", "token", "userinfo"} {
+			path := "/auth/v1/oauth/" + endpoint
+			route, found := matchRoute(routes, path+"?client_id=example")
+			if !found {
+				t.Fatalf("missing route for %s", path)
+			}
+			if !enabled {
+				if route.Route.Cluster == testAuthCluster {
+					t.Fatalf("disabled Auth still serves %s", path)
+				}
+				continue
+			}
+			if route.Name != "auth-v1-open-oauth" || route.Route.Cluster != testAuthCluster {
+				t.Fatalf("OAuth endpoint %s matched %+v", path, route)
+			}
+			rewrite := route.Route.RegexRewrite
+			if got := regexp.MustCompile(rewrite.Pattern.Regex).ReplaceAllString(path, rewrite.Substitution); got != "/oauth/"+endpoint {
+				t.Errorf("OAuth upstream path = %q", got)
+			}
+			for _, filter := range []string{"envoy.filters.http.basic_auth", "envoy.filters.http.lua"} {
+				if !route.Filters[filter].Disabled {
+					t.Errorf("%s must preserve client credentials without gateway authentication", filter)
+				}
+			}
+			rules := route.Filters["envoy.filters.http.rbac"].RBAC.Rules
+			if rules.Action != "ALLOW" || rules.Policies["allow_all"] == nil {
+				t.Fatal("OAuth clients must reach Auth without an API key")
+			}
+		}
+		if enabled {
+			for _, path := range []string{
+				"/auth/v1/oauth/authorizations/test",
+				"/auth/v1/admin/oauth/clients",
+				"/auth/v1/oauth/token/extra",
+				"/auth/v1/oauth/token/",
+				"/auth/v1/oauth/userinfo-extra",
+				"/auth/v1/oauth/clients/register/extra",
+			} {
+				route, found := matchRoute(routes, path)
+				if !found || route.Name != "auth-v1-protected" || route.Filters["envoy.filters.http.lua"].Disabled {
+					t.Errorf("%s must remain protected: %+v", path, route)
+				}
+			}
+		}
+	}
+}
+
+func TestGatewayTimeouts(t *testing.T) {
+	data := envoyTemplateData{
+		AuthCluster: envoyCluster{Enabled: true}, RestCluster: envoyCluster{Enabled: true},
+		StudioCluster: envoyCluster{Enabled: true}, StorageCluster: envoyCluster{Enabled: true},
+		RealtimeCluster: envoyCluster{Enabled: true}, MetaCluster: envoyCluster{Enabled: true},
+		FunctionsCluster: envoyCluster{Enabled: true},
+	}
+	manager := renderedConnectionManager(t, data)
+	if manager.StreamIdleTimeout != "300s" {
+		t.Fatalf("stream idle timeout = %q", manager.StreamIdleTimeout)
+	}
+	for _, route := range manager.RouteConfig.VirtualHosts[0].Routes {
+		if route.Route.Cluster == "functions" {
+			if route.Route.Timeout != "410s" || route.Route.IdleTimeout != "160s" {
+				t.Fatal("Functions must retain runtime-specific timeout ordering")
+			}
+		} else if route.Route.Timeout != "0s" || route.Route.IdleTimeout != "" {
+			t.Errorf("%s route must allow long active responses and inherit the stream idle timeout: %+v", route.Route.Cluster, route.Route)
 		}
 	}
 }
