@@ -28,6 +28,7 @@ ALTER USER service_role WITH PASSWORD :'pgpassword';
 ALTER USER supabase_admin WITH PASSWORD :'pgpassword';
 ALTER USER supabase_auth_admin WITH PASSWORD :'pgpassword';
 ALTER USER supabase_functions_admin WITH PASSWORD :'pgpassword';
+ALTER USER supabase_read_only_user WITH PASSWORD :'pgpassword';
 ALTER USER supabase_replication_admin WITH PASSWORD :'pgpassword';
 ALTER USER supabase_storage_admin WITH PASSWORD :'pgpassword';
 

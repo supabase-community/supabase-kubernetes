@@ -20,3 +20,6 @@ jobs:
         run: |
           go mod tidy
           make test
+
+      - name: Test password synchronization against PostgreSQL
+        run: go test -tags=integration ./internal/assets -run TestReadOnlyPasswordSync -count=1 -v
