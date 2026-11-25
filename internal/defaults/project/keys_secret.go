@@ -37,6 +37,9 @@ const (
 
 	// KeysSecretRealtimeDBEncKey is the Secret data key that holds the Realtime DB encryption key.
 	KeysSecretRealtimeDBEncKey = "realtime-db-enc-key"
+
+	// KeysSecretRealtimeReleaseCookie holds the shared Erlang distribution cookie.
+	KeysSecretRealtimeReleaseCookie = "realtime-release-cookie"
 )
 
 // KeysSecretName returns the name of the Keys Secret for a Project.
@@ -66,6 +69,12 @@ func KeysSecret(project *ResourceContext) (*corev1.Secret, error) {
 		return nil, fmt.Errorf("generating realtime db encryption key: %w", err)
 	}
 
+	// Hex encoding keeps the cookie below PostgreSQL's 63-byte LISTEN channel limit.
+	realtimeReleaseCookie, err := helper.GenerateRandomHex(28)
+	if err != nil {
+		return nil, fmt.Errorf("generating realtime release cookie: %w", err)
+	}
+
 	sc := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KeysSecretName(project),
@@ -74,10 +83,11 @@ func KeysSecret(project *ResourceContext) (*corev1.Secret, error) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			KeysSecretSecretKeyBase:    []byte(secretKeyBase),
-			KeysSecretCryptoKey:        []byte(cryptoKey),
-			KeysSecretVaultEncKey:      []byte(vaultEncKey),
-			KeysSecretRealtimeDBEncKey: []byte(realtimeDBEncKey),
+			KeysSecretSecretKeyBase:         []byte(secretKeyBase),
+			KeysSecretCryptoKey:             []byte(cryptoKey),
+			KeysSecretVaultEncKey:           []byte(vaultEncKey),
+			KeysSecretRealtimeDBEncKey:      []byte(realtimeDBEncKey),
+			KeysSecretRealtimeReleaseCookie: []byte(realtimeReleaseCookie),
 		},
 	}
 

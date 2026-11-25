@@ -178,7 +178,16 @@ func buildRealtimeEnvVars(project *ResourceContext, db *supabasev1alpha1.Resolve
 		helper.EnvVarFromSecret("SECRET_KEY_BASE", KeysSecretName(project), KeysSecretSecretKeyBase),
 		helper.EnvVarFromSecret("METRICS_JWT_SECRET", JWTSecretName(project), JWTSecretKey),
 		helper.EnvVar("ERL_AFLAGS", "-proto_dist inet_tcp"),
-		helper.EnvVar("DNS_NODES", "''"),
+		helper.EnvVarFromSecret("RELEASE_COOKIE", KeysSecretName(project), KeysSecretRealtimeReleaseCookie),
+		{
+			Name:      "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "status.podIP"}},
+		},
+		{
+			Name:      "GEN_RPC_SOCKET_IP",
+			ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "status.podIP"}},
+		},
+		helper.EnvVar("CLUSTER_STRATEGIES", "POSTGRES"),
 		helper.EnvVar("RLIMIT_NOFILE", "10000"),
 		helper.EnvVar("APP_NAME", "realtime"),
 		helper.EnvVar("SEED_SELF_HOST", "true"),

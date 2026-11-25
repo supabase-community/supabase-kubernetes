@@ -21,9 +21,10 @@ var KeysSecretName = projectdefaults.KeysSecretName
 var JWTSecretName = projectdefaults.JWTSecretName
 
 const (
-	KeysSecretRealtimeDBEncKey = projectdefaults.KeysSecretRealtimeDBEncKey
-	KeysSecretSecretKeyBase    = projectdefaults.KeysSecretSecretKeyBase
-	JWTSecretKey               = projectdefaults.JWTSecretKey
-	JWTSecretJWKS              = projectdefaults.JWTSecretJWKS
-	JWTSecretAnonKey           = projectdefaults.JWTSecretAnonKey
+	KeysSecretRealtimeDBEncKey      = projectdefaults.KeysSecretRealtimeDBEncKey
+	KeysSecretRealtimeReleaseCookie = projectdefaults.KeysSecretRealtimeReleaseCookie
+	KeysSecretSecretKeyBase         = projectdefaults.KeysSecretSecretKeyBase
+	JWTSecretKey                    = projectdefaults.JWTSecretKey
+	JWTSecretJWKS                   = projectdefaults.JWTSecretJWKS
+	JWTSecretAnonKey                = projectdefaults.JWTSecretAnonKey
 )

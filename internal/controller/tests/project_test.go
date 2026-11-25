@@ -268,7 +268,8 @@ var _ = Describe("Project Controller", func() {
 				keys := &corev1.Secret{}
 				g.Expect(k8sClient.Get(ctx, keysKey, keys)).To(Succeed())
 				g.Expect(keys.Data).NotTo(BeEmpty())
-				g.Expect(keys.Data).To(HaveLen(4))
+				g.Expect(keys.Data).To(HaveLen(5))
+				g.Expect(string(keys.Data[project.KeysSecretRealtimeReleaseCookie])).To(MatchRegexp("^[0-9a-f]{56}$"))
 			}, defaultTimeout, defaultPolling).Should(Succeed())
 		})
 
