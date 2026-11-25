@@ -23,3 +23,11 @@ spec:
       value: "true"
     - name: GOTRUE_SMS_AUTOCONFIRM
       value: "true"
+
+    # OAuth 2.1 server (opt-in)
+    # - name: GOTRUE_OAUTH_SERVER_ENABLED
+    #   value: "true"
+    # - name: GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH
+    #   value: "/oauth/consent"
+    # - name: GOTRUE_OAUTH_SERVER_ALLOW_DYNAMIC_REGISTRATION
+    #   value: "false"
