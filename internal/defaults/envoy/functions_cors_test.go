@@ -25,3 +25,40 @@ func TestFunctionsOwnTheirCORSPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestStudioCORSPolicyPreservesAuthentication(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		routes := renderedRoutes(t, envoyTemplateData{
+			StudioCluster:   envoyCluster{Enabled: enabled},
+			AuthCluster:     envoyCluster{Enabled: true},
+			RestCluster:     envoyCluster{Enabled: true},
+			StorageCluster:  envoyCluster{Enabled: true},
+			RealtimeCluster: envoyCluster{Enabled: true},
+			MetaCluster:     envoyCluster{Enabled: true},
+		})
+		studioRoutes := 0
+		for _, route := range routes {
+			disabled := route.Filters["envoy.filters.http.cors"].Disabled
+			if route.Route.Cluster != "studio" {
+				if disabled {
+					t.Fatalf("API route lost CORS: %+v", route.Match)
+				}
+				continue
+			}
+			studioRoutes++
+			if !disabled {
+				t.Fatalf("Studio must not inherit API CORS: %+v", route.Match)
+			}
+			if route.Match.Prefix == "/" {
+				if route.Filters["envoy.filters.http.basic_auth"].Disabled {
+					t.Fatal("Studio must still require dashboard credentials")
+				}
+			} else if rules := route.Filters["envoy.filters.http.rbac"].RBAC.Rules; rules.Action != "DENY" || rules.Policies["deny_all"] == nil {
+				t.Fatal("MCP must remain blocked")
+			}
+		}
+		if (enabled && studioRoutes != 3) || (!enabled && studioRoutes != 0) {
+			t.Fatalf("Studio enabled=%t: got %d routes", enabled, studioRoutes)
+		}
+	}
+}
