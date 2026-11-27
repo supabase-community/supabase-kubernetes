@@ -143,3 +143,44 @@ func checkVectorInterpolationOverride(t *testing.T, ctx context.Context, c clien
 	}
 	expectEnvValue(t, ds, "VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION", "false")
 }
+
+func TestVectorCollectsComponentsWithExternalDatabase(t *testing.T) {
+	ctx := context.Background()
+	p := logsProject()
+	p.Spec.DatabaseRef = core.DatabaseRef{Kind: "ExternalDatabase", Name: "external"}
+	db := &core.ExternalDatabase{ObjectMeta: metav1.ObjectMeta{Name: "external", Namespace: p.Namespace}, Spec: core.ExternalDatabaseSpec{Host: "postgres.example.com", Port: 5432, DBName: "postgres", User: "supabase_admin", PasswordRef: core.SecretKeyRef{Name: "external-postgres", Key: "password"}}}
+	a := &core.Analytics{ObjectMeta: metav1.ObjectMeta{Name: "logs", Namespace: p.Namespace}, Spec: core.AnalyticsSpec{ProjectRef: corev1.LocalObjectReference{Name: p.Name}}}
+	v := &core.Vector{ObjectMeta: metav1.ObjectMeta{Name: "collector", Namespace: p.Namespace, UID: "vector-uid"}, Spec: core.VectorSpec{ProjectRef: corev1.LocalObjectReference{Name: p.Name}}}
+	auth := &core.Auth{ObjectMeta: metav1.ObjectMeta{Name: "auth", Namespace: p.Namespace}, Spec: core.AuthSpec{ProjectRef: corev1.LocalObjectReference{Name: p.Name}}}
+	state := defaults.NewContext(p)
+	state.Names["Analytics"] = a.Name
+	keys, err := analyticsdefaults.AnalyticsAuthSecret(state, &core.ResolvedDatabase{Host: db.Spec.Host, Port: db.Spec.Port, DBName: db.Spec.DBName, User: db.Spec.User, PasswordRef: db.Spec.PasswordRef}, "password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := logsClient(t, p, db, a, v, auth, keys)
+	r := &vectorcontroller.Reconciler{Client: c, Scheme: c.Scheme()}
+	if _, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(v)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Get(ctx, client.ObjectKeyFromObject(v), v); err != nil {
+		t.Fatal(err)
+	}
+	for _, cond := range v.Status.Conditions {
+		if cond.Reason == "DiscoveryFailed" {
+			t.Fatalf("discovery failed with an ExternalDatabase: %s", cond.Message)
+		}
+	}
+	cm := &corev1.ConfigMap{}
+	key := client.ObjectKey{Namespace: p.Namespace, Name: "collector-vector"}
+	if err := c.Get(ctx, key, cm); err != nil {
+		t.Fatal(err)
+	}
+	cfg := cm.Data["vector.yml"]
+	if !strings.Contains(cfg, "auth_host:") || strings.Contains(cfg, "db_host:") {
+		t.Fatal("expected a source for the components and none for the database")
+	}
+	if err := c.Get(ctx, key, &appsv1.DaemonSet{}); err != nil {
+		t.Fatal(err)
+	}
+}

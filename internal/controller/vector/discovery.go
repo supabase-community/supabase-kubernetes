@@ -2,6 +2,7 @@ package vector
 
 import (
 	"context"
+	"fmt"
 
 	core "github.com/supabase-community/supabase-kubernetes/api/v1alpha1"
 	"github.com/supabase-community/supabase-kubernetes/internal/controller/component"
@@ -41,10 +42,18 @@ func (r *Reconciler) targets(ctx context.Context, p *core.Project) ([]vectordefa
 		labels["app.kubernetes.io/managed-by"] = "supabase-operator"
 		targets = append(targets, vectordefaults.Target{Name: d.suffix, Container: d.container, AppName: d.app, Labels: labels})
 	}
-	db := &core.SingleDatabase{}
-	if err := r.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: p.Spec.DatabaseRef.Name}, db); err != nil {
-		return nil, err
+	switch p.Spec.DatabaseRef.Kind {
+	case "SingleDatabase":
+		db := &core.SingleDatabase{}
+		if err := r.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: p.Spec.DatabaseRef.Name}, db); err != nil {
+			return nil, err
+		}
+		targets = append(targets, vectordefaults.Target{Name: "db", Container: "postgres", AppName: "supabase-db", Labels: singledatabase.PostgresLabels(db)})
+	case "ExternalDatabase":
+		// The operator runs no Postgres pod for an ExternalDatabase, so there are no database logs to collect here;
+		// the components' logs are still collected.
+	default:
+		return nil, fmt.Errorf("unsupported database kind %q", p.Spec.DatabaseRef.Kind)
 	}
-	targets = append(targets, vectordefaults.Target{Name: "db", Container: "postgres", AppName: "supabase-db", Labels: singledatabase.PostgresLabels(db)})
 	return targets, nil
 }
